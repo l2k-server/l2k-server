@@ -1,0 +1,16 @@
+armor:
+  id: 2495
+  name: Chain Shield
+  type: Shield
+  grade: C
+  weight: 1750
+  price: 133_000
+  isSellable: true
+  isDroppable: true
+  isExchangeable: true
+  isDestroyable: true
+  crystalCount: 41
+  stats:
+    shieldDef: 166
+    shieldDefRate: 20
+    evasion: -8

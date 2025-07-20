@@ -1,0 +1,7 @@
+town:
+  id: 18
+  name: Primeval Isle Wharf
+  territories:
+    - 20_17
+  spawnPositions:
+    - { x: 10468, y: -24569, z: -3650 }

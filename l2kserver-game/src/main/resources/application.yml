@@ -1,0 +1,21 @@
+spring:
+  application.name: l2k-server-game
+  profiles.active: default
+  config.import:
+    - file:./config/characters.yml
+    - file:./config/chat.yml
+    - file:./config/database.yml
+    - file:./config/drop.yml
+    - file:./config/pvp.yml
+    - file:./config/server.yml
+  datasource:
+    username: ${database.user}
+    password: ${database.password}
+    url: jdbc:postgresql://${database.url}
+    driverClassName: org.postgresql.Driver
+
+logging:
+  pattern.console: "%d{HH:mm:ss.SSS} [%thread] %highlight(%-5level) %cyan(%logger{36}) - %X{remote}%msg%n"
+  level:
+    root: INFO
+    com.hazelcast.system.logo: OFF

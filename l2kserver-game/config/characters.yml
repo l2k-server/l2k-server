@@ -1,0 +1,25 @@
+################################################################################
+#       Characters Configuration - deletion time, name validation, etc.        #
+################################################################################
+
+# Regular expression for character name validation.
+# Default: ^.*{3,16}$ (from 3 to 16 any characters)
+characters.newCharacterNameRegexp: ^.{3,16}$
+
+# How much time should proceed before character deletion.
+# Default: 604_800_000 (7 days)
+characters.deletionTimeMs: 604_800_000
+
+# How much time should proceed before new character deletion.
+# New is character, whose level is lower than 10
+# Default: 300_000 (5 minutes)
+characters.newCharacterDeletionTimeMs: 300_000
+
+# Percent of CP is restored on character respawn
+characters.respawnCpRate: 0
+
+# Percent of HP is restored on character respawn
+characters.respawnHpRate: 0.7
+
+# Percent of MP is restored on character respawn
+characters.respawnMpRate: 0.7

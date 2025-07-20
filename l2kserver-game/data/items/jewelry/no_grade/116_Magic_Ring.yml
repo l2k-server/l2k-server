@@ -1,0 +1,14 @@
+jewelry:
+  id: 116
+  name: Magic Ring
+  type: Ring
+  grade: No Grade
+  weight: 150
+  price: 33
+  isSellable: true
+  isDroppable: true
+  isExchangeable: true
+  isDestroyable: true
+  crystalCount: 0
+  stats:
+    mDef: 7

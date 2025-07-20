@@ -1,0 +1,13 @@
+#######################################################################################################
+#                           Database Configuration - url, password and user                           #
+#######################################################################################################
+
+# Postgres database url
+# Format: {database host}:{database port}/{database name}
+database.url: localhost:32795/l2k_login_db
+
+# Database User
+database.user:  user
+
+# Database Password
+database.password: password

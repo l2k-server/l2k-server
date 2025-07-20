@@ -1,0 +1,14 @@
+armor:
+  id: 374
+  name: Armor of Nightmare
+  type: Upper and Lower body/Heavy
+  grade: A
+  weight: 7960
+  price: 10_300_000
+  isSellable: true
+  isDroppable: true
+  isExchangeable: true
+  isDestroyable: true
+  crystalCount: 704
+  stats:
+    pDef: 293

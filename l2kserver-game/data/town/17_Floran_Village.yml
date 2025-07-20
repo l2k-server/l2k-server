@@ -1,0 +1,6 @@
+town:
+  id: 17
+  name: Floran Village
+  spawnPositions:
+    - { x: 16942, y: 170069, z: -3488 }
+    - { x: 18270, y: 170335, z: -3496 }

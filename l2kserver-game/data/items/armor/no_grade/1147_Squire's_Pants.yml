@@ -1,0 +1,14 @@
+armor:
+  id: 1147
+  name: Squire's Pants
+  type: Lower body/Light
+  grade: No Grade
+  weight: 1750
+  price: 6
+  isSellable: false
+  isDroppable: false
+  isExchangeable: false
+  isDestroyable: true
+  crystalCount: 0
+  stats:
+    pDef: 20

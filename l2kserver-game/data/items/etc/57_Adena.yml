@@ -1,0 +1,11 @@
+item:
+  id: 57
+  name: Adena
+  grade: No Grade
+  weight: 0
+  price: 1
+  isSellable: false
+  isDroppable: true
+  isExchangeable: true
+  isDestroyable: true
+  isStackable: true

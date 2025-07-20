@@ -1,0 +1,14 @@
+armor:
+  id: 41
+  name: Cloth Cap
+  type: Headgear
+  grade: No Grade
+  weight: 660
+  price: 55
+  isSellable: true
+  isDroppable: true
+  isExchangeable: true
+  isDestroyable: true
+  crystalCount: 0
+  stats:
+    pDef: 13

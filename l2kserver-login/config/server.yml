@@ -1,0 +1,43 @@
+#######################################################################################################
+#                             Server Configuration - port, timeouts, etc.                             #
+#######################################################################################################
+
+# LoginServer port, on which the server will listen to players' connections
+# Default: 2106
+server.port: 2106
+
+# Timeout of reading incoming packets
+# Default: 1000
+server.readTimeout: 1000
+
+# Time for user to connect to game server after authorization
+# Default: 5000
+server.connectToGameServerTimeout: 5000
+
+# Automatic registration if login is free
+server.automaticRegistrationEnabled: true
+
+# Registered gameservers
+# Required settings:
+# - name - Gameserver name. It also should be passed to GameServer credentials
+# - id - Number from 1 to 127
+# - ip - Gameserver IPv4 address (example: 127.0.0.1)
+# - port - Server port
+# Optional settings:
+# - ageLimit - 0, 15 or 18 (by default 0)
+# - isPvp - true or false (by default false)
+# - maxPlayers - How many players are allowed to play simultaneously on your server (by default 100)
+# - accessLevel - Required minimum access level to join server (by default 0)
+server.gameservers:
+  - name: Gameserver-1
+    id: 1
+    ip: 127.0.0.1
+    port: 7777
+    ageLimit: 15
+    isPvp: false
+    maxPlayers: 250
+    accessLevel: 0
+  - name: Gameserver-2
+    id: 2
+    ip: 127.0.0.2
+    port: 8888

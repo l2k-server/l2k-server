@@ -1,0 +1,22 @@
+skill:
+  skillId: 3
+  skillName: Power Strike
+  skillType: Active
+  isMagic: false
+  targetType: Enemy
+  reuseDelay: 13_000
+  castTime: 1_080
+  castRange: 40
+  effectRange: 400
+  requirements:
+    weaponTypes:
+      - Sword/One handed
+      - Sword/Two handed
+      - Blunt/One handed
+      - Blunt/Two handed
+  maxSkillLevel: 9
+  consumes:
+    mp: [10, 10, 11, 13, 13, 14, 17, 18, 19]
+  effects:
+    - effectType: Physical damage
+      power: [25, 27, 30, 39, 42, 46, 60, 65, 70]

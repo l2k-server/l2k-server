@@ -1,0 +1,14 @@
+armor:
+  id: 1146
+  name: Squire's Shirt
+  type: Upper body/Light
+  grade: No Grade
+  weight: 3301
+  price: 26
+  isSellable: false
+  isDroppable: false
+  isExchangeable: false
+  isDestroyable: true
+  crystalCount: 0
+  stats:
+    pDef: 33

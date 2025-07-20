@@ -1,0 +1,23 @@
+weapon:
+  id: 13
+  name: Short Bow
+  type: Bow
+  grade: No Grade
+  soulshotUsed: 1
+  spiritshotUsed: 1
+  weight: 1950
+  price: 768
+  isSellable: true
+  isDroppable: true
+  isExchangeable: true
+  isDestroyable: true
+  crystalCount: 0
+  manaCost: 1
+  consumes:
+    id: 17
+    name: Wooden Arrow
+  stats:
+    pAtk: 16
+    mAtk: 6
+    atkSpd: 293
+    critRate: 120

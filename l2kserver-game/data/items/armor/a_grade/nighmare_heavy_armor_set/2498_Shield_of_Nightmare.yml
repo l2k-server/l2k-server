@@ -1,0 +1,16 @@
+armor:
+  id: 2498
+  name: Shield of Nightmare
+  type: Shield
+  grade: A
+  weight: 1180
+  price: 1_422_000
+  isSellable: true
+  isDroppable: true
+  isExchangeable: true
+  isDestroyable: true
+  crystalCount: 114
+  stats:
+    shieldDef: 256
+    shieldDefRate: 20
+    evasion: -8

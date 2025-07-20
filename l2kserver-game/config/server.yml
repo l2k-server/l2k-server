@@ -1,0 +1,17 @@
+################################################################################
+#                 Server Configuration - port, timeouts, etc.                  #
+################################################################################
+
+# GameServer name (should be the same as in LoginServer gameServers settings)
+server.name: Gameserver-1
+
+# GameServer port, on which the server will listen to players' connections
+# Default: 7777
+server.port: 7777
+
+# Timeout of reading incoming packets
+# Default: 1000
+server.readTimeout: 1000
+
+# API protocol version. For Interlude chronicles default is 746
+server.protocolVersion: 746

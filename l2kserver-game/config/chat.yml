@@ -1,0 +1,7 @@
+################################################################################
+#               Chat Configuration - chat ranges, toggles, etc.                #
+################################################################################
+
+# Range, in which messages will be sent using General chat
+# Default: 1250
+chat.general_chat_range: 1250
