@@ -1,4 +1,4 @@
-name: Build on pull request
+name: "Build on pull request"
 
 on:
   pull_request:
@@ -19,3 +19,6 @@ jobs:
 
       - name: Build
         run: bash gradlew build
+      - name: Force status update
+        if: always()
+        run: echo "Workflow completed"
