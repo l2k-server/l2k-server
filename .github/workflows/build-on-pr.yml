@@ -1,11 +1,10 @@
-name: "Build on pull request"
+name: "Build Verification"
 
-on:
-  pull_request:
-    branches: [ "main", "release/*" ]
+on: [pull_request]
 
 jobs:
   build:
+    name: "Build Verification"
     runs-on: ubuntu-latest
 
     steps:
@@ -19,6 +18,3 @@ jobs:
 
       - name: Build
         run: bash gradlew build
-      - name: Force status update
-        if: always()
-        run: echo "Workflow completed"
