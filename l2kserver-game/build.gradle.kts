@@ -96,7 +96,7 @@ tasks.getByName<Jar>("jar") { enabled = false }
 
 tasks.register<Zip>("packDistribution") {
     dependsOn(":build")
-    group = "build"
+    group = "l2k"
     description = "Pack distribution to zip archive"
 
     archiveFileName.set("${project.name}-${project.version}.zip")
