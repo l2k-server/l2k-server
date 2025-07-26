@@ -2,7 +2,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 
 plugins {
-    kotlin("jvm") version "2.0.21"
+    kotlin("jvm")
     kotlin("plugin.spring") version "2.0.21"
     id("io.gitlab.arturbosch.detekt") version "1.23.8"
     id("org.springframework.boot") version "3.4.4"
@@ -60,7 +60,7 @@ tasks.test {
 }
 
 detekt {
-    config.setFrom("detekt.yml")
+    config.setFrom(rootDir.resolve("detekt.yml"))
 }
 
 kotlin {
