@@ -3,7 +3,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 
 plugins {
-    kotlin("jvm") version "2.0.21"
+    kotlin("jvm")
     kotlin("plugin.spring") version "2.0.21"
     id("io.gitlab.arturbosch.detekt") version "1.23.8"
     id("org.springframework.boot") version "3.4.4"
@@ -62,6 +62,9 @@ dependencies {
     // L2J
     implementation("org.bitbucket.l2jserver:l2j-server-geo-driver:2.6.4.1")
 
+    // L2K plugin api
+    implementation(project(":l2kserver-plugin-api"))
+
     // Test
     testImplementation(kotlin("test"))
     testImplementation("org.springframework.boot:spring-boot-starter-test")
@@ -80,7 +83,7 @@ tasks.test {
 }
 
 detekt {
-    config.setFrom("detekt.yml")
+    config.setFrom(rootDir.resolve("detekt.yml"))
 }
 
 kotlin {
@@ -105,4 +108,5 @@ tasks.register<Zip>("packDistribution") {
     from(layout.buildDirectory.dir("libs")) { into("/") }
     from(layout.projectDirectory.dir("config")) { into("/config") }
     from(layout.projectDirectory.dir("data")) { into("/data") }
+    from(layout.projectDirectory.dir("plugins")) { into("/plugins") }
 }

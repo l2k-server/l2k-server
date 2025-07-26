@@ -2,5 +2,4 @@
 .idea
 .gradle/
 
-/l2kserver-game/build/
-/l2kserver-login/build/
+**/build
