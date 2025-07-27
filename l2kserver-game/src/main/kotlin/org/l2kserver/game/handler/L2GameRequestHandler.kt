@@ -142,7 +142,7 @@ class L2GameRequestHandler(
 
     suspend fun handleDisconnect() {
         authorizationService.logOut()
-        characterService.exitGame()
+        characterService.disconnectGame()
 
         sessionContext().close()
     }

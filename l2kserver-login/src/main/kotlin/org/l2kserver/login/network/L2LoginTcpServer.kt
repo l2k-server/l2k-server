@@ -81,7 +81,7 @@ class L2LoginTcpServer(
                             readChannel.readByteArray(dataSize - Short.SIZE_BYTES)
                         }
 
-                        val request = RequestPacket.fromByteArray(
+                        val request = RequestPacket(
                             data, blowfishKey, keyPair.private as RSAPrivateKey
                         )
 

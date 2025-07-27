@@ -16,6 +16,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.ClosedReceiveChannelException
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
@@ -88,6 +89,8 @@ class L2GameTcpServer(
                 } finally {
                     log.info("Disconnected {}", socket.remoteAddress)
                     l2GameRequestHandler.handleDisconnect()
+
+                    delay(3000) // wait for 3 seconds to send remaining packets
                     sendingJob.cancel()
                     socket.close()
                 }

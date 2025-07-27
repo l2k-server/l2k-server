@@ -48,7 +48,9 @@ class GameObjectDAO: Iterable<GameObject> {
         "No actor found by id = '$id'"
     }
 
-    fun findCharacterById(id: Int) = requireNotNull(objectMap[id] as? PlayerCharacter) {
+    fun findCharacterByIdOrNull(id: Int) = objectMap[id] as? PlayerCharacter
+
+    fun findCharacterById(id: Int) = requireNotNull(findCharacterByIdOrNull(id)) {
         "No character found by id=$id"
     }
 

@@ -17,7 +17,7 @@ repositories {
     maven("https://jitpack.io")
 }
 
-extra["testcontainersVersion"] = "1.21.0"
+extra["testcontainersVersion"] = "1.21.3"
 dependencyManagement {
     imports {
         mavenBom("org.testcontainers:testcontainers-bom:${property("testcontainersVersion")}")
@@ -29,7 +29,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter")
 
     // Ktor
-    implementation("io.ktor:ktor-network:3.1.2")
+    implementation("io.ktor:ktor-network:3.2.2")
 
     //Jackson
     implementation("com.fasterxml.jackson.core:jackson-core")
@@ -46,8 +46,8 @@ dependencies {
     implementation("org.jetbrains.exposed:exposed-java-time:0.61.0")
     runtimeOnly("org.postgresql:postgresql")
 
-    implementation("org.flywaydb:flyway-core:11.7.2")
-    runtimeOnly("org.flywaydb:flyway-database-postgresql:11.7.2")
+    implementation("org.flywaydb:flyway-core:11.10.4")
+    runtimeOnly("org.flywaydb:flyway-database-postgresql:11.10.4")
 
     // Test
     testImplementation(kotlin("test"))
