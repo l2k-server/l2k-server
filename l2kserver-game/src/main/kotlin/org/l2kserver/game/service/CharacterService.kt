@@ -351,52 +351,63 @@ class CharacterService(
 
         log.debug("Player {} is exiting to characters menu", accountName)
 
-        val characterId = context.getCharacterId()
-        check(gameObjectDAO.findByIdOrNull(characterId) != null) { "Player $accountName is not in game" }
+        val character = gameObjectDAO.findCharacterById(context.getCharacterId())
 
-        if (!exitWorld()) return
+        if (character.canExitWorld()) {
+            removeFromGameWorld(character)
 
-        context.setCharacterId(null)
+            context.setCharacterId(null)
+            send(RestartResponse)
+            sendCharactersList()
 
-        send(RestartResponse)
-        sendCharactersList()
-
-        log.info("Player {} has quit to characters menu", accountName)
+            log.info("Player {} has quit to characters menu", accountName)
+        }
+        else {
+            log.debug("Player {} cannot quit to characters menu", accountName)
+        }
     }
 
     suspend fun exitGame() {
         val context = sessionContext()
-        log.debug("Player of session {} is exiting game", context.sessionId)
+        val accountName = context.getAccountName()
 
-        if (exitWorld()) {
+        log.debug("Player {} is exiting game", accountName)
+
+        val character = gameObjectDAO.findCharacterById(context.getCharacterId())
+
+        if (character.canExitWorld()) {
             send(ExitGameResponse)
-            log.info("Player {} has quit game", context.getAccountName())
-
             //TODO On windows coroutine is cancelled too quickly and ExitGameResponse isn't sent
             // https://github.com/orgs/l2kserver/projects/1/views/3?pane=issue&itemId=98027933
             coroutineContext.cancel()
-            return
+            log.info("Player {} has quit game", context.getAccountName())
         }
     }
 
-    /**
-     * Exit game world (if the conditions allow)
-     *
-     * @return true if exited world, false - if character cannot exit
-     */
-    private suspend fun exitWorld(): Boolean {
+    suspend fun disconnectGame() {
         val character = gameObjectDAO.findCharacterById(sessionContext().getCharacterId())
+        removeFromGameWorld(character)
+    }
 
-        //TODO Other checks if player cannot leave game
-        if (character.isFighting) {
-            send(SystemMessageResponse.CannotRestartInCombat)
-            return false
-        }
-
+    /**
+     * Removes [character] from game world and stop all the related jobs
+     */
+    suspend fun removeFromGameWorld(character: PlayerCharacter) {
         broadcastPacket(DeleteObjectResponse(character.id), character)
         actorStateService.stopUpdatingStates(character)
         asyncTaskService.cancelActionByActorId(character.id)
         gameObjectDAO.deleteById(character.id)
+    }
+
+    /**
+     * Checks if player can exit game world
+     */
+    private suspend fun PlayerCharacter.canExitWorld(): Boolean {
+        //TODO Other checks if player cannot leave game
+        if (this.isFighting) {
+            send(SystemMessageResponse.CannotRestartInCombat)
+            return false
+        }
 
         return true
     }

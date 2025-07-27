@@ -6,7 +6,7 @@ plugins {
     kotlin("jvm")
     kotlin("plugin.spring") version "2.0.21"
     id("io.gitlab.arturbosch.detekt") version "1.23.8"
-    id("org.springframework.boot") version "3.4.4"
+    id("org.springframework.boot") version "3.5.4"
     id("io.spring.dependency-management") version "1.1.7"
 }
 
@@ -18,7 +18,7 @@ repositories {
     maven("https://jitpack.io")
 }
 
-extra["testcontainersVersion"] = "1.21.0"
+extra["testcontainersVersion"] = "1.21.3"
 dependencyManagement {
     imports {
         mavenBom("org.testcontainers:testcontainers-bom:${property("testcontainersVersion")}")
@@ -30,10 +30,10 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter")
 
     // Ktor
-    implementation("io.ktor:ktor-network:3.1.2")
+    implementation("io.ktor:ktor-network:3.2.2")
 
     // Kotlin
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-slf4j:1.10.1")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-slf4j:1.10.2")
 
     // Kotlin scripting (for AI)
     implementation("org.jetbrains.kotlin:kotlin-scripting-common")
@@ -53,8 +53,8 @@ dependencies {
     implementation("org.jetbrains.exposed:exposed-java-time:0.61.0")
     implementation("org.postgresql:postgresql")
 
-    implementation("org.flywaydb:flyway-core:11.7.2")
-    runtimeOnly("org.flywaydb:flyway-database-postgresql:11.7.2")
+    implementation("org.flywaydb:flyway-core:11.10.4")
+    runtimeOnly("org.flywaydb:flyway-database-postgresql:11.10.4")
 
     // Hazelcast (for sharing data with LoginServer)
     implementation("com.hazelcast:hazelcast:5.5.0")
