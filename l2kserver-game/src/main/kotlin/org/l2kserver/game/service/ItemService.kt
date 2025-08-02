@@ -39,7 +39,7 @@ import org.l2kserver.game.model.store.PrivateStore
 import org.l2kserver.game.network.session.send
 import org.l2kserver.game.network.session.sendTo
 import org.l2kserver.game.network.session.sessionContext
-import org.l2kserver.game.repository.GameObjectDAO
+import org.l2kserver.game.repository.GameObjectRepository
 import org.springframework.stereotype.Service
 import kotlin.math.roundToInt
 import kotlin.ranges.random
@@ -56,7 +56,7 @@ class ItemService(
     private val asyncTaskService: AsyncTaskService,
     private val moveService: MoveService,
 
-    override val gameObjectDAO: GameObjectDAO,
+    override val gameObjectRepository: GameObjectRepository,
 ) : AbstractService() {
 
     override val log = logger()
@@ -92,7 +92,7 @@ class ItemService(
      * Handles request to take off item
      */
     suspend fun takeOffItem(request: TakeOffItemRequest) {
-        val character = gameObjectDAO.findCharacterById(sessionContext().getCharacterId())
+        val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
         val item = checkNotNull(character.paperDoll[request.slot]) {
             "Character has no item equipped at slot ${request.slot}"
         }
@@ -154,7 +154,7 @@ class ItemService(
             }
             else -> {
                 val scatteredItemPosition = geoDataService.getAvailableTargetPosition(character.position, request.position)
-                val scatteredItem = gameObjectDAO.save(item.toScatteredItem(scatteredItemPosition, request.amount))!!
+                val scatteredItem = gameObjectRepository.save(item.toScatteredItem(scatteredItemPosition, request.amount))!!
                 broadcastPacket(DroppedItemResponse(character.id, scatteredItem), position = character.position)
                 deleteItem(item, request.amount, character)
                 log.info("Character '{}' has dropped item '{}'", character.name, item)
@@ -182,7 +182,7 @@ class ItemService(
             val calculatedPosition = Position(dropX, dropY, dropper.position.z)
             val dropPosition = geoDataService.getAvailableTargetPosition(dropper.position, calculatedPosition)
 
-            gameObjectDAO.save(item.toScatteredItem(dropPosition, itemsInStackAmount))
+            gameObjectRepository.save(item.toScatteredItem(dropPosition, itemsInStackAmount))
         }.filterNotNull()
 
         scatteredItems.forEach { scatteredItem ->
@@ -209,7 +209,7 @@ class ItemService(
 
         //TODO Binding item on being dropped to it's owner
         //TODO Checks if player can pick up this item
-        val deletedScatteredItem = gameObjectDAO.delete(scatteredItem) ?: run {
+        val deletedScatteredItem = gameObjectRepository.delete(scatteredItem) ?: run {
             send(ActionFailedResponse)
             return@launchAction
         }
@@ -424,7 +424,7 @@ class ItemService(
      */
     private suspend fun getItemAndOwner(itemId: Int): Pair<PlayerCharacter, Item> = newSuspendedTransaction {
         val context = sessionContext()
-        val character = gameObjectDAO.findCharacterById(context.getCharacterId())
+        val character = gameObjectRepository.findCharacterById(context.getCharacterId())
         val item = requireNotNull(Item.findById(itemId)) {
             "Player with characterId=${character.id} tried to use non-existing item!"
         }

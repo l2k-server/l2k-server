@@ -25,7 +25,7 @@ data class SelectCharacterResponse(
 
         putInt(selectedPlayerCharacter.gender.ordinal)
         putInt(selectedPlayerCharacter.race.ordinal)
-        putInt(selectedPlayerCharacter.characterClass.name.id)
+        putInt(selectedPlayerCharacter.characterClass.id)
 
         putInt(1)
 

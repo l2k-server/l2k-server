@@ -2,12 +2,12 @@ package org.l2kserver.game.data.npc
 
 import org.l2kserver.game.model.actor.CollisionBox
 import org.l2kserver.game.model.actor.npc.NpcRace
-import org.l2kserver.game.model.actor.npc.NpcTemplate
+import org.l2kserver.game.model.actor.npc.L2kNpcTemplate
 import org.l2kserver.game.model.actor.npc.SpawnData
 import org.l2kserver.game.model.actor.position.SpawnPosition
 import org.l2kserver.game.model.stats.Stats
 
-val GRAND_MASTER_ROIEN = NpcTemplate(
+val GRAND_MASTER_ROIEN = L2kNpcTemplate(
     id = 1_030_008,
     name = "Roien",
     title = "Grand Master",

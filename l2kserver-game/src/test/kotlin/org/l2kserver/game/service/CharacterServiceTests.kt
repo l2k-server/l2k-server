@@ -22,7 +22,7 @@ import org.awaitility.kotlin.await
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.junit.jupiter.api.assertThrows
-import org.l2kserver.game.data.character.HUMAN_FIGHTER_CLASS
+import org.l2kserver.game.data.character.classes.HUMAN_FIGHTER
 import org.l2kserver.game.domain.PlayerCharacterEntity
 import org.l2kserver.game.domain.Shortcut
 import org.l2kserver.game.domain.LearnedSkillEntity
@@ -34,7 +34,6 @@ import org.l2kserver.game.handler.dto.response.InventoryResponse
 import org.l2kserver.game.handler.dto.response.RestartResponse
 import org.l2kserver.game.handler.dto.response.ShortcutPanelResponse
 import org.l2kserver.game.handler.dto.response.SystemMessageResponse
-import org.l2kserver.game.model.actor.PlayerCharacter
 import org.l2kserver.game.model.actor.character.CharacterRace
 import org.l2kserver.game.model.actor.character.Gender
 import org.l2kserver.game.model.item.Item
@@ -55,7 +54,6 @@ class CharacterServiceTests(
         val testCharacterName = "Vitalya"
         val testRace = CharacterRace.HUMAN
         val testGender = Gender.MALE
-        val testClassName = HUMAN_FIGHTER_CLASS.name
         val testHairColor = 2
         val testHairStyle = 1
         val testFaceType = 3
@@ -67,7 +65,7 @@ class CharacterServiceTests(
                     characterName = testCharacterName,
                     raceId = testRace.ordinal,
                     genderId = testGender.ordinal,
-                    classId = testClassName.id,
+                    classId = HUMAN_FIGHTER.id,
                     hairStyle = testHairStyle,
                     hairColor = testHairColor,
                     faceType = testFaceType,
@@ -79,7 +77,7 @@ class CharacterServiceTests(
 
         assertEquals(testCharacterName, response.playerCharacters[0].name)
         assertEquals(testRace, response.playerCharacters[0].race)
-        assertEquals(testClassName, response.playerCharacters[0].characterClass.name)
+        assertEquals(HUMAN_FIGHTER, response.playerCharacters[0].characterClass)
         assertEquals(testGender, response.playerCharacters[0].gender)
         assertEquals(testHairColor, response.playerCharacters[0].hairColor)
         assertEquals(testHairStyle, response.playerCharacters[0].hairStyle)
@@ -156,7 +154,7 @@ class CharacterServiceTests(
 
         withContext(context) { characterService.restoreCharacter(RestoreCharacterRequest(0)) }
 
-        assertNull(newSuspendedTransaction { PlayerCharacter.findById(characterToDelete.id).deletionDate })
+        assertNull(newSuspendedTransaction { playerCharacterRepository.findById(characterToDelete.id)!!.deletionDate })
     }
 
     @Test
@@ -215,7 +213,7 @@ class CharacterServiceTests(
 
         val characterResponse = assertIs<FullCharacterResponse>(context.responseChannel.receive())
         assertEquals(character.id, characterResponse.playerCharacter.id)
-        assertNotNull(gameObjectDAO.findByIdOrNull(character.id))
+        assertNotNull(gameObjectRepository.findByIdOrNull(character.id))
 
         assertIs<InventoryResponse>(context.responseChannel.receive())
         assertIs<ShortcutPanelResponse>(context.responseChannel.receive())
@@ -269,8 +267,8 @@ class CharacterServiceTests(
         faceType: Int = 0
     ) = CreateCharacterRequest(
         characterName = characterName,
-        raceOrdinal = raceId,
-        genderOrdinal = genderId,
+        raceId = raceId,
+        genderId = genderId,
         classId = classId,
         hairColor = hairColor,
         hairStyle = hairStyle,

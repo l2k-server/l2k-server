@@ -17,14 +17,14 @@ import org.l2kserver.game.handler.dto.response.SocialActionResponse
 import org.l2kserver.game.handler.dto.response.StatusAttribute
 import org.l2kserver.game.handler.dto.response.UpdateStatusResponse
 import org.l2kserver.game.model.actor.Actor
-import org.l2kserver.game.model.actor.NpcImpl
+import org.l2kserver.game.model.actor.Npc
 import org.l2kserver.game.model.actor.PlayerCharacter
 import org.l2kserver.game.model.actor.ScatteredItem
 import org.l2kserver.game.model.actor.MoveType
 import org.l2kserver.game.model.actor.Posture
 import org.l2kserver.game.network.session.send
 import org.l2kserver.game.network.session.sessionContext
-import org.l2kserver.game.repository.GameObjectDAO
+import org.l2kserver.game.repository.GameObjectRepository
 import org.springframework.stereotype.Service
 import kotlin.math.roundToInt
 
@@ -42,7 +42,7 @@ class ActionService(
     private val asyncTaskService: AsyncTaskService,
     private val moveService: MoveService,
 
-    override val gameObjectDAO: GameObjectDAO
+    override val gameObjectRepository: GameObjectRepository
 ): AbstractService() {
     override val log = logger()
 
@@ -50,8 +50,8 @@ class ActionService(
      * Handles request to attack
      */
     suspend fun attackTarget(attackRequest: AttackRequest) {
-        val character = gameObjectDAO.findCharacterById(sessionContext().getCharacterId())
-        val target = gameObjectDAO.findActorById(attackRequest.targetId)
+        val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
+        val target = gameObjectRepository.findActorById(attackRequest.targetId)
 
         if (character.targetId != target.id) character.setTarget(target)
         else combatService.launchAttack(character, target)
@@ -61,19 +61,19 @@ class ActionService(
      * Handles left-click on some game object
      */
     suspend fun performAction(request: ActionRequest) {
-        val character = gameObjectDAO.findCharacterById(sessionContext().getCharacterId())
+        val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
         log.debug("Player '{}' left-clicked target with id='{}'", character, request.targetId)
 
         //Second click to the player's own character
         if (character.targetId == request.targetId && character.targetId == character.id)
             return
 
-        val target = gameObjectDAO.findByIdOrNull(request.targetId)
+        val target = gameObjectRepository.findByIdOrNull(request.targetId)
         when {
             target is ScatteredItem -> itemService.launchPickUp(character, target)
             target is Actor && target.id != character.targetId -> character.setTarget(target)
-            target is NpcImpl && target.isEnemyOf(character) -> combatService.launchAttack(character, target)
-            target is NpcImpl || target is PlayerCharacter && target.privateStore != null -> character.interactWith(target)
+            target is Npc && target.isEnemyOf(character) -> combatService.launchAttack(character, target)
+            target is Npc || target is PlayerCharacter && target.privateStore != null -> character.interactWith(target)
             target is PlayerCharacter && target.isEnemyOf(character) -> combatService.launchAttack(character, target)
             target is PlayerCharacter -> { send(ActionFailedResponse) } //TODO https://github.com/l2kserver/l2kserver-game/issues/25
             target == null -> {
@@ -87,12 +87,12 @@ class ActionService(
      * Cancels casting if character is casting or cancels target if character targets something
      */
     suspend fun cancelAction() {
-        val character = gameObjectDAO.findCharacterById(sessionContext().getCharacterId())
+        val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
 
         //TODO Cancel casting if character is casting
 
         character.targetId?.let {
-            val target = gameObjectDAO.findActorById(it)
+            val target = gameObjectRepository.findActorById(it)
             target.targetedBy.remove(character.id)
         }
 
@@ -104,7 +104,7 @@ class ActionService(
      * Handles request to perform some basic action - switching sit/stand, walk/run, summon actions...
      */
     suspend fun performBasicAction(request: BasicActionRequest) {
-        val character = gameObjectDAO.findCharacterById(sessionContext().getCharacterId())
+        val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
 
         when (request.action) {
             BasicAction.TOGGLE_SIT_STAND -> {
@@ -129,7 +129,7 @@ class ActionService(
      * Handles request to perform some social action - laugh, greetings, dancing, etc.
      */
     suspend fun performSocialAction(request: SocialActionRequest) {
-        val character = gameObjectDAO.findCharacterById(sessionContext().getCharacterId())
+        val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
 
         if (character.isParalyzed) {
             send(ActionFailedResponse)
@@ -158,7 +158,7 @@ class ActionService(
         if (!coroutineContext.isActive || !enoughCloseToInteract) return@launchAction
 
         when (target) {
-            is NpcImpl -> npcService.talkTo(target)
+            is Npc -> npcService.talkTo(target)
             is PlayerCharacter -> tradeService.showPrivateStoreOf(target)
         }
     }
@@ -172,7 +172,7 @@ class ActionService(
 
         when (targeted) {
             is PlayerCharacter -> send(SetTargetResponse(targeted.id))
-            is NpcImpl -> {
+            is Npc -> {
                 send(SetTargetResponse(targeted.id, this.level - targeted.level))
                 send(
                     UpdateStatusResponse(

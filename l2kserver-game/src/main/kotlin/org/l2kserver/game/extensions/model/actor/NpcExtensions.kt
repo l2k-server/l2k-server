@@ -1,13 +1,13 @@
 package org.l2kserver.game.extensions.model.actor
 
 import org.l2kserver.game.model.actor.position.Position
-import org.l2kserver.game.model.actor.NpcImpl
-import org.l2kserver.game.model.actor.npc.NpcTemplate
+import org.l2kserver.game.model.actor.Npc
+import org.l2kserver.game.model.actor.npc.L2kNpcTemplate
 import org.l2kserver.game.model.actor.position.Heading
 import org.l2kserver.game.model.actor.MoveType
 import org.l2kserver.game.model.actor.npc.SpawnedAt
 
-fun NpcTemplate.toNpc(id: Int, position: Position, heading: Heading, spawnedAt: SpawnedAt) = NpcImpl(
+fun L2kNpcTemplate.toNpc(id: Int, position: Position, heading: Heading, spawnedAt: SpawnedAt) = Npc(
     id = id,
     name = this.name,
     templateId = this.id,

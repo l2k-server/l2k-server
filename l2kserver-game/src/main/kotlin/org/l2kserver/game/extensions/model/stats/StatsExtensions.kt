@@ -1,7 +1,7 @@
 package org.l2kserver.game.extensions.model.stats
 
 import org.l2kserver.game.model.PaperDoll
-import org.l2kserver.game.model.actor.character.CharacterClass
+import org.l2kserver.game.model.actor.character.L2kCharacterClass
 import org.l2kserver.game.model.item.Slot
 import org.l2kserver.game.model.item.WeaponType
 import org.l2kserver.game.model.stats.BasicStats
@@ -20,7 +20,7 @@ private const val BOW_DEFAULT_ATTACK_RANGE = 450
  * @param paperDoll Equipped items
  * @param characterClass Character class - contains stats of empty slots
  */
-fun Stats.applyEquipment(paperDoll: PaperDoll, characterClass: CharacterClass): Stats {
+fun Stats.applyEquipment(paperDoll: PaperDoll, characterClass: L2kCharacterClass): Stats {
     var result = this
 
     var weaponStats = paperDoll.getWeapon()?.stats ?: characterClass.emptySlotStats[Slot.RIGHT_HAND]
@@ -49,7 +49,7 @@ fun Stats.applyEquipment(paperDoll: PaperDoll, characterClass: CharacterClass): 
 /**
  * Calculate stats after applying base stats and level modifiers
  */
-fun Stats.applyModifiers(level: Int, characterClass: CharacterClass, basicStats: BasicStats): Stats {
+fun Stats.applyModifiers(level: Int, characterClass: L2kCharacterClass, basicStats: BasicStats): Stats {
     val levelModifier = (level + 89) / 100.0
 
     val levelResourceMultiplier = level - characterClass.requiredLevel

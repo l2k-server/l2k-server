@@ -10,7 +10,7 @@ import org.l2kserver.game.model.reward.Reward
 import org.l2kserver.game.model.stats.Stats
 import org.l2kserver.game.model.zone.SpawnZone
 
-data class NpcTemplate(
+data class L2kNpcTemplate(
     override val id: Int,
     val name: String,
     val title: String? = null,
@@ -33,7 +33,7 @@ data class NpcTemplate(
         require(isEnemy xor replicas.isNotEmpty()) { "Monsters must have no replicas!" }
     }
 
-    object Registry: GameDataRegistry<NpcTemplate>()
+    object Registry: GameDataRegistry<L2kNpcTemplate>()
 }
 
 data class SpawnData(

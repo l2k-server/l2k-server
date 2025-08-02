@@ -39,7 +39,7 @@ data class CharacterListResponse(
 
             putInt(it.gender.ordinal)
             putInt(it.race.ordinal)
-            putInt(it.characterClass.baseClassName.id)
+            putInt(it.characterClass.baseClassId)
             putInt(1)
 
             putInt(0) // x
@@ -112,7 +112,7 @@ data class CharacterListResponse(
                 else Duration.between(LocalDateTime.now(), it.deletionDate).toSeconds().toInt()
             )
 
-            putInt(it.characterClass.name.id)
+            putInt(it.characterClass.id)
             putInt(if (it.id == lastActiveCharacterId) 1 else 0)
             put(minOf(16, it.paperDoll.getWeapon()?.enchantLevel ?: 0).toByte())
             putInt(it.paperDoll.getWeapon()?.augmentationId ?: 0)

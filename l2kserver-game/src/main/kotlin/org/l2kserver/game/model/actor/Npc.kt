@@ -1,6 +1,6 @@
 package org.l2kserver.game.model.actor
 
-import org.l2kserver.game.model.actor.npc.Npc
+import org.l2kserver.game.model.actor.npc.L2kNpc
 import java.util.concurrent.ConcurrentHashMap
 import org.l2kserver.game.model.actor.position.Position
 import org.l2kserver.game.model.actor.npc.NpcRace
@@ -35,7 +35,7 @@ import org.l2kserver.game.model.stats.Stats
  * @property hasShield Can this NPC block attacks by shield
  * @property ai AI script for this NPC
  */
-class NpcImpl(
+class Npc(
     override val id: Int,
     override val name: String,
     override val templateId: Int,
@@ -56,7 +56,7 @@ class NpcImpl(
     override val weaponType: WeaponType?,
     override val hasShield: Boolean,
     override val ai: Ai?
-): Npc {
+): L2kNpc {
 
     /**
      * How much damage had the opponents dealt to this NPC

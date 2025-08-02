@@ -5,53 +5,52 @@ import org.jetbrains.exposed.dao.IntEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.dao.id.IntIdTable
 import org.jetbrains.exposed.sql.javatime.datetime
-import org.l2kserver.game.model.actor.AccessLevel
-import org.l2kserver.game.model.actor.character.CharacterClassName
 import org.l2kserver.game.model.actor.character.CharacterRace
 import org.l2kserver.game.model.actor.character.Gender
+import java.time.LocalDateTime
 
 object PlayerCharacterTable: IntIdTable("characters") {
     val accountName = varchar("account_name", 16)
     val name = varchar("name", 16).uniqueIndex()
-    val title = varchar("title", 16)
-    val clanId = integer("clan_id")
+    val title = varchar("title", 16).default("")
+    val clanId = integer("clan_id").default(0)
     val gender = postgresEnumeration<Gender>("gender", "GENDER")
     val race = postgresEnumeration<CharacterRace>("race", "RACE")
-    val className = postgresEnumeration<CharacterClassName>("class_name", "CHARACTER_CLASS")
+    val classId = integer("class_id")
     val currentHp = integer("current_hp")
     val currentMp = integer("current_mp")
     val currentCp = integer("current_cp")
-    val sp = integer("sp")
-    val exp = long("exp")
-    val karma = integer("karma")
-    val pvpCount = integer("pvp_count")
-    val pkCount = integer("pk_count")
+    val sp = integer("sp").default(0)
+    val exp = long("exp").default(0)
+    val karma = integer("karma").default(0)
+    val pvpCount = integer("pvp_count").default(0)
+    val pkCount = integer("pk_count").default(0)
     val hairStyle = integer("hair_style")
     val hairColor = integer("hair_color")
     val faceType = integer("face_type")
-    val lastAccess = datetime("last_access")
+    val lastAccess = datetime("last_access").default(LocalDateTime.now())
     val deletionDate = datetime("deletion_date").nullable()
     val x = integer("x")
     val y = integer("y")
     val z = integer("z")
     val nameColor = integer("name_color")
     val titleColor = integer("title_color")
-    val activeSubclass = integer("active_subclass")
-    val accessLevel = postgresEnumeration<AccessLevel>("access_level", "ACCESS_LEVEL")
+    val activeSubclass = integer("active_subclass").default(0)
+    val accessLevel = postgresEnumeration<AccessLevel>("access_level", "ACCESS_LEVEL").default(AccessLevel.PLAYER)
 }
 
 class PlayerCharacterEntity(id: EntityID<Int>): IntEntity(id) {
     companion object: IntEntityClass<PlayerCharacterEntity>(PlayerCharacterTable)
 
-    val accountName by PlayerCharacterTable.accountName
-    val name by PlayerCharacterTable.name
+    var accountName by PlayerCharacterTable.accountName
+    var name by PlayerCharacterTable.name
 
     var title by PlayerCharacterTable.title
     var clanId by PlayerCharacterTable.clanId
 
-    val gender by PlayerCharacterTable.gender
-    val race by PlayerCharacterTable.race
-    val className by PlayerCharacterTable.className
+    var gender by PlayerCharacterTable.gender
+    var race by PlayerCharacterTable.race
+    var classId by PlayerCharacterTable.classId
 
     var currentHp by PlayerCharacterTable.currentHp
     var currentMp by PlayerCharacterTable.currentMp
@@ -63,9 +62,9 @@ class PlayerCharacterEntity(id: EntityID<Int>): IntEntity(id) {
     var pvpCount by PlayerCharacterTable.pvpCount
     var pkCount by PlayerCharacterTable.pkCount
 
-    val hairStyle by PlayerCharacterTable.hairStyle
-    val hairColor by PlayerCharacterTable.hairColor
-    val faceType by PlayerCharacterTable.faceType
+    var hairStyle by PlayerCharacterTable.hairStyle
+    var hairColor by PlayerCharacterTable.hairColor
+    var faceType by PlayerCharacterTable.faceType
 
     var lastAccess by PlayerCharacterTable.lastAccess
     var deletionDate by PlayerCharacterTable.deletionDate
@@ -74,9 +73,20 @@ class PlayerCharacterEntity(id: EntityID<Int>): IntEntity(id) {
     var y by PlayerCharacterTable.y
     var z by PlayerCharacterTable.z
 
-    val nameColor by PlayerCharacterTable.nameColor
-    val titleColor by PlayerCharacterTable.titleColor
+    var nameColor by PlayerCharacterTable.nameColor
+    var titleColor by PlayerCharacterTable.titleColor
 
     var activeSubclass by PlayerCharacterTable.activeSubclass
     var accessLevel by PlayerCharacterTable.accessLevel
+}
+
+/**
+ * User's access level.
+ */
+enum class AccessLevel {
+    /** Average player */
+    PLAYER,
+
+    /** GAME_MASTER can use admin commands and has some other privileges */
+    GAME_MASTER
 }

@@ -225,15 +225,8 @@ class ItemServiceTests(
             val items = Item.createAllFrom(
                 ownerId = character.id,
                 initialItems = listOf(
-                    InitialItem(
-                        id = SQUIRES_SWORD.id,
-                        name = SQUIRES_SWORD.name,
-                        isEquipped = true
-                    ),
-                    InitialItem(
-                        id = DAGGER.id,
-                        name = DAGGER.name
-                    ),
+                    InitialItem(SQUIRES_SWORD.id,isEquipped = true),
+                    InitialItem(DAGGER.id)
                 )
             ).toList()
 
@@ -275,20 +268,9 @@ class ItemServiceTests(
             val items = Item.createAllFrom(
                 ownerId = character.id,
                 initialItems = listOf(
-                    InitialItem(
-                        id = SQUIRES_SWORD.id,
-                        name = SQUIRES_SWORD.name,
-                        isEquipped = true
-                    ),
-                    InitialItem(
-                        id = LEATHER_SHIELD.id,
-                        name = LEATHER_SHIELD.name,
-                        isEquipped = true
-                    ),
-                    InitialItem(
-                        id = WILLOW_STAFF.id,
-                        name = WILLOW_STAFF.name
-                    ),
+                    InitialItem(SQUIRES_SWORD.id, isEquipped = true),
+                    InitialItem(LEATHER_SHIELD.id,isEquipped = true),
+                    InitialItem(id = WILLOW_STAFF.id)
                 )
             )
             character.paperDoll = PaperDoll(Item.findAllEquippedByOwnerId(character.id))
@@ -362,7 +344,7 @@ class ItemServiceTests(
             val updateStatusResponse = assertIs<UpdateStatusResponse>(context.responseChannel.receive())
             assertEquals(character.id, updateStatusResponse.objectId)
 
-            assertNotNull(gameObjectDAO.findByIdOrNull(droppedItemResponse.scatteredItem.id))
+            assertNotNull(gameObjectRepository.findByIdOrNull(droppedItemResponse.scatteredItem.id))
         }
     }
 
@@ -686,7 +668,7 @@ class ItemServiceTests(
         assertIs<UpdateStatusResponse>(context.responseChannel.receive())
 
         assertIs<SystemMessageResponse.YouHaveObtained>(context.responseChannel.receive())
-        assertFalse(gameObjectDAO.existsById(scatteredItem.id), "Picked up item must disappear")
+        assertFalse(gameObjectRepository.existsById(scatteredItem.id), "Picked up item must disappear")
         assertEquals(2, Item.findAllByOwnerIdAndTemplateId(character.id, HEAVENS_DIVIDER.id).size)
     }
 
@@ -725,7 +707,7 @@ class ItemServiceTests(
         assertIs<UpdateStatusResponse>(context.responseChannel.receive())
 
         assertIs<SystemMessageResponse.YouHaveObtained>(context.responseChannel.receive())
-        assertFalse(gameObjectDAO.existsById(scatteredItem.id), "Picked up item must disappear")
+        assertFalse(gameObjectRepository.existsById(scatteredItem.id), "Picked up item must disappear")
 
         val arrows = Item.findAllByOwnerIdAndTemplateId(character.id, WOODEN_ARROW.id)
         assertEquals(1, arrows.size, "Should add new item to existing item stack")

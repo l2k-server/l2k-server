@@ -9,11 +9,11 @@ import org.l2kserver.game.handler.dto.response.SystemMessageResponse
 import org.l2kserver.game.handler.dto.response.UpdateStatusResponse
 import org.l2kserver.game.model.SocialAction
 import org.l2kserver.game.model.actor.Actor
-import org.l2kserver.game.model.actor.NpcImpl
+import org.l2kserver.game.model.actor.Npc
 import org.l2kserver.game.model.actor.PlayerCharacter
 import org.l2kserver.game.model.actor.character.PvpState
 import org.l2kserver.game.network.session.sendTo
-import org.l2kserver.game.repository.GameObjectDAO
+import org.l2kserver.game.repository.GameObjectRepository
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import kotlin.math.pow
@@ -26,7 +26,7 @@ import kotlin.random.Random
 @Service
 class RewardService(
     private val itemService: ItemService,
-    override val gameObjectDAO: GameObjectDAO,
+    override val gameObjectRepository: GameObjectRepository,
 
     @Value("\${pvp.karmaBaseAmount}")
     private val karmaBaseAmount: Int,
@@ -56,7 +56,7 @@ class RewardService(
      * Manages rewards for killing NPC.
      * Calculates exp, sp, item drops, distributes the reward among the players
      */
-    suspend fun manageRewardForKillingNpc(killed: NpcImpl) {
+    suspend fun manageRewardForKillingNpc(killed: Npc) {
         manageItemRewards(killed)
         manageExpAndSpGain(killed)
     }
@@ -97,7 +97,7 @@ class RewardService(
     /**
      * Calculates item drops
      */
-    private suspend fun manageItemRewards(killed: NpcImpl) {
+    private suspend fun manageItemRewards(killed: Npc) {
         val mostValuableDamager = killed.opponentsDamage.maxBy { (_, damage) -> damage }.key
 
         for (itemGroup in killed.reward.itemGroups) {
@@ -110,7 +110,7 @@ class RewardService(
      * Calculates exp and sp gain for all the killers by level difference and damage dealt, and applies it to killer
      */
     //TODO Calculate overhit
-    private suspend fun manageExpAndSpGain(killed: NpcImpl) {
+    private suspend fun manageExpAndSpGain(killed: Npc) {
         val allTheDamageReceived = killed.opponentsDamage.values.reduce { acc, i -> acc + i }
 
         for ((killer: Actor, damage: Int) in killed.opponentsDamage) {

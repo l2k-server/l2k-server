@@ -9,14 +9,14 @@ import org.l2kserver.game.model.actor.position.Position
 import org.l2kserver.game.model.actor.Actor
 import org.l2kserver.game.model.actor.PlayerCharacter
 import org.l2kserver.game.model.actor.Posture
-import org.l2kserver.game.repository.GameObjectDAO
+import org.l2kserver.game.repository.GameObjectRepository
 import org.l2kserver.game.network.session.sendTo
 import org.slf4j.Logger
 
 const val VISION_RANGE = 2000
 
 abstract class AbstractService {
-    protected abstract val gameObjectDAO: GameObjectDAO
+    protected abstract val gameObjectRepository: GameObjectRepository
 
     protected abstract val log: Logger
 
@@ -29,8 +29,8 @@ abstract class AbstractService {
     protected suspend fun broadcastPacket(
         responsePacket: ResponsePacket, position: Position? = null, distance: Int = VISION_RANGE
     ) {
-        val addressees = position?.let { gameObjectDAO.findAllCharactersNear(it, distance) }
-            ?: gameObjectDAO.findAllCharacters()
+        val addressees = position?.let { gameObjectRepository.findAllCharactersNear(it, distance) }
+            ?: gameObjectRepository.findAllCharacters()
 
         addressees.forEach { sendTo(it.id, responsePacket) }
     }
@@ -44,7 +44,7 @@ abstract class AbstractService {
     protected suspend fun broadcastPacket(
         responsePacket: ResponsePacket, actor: Actor, distance: Int = VISION_RANGE
     ) {
-        gameObjectDAO.findAllCharactersNear(actor, distance)
+        gameObjectRepository.findAllCharactersNear(actor, distance)
             .forEach { sendTo(it.id, responsePacket) }
     }
 

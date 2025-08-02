@@ -14,12 +14,12 @@ import org.l2kserver.game.handler.dto.response.StatusAttribute
 import org.l2kserver.game.handler.dto.response.StopFightingResponse
 import org.l2kserver.game.handler.dto.response.UpdateStatusResponse
 import org.l2kserver.game.model.actor.Actor
-import org.l2kserver.game.model.actor.NpcImpl
+import org.l2kserver.game.model.actor.Npc
 import org.l2kserver.game.model.actor.PlayerCharacter
 import org.l2kserver.game.model.actor.MoveType
 import org.l2kserver.game.model.actor.Posture
 import org.l2kserver.game.model.actor.character.PvpState
-import org.l2kserver.game.repository.GameObjectDAO
+import org.l2kserver.game.repository.GameObjectRepository
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.context.event.ApplicationReadyEvent
 import org.springframework.context.event.EventListener
@@ -36,7 +36,7 @@ private const val REGENERATION_MULTIPLIER_ON_RUNNING = 0.7
 @Service
 class ActorStateService(
     private val asyncTaskService: AsyncTaskService,
-    override val gameObjectDAO: GameObjectDAO,
+    override val gameObjectRepository: GameObjectRepository,
 
     @Value("\${pvp.pvpFlagTimeMs}")
     private val pvpFlagTimeMs: Int,
@@ -105,7 +105,7 @@ class ActorStateService(
             actor.isFighting = true
 
             //TODO This is part of AI, not combat service
-            if (actor is NpcImpl) {
+            if (actor is Npc) {
                 actor.moveType = MoveType.RUN
                 broadcastPacket(ChangeMoveTypeResponse(actor.id, actor.moveType))
             }
@@ -138,7 +138,7 @@ class ActorStateService(
     private suspend fun updateActorsFightingState() = fightingActors.forEach { (actor, inCombatEndTimeMs) ->
         if (inCombatEndTimeMs <= currentTimeMillis()) {
             //TODO This is part of AI, not combat service
-            if (actor is NpcImpl) {
+            if (actor is Npc) {
                 actor.moveType = MoveType.WALK
                 broadcastPacket(ChangeMoveTypeResponse(actor.id, actor.moveType))
             }
@@ -165,7 +165,7 @@ class ActorStateService(
         }
     }
 
-    private suspend fun regenerate() = gameObjectDAO.forEachInstance<Actor> { actor ->
+    private suspend fun regenerate() = gameObjectRepository.forEachInstance<Actor> { actor ->
         newSuspendedTransaction {
             if (actor.isDead()) return@newSuspendedTransaction
 

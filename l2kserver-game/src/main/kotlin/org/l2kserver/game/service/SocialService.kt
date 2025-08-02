@@ -11,7 +11,7 @@ import org.l2kserver.game.model.actor.PlayerCharacter
 import org.l2kserver.game.network.session.send
 import org.l2kserver.game.network.session.sendTo
 import org.l2kserver.game.network.session.sessionContext
-import org.l2kserver.game.repository.GameObjectDAO
+import org.l2kserver.game.repository.GameObjectRepository
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 
@@ -20,7 +20,7 @@ import org.springframework.stereotype.Service
  */
 @Service
 class SocialService(
-    override val gameObjectDAO: GameObjectDAO,
+    override val gameObjectRepository: GameObjectRepository,
 
     @Value("\${chat.general_chat_range}") private val generalChatRange: Int,
 ): AbstractService() {
@@ -28,7 +28,7 @@ class SocialService(
     override val log = logger()
 
     suspend fun handleChatMessageRequest(request: ChatMessageRequest) {
-        val speaker = gameObjectDAO.findActorById(sessionContext().getCharacterId())
+        val speaker = gameObjectRepository.findActorById(sessionContext().getCharacterId())
         log.debug("Player '{}' tries to say '{}'", speaker, request.message)
 
         if (request.message.isBlank()) return
@@ -46,12 +46,12 @@ class SocialService(
             ChatTab.WHISPER -> {
                 if (request.targetName != null) {
                     send(response)
-                    sendTo(gameObjectDAO.findCharacterByName(request.targetName).id, response)
+                    sendTo(gameObjectRepository.findCharacterByName(request.targetName).id, response)
                 }
             }
             ChatTab.SHOUT, ChatTab.TRADE -> {
                 val closestTown = Town.Registry.findClosestByPosition(speaker.position)
-                gameObjectDAO.forEachInstanceMatching<PlayerCharacter>(
+                gameObjectRepository.forEachInstanceMatching<PlayerCharacter>(
                     predicate = { Town.Registry.findClosestByPosition(it.position) == closestTown },
                     action = { sendTo(it.id, response) }
                 )

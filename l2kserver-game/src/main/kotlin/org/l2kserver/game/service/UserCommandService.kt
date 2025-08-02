@@ -7,12 +7,12 @@ import org.l2kserver.game.handler.dto.response.SystemMessageResponse
 import org.l2kserver.game.model.map.Town
 import org.l2kserver.game.network.session.send
 import org.l2kserver.game.network.session.sessionContext
-import org.l2kserver.game.repository.GameObjectDAO
+import org.l2kserver.game.repository.GameObjectRepository
 import org.springframework.stereotype.Service
 
 @Service
 class UserCommandService(
-    override val gameObjectDAO: GameObjectDAO
+    override val gameObjectRepository: GameObjectRepository
 ) : AbstractService() {
 
     override val log = logger()
@@ -29,7 +29,7 @@ class UserCommandService(
 
     suspend fun handleLocCommand() {
         val context = sessionContext()
-        val position = gameObjectDAO.findCharacterById(context.getCharacterId()).position
+        val position = gameObjectRepository.findCharacterById(context.getCharacterId()).position
 
         val closestTown = Town.Registry.findClosestByPosition(position)
 

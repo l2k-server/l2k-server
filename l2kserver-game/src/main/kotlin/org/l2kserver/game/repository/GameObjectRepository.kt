@@ -5,7 +5,6 @@ import org.l2kserver.game.model.actor.PlayerCharacter
 import org.l2kserver.game.model.actor.GameObject
 import org.springframework.stereotype.Component
 import java.util.concurrent.ConcurrentHashMap
-import org.jetbrains.exposed.sql.transactions.transaction
 import org.l2kserver.game.model.actor.Actor
 import org.l2kserver.game.service.VISION_RANGE
 
@@ -13,7 +12,7 @@ import org.l2kserver.game.service.VISION_RANGE
  * Storage of game entities in game world
  */
 @Component
-class GameObjectDAO: Iterable<GameObject> {
+class GameObjectRepository: Iterable<GameObject> {
 
     private val objectMap = ConcurrentHashMap<Int, GameObject>()
 
@@ -25,11 +24,9 @@ class GameObjectDAO: Iterable<GameObject> {
      * @throws IllegalArgumentException if no character with given id exists
      * @return loaded Character
      */
-    fun loadCharacter(characterId: Int): PlayerCharacter = transaction {
-        val playerCharacter = PlayerCharacter.findById(characterId)
-        objectMap[characterId] = playerCharacter
-
-        playerCharacter
+    fun loadCharacter(character: PlayerCharacter): PlayerCharacter {
+        objectMap[character.id] = character
+        return character
     }
 
     fun <T: GameObject> save(gameObject: T?) = if (gameObject == null) null else {

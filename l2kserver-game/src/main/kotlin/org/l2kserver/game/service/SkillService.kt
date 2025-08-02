@@ -26,7 +26,7 @@ import org.l2kserver.game.model.actor.PlayerCharacter
 import org.l2kserver.game.model.skill.Skill
 import org.l2kserver.game.network.session.send
 import org.l2kserver.game.network.session.sessionContext
-import org.l2kserver.game.repository.GameObjectDAO
+import org.l2kserver.game.repository.GameObjectRepository
 import org.springframework.stereotype.Service
 import kotlin.collections.contains
 import kotlin.math.roundToInt
@@ -39,7 +39,7 @@ private const val REUSE_DELAY_COEFFICIENT = 333.0
  */
 @Service
 class SkillService(
-    override val gameObjectDAO: GameObjectDAO,
+    override val gameObjectRepository: GameObjectRepository,
     private val moveService: MoveService,
     private val asyncTaskService: AsyncTaskService
 ) : AbstractService() {
@@ -50,7 +50,7 @@ class SkillService(
      * Sends a full list of skills to the player in the current session
      */
     suspend fun getSkillList() = newSuspendedTransaction {
-        val character = gameObjectDAO.findCharacterById(sessionContext().getCharacterId())
+        val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
         val skills = Skill.findAllByCharacterIdAndSubclassIndex(character.id, character.activeSubclass)
         send(SkillListResponse(skills))
         log.info("Successfully sent skill list to character {}", character)
@@ -60,7 +60,7 @@ class SkillService(
      * Handles request to use skill
      */
     suspend fun useSkill(request: UseSkillRequest): Unit = newSuspendedTransaction {
-        val character = gameObjectDAO.findCharacterById(sessionContext().getCharacterId())
+        val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
         val skill = Skill.findBy(request.skillId, character.id, character.activeSubclass)
         useSkill(character, skill)
     }
@@ -96,7 +96,7 @@ class SkillService(
         //TODO Check cooldown
         //Check if actor can use skill
         if (!actor.canUseSkill(skill)) return
-        val target = actor.targetId?.let { gameObjectDAO.findActorByIdOrNull(it) } ?: run {
+        val target = actor.targetId?.let { gameObjectRepository.findActorByIdOrNull(it) } ?: run {
             send(SystemMessageResponse.TargetCannotBeFound)
             actor.targetId = null
             return
@@ -185,7 +185,7 @@ class SkillService(
             send(ActionFailedResponse)
             false
         }
-        skill.targetType == SkillTargetType.ENEMY && this.targetId?.let { gameObjectDAO.existsById(it) } != true -> {
+        skill.targetType == SkillTargetType.ENEMY && this.targetId?.let { gameObjectRepository.existsById(it) } != true -> {
             send(SystemMessageResponse.TargetCannotBeFound)
             send(PlaySoundResponse(Sound.ITEMSOUND_SYS_IMPOSSIBLE))
             send(ActionFailedResponse)

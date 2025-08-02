@@ -5,13 +5,13 @@ import org.jetbrains.exposed.sql.deleteAll
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.junit.jupiter.api.BeforeEach
 import org.l2kserver.game.configuration.HazelcastInstanceTestConfiguration
+import org.l2kserver.game.data.character.classes.HUMAN_FIGHTER
 import org.l2kserver.game.model.session.AuthorizationKey
-import org.l2kserver.game.repository.GameObjectDAO
+import org.l2kserver.game.repository.GameObjectRepository
 import org.l2kserver.game.domain.PlayerCharacterTable
 import org.l2kserver.game.domain.ItemTable
 import org.l2kserver.game.domain.ShortcutTable
 import org.l2kserver.game.domain.LearnedSkillsTable
-import org.l2kserver.game.extensions.model.actor.create
 import org.l2kserver.game.extensions.model.item.createAllFrom
 import org.l2kserver.game.model.GameData
 import org.l2kserver.game.model.GameDataRegistry
@@ -19,13 +19,13 @@ import org.l2kserver.game.model.actor.PlayerCharacter
 import org.l2kserver.game.model.actor.ScatteredItem
 import org.l2kserver.game.model.actor.character.CharacterRace
 import org.l2kserver.game.model.actor.character.Gender
-import org.l2kserver.game.model.actor.character.CharacterClassName
 import org.l2kserver.game.model.actor.character.InitialItem
-import org.l2kserver.game.model.actor.npc.NpcTemplate
+import org.l2kserver.game.model.actor.npc.L2kNpcTemplate
 import org.l2kserver.game.model.item.Item
 import org.l2kserver.game.model.actor.position.Position
 import org.l2kserver.game.model.item.ItemTemplate
 import org.l2kserver.game.network.session.SessionContext
+import org.l2kserver.game.repository.PlayerCharacterRepository
 import org.l2kserver.game.service.ActorStateService
 import org.l2kserver.game.utils.IdUtils
 import org.springframework.beans.factory.annotation.Autowired
@@ -42,10 +42,13 @@ import kotlin.reflect.jvm.isAccessible
 abstract class AbstractTests {
 
     @Autowired
-    protected lateinit var gameObjectDAO: GameObjectDAO
+    private lateinit var actorStateService: ActorStateService
 
     @Autowired
-    private lateinit var actorStateService: ActorStateService
+    protected lateinit var gameObjectRepository: GameObjectRepository
+
+    @Autowired
+    protected lateinit var playerCharacterRepository: PlayerCharacterRepository
 
     protected val testLogin = "VitalyasAccount"
     protected val testCharacterName = "Vitaliy"
@@ -59,9 +62,9 @@ abstract class AbstractTests {
             PlayerCharacterTable.deleteAll()
         }
         SessionContext.clear()
-        gameObjectDAO.deleteAll()
+        gameObjectRepository.deleteAll()
         actorStateService.flushStates()
-        NpcTemplate.Registry.flush()
+        L2kNpcTemplate.Registry.flush()
     }
 
     protected fun createRandomAuthorizationKey() = AuthorizationKey(
@@ -75,21 +78,19 @@ abstract class AbstractTests {
         enterGame: Boolean = true,
         name: String = testCharacterName
     ): PlayerCharacter {
-        val characterId = transaction {
-            PlayerCharacter.create(
-                accountName = testLogin,
-                characterName = name,
-                race = CharacterRace.HUMAN,
-                gender = Gender.MALE,
-                className = CharacterClassName.HUMAN_FIGHTER,
-                hairStyle = 0,
-                hairColor = 0,
-                faceType = 0
-            )
-        }
+        val character = playerCharacterRepository.create(
+            accountName = testLogin,
+            characterName = name,
+            race = CharacterRace.HUMAN,
+            gender = Gender.MALE,
+            classId = HUMAN_FIGHTER.id,
+            hairStyle = 0,
+            hairColor = 0,
+            faceType = 0
+        )
 
-        return if (enterGame) gameObjectDAO.loadCharacter(characterId)
-        else transaction { PlayerCharacter.findById(characterId) }
+        return if (enterGame) gameObjectRepository.loadCharacter(character)
+        else character
     }
 
     protected fun createTestSessionContext(): SessionContext {
@@ -106,7 +107,7 @@ abstract class AbstractTests {
         amount: Int = 1,
         isEquipped: Boolean = false
     ) = transaction {
-        Item.createAllFrom(ownerId, listOf(InitialItem(templateId, "", amount, isEquipped))).first()
+        Item.createAllFrom(ownerId, listOf(InitialItem(templateId, amount, isEquipped))).first()
     }
 
     protected suspend fun createTestScatteredItem(
@@ -124,7 +125,7 @@ abstract class AbstractTests {
             enchantLevel = enchantLevel
         )
 
-        return gameObjectDAO.save(scatteredItem)!!
+        return gameObjectRepository.save(scatteredItem)!!
     }
 
     private fun ActorStateService.flushStates() {

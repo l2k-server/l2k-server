@@ -8,9 +8,9 @@ import org.l2kserver.game.extensions.logger
 import org.l2kserver.game.extensions.model.actor.toNpc
 import org.l2kserver.game.handler.dto.response.NpcChatWindowResponse
 import org.l2kserver.game.model.actor.position.Position
-import org.l2kserver.game.model.actor.NpcImpl
-import org.l2kserver.game.repository.GameObjectDAO
-import org.l2kserver.game.model.actor.npc.NpcTemplate
+import org.l2kserver.game.model.actor.Npc
+import org.l2kserver.game.repository.GameObjectRepository
+import org.l2kserver.game.model.actor.npc.L2kNpcTemplate
 import org.l2kserver.game.extensions.model.actor.toInfoResponse
 import org.l2kserver.game.handler.dto.response.DeleteObjectResponse
 import org.l2kserver.game.model.actor.npc.SpawnedAt
@@ -36,14 +36,14 @@ private const val CORPSE_DISAPPEARANCE_DELAY_MS = 8_500L
 class NpcService(
     private val geoDataService: GeoDataService,
     private val asyncTaskService: AsyncTaskService,
-    override val gameObjectDAO: GameObjectDAO
+    override val gameObjectRepository: GameObjectRepository
 ): AbstractService() {
 
     override val log = logger()
 
     @EventListener(ApplicationReadyEvent::class)
     fun init() = asyncTaskService.launchJob("INITIAL_SPAWN_TASK") {
-        NpcTemplate.Registry.forEach { template ->
+        L2kNpcTemplate.Registry.forEach { template ->
             template.spawn.positions?.forEach { spawnAtPosition(template, it) }
             template.spawn.zones?.forEach { zone -> repeat(zone.npcAmount) { spawnAtZone(template, zone) }}
         }
@@ -52,7 +52,7 @@ class NpcService(
     /**
      * Opens chat window with [npc]
      */
-    suspend fun talkTo(npc: NpcImpl) {
+    suspend fun talkTo(npc: Npc) {
         send(NpcChatWindowResponse(
             npcId = npc.id,
             message = npc.replicas.firstOrNull() ?: DEFAULT_INIT_REPLICA
@@ -62,14 +62,14 @@ class NpcService(
     /**
      * Handles [npc]'s death - schedules corpse disappearing and respawn
      */
-    suspend fun handleNpcDeath(npc: NpcImpl) = CoroutineScope(Dispatchers.Default).launch {
+    suspend fun handleNpcDeath(npc: Npc) = CoroutineScope(Dispatchers.Default).launch {
         //Delete corpse from game world after delay
         delay(CORPSE_DISAPPEARANCE_DELAY_MS)
         broadcastPacket(DeleteObjectResponse(npc.id), npc)
-        gameObjectDAO.delete(npc)
+        gameObjectRepository.delete(npc)
 
         //Respawn this NPC after delay
-        val template = NpcTemplate.Registry.findById(npc.templateId)!!
+        val template = L2kNpcTemplate.Registry.findById(npc.templateId)!!
         delay(template.spawn.respawnDelay)
 
         //Spawn NPC at position or zone, depending on what is present
@@ -82,7 +82,7 @@ class NpcService(
      *
      * @return Spawned NPC
      */
-    suspend fun spawnAtPosition(template: NpcTemplate, spawnPosition: SpawnPosition): NpcImpl {
+    suspend fun spawnAtPosition(template: L2kNpcTemplate, spawnPosition: SpawnPosition): Npc {
         val (position, heading) = spawnPosition.toPositionAndHeading()
         val npc = template.toNpc(
             IdUtils.getNextNpcId(),
@@ -103,12 +103,12 @@ class NpcService(
      *
      * @return Spawned NPC
      */
-    suspend fun spawnAtZone(template: NpcTemplate, zone: SpawnZone): NpcImpl {
+    suspend fun spawnAtZone(template: L2kNpcTemplate, zone: SpawnZone): Npc {
         lateinit var position: Position
         do {
             position = geoDataService.getRandomSpawnPosition(template.collisionBox, zone)
 
-            val positionIsFree = gameObjectDAO.none {
+            val positionIsFree = gameObjectRepository.none {
                 it.position.isCloseTo(
                     position,
                     (template.collisionBox.radius + it.collisionBox.radius).toInt()
@@ -131,8 +131,8 @@ class NpcService(
     /**
      * Saved NPC to gameObjectRepository and notified surrounding players about spawn
      */
-    private suspend fun spawnNpc(npc: NpcImpl) {
-        gameObjectDAO.save(npc)
+    private suspend fun spawnNpc(npc: Npc) {
+        gameObjectRepository.save(npc)
         broadcastPacket(npc.toInfoResponse(), npc)
     }
 
