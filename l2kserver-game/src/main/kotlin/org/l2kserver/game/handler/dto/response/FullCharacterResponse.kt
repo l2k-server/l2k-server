@@ -34,7 +34,7 @@ data class FullCharacterResponse(
         putUTF16String(playerCharacter.name)
         putInt(playerCharacter.race.ordinal)
         putInt(playerCharacter.gender.ordinal)
-        putInt(playerCharacter.characterClass.baseClassName.id)
+        putInt(playerCharacter.characterClass.baseClassId)
 
         putInt(playerCharacter.level)
         putLong(playerCharacter.exp)
@@ -170,7 +170,7 @@ data class FullCharacterResponse(
 
         putShort(100) //TODO Inventory limit
 
-        putInt(playerCharacter.characterClass.name.id)
+        putInt(playerCharacter.characterClass.id)
         putInt(0) // special effects? circles around player... (c)L2J
 
         putInt(playerCharacter.stats.maxCp)

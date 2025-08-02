@@ -5,7 +5,7 @@ import org.l2kserver.game.extensions.logger
 import org.l2kserver.game.handler.dto.request.DeleteShortcutRequest
 import org.l2kserver.game.handler.dto.request.CreateShortcutRequest
 import org.l2kserver.game.handler.dto.response.CreateShortcutResponse
-import org.l2kserver.game.repository.GameObjectDAO
+import org.l2kserver.game.repository.GameObjectRepository
 import org.l2kserver.game.domain.Shortcut
 import org.l2kserver.game.extensions.model.shortcut.create
 import org.l2kserver.game.extensions.model.shortcut.deleteBy
@@ -19,13 +19,13 @@ import org.springframework.stereotype.Service
 
 @Service
 class ShortcutService(
-    override val gameObjectDAO: GameObjectDAO
+    override val gameObjectRepository: GameObjectRepository
 ) : AbstractService() {
 
     override val log = logger()
 
     suspend fun registerShortcut(request: CreateShortcutRequest) = newSuspendedTransaction {
-        val character = gameObjectDAO.findCharacterById(sessionContext().getCharacterId())
+        val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
 
         Shortcut.findBy(request.index, character.id, character.activeSubclass)?.delete()
 
@@ -47,7 +47,7 @@ class ShortcutService(
     }
 
     suspend fun deleteShortcut(request: DeleteShortcutRequest) = newSuspendedTransaction {
-        val character = gameObjectDAO.findCharacterById(sessionContext().getCharacterId())
+        val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
         Shortcut.deleteBy(character.id, character.activeSubclass, request.index)
 
         log.info("Successfully deleted shortcut with index {} of character {}", request.index, character)

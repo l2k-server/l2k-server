@@ -11,8 +11,8 @@ const val CREATE_CHARACTER_REQUEST_PACKET_ID: UByte = 11u
  */
 data class CreateCharacterRequest(
     val characterName: String,
-    val raceOrdinal: Int,
-    val genderOrdinal: Int,
+    val raceId: Int,
+    val genderId: Int,
     val classId: Int,
     val int: Int = 0,
     val str: Int = 0,
@@ -27,8 +27,8 @@ data class CreateCharacterRequest(
 
     constructor(data: ByteBuffer): this(
         characterName = data.getUTF16String(),
-        raceOrdinal = data.getInt(),
-        genderOrdinal = data.getInt(),
+        raceId = data.getInt(),
+        genderId = data.getInt(),
         classId = data.getInt(),
         int = data.getInt(),
         str = data.getInt(),

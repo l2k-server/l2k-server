@@ -10,39 +10,38 @@ import org.l2kserver.game.model.stats.TradeAndInventoryStats
 /**
  * Character class data - stats, skills, misc. information
  *
- * @property name Class name (Human Fighter, etc.)
- * @property requiredLevel Level, required to take this class
- * @property parentClassName Parent classId (for example, for Human Warrior parent class will be Human Fighter)
- * @property baseClassName Base class name (for example, for Duelist base class will be Human Fighter)
- * @property name Character class name
- * @property initialBasicStats Initial values of character's basic stats
- * @property initialStats Initial values of character's stats
+ * @property id Class identifier
+ * @property requiredLevel Level, required to take this class. IMPORTANT for proper stats calculation
+ * @property combatStats Initial values of character's basic stats
+ * @property basicStats Initial values of character's stats
+ * @property tradeAndInventoryStats Initial values for character trading stats
  * @property emptySlotStats Stats of character's empty slots. Will be applied if no item equipped in slot
+ * @property perLevelGain CP, HP and MP per level gain coefficients
+ * @property parentClass Parent class. For example, in L2 for 'Duelist' class parent class will be 'Gladiator'
+ * @property characterTemplate Template for this class character creation
  */
-data class CharacterClass(
-    val name: CharacterClassName,
+data class L2kCharacterClass(
+    override val id: Int,
     val requiredLevel: Int,
-    val parentClassName: CharacterClassName?,
-    val baseClassName: CharacterClassName = name,
-    val initialBasicStats: BasicStats,
-    val initialStats: Stats,
-    val initialTradeAndInventoryStats: TradeAndInventoryStats,
+    val combatStats: Stats,
+    val basicStats: BasicStats,
+    val tradeAndInventoryStats: TradeAndInventoryStats,
     val emptySlotStats: Map<Slot, Stats>,
-    val perLevelGain: PerLevelGain
+    val perLevelGain: PerLevelGain,
+    val parentClass: L2kCharacterClass? = null,
+    val characterTemplate: L2kCharacterTemplate? = null
 ): GameData {
 
-    override val id = name.id
-
-    object Registry: GameDataRegistry<CharacterClass>() {
-
-        fun findByName(characterClassName: CharacterClassName) = requireNotNull(findById(characterClassName.id)) {
-            "No character class found by name $characterClassName"
-        }
-    }
+    /**
+     * Returns base class identifier.
+     * For example, in L2 for 'Duelist' class base class will be 'Human Fighter'
+     */
+    val baseClassId: Int get() = if (this.parentClass == null) id else this.parentClass.baseClassId
 
     val baseAtkSpd = emptySlotStats.values.reduce { acc, stats -> acc + stats }.atkSpd
-    val baseSpeed = initialStats.speed
+    val baseSpeed = combatStats.speed
 
+    object Registry: GameDataRegistry<L2kCharacterClass>()
 }
 
 /**`

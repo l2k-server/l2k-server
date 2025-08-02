@@ -1,17 +1,17 @@
 package org.l2kserver.game.service
 
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
+import org.l2kserver.game.domain.AccessLevel
 import org.l2kserver.game.extensions.logger
 import org.l2kserver.game.handler.dto.request.AdminCommandRequest
 import org.l2kserver.game.handler.dto.response.PlaySoundResponse
 import org.l2kserver.game.handler.dto.response.Sound
 import org.l2kserver.game.handler.dto.response.SystemMessageResponse
 import org.l2kserver.game.handler.dto.response.UpdateItemsResponse
-import org.l2kserver.game.model.actor.AccessLevel
 import org.l2kserver.game.model.actor.position.Position
 import org.l2kserver.game.network.session.send
 import org.l2kserver.game.network.session.sessionContext
-import org.l2kserver.game.repository.GameObjectDAO
+import org.l2kserver.game.repository.GameObjectRepository
 import org.l2kserver.game.model.command.Command
 import org.l2kserver.game.model.command.CommandDescription
 import org.l2kserver.game.model.command.EnchantCommand
@@ -25,14 +25,14 @@ import org.springframework.stereotype.Service
  */
 @Service
 class AdminCommandService(
-    override val gameObjectDAO: GameObjectDAO,
+    override val gameObjectRepository: GameObjectRepository,
     private val moveService: MoveService
 ): AbstractService() {
 
     override val log = logger()
 
     suspend fun handleAdminCommand(commandRequest: AdminCommandRequest) {
-        val character = gameObjectDAO.findCharacterById(sessionContext().getCharacterId())
+        val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
         if (character.accessLevel != AccessLevel.GAME_MASTER) {
             log.warn("Player '{}' has no privileges to use admin commands!", character)
             return
@@ -70,8 +70,8 @@ class AdminCommandService(
      * @param position Destination position
      */
     private suspend fun handleTeleportCommand(charName: String?, position: Position) {
-        val characterToTeleport = charName?.let { gameObjectDAO.findCharacterByName(it) }
-            ?: gameObjectDAO.findCharacterById(sessionContext().getCharacterId())
+        val characterToTeleport = charName?.let { gameObjectRepository.findCharacterByName(it) }
+            ?: gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
 
         send(SystemMessageResponse("'${characterToTeleport.name}' was teleported to '$position'"))
         moveService.teleport(characterToTeleport, position)
@@ -90,8 +90,8 @@ class AdminCommandService(
     private suspend fun handleEnchantCommand(
         charName: String?, itemToEnchant: ItemToEnchant, enchantLevel: Int
     ) {
-        val characterToEnchant = charName?.let { gameObjectDAO.findCharacterByName(it) }
-            ?: gameObjectDAO.findCharacterById(sessionContext().getCharacterId())
+        val characterToEnchant = charName?.let { gameObjectRepository.findCharacterByName(it) }
+            ?: gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
 
         log.debug("Got command to enchant '{}' of '{}' by '{}'", itemToEnchant, characterToEnchant, enchantLevel)
 

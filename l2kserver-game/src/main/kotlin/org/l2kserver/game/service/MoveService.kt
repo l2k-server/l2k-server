@@ -27,7 +27,7 @@ import org.l2kserver.game.model.actor.PlayerCharacter
 import org.l2kserver.game.network.session.send
 import org.l2kserver.game.network.session.sendTo
 import org.l2kserver.game.network.session.sessionContext
-import org.l2kserver.game.repository.GameObjectDAO
+import org.l2kserver.game.repository.GameObjectRepository
 import org.l2kserver.game.utils.GameTimeUtils
 import org.springframework.stereotype.Service
 import kotlin.coroutines.coroutineContext
@@ -44,7 +44,7 @@ class MoveService(
     private val asyncTaskService: AsyncTaskService,
     private val geoDataService: GeoDataService,
 
-    override val gameObjectDAO: GameObjectDAO
+    override val gameObjectRepository: GameObjectRepository
 ) : AbstractService() {
 
     override val log = logger()
@@ -55,7 +55,7 @@ class MoveService(
     //TODO Fix cancelling task on new MoveRequest https://github.com/l2kserver/l2kserver-game/issues/7
     suspend fun moveCharacter(request: MoveRequest) {
         val context = sessionContext()
-        val character = gameObjectDAO.findCharacterById(context.getCharacterId())
+        val character = gameObjectRepository.findCharacterById(context.getCharacterId())
 
         log.debug(
             "Player '{}' is trying to move character '{}' to position '{}' {}",
@@ -74,7 +74,7 @@ class MoveService(
      * modifies character position at server side, otherwise - sends ValidatePositionResponse with actual position
      */
     suspend fun validatePosition(request: ValidatePositionRequest) = newSuspendedTransaction {
-        val character = gameObjectDAO.findCharacterById(sessionContext().getCharacterId())
+        val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
 
         if (character.position.isCloseTo(request.position)) {
             log.trace("Difference is too small, modifying position at server side")
@@ -160,7 +160,7 @@ class MoveService(
             var moveTimestamp = System.currentTimeMillis()
             var previousTargetPosition = target.position
 
-            while (coroutineContext.isActive && gameObjectDAO.existsById(target.id)) {
+            while (coroutineContext.isActive && gameObjectRepository.existsById(target.id)) {
                 val startUpdatingPositionTimestamp = System.currentTimeMillis()
                 if (actor.isImmobilized) return@newSuspendedTransaction
 
@@ -235,7 +235,7 @@ class MoveService(
         sendTo(actor.id, TeleportResponse(actor.id, fixedPosition))
         broadcastPacket(DeleteObjectResponse(actor.id), actor)
 
-        actor.targetedBy.forEach { gameObjectDAO.findActorById(it).targetId = null }
+        actor.targetedBy.forEach { gameObjectRepository.findActorById(it).targetId = null }
         actor.targetedBy.clear()
         actor.targetId = null
 
@@ -245,7 +245,7 @@ class MoveService(
 
         newSuspendedTransaction { actor.position = fixedPosition }
         broadcastActorInfo(actor)
-        gameObjectDAO.findAllNear(actor).forEach { sendTo(actor.id, it.toInfoResponse()) }
+        gameObjectRepository.findAllNear(actor).forEach { sendTo(actor.id, it.toInfoResponse()) }
     }
 
     /**
@@ -258,7 +258,7 @@ class MoveService(
      * @return True if actor arrived to position, false - if not
      */
     private suspend fun updatePosition(actor: Actor, destination: Position, movingTimeMillis: Long): Boolean {
-        val gameObjectsAround = gameObjectDAO.findAllNear(gameObjectDAO.findById(actor.id))
+        val gameObjectsAround = gameObjectRepository.findAllNear(gameObjectRepository.findById(actor.id))
 
         //Checking this at the beginning of position updating gives one more tick to move to emulate moving properly
         if (actor.position.isCloseTo(destination, actor.collisionBox.radius.roundToInt())) return true
@@ -309,7 +309,7 @@ class MoveService(
         actor: Actor,
         destination: Position? = null
     ) {
-        val newGameObjectsAround = gameObjectDAO.findAllNear(actor)
+        val newGameObjectsAround = gameObjectRepository.findAllNear(actor)
 
         // For all game objects that are now too far to see them
         prevGameObjectsAround.forEachMatching({ !newGameObjectsAround.contains(it) }) {

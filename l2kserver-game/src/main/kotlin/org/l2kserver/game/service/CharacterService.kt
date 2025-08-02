@@ -24,14 +24,9 @@ import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
 import kotlinx.coroutines.cancel
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
+import org.l2kserver.game.domain.AccessLevel
 import org.l2kserver.game.model.map.Town
 import org.l2kserver.game.domain.Shortcut
-import org.l2kserver.game.extensions.model.actor.existDeletingByAccountName
-import org.l2kserver.game.extensions.model.actor.countByAccountName
-import org.l2kserver.game.extensions.model.actor.create
-import org.l2kserver.game.extensions.model.actor.deleteAllWithExpiredDeletionDate
-import org.l2kserver.game.extensions.model.actor.existsByName
-import org.l2kserver.game.extensions.model.actor.findAllByAccountName
 import org.l2kserver.game.extensions.model.actor.toInfoResponse
 import org.l2kserver.game.extensions.model.item.findAllByOwnerId
 import org.l2kserver.game.extensions.model.shortcut.findAllBy
@@ -51,18 +46,17 @@ import org.l2kserver.game.handler.dto.response.ReviveResponse
 import org.l2kserver.game.handler.dto.response.ShortcutPanelResponse
 import org.l2kserver.game.handler.dto.response.SystemMessageResponse
 import org.l2kserver.game.handler.dto.response.UpdateStatusResponse
-import org.l2kserver.game.model.actor.AccessLevel
 import org.l2kserver.game.model.actor.PlayerCharacter
 import org.l2kserver.game.model.item.Item
 import org.l2kserver.game.model.actor.position.Position
 import org.l2kserver.game.model.actor.character.CharacterRace
 import org.l2kserver.game.model.actor.character.Gender
-import org.l2kserver.game.model.actor.character.CharacterClassName
 import org.l2kserver.game.network.session.SessionContext
 import org.l2kserver.game.network.session.send
 import org.l2kserver.game.network.session.sendTo
 import org.l2kserver.game.network.session.sessionContext
-import org.l2kserver.game.repository.GameObjectDAO
+import org.l2kserver.game.repository.GameObjectRepository
+import org.l2kserver.game.repository.PlayerCharacterRepository
 import kotlin.coroutines.coroutineContext
 import kotlin.math.roundToInt
 
@@ -74,7 +68,9 @@ class CharacterService(
     private val asyncTaskService: AsyncTaskService,
     private val actorStateService: ActorStateService,
     private val moveService: MoveService,
-    override val gameObjectDAO: GameObjectDAO,
+
+    private val playerCharacterRepository: PlayerCharacterRepository,
+    override val gameObjectRepository: GameObjectRepository,
 
     @Value("\${characters.newCharacterNameRegexp}") private val newCharacterNameRegexp: String,
     @Value("\${characters.deletionTimeMs}") private val characterDeletionTime: Long,
@@ -96,20 +92,18 @@ class CharacterService(
     @EventListener(ApplicationReadyEvent::class)
     fun init() = asyncTaskService.launchJob("UPDATE_CHARACTERS_INFO_JOB") {
         while (isActive) {
-            newSuspendedTransaction {
-                val deletedPlayerCharacterOwners = PlayerCharacter.deleteAllWithExpiredDeletionDate().map { it.accountName }
+            val deletedPlayerCharacterOwners = playerCharacterRepository.deleteAllWithExpiredDeletionDate()
+                .map { it.accountName }
 
-                SessionContext.forEach {
-                    withContext(NonCancellable) {
-                        if (it.inCharacterMenu()) {
-                            val hasDeletingCharacters = PlayerCharacter.existDeletingByAccountName(it.getAccountName())
-                            val hasDeletedCharacters = deletedPlayerCharacterOwners.contains(it.getAccountName())
+            SessionContext.forEach { withContext(NonCancellable) {
+                if (it.inCharacterMenu()) {
+                    val hasDeletingCharacters = playerCharacterRepository
+                        .existDeletingByAccountName(it.getAccountName())
+                    val hasDeletedCharacters = deletedPlayerCharacterOwners.contains(it.getAccountName())
 
-                            if (hasDeletingCharacters || hasDeletedCharacters) sendCharactersList(it.sessionId)
-                        }
-                    }
+                    if (hasDeletingCharacters || hasDeletedCharacters) sendCharactersList(it.sessionId)
                 }
-            }
+            }}
 
             delay(CHARACTERS_INFO_UPDATE_DELAY)
         }
@@ -126,7 +120,7 @@ class CharacterService(
 
         try {
             log.debug("Loading characters of user '{}'...", context.getAccountName())
-            val playerCharacters = PlayerCharacter.findAllByAccountName(context.getAccountName())
+            val playerCharacters = playerCharacterRepository.findAllByAccountName(context.getAccountName())
 
             //Send characters list to
             send(CharacterListResponse(
@@ -150,23 +144,23 @@ class CharacterService(
         val accountName = sessionContext().getAccountName()
 
         try {
-            if (PlayerCharacter.countByAccountName(accountName) >= CHARACTERS_MAX_AMOUNT)
+            if (playerCharacterRepository.countByAccountName(accountName) >= CHARACTERS_MAX_AMOUNT)
                 send(CreateCharacterFailResponse(CreateCharacterFailReason.TOO_MANY_CHARACTERS))
-            else if (PlayerCharacter.existsByName(request.characterName))
+            else if (playerCharacterRepository.existsByName(request.characterName))
                 send(CreateCharacterFailResponse(CreateCharacterFailReason.NAME_ALREADY_EXISTS))
             else if (!request.characterName.matches(Regex(newCharacterNameRegexp)))
                 send(CreateCharacterFailResponse(CreateCharacterFailReason.NAME_EXCEED_16_CHARACTERS))
             else {
-                PlayerCharacter.create(
+                playerCharacterRepository.create(
                     accountName = accountName,
                     characterName = request.characterName,
-                    race = CharacterRace.entries.getOrElse(request.raceOrdinal) {
-                        throw IllegalArgumentException("Invalid race ordinal '${request.raceOrdinal}")
+                    race = CharacterRace.entries.getOrElse(request.raceId) {
+                        throw IllegalArgumentException("Invalid race ordinal '${request.raceId}")
                     },
-                    gender = Gender.entries.getOrElse(request.genderOrdinal) {
-                        throw IllegalArgumentException("Invalid gender ordinal '${request.genderOrdinal}")
+                    gender = Gender.entries.getOrElse(request.genderId) {
+                        throw IllegalArgumentException("Invalid gender ordinal '${request.genderId}")
                     },
-                    className = CharacterClassName.byId(request.classId),
+                    classId = request.classId,
                     hairColor = request.hairColor,
                     hairStyle = request.hairStyle,
                     faceType = request.faceType
@@ -194,7 +188,7 @@ class CharacterService(
         log.debug("Deleting character at slot '{}' of user '{}'...", request.characterSlot, accountName)
 
         newSuspendedTransaction {
-            val playerCharacter = PlayerCharacter.findAllByAccountName(accountName).toList()
+            val playerCharacter = playerCharacterRepository.findAllByAccountName(accountName)
                 .getOrNull(request.characterSlot)
 
             if (playerCharacter != null) {
@@ -232,7 +226,7 @@ class CharacterService(
 
             log.debug("Restoring character at slot '{}' of user '{}'", request.characterSlot, accountName)
 
-            val playerCharacter = PlayerCharacter.findAllByAccountName(accountName)
+            val playerCharacter = playerCharacterRepository.findAllByAccountName(accountName)
                 .getOrNull(request.characterSlot)
 
             if (playerCharacter?.deletionDate == null)
@@ -258,7 +252,7 @@ class CharacterService(
         check(context.inCharacterMenu()) { "Player $accountName cannot enter the game" }
 
         val selectedPlayerCharacter = requireNotNull(
-            PlayerCharacter.findAllByAccountName(accountName).getOrNull(request.characterSlot)
+            playerCharacterRepository.findAllByAccountName(accountName).getOrNull(request.characterSlot)
         ) {
             "Character slot ${request.characterSlot} of the account $accountName is empty!"
         }
@@ -282,11 +276,14 @@ class CharacterService(
         val accountName = context.getAccountName()
         val characterId = context.getCharacterId()
 
-        check(gameObjectDAO.findByIdOrNull(characterId) == null) { "Player $accountName is already in game" }
+        check(gameObjectRepository.findByIdOrNull(characterId) == null) { "Player $accountName is already in game" }
 
         log.debug("User {} is entering game world with character id={}...", accountName, characterId)
 
-        val character = gameObjectDAO.loadCharacter(characterId)
+        val character = requireNotNull(playerCharacterRepository.findById(characterId)) {
+            "Cannot enter game: no character with id $characterId exists!"
+        }
+        gameObjectRepository.loadCharacter(character)
         val items = Item.findAllByOwnerId(character.id)
         val shortcuts = Shortcut.findAllBy(character.id, character.activeSubclass)
 
@@ -297,7 +294,7 @@ class CharacterService(
 
         if (character.isDead()) send(PlayerDiedResponse(character))
 
-        gameObjectDAO.findAllNear(character).forEach {
+        gameObjectRepository.findAllNear(character).forEach {
             send(it.toInfoResponse())
 
             if (it is PlayerCharacter) {
@@ -316,7 +313,7 @@ class CharacterService(
 
     suspend fun respawnCharacter(request: RespawnRequest) {
         val context = sessionContext()
-        val character = gameObjectDAO.findCharacterById(context.getCharacterId())
+        val character = gameObjectRepository.findCharacterById(context.getCharacterId())
 
         log.debug("Start respawning '{}'", character)
 
@@ -347,7 +344,7 @@ class CharacterService(
 
         log.debug("Player {} is exiting to characters menu", accountName)
 
-        val character = gameObjectDAO.findCharacterById(context.getCharacterId())
+        val character = gameObjectRepository.findCharacterById(context.getCharacterId())
 
         if (character.canExitWorld()) {
             removeFromGameWorld(character)
@@ -369,7 +366,7 @@ class CharacterService(
 
         log.debug("Player {} is exiting game", accountName)
 
-        val character = gameObjectDAO.findCharacterById(context.getCharacterId())
+        val character = gameObjectRepository.findCharacterById(context.getCharacterId())
 
         if (character.canExitWorld()) {
             send(ExitGameResponse)
@@ -382,7 +379,7 @@ class CharacterService(
 
     suspend fun disconnectGame() {
         sessionContext().getCharacterIdOrNull()?.let { characterId ->
-            gameObjectDAO.findCharacterByIdOrNull(characterId)?.let { removeFromGameWorld(it) }
+            gameObjectRepository.findCharacterByIdOrNull(characterId)?.let { removeFromGameWorld(it) }
         }
     }
 
@@ -393,7 +390,7 @@ class CharacterService(
         broadcastPacket(DeleteObjectResponse(character.id), character)
         actorStateService.stopUpdatingStates(character)
         asyncTaskService.cancelActionByActorId(character.id)
-        gameObjectDAO.deleteById(character.id)
+        gameObjectRepository.deleteById(character.id)
     }
 
     /**

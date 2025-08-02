@@ -7,14 +7,12 @@ import org.l2kserver.game.utils.LevelUtils
 import org.l2kserver.game.extensions.model.item.countWeightByOwnerId
 import org.l2kserver.game.model.item.Item
 import org.l2kserver.game.domain.PlayerCharacterEntity
-import org.l2kserver.game.extensions.model.actor.toPlayerCharacter
 import org.l2kserver.game.extensions.model.item.findAllEquippedByOwnerId
 import org.l2kserver.game.extensions.model.stats.applyBasicStats
 import org.l2kserver.game.extensions.model.stats.applyEquipment
 import org.l2kserver.game.extensions.model.stats.applyLimitations
 import org.l2kserver.game.extensions.model.stats.applyModifiers
-import org.l2kserver.game.model.actor.character.CharacterClass
-import org.l2kserver.game.model.actor.character.CharacterTemplate
+import org.l2kserver.game.model.actor.character.L2kCharacterClass
 import org.l2kserver.game.model.actor.character.PvpState
 import org.l2kserver.game.model.actor.position.Heading
 import org.l2kserver.game.model.stats.BasicStats
@@ -27,17 +25,8 @@ import org.l2kserver.game.model.store.PrivateStore
  */
 class PlayerCharacter(
     private val entity: PlayerCharacterEntity,
-    val characterClass: CharacterClass
+    val characterClass: L2kCharacterClass
 ) : Actor {
-
-    companion object {
-        const val DEFAULT_NAME_COLOR = 0xFFFFFF
-        const val DEFAULT_TITLE_COLOR = 0xFFFF77
-
-        fun findById(id: Int) = requireNotNull(PlayerCharacterEntity.findById(id)?.toPlayerCharacter()) {
-            "No character found by id $id"
-        }
-    }
 
     override val id: Int = entity.id.value
     val accountName by entity::accountName
@@ -88,7 +77,13 @@ class PlayerCharacter(
     var paperDoll = PaperDoll(Item.findAllEquippedByOwnerId(this.id))
     val itemsWeight: Int get() = Item.countWeightByOwnerId(this.id)
 
-    override val collisionBox: CollisionBox = CharacterTemplate.Registry.findByClassName(characterClass.baseClassName).collisionBox
+    override val collisionBox: CollisionBox get() {
+        //Scan character class and its parent classes for character template, to get its collision box
+        fun L2kCharacterClass.getCollisionBox(): CollisionBox = this.characterTemplate?.collisionBox ?: run {
+            parentClass?.getCollisionBox() ?: CollisionBox(0.0, 0.0)
+        }
+        return characterClass.getCollisionBox()
+    }
 
     override var isFighting = false
     override var isMoving = false
@@ -100,14 +95,14 @@ class PlayerCharacter(
 
     override val level: Int get() = LevelUtils.getByExp(exp)
 
-    val basicStats: BasicStats get() = characterClass.initialBasicStats
+    val basicStats: BasicStats get() = characterClass.basicStats
 
-    override val stats: Stats get() = characterClass.initialStats
+    override val stats: Stats get() = characterClass.combatStats
         .applyEquipment(paperDoll, characterClass)
         .applyModifiers(level, characterClass, basicStats)
         .applyLimitations()
 
-    val tradeAndInventoryStats: TradeAndInventoryStats get() = characterClass.initialTradeAndInventoryStats
+    val tradeAndInventoryStats: TradeAndInventoryStats get() = characterClass.tradeAndInventoryStats
         .applyBasicStats(basicStats)//TODO apply skills
 
     var privateStore: PrivateStore? = null
@@ -122,15 +117,4 @@ class PlayerCharacter(
     override fun isEnemyOf(other: Actor) = karma > 0 || pvpState != PvpState.NOT_IN_PVP
 
     override fun toString() = "Character(name=$name id=$id gender=$gender race=$race)"
-}
-
-/**
- * User's access level.
- */
-enum class AccessLevel {
-    /** Average player */
-    PLAYER,
-
-    /** GAME_MASTER can use admin commands and has some other privileges */
-    GAME_MASTER
 }

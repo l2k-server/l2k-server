@@ -38,7 +38,7 @@ data class CharacterInfoResponse(
         putUTF16String(playerCharacter.name)
         putInt(playerCharacter.race.ordinal)
         putInt(playerCharacter.gender.ordinal)
-        putInt(playerCharacter.characterClass.baseClassName.id)
+        putInt(playerCharacter.characterClass.baseClassId)
 
         putInt(playerCharacter.paperDoll.twoSlotsAccessory?.templateId ?: 0)
         putInt(playerCharacter.paperDoll.headgear?.templateId ?: 0)
@@ -119,7 +119,7 @@ data class CharacterInfoResponse(
         put(0) //TODO Recommendations Left
         putShort(0) // TODO Recommendations Received Blue value for name (0 = white, 255 = pure blue)
 
-        putInt(playerCharacter.characterClass.name.id)
+        putInt(playerCharacter.characterClass.id)
 
         putInt(playerCharacter.stats.maxCp)
         putInt(playerCharacter.currentCp)

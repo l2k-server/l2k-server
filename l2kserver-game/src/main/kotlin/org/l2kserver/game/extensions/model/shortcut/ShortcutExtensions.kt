@@ -6,6 +6,7 @@ import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.insertAndGetId
 import org.l2kserver.game.domain.Shortcut
 import org.l2kserver.game.domain.ShortcutTable
+import org.l2kserver.game.model.actor.character.InitialShortcut
 import org.l2kserver.game.model.actor.character.ShortcutType
 
 fun Shortcut.Companion.create(
@@ -26,6 +27,17 @@ fun Shortcut.Companion.create(
     }
 
     return findById(shortcutId)!!
+}
+
+fun Shortcut.Companion.createAllFrom(characterId: Int, initialShortcuts: Iterable<InitialShortcut>) = initialShortcuts.map {
+    create(
+        characterId = characterId,
+        subclassIndex = 0,
+        shortcutIndex = it.index,
+        shortcutType = it.type,
+        shortcutActionId = it.shortcutActionId,
+        shortcutActionLevel = it.actionLevel
+    )
 }
 
 fun Shortcut.Companion.findAllBy(characterId: Int, subclassIndex: Int) =
