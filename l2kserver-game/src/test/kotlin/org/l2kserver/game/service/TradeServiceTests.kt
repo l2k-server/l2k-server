@@ -34,9 +34,9 @@ import org.l2kserver.game.handler.dto.response.SystemMessageResponse
 import org.l2kserver.game.handler.dto.response.UpdateItemOperationType
 import org.l2kserver.game.handler.dto.response.UpdateItemsResponse
 import org.l2kserver.game.handler.dto.response.UpdateStatusResponse
-import org.l2kserver.game.model.actor.enumeration.Posture
+import org.l2kserver.game.model.actor.Posture
 import org.l2kserver.game.model.item.Item
-import org.l2kserver.game.model.position.Position
+import org.l2kserver.game.model.actor.position.Position
 import org.l2kserver.game.model.store.PrivateStore
 import org.springframework.beans.factory.annotation.Autowired
 import kotlin.test.Test

@@ -3,7 +3,7 @@ package org.l2kserver.game.handler.dto.response
 import org.l2kserver.game.extensions.littleEndianByteArray
 import org.l2kserver.game.extensions.putUByte
 import org.l2kserver.game.extensions.toByte
-import org.l2kserver.game.model.actor.enumeration.MoveType
+import org.l2kserver.game.model.actor.MoveType
 
 private const val CHANGE_MOVE_TYPE_RESPONSE_PACKET_ID: UByte = 46u
 

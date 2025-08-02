@@ -1,9 +1,6 @@
 package org.l2kserver.game.model.item
 
-import org.l2kserver.game.domain.item.template.ArrowTemplate
-import org.l2kserver.game.domain.item.entity.ItemEntity
-import org.l2kserver.game.domain.item.template.ItemGroup
-import org.l2kserver.game.domain.item.template.Slot
+import org.l2kserver.game.domain.ItemEntity
 
 class Arrow(
     itemEntity: ItemEntity,
@@ -35,7 +32,7 @@ class Arrow(
         this.equippedAt = slot
         return this
     }
-    fun toUnequipped(): Arrow{
+    fun toUnequipped(): Arrow {
         this.equippedAt = null
         return this
     }

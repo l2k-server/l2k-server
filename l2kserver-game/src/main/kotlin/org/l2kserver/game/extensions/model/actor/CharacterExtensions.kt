@@ -5,22 +5,22 @@ import org.jetbrains.exposed.sql.SortOrder
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.deleteReturning
 import org.jetbrains.exposed.sql.insertAndGetId
-import org.l2kserver.game.domain.character.CharacterClass
-import org.l2kserver.game.domain.character.PlayerCharacterEntity
-import org.l2kserver.game.domain.character.PlayerCharacterTable
-import org.l2kserver.game.domain.character.CharacterTemplate
-import org.l2kserver.game.domain.shortcut.Shortcut
+import org.l2kserver.game.domain.PlayerCharacterEntity
+import org.l2kserver.game.domain.PlayerCharacterTable
+import org.l2kserver.game.domain.Shortcut
 import org.l2kserver.game.extensions.model.item.createAllFrom
 import org.l2kserver.game.extensions.model.shortcut.create
+import org.l2kserver.game.model.actor.AccessLevel
 import org.l2kserver.game.model.actor.PlayerCharacter
-import org.l2kserver.game.model.actor.enumeration.AccessLevel
-import org.l2kserver.game.model.actor.enumeration.CharacterClassName
-import org.l2kserver.game.model.actor.enumeration.CharacterRace
-import org.l2kserver.game.model.actor.enumeration.Gender
+import org.l2kserver.game.model.actor.character.CharacterRace
+import org.l2kserver.game.model.actor.character.Gender
+import org.l2kserver.game.model.actor.character.CharacterClass
+import org.l2kserver.game.model.actor.character.CharacterClassName
+import org.l2kserver.game.model.actor.character.CharacterTemplate
 import org.l2kserver.game.model.item.Item
 import kotlin.math.roundToInt
 
-fun PlayerCharacterEntity.toPlayerCharacter() = PlayerCharacter(this, CharacterClass.findByName(this.className))
+fun PlayerCharacterEntity.toPlayerCharacter() = PlayerCharacter(this, CharacterClass.Registry.findByName(this.className))
 
 fun PlayerCharacter.Companion.create(
     accountName: String,
@@ -32,8 +32,8 @@ fun PlayerCharacter.Companion.create(
     hairStyle: Int,
     faceType: Int
 ): Int {
-    val characterTemplate = CharacterTemplate.findByName(className)
-    val characterClass = CharacterClass.findByName(className)
+    val characterTemplate = CharacterTemplate.Registry.findByClassName(className)
+    val characterClass = CharacterClass.Registry.findByName(className)
 
     val characterId = PlayerCharacterTable.insertAndGetId { statement ->
         statement[PlayerCharacterTable.accountName] = accountName

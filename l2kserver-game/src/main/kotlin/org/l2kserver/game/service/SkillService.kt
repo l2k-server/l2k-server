@@ -5,8 +5,8 @@ import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
-import org.l2kserver.game.domain.skill.SkillTargetType
-import org.l2kserver.game.domain.skill.SkillType
+import org.l2kserver.game.model.skill.SkillTargetType
+import org.l2kserver.game.model.skill.SkillType
 import org.l2kserver.game.extensions.logger
 import org.l2kserver.game.extensions.model.skill.findAllByCharacterIdAndSubclassIndex
 import org.l2kserver.game.extensions.model.skill.findBy
@@ -71,7 +71,7 @@ class SkillService(
     suspend fun useSkill(actor: Actor, skill: Skill) {
         log.debug("Actor '{}' tries to use skill '{}'", actor, skill)
         when (skill.skillType) {
-            SkillType.ACTIVE -> useActiveSkill(actor, skill)
+            SkillType.ACTIVE, SkillType.MAGIC -> useActiveSkill(actor, skill)
             SkillType.PASSIVE -> send(ActionFailedResponse)
             SkillType.TOGGLE -> {
                 //TODO Toggle skills
@@ -127,7 +127,8 @@ class SkillService(
 
                     val castTime = skill.castTime //TODO calculate depending on casting/attack speed
 
-                    val castingSpeed = if (skill.isMagic) actor.stats.castingSpd else actor.stats.atkSpd
+                    val castingSpeed = if (skill.skillType == SkillType.MAGIC)
+                        actor.stats.castingSpd else actor.stats.atkSpd
                     val reuseDelay = skill.reuseDelay * REUSE_DELAY_COEFFICIENT / castingSpeed
 
                     withContext(coroutineContext + NonCancellable) {

@@ -7,21 +7,24 @@ import org.junit.jupiter.api.BeforeEach
 import org.l2kserver.game.configuration.HazelcastInstanceTestConfiguration
 import org.l2kserver.game.model.session.AuthorizationKey
 import org.l2kserver.game.repository.GameObjectDAO
-import org.l2kserver.game.domain.character.PlayerCharacterTable
-import org.l2kserver.game.domain.item.entity.ItemTable
-import org.l2kserver.game.domain.item.template.ItemTemplate
-import org.l2kserver.game.domain.shortcut.ShortcutTable
-import org.l2kserver.game.domain.skill.LearnedSkillsTable
+import org.l2kserver.game.domain.PlayerCharacterTable
+import org.l2kserver.game.domain.ItemTable
+import org.l2kserver.game.domain.ShortcutTable
+import org.l2kserver.game.domain.LearnedSkillsTable
 import org.l2kserver.game.extensions.model.actor.create
 import org.l2kserver.game.extensions.model.item.createAllFrom
+import org.l2kserver.game.model.GameData
+import org.l2kserver.game.model.GameDataRegistry
 import org.l2kserver.game.model.actor.PlayerCharacter
 import org.l2kserver.game.model.actor.ScatteredItem
-import org.l2kserver.game.model.actor.enumeration.CharacterClassName
-import org.l2kserver.game.model.actor.enumeration.CharacterRace
-import org.l2kserver.game.model.actor.enumeration.Gender
-import org.l2kserver.game.model.item.InitialItem
+import org.l2kserver.game.model.actor.character.CharacterRace
+import org.l2kserver.game.model.actor.character.Gender
+import org.l2kserver.game.model.actor.character.CharacterClassName
+import org.l2kserver.game.model.actor.character.InitialItem
+import org.l2kserver.game.model.actor.npc.NpcTemplate
 import org.l2kserver.game.model.item.Item
-import org.l2kserver.game.model.position.Position
+import org.l2kserver.game.model.actor.position.Position
+import org.l2kserver.game.model.item.ItemTemplate
 import org.l2kserver.game.network.session.SessionContext
 import org.l2kserver.game.service.ActorStateService
 import org.l2kserver.game.utils.IdUtils
@@ -58,6 +61,7 @@ abstract class AbstractTests {
         SessionContext.clear()
         gameObjectDAO.deleteAll()
         actorStateService.flushStates()
+        NpcTemplate.Registry.flush()
     }
 
     protected fun createRandomAuthorizationKey() = AuthorizationKey(
@@ -120,7 +124,7 @@ abstract class AbstractTests {
             enchantLevel = enchantLevel
         )
 
-        return gameObjectDAO.save(scatteredItem)
+        return gameObjectDAO.save(scatteredItem)!!
     }
 
     private fun ActorStateService.flushStates() {
@@ -129,6 +133,11 @@ abstract class AbstractTests {
 
         val charactersInPvpState: MutableMap<Int, Long> = this.getPrivateProperty("fightingActors")!!
         charactersInPvpState.clear()
+    }
+
+    private fun <T: GameData> GameDataRegistry<T>.flush() {
+        val gameDataMap: MutableMap<Int, Long> = this.getPrivateProperty("gameDataStorage")!!
+        gameDataMap.clear()
     }
 
     @Suppress("UNCHECKED_CAST")

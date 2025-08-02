@@ -1,7 +1,7 @@
 package org.l2kserver.game.handler.dto.request
 
 import java.nio.ByteBuffer
-import org.l2kserver.game.model.position.Position
+import org.l2kserver.game.model.actor.position.Position
 
 const val ATTACK_REQUEST_PACKET_ID: UByte = 10u
 

@@ -2,8 +2,8 @@ package org.l2kserver.game.handler.dto.response
 
 import org.l2kserver.game.extensions.littleEndianByteArray
 import org.l2kserver.game.extensions.putUByte
-import org.l2kserver.game.model.position.Position
-import org.l2kserver.game.model.actor.enumeration.Posture
+import org.l2kserver.game.model.actor.position.Position
+import org.l2kserver.game.model.actor.Posture
 
 private const val CHANGE_POSTURE_TYPE_RESPONSE_PACKET_ID: UByte = 47u
 

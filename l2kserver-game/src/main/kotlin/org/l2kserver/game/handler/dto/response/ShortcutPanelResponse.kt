@@ -2,8 +2,8 @@ package org.l2kserver.game.handler.dto.response
 
 import org.l2kserver.game.extensions.littleEndianByteArray
 import org.l2kserver.game.extensions.putUByte
-import org.l2kserver.game.domain.shortcut.Shortcut
-import org.l2kserver.game.domain.shortcut.ShortcutType
+import org.l2kserver.game.domain.Shortcut
+import org.l2kserver.game.model.actor.character.ShortcutType
 
 private const val SHORTCUT_PANEL_RESPONSE_PACKET_ID: UByte = 69u
 

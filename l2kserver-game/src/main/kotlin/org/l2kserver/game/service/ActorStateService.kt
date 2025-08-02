@@ -14,13 +14,11 @@ import org.l2kserver.game.handler.dto.response.StatusAttribute
 import org.l2kserver.game.handler.dto.response.StopFightingResponse
 import org.l2kserver.game.handler.dto.response.UpdateStatusResponse
 import org.l2kserver.game.model.actor.Actor
-import org.l2kserver.game.model.actor.Npc
+import org.l2kserver.game.model.actor.NpcImpl
 import org.l2kserver.game.model.actor.PlayerCharacter
-import org.l2kserver.game.model.actor.enumeration.MoveType
-import org.l2kserver.game.model.actor.enumeration.Posture
-import org.l2kserver.game.model.actor.enumeration.PvpState
-import org.l2kserver.game.model.actor.isDead
-import org.l2kserver.game.model.actor.isRunning
+import org.l2kserver.game.model.actor.MoveType
+import org.l2kserver.game.model.actor.Posture
+import org.l2kserver.game.model.actor.character.PvpState
 import org.l2kserver.game.repository.GameObjectDAO
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.context.event.ApplicationReadyEvent
@@ -107,7 +105,7 @@ class ActorStateService(
             actor.isFighting = true
 
             //TODO This is part of AI, not combat service
-            if (actor is Npc) {
+            if (actor is NpcImpl) {
                 actor.moveType = MoveType.RUN
                 broadcastPacket(ChangeMoveTypeResponse(actor.id, actor.moveType))
             }
@@ -140,7 +138,7 @@ class ActorStateService(
     private suspend fun updateActorsFightingState() = fightingActors.forEach { (actor, inCombatEndTimeMs) ->
         if (inCombatEndTimeMs <= currentTimeMillis()) {
             //TODO This is part of AI, not combat service
-            if (actor is Npc) {
+            if (actor is NpcImpl) {
                 actor.moveType = MoveType.WALK
                 broadcastPacket(ChangeMoveTypeResponse(actor.id, actor.moveType))
             }

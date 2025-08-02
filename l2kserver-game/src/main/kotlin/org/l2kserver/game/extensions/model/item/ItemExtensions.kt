@@ -7,35 +7,36 @@ import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.insertReturning
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
-import org.l2kserver.game.model.position.Position
+import org.l2kserver.game.model.actor.position.Position
 import org.l2kserver.game.model.actor.ScatteredItem
 import org.l2kserver.game.model.item.Armor
-import org.l2kserver.game.domain.item.template.ArmorTemplate
 import org.l2kserver.game.model.item.Arrow
-import org.l2kserver.game.domain.item.template.ArrowTemplate
 import org.l2kserver.game.model.item.Item
-import org.l2kserver.game.domain.item.template.ItemTemplate
 import org.l2kserver.game.model.item.Jewelry
-import org.l2kserver.game.domain.item.template.JewelryTemplate
-import org.l2kserver.game.model.item.InitialItem
 import org.l2kserver.game.model.item.SimpleItem
-import org.l2kserver.game.domain.item.template.SimpleItemTemplate
 import org.l2kserver.game.model.item.Weapon
-import org.l2kserver.game.domain.item.template.WeaponTemplate
-import org.l2kserver.game.domain.item.entity.ItemEntity
-import org.l2kserver.game.domain.item.entity.ItemTable
-import org.l2kserver.game.domain.item.template.Slot
+import org.l2kserver.game.domain.ItemEntity
+import org.l2kserver.game.domain.ItemTable
+import org.l2kserver.game.model.actor.character.InitialItem
+import org.l2kserver.game.model.item.ArmorTemplate
+import org.l2kserver.game.model.item.ArrowTemplate
+import org.l2kserver.game.model.item.ItemTemplate
+import org.l2kserver.game.model.item.JewelryTemplate
+import org.l2kserver.game.model.item.SimpleItemTemplate
+import org.l2kserver.game.model.item.Slot
+import org.l2kserver.game.model.item.WeaponTemplate
 import org.l2kserver.game.utils.IdUtils
 import kotlin.Int
 
 const val ADENA_TEMPLATE_ID = 57
 
-fun ItemEntity.toItem(): Item = when (val itemTemplate = ItemTemplate.findById(this.templateId)) {
+fun ItemEntity.toItem(): Item = when (val itemTemplate = ItemTemplate.Registry.findById(this.templateId)) {
     is WeaponTemplate -> Weapon(this, itemTemplate)
     is ArmorTemplate -> Armor(this, itemTemplate)
     is ArrowTemplate -> Arrow(this, itemTemplate)
     is JewelryTemplate -> Jewelry(this, itemTemplate)
     is SimpleItemTemplate -> SimpleItem(this, itemTemplate)
+    else -> throw IllegalArgumentException("No item template found by id ${this.templateId}") //TODO переделать на nullable
 }
 
 fun Item.toScatteredItem(position: Position, amount: Int) = ScatteredItem(
@@ -119,13 +120,16 @@ fun Item.Companion.create(
 /**
  * Creates new items from provided [initialItems] and assigns it to owner with given [ownerId]. Saves new items to DB
  */
-fun Item.Companion.createAllFrom(ownerId: Int, initialItems: List<InitialItem>) = initialItems.map {
-    create(
+fun Item.Companion.createAllFrom(ownerId: Int, initialItems: List<InitialItem>) = initialItems.mapNotNull {
+    val itemTemplate = ItemTemplate.Registry.findById(it.id)
+
+    if (itemTemplate == null) null
+    else create(
         templateId = it.id,
         ownerId = ownerId,
         amount = it.amount,
         equippedAt = if (it.isEquipped)
-            ItemTemplate.findById(it.id).type.availableSlots.firstOrNull() else null,
+            itemTemplate.type.availableSlots.firstOrNull() else null,
         enchantLevel = it.enchantLevel
     )
 }
@@ -175,7 +179,7 @@ fun Item.Companion.findAllNotEquippedByOwnerIdAndTemplateIds(
  */
 fun Item.Companion.countWeightByOwnerId(ownerId: Int) = ItemTable
     .select(ItemTable.templateId, ItemTable.amount).where { ItemTable.ownerId eq ownerId }
-    .sumOf { ItemTemplate.findById(it[ItemTable.templateId]).weight * it[ItemTable.amount] }
+    .sumOf { (ItemTemplate.Registry.findById(it[ItemTable.templateId])?.weight ?: 0) * it[ItemTable.amount] }
 
 /**
  * Checks if item with [itemId] exists in database

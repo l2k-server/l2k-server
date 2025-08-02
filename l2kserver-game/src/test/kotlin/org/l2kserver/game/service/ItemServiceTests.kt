@@ -7,6 +7,13 @@ import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransacti
 import kotlin.test.Test
 import org.junit.jupiter.api.assertThrows
 import org.l2kserver.game.AbstractTests
+import org.l2kserver.game.data.item.armor.LEATHER_SHIELD
+import org.l2kserver.game.data.item.arrows.BONE_ARROW
+import org.l2kserver.game.data.item.arrows.WOODEN_ARROW
+import org.l2kserver.game.data.item.weapons.DAGGER
+import org.l2kserver.game.data.item.weapons.HEAVENS_DIVIDER
+import org.l2kserver.game.data.item.weapons.SQUIRES_SWORD
+import org.l2kserver.game.data.item.weapons.WILLOW_STAFF
 import org.l2kserver.game.extensions.model.item.createAllFrom
 import org.l2kserver.game.handler.dto.request.DeleteItemRequest
 import org.l2kserver.game.handler.dto.request.DropItemRequest
@@ -18,12 +25,9 @@ import org.l2kserver.game.handler.dto.response.SystemMessageResponse
 import org.l2kserver.game.handler.dto.response.UpdateItemOperationType
 import org.l2kserver.game.handler.dto.response.UpdateItemsResponse
 import org.l2kserver.game.handler.dto.response.UpdateStatusResponse
-import org.l2kserver.game.model.position.Position
+import org.l2kserver.game.model.actor.position.Position
 import org.l2kserver.game.model.item.Item
-import org.l2kserver.game.model.item.InitialItem
-import org.l2kserver.game.domain.item.entity.ItemTable
-import org.l2kserver.game.domain.item.template.ItemTemplate
-import org.l2kserver.game.domain.item.template.Slot
+import org.l2kserver.game.domain.ItemTable
 import org.l2kserver.game.extensions.model.item.existsById
 import org.l2kserver.game.extensions.model.item.findAllByOwnerIdAndTemplateId
 import org.l2kserver.game.extensions.model.item.findAllEquippedByOwnerId
@@ -32,7 +36,10 @@ import org.l2kserver.game.handler.dto.response.DeleteObjectResponse
 import org.l2kserver.game.handler.dto.response.PickUpItemResponse
 import org.l2kserver.game.handler.dto.response.StatusAttribute
 import org.l2kserver.game.model.PaperDoll
-import org.l2kserver.game.model.actor.enumeration.Posture
+import org.l2kserver.game.model.actor.Posture
+import org.l2kserver.game.model.actor.character.InitialItem
+import org.l2kserver.game.model.item.ItemTemplate
+import org.l2kserver.game.model.item.Slot
 import org.l2kserver.game.model.store.PrivateStore
 import org.springframework.beans.factory.annotation.Autowired
 import kotlin.random.Random
@@ -42,10 +49,6 @@ import kotlin.test.assertIs
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
-
-private const val WOODEN_ARROW_TEMPLATE_ID = 17
-private const val BONE_ARROW_TEMPLATE_ID = 1341
-private const val HEAVENS_DIVIDER_TEMPLATE_ID = 6372
 
 class ItemServiceTests(
     @Autowired private val itemService: ItemService
@@ -223,13 +226,13 @@ class ItemServiceTests(
                 ownerId = character.id,
                 initialItems = listOf(
                     InitialItem(
-                        id = 2369,
-                        "",
+                        id = SQUIRES_SWORD.id,
+                        name = SQUIRES_SWORD.name,
                         isEquipped = true
                     ),
                     InitialItem(
-                        id = 8,
-                        ""
+                        id = DAGGER.id,
+                        name = DAGGER.name
                     ),
                 )
             ).toList()
@@ -273,18 +276,18 @@ class ItemServiceTests(
                 ownerId = character.id,
                 initialItems = listOf(
                     InitialItem(
-                        id = 2369,
-                        "",
+                        id = SQUIRES_SWORD.id,
+                        name = SQUIRES_SWORD.name,
                         isEquipped = true
                     ),
                     InitialItem(
-                        id = 2495,
-                        "",
+                        id = LEATHER_SHIELD.id,
+                        name = LEATHER_SHIELD.name,
                         isEquipped = true
                     ),
                     InitialItem(
-                        id = 8,
-                        ""
+                        id = WILLOW_STAFF.id,
+                        name = WILLOW_STAFF.name
                     ),
                 )
             )
@@ -330,7 +333,7 @@ class ItemServiceTests(
         val character = createTestCharacter()
         context.setCharacterId(character.id)
 
-        val item = createTestItem(8, character.id)
+        val item = createTestItem(WILLOW_STAFF.id, character.id)
 
         withContext(context) {
             itemService.dropItem(
@@ -369,7 +372,7 @@ class ItemServiceTests(
         val character = createTestCharacter()
         context.setCharacterId(character.id)
 
-        val itemId = createTestItem(8, character.id, isEquipped = true).id
+        val itemId = createTestItem(WILLOW_STAFF.id, character.id, isEquipped = true).id
 
         withContext(context) {
             itemService.dropItem(
@@ -556,7 +559,7 @@ class ItemServiceTests(
         val character = createTestCharacter()
         context.setCharacterId(character.id)
 
-        val item = createTestItem(8, character.id)
+        val item = createTestItem(WILLOW_STAFF.id, character.id)
 
         withContext(context) {
             itemService.dropItem(
@@ -583,14 +586,14 @@ class ItemServiceTests(
         context.setCharacterId(character.id)
 
         //Create store
-        val woodenArrow = createTestItem(WOODEN_ARROW_TEMPLATE_ID, character.id, 100)
+        val woodenArrow = createTestItem(WOODEN_ARROW.id, character.id, 100)
         character.posture = Posture.SITTING
         character.privateStore = PrivateStore.Sell(
             title = "Wooden arrows - cheap and cheerful",
             items = listOf(woodenArrow.toItemOnSale(woodenArrow.amount, 2)),
             packageSale = true
         )
-        val boneArrowId = createTestItem(BONE_ARROW_TEMPLATE_ID, character.id, 100).id
+        val boneArrowId = createTestItem(BONE_ARROW.id, character.id, 100).id
 
         //Then
         withContext(context) { itemService.deleteItem(DeleteItemRequest(boneArrowId, 1)) }
@@ -607,14 +610,14 @@ class ItemServiceTests(
         context.setCharacterId(character.id)
 
         // Create store
-        val woodenArrow = createTestItem(WOODEN_ARROW_TEMPLATE_ID, character.id, 100)
+        val woodenArrow = createTestItem(WOODEN_ARROW.id, character.id, 100)
         character.posture = Posture.SITTING
         character.privateStore = PrivateStore.Sell(
             title = "Wooden arrows - cheap and cheerful",
             items = listOf(woodenArrow.toItemOnSale(woodenArrow.amount, 2)),
             packageSale = true
         )
-        val boneArrowId = createTestItem(BONE_ARROW_TEMPLATE_ID, character.id, 100).id
+        val boneArrowId = createTestItem(BONE_ARROW.id, character.id, 100).id
 
         // Then
         withContext(context) { itemService.dropItem(DropItemRequest(boneArrowId, 1, character.position)) }
@@ -631,7 +634,7 @@ class ItemServiceTests(
         context.setCharacterId(character.id)
 
         // Create store
-        val heavensDivider = createTestItem(HEAVENS_DIVIDER_TEMPLATE_ID, character.id, 1)
+        val heavensDivider = createTestItem(HEAVENS_DIVIDER.id, character.id, 1)
         character.posture = Posture.SITTING
         character.privateStore = PrivateStore.Sell(
             title = "Wooden arrows - cheap and cheerful",
@@ -655,11 +658,11 @@ class ItemServiceTests(
         context.setCharacterId(character.id)
 
         //Create already existing item
-        val existingItem = createTestItem(HEAVENS_DIVIDER_TEMPLATE_ID, character.id)
+        val existingItem = createTestItem(HEAVENS_DIVIDER.id, character.id)
 
         //Create scattered item
         val scatteredItem = createTestScatteredItem(
-            character.position, ItemTemplate.findById(HEAVENS_DIVIDER_TEMPLATE_ID))
+            character.position, ItemTemplate.Registry.findById(HEAVENS_DIVIDER.id)!!)
 
         //Pick up item!
         withContext(context) {
@@ -677,14 +680,14 @@ class ItemServiceTests(
 
         val updateItemsResponse = assertIs<UpdateItemsResponse>(context.responseChannel.receive())
         assertEquals(UpdateItemOperationType.ADD, updateItemsResponse.operations.first().operationType)
-        assertEquals(HEAVENS_DIVIDER_TEMPLATE_ID, updateItemsResponse.operations.first().item.templateId)
+        assertEquals(HEAVENS_DIVIDER.id, updateItemsResponse.operations.first().item.templateId)
         assertNotEquals(existingItem.id, updateItemsResponse.operations.first().item.id)
 
         assertIs<UpdateStatusResponse>(context.responseChannel.receive())
 
         assertIs<SystemMessageResponse.YouHaveObtained>(context.responseChannel.receive())
         assertFalse(gameObjectDAO.existsById(scatteredItem.id), "Picked up item must disappear")
-        assertEquals(2, Item.findAllByOwnerIdAndTemplateId(character.id, HEAVENS_DIVIDER_TEMPLATE_ID).size)
+        assertEquals(2, Item.findAllByOwnerIdAndTemplateId(character.id, HEAVENS_DIVIDER.id).size)
     }
 
     @Test
@@ -695,11 +698,11 @@ class ItemServiceTests(
         context.setCharacterId(character.id)
 
         //Create already existing item
-        createTestItem(WOODEN_ARROW_TEMPLATE_ID, character.id, 100)
+        createTestItem(WOODEN_ARROW.id, character.id, 100)
 
         //Create scattered item
         val scatteredItem = createTestScatteredItem(
-            character.position, ItemTemplate.findById(WOODEN_ARROW_TEMPLATE_ID), 100)
+            character.position, ItemTemplate.Registry.findById(WOODEN_ARROW.id)!!, 100)
 
         //Pick up item!
         withContext(context) {
@@ -717,14 +720,14 @@ class ItemServiceTests(
 
         val updateItemsResponse = assertIs<UpdateItemsResponse>(context.responseChannel.receive())
         assertEquals(UpdateItemOperationType.MODIFY, updateItemsResponse.operations.first().operationType)
-        assertEquals(WOODEN_ARROW_TEMPLATE_ID, updateItemsResponse.operations.first().item.templateId)
+        assertEquals(WOODEN_ARROW.id, updateItemsResponse.operations.first().item.templateId)
 
         assertIs<UpdateStatusResponse>(context.responseChannel.receive())
 
         assertIs<SystemMessageResponse.YouHaveObtained>(context.responseChannel.receive())
         assertFalse(gameObjectDAO.existsById(scatteredItem.id), "Picked up item must disappear")
 
-        val arrows = Item.findAllByOwnerIdAndTemplateId(character.id, WOODEN_ARROW_TEMPLATE_ID)
+        val arrows = Item.findAllByOwnerIdAndTemplateId(character.id, WOODEN_ARROW.id)
         assertEquals(1, arrows.size, "Should add new item to existing item stack")
         assertEquals(200, arrows.first().amount)
     }

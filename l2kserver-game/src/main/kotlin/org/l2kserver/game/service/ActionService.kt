@@ -17,11 +17,11 @@ import org.l2kserver.game.handler.dto.response.SocialActionResponse
 import org.l2kserver.game.handler.dto.response.StatusAttribute
 import org.l2kserver.game.handler.dto.response.UpdateStatusResponse
 import org.l2kserver.game.model.actor.Actor
-import org.l2kserver.game.model.actor.Npc
+import org.l2kserver.game.model.actor.NpcImpl
 import org.l2kserver.game.model.actor.PlayerCharacter
 import org.l2kserver.game.model.actor.ScatteredItem
-import org.l2kserver.game.model.actor.enumeration.MoveType
-import org.l2kserver.game.model.actor.enumeration.Posture
+import org.l2kserver.game.model.actor.MoveType
+import org.l2kserver.game.model.actor.Posture
 import org.l2kserver.game.network.session.send
 import org.l2kserver.game.network.session.sessionContext
 import org.l2kserver.game.repository.GameObjectDAO
@@ -72,8 +72,8 @@ class ActionService(
         when {
             target is ScatteredItem -> itemService.launchPickUp(character, target)
             target is Actor && target.id != character.targetId -> character.setTarget(target)
-            target is Npc && target.isEnemyOf(character) -> combatService.launchAttack(character, target)
-            target is Npc || target is PlayerCharacter && target.privateStore != null -> character.interactWith(target)
+            target is NpcImpl && target.isEnemyOf(character) -> combatService.launchAttack(character, target)
+            target is NpcImpl || target is PlayerCharacter && target.privateStore != null -> character.interactWith(target)
             target is PlayerCharacter && target.isEnemyOf(character) -> combatService.launchAttack(character, target)
             target is PlayerCharacter -> { send(ActionFailedResponse) } //TODO https://github.com/l2kserver/l2kserver-game/issues/25
             target == null -> {
@@ -158,7 +158,7 @@ class ActionService(
         if (!coroutineContext.isActive || !enoughCloseToInteract) return@launchAction
 
         when (target) {
-            is Npc -> npcService.talkTo(target)
+            is NpcImpl -> npcService.talkTo(target)
             is PlayerCharacter -> tradeService.showPrivateStoreOf(target)
         }
     }
@@ -172,7 +172,7 @@ class ActionService(
 
         when (targeted) {
             is PlayerCharacter -> send(SetTargetResponse(targeted.id))
-            is Npc -> {
+            is NpcImpl -> {
                 send(SetTargetResponse(targeted.id, this.level - targeted.level))
                 send(
                     UpdateStatusResponse(

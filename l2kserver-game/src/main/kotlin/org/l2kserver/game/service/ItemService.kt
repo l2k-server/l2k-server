@@ -2,9 +2,6 @@ package org.l2kserver.game.service
 
 import kotlinx.coroutines.isActive
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
-import org.l2kserver.game.domain.item.template.ItemTemplate
-import org.l2kserver.game.domain.item.template.Slot
-import org.l2kserver.game.domain.item.template.WeaponType
 import org.l2kserver.game.extensions.forEachInstanceMatching
 import org.l2kserver.game.extensions.logger
 import org.l2kserver.game.extensions.model.item.delete
@@ -25,17 +22,19 @@ import org.l2kserver.game.handler.dto.response.UpdateItemOperation
 import org.l2kserver.game.handler.dto.response.UpdateItemOperationType
 import org.l2kserver.game.handler.dto.response.UpdateItemsResponse
 import org.l2kserver.game.handler.dto.response.UpdateStatusResponse
-import org.l2kserver.game.model.RewardItem
-import org.l2kserver.game.model.position.Position
+import org.l2kserver.game.model.actor.position.Position
 import org.l2kserver.game.model.actor.Actor
 import org.l2kserver.game.model.actor.PlayerCharacter
 import org.l2kserver.game.model.actor.ScatteredItem
-import org.l2kserver.game.model.actor.isDead
 import org.l2kserver.game.model.item.Arrow
 import org.l2kserver.game.model.item.EquippableItem
 import org.l2kserver.game.model.item.Item
+import org.l2kserver.game.model.item.ItemTemplate
+import org.l2kserver.game.model.item.Slot
 import org.l2kserver.game.model.item.UsableItem
 import org.l2kserver.game.model.item.Weapon
+import org.l2kserver.game.model.item.WeaponType
+import org.l2kserver.game.model.reward.RewardItem
 import org.l2kserver.game.model.store.PrivateStore
 import org.l2kserver.game.network.session.send
 import org.l2kserver.game.network.session.sendTo
@@ -155,7 +154,7 @@ class ItemService(
             }
             else -> {
                 val scatteredItemPosition = geoDataService.getAvailableTargetPosition(character.position, request.position)
-                val scatteredItem = gameObjectDAO.save(item.toScatteredItem(scatteredItemPosition, request.amount))
+                val scatteredItem = gameObjectDAO.save(item.toScatteredItem(scatteredItemPosition, request.amount))!!
                 broadcastPacket(DroppedItemResponse(character.id, scatteredItem), position = character.position)
                 deleteItem(item, request.amount, character)
                 log.info("Character '{}' has dropped item '{}'", character.name, item)
@@ -168,7 +167,10 @@ class ItemService(
      * random position in [DROP_REWARD_DISTANCE] radius and drops it by [dropper]
      */
     suspend fun dropRewardItem(item: RewardItem, dropper: Actor) {
-        val template = ItemTemplate.findById(item.id)
+        val template = ItemTemplate.Registry.findById(item.id) ?: run {
+            log.warn("No item template found by id {}", item.id)
+            return
+        }
 
         val scatteredItemsAmount = if (template.isStackable) 1 else item.amount.random()
         val itemsInStackAmount = if (template.isStackable) item.amount.random() else 1
@@ -181,7 +183,7 @@ class ItemService(
             val dropPosition = geoDataService.getAvailableTargetPosition(dropper.position, calculatedPosition)
 
             gameObjectDAO.save(item.toScatteredItem(dropPosition, itemsInStackAmount))
-        }
+        }.filterNotNull()
 
         scatteredItems.forEach { scatteredItem ->
             broadcastPacket(DroppedItemResponse(dropper.id, scatteredItem), position = dropper.position)

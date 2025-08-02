@@ -1,7 +1,5 @@
 package org.l2kserver.game.model.skill
 
-import org.l2kserver.game.domain.skill.SkillTargetType
-
 /**
  * Effect dealt by skill
  *

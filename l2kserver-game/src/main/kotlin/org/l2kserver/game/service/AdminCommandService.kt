@@ -7,8 +7,8 @@ import org.l2kserver.game.handler.dto.response.PlaySoundResponse
 import org.l2kserver.game.handler.dto.response.Sound
 import org.l2kserver.game.handler.dto.response.SystemMessageResponse
 import org.l2kserver.game.handler.dto.response.UpdateItemsResponse
-import org.l2kserver.game.model.actor.enumeration.AccessLevel
-import org.l2kserver.game.model.position.Position
+import org.l2kserver.game.model.actor.AccessLevel
+import org.l2kserver.game.model.actor.position.Position
 import org.l2kserver.game.network.session.send
 import org.l2kserver.game.network.session.sessionContext
 import org.l2kserver.game.repository.GameObjectDAO

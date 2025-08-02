@@ -1,10 +1,6 @@
 package org.l2kserver.game.model.item
 
-import org.l2kserver.game.domain.item.template.ArmorTemplate
-import org.l2kserver.game.domain.item.entity.ItemEntity
-import org.l2kserver.game.domain.item.template.ArmorType
-import org.l2kserver.game.domain.item.template.Grade
-import org.l2kserver.game.domain.item.template.ItemGroup
+import org.l2kserver.game.domain.ItemEntity
 import org.l2kserver.game.model.stats.Stats
 
 // For full body armor safe enchant level is 4, but stats are calculated as it is 3

@@ -22,9 +22,10 @@ import org.awaitility.kotlin.await
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.junit.jupiter.api.assertThrows
-import org.l2kserver.game.domain.character.PlayerCharacterEntity
-import org.l2kserver.game.domain.shortcut.Shortcut
-import org.l2kserver.game.domain.skill.LearnedSkillEntity
+import org.l2kserver.game.data.character.HUMAN_FIGHTER_CLASS
+import org.l2kserver.game.domain.PlayerCharacterEntity
+import org.l2kserver.game.domain.Shortcut
+import org.l2kserver.game.domain.LearnedSkillEntity
 import org.l2kserver.game.extensions.findAllByCharacterId
 import org.l2kserver.game.extensions.model.item.findAllByOwnerId
 import org.l2kserver.game.handler.dto.response.ExitGameResponse
@@ -34,9 +35,8 @@ import org.l2kserver.game.handler.dto.response.RestartResponse
 import org.l2kserver.game.handler.dto.response.ShortcutPanelResponse
 import org.l2kserver.game.handler.dto.response.SystemMessageResponse
 import org.l2kserver.game.model.actor.PlayerCharacter
-import org.l2kserver.game.model.actor.enumeration.CharacterClassName
-import org.l2kserver.game.model.actor.enumeration.CharacterRace
-import org.l2kserver.game.model.actor.enumeration.Gender
+import org.l2kserver.game.model.actor.character.CharacterRace
+import org.l2kserver.game.model.actor.character.Gender
 import org.l2kserver.game.model.item.Item
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -55,7 +55,7 @@ class CharacterServiceTests(
         val testCharacterName = "Vitalya"
         val testRace = CharacterRace.HUMAN
         val testGender = Gender.MALE
-        val testClassName = CharacterClassName.HUMAN_FIGHTER
+        val testClassName = HUMAN_FIGHTER_CLASS.name
         val testHairColor = 2
         val testHairStyle = 1
         val testFaceType = 3

@@ -4,7 +4,7 @@ import org.l2kserver.game.extensions.littleEndianByteArray
 import org.l2kserver.game.extensions.putUByte
 import org.l2kserver.game.extensions.toInt
 import org.l2kserver.game.model.actor.PlayerCharacter
-import org.l2kserver.game.model.actor.enumeration.PvpState
+import org.l2kserver.game.model.actor.character.PvpState
 
 private const val RELATION_CHANGED_RESPONSE_PACKET_ID: UByte = 206u
 

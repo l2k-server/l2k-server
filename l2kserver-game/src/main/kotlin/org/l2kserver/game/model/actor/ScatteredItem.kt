@@ -1,7 +1,6 @@
 package org.l2kserver.game.model.actor
 
-import org.l2kserver.game.model.CollisionBox
-import org.l2kserver.game.model.position.Position
+import org.l2kserver.game.model.actor.position.Position
 
 /**
  * Represents item on the ground

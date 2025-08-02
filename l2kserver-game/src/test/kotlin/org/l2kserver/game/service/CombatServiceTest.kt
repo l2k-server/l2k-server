@@ -9,6 +9,8 @@ import kotlinx.coroutines.withTimeout
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import kotlin.test.Test
 import org.l2kserver.game.AbstractTests
+import org.l2kserver.game.data.item.arrows.WOODEN_ARROW
+import org.l2kserver.game.data.item.weapons.BOW
 import org.l2kserver.game.extensions.model.item.delete
 import org.l2kserver.game.extensions.model.item.findAllByOwnerIdAndTemplateId
 import org.l2kserver.game.extensions.model.item.findAllEquippedByOwnerId
@@ -23,7 +25,7 @@ import org.l2kserver.game.handler.dto.response.UpdateItemOperationType
 import org.l2kserver.game.handler.dto.response.UpdateItemsResponse
 import org.l2kserver.game.handler.dto.response.UpdateStatusResponse
 import org.l2kserver.game.model.PaperDoll
-import org.l2kserver.game.model.actor.enumeration.PvpState
+import org.l2kserver.game.model.actor.character.PvpState
 import org.l2kserver.game.model.item.Item
 import org.l2kserver.game.model.item.Weapon
 import org.springframework.beans.factory.annotation.Autowired
@@ -31,9 +33,6 @@ import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
-
-private const val WOODEN_ARROW_TEMPLATE_ID = 17
-private const val BOW_TEMPLATE_ID = 14
 
 class CombatServiceTest(
     @Autowired private val combatService: CombatService
@@ -121,8 +120,8 @@ class CombatServiceTest(
         context.setCharacterId(character.id)
 
         newSuspendedTransaction { Item.findAllEquippedByOwnerId(character.id).forEach { it.delete() } }
-        val arrowsId = createTestItem(WOODEN_ARROW_TEMPLATE_ID, character.id).id
-        val bow = createTestItem(BOW_TEMPLATE_ID, character.id, isEquipped = true) as Weapon
+        val arrowsId = createTestItem(WOODEN_ARROW.id, character.id).id
+        val bow = createTestItem(BOW.id, character.id, isEquipped = true) as Weapon
         newSuspendedTransaction { character.paperDoll = PaperDoll(Item.findAllEquippedByOwnerId(character.id)) }
 
         //Create target
@@ -176,11 +175,11 @@ class CombatServiceTest(
         )
 
         //Check arrow amount after attack
-        val arrows =
-            newSuspendedTransaction { Item.findAllByOwnerIdAndTemplateId(character.id, WOODEN_ARROW_TEMPLATE_ID) }
+        val arrows = newSuspendedTransaction { Item.findAllByOwnerIdAndTemplateId(character.id, WOODEN_ARROW.id) }
         assertTrue(arrows.isEmpty(), "Arrows must be empty")
 
-        assertIs<SystemMessageResponse.NotEnoughArrows>(context.responseChannel.receiveIgnoring(UpdateStatusResponse::class))
+        assertIs<SystemMessageResponse.NotEnoughArrows>(
+            context.responseChannel.receiveIgnoring(UpdateStatusResponse::class))
     }
 
 }

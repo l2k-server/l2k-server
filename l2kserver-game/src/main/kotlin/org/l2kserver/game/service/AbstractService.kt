@@ -5,10 +5,10 @@ import org.l2kserver.game.extensions.model.store.toMessageResponse
 import org.l2kserver.game.handler.dto.response.ChangePostureResponse
 import org.l2kserver.game.handler.dto.response.FullCharacterResponse
 import org.l2kserver.game.handler.dto.response.ResponsePacket
-import org.l2kserver.game.model.position.Position
+import org.l2kserver.game.model.actor.position.Position
 import org.l2kserver.game.model.actor.Actor
 import org.l2kserver.game.model.actor.PlayerCharacter
-import org.l2kserver.game.model.actor.enumeration.Posture
+import org.l2kserver.game.model.actor.Posture
 import org.l2kserver.game.repository.GameObjectDAO
 import org.l2kserver.game.network.session.sendTo
 import org.slf4j.Logger

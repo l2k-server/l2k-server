@@ -1,49 +1,29 @@
 package org.l2kserver.game.configuration
 
-import jakarta.annotation.PostConstruct
-import org.l2kserver.game.extensions.logger
+import org.springframework.boot.testcontainers.service.connection.ServiceConnection
+import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.core.Ordered
 import org.springframework.core.annotation.Order
 import org.testcontainers.containers.PostgreSQLContainer
-import org.testcontainers.containers.output.Slf4jLogConsumer
-import org.testcontainers.containers.wait.strategy.HostPortWaitStrategy
+import org.testcontainers.utility.DockerImageName
+
+private const val DATABASE_USER = "l2k_test"
+private const val DATABASE_PASSWORD = "l2k_test"
+private const val DATABASE_NAME = "l2k_game_test_db"
 
 @Configuration
 @Order(Ordered.HIGHEST_PRECEDENCE)
 class PostgresContainerConfiguration {
-    private val log = logger()
-    private val databaseContainer = createDatabaseContainer()
 
-    @PostConstruct
-    fun init() {
-        databaseContainer.start()
+    @Bean
+    @ServiceConnection
+    fun postgresContainer(): PostgreSQLContainer<*> =
+        PostgreSQLContainer(DockerImageName.parse(PostgreSQLContainer.IMAGE))
+            .withUsername(DATABASE_USER)
+            .withPassword(DATABASE_PASSWORD)
+            .withDatabaseName(DATABASE_NAME)
+            .withEnv(mapOf("POSTGRES_HOST_AUTH_METHOD" to "trust"))
+            .withEnv(mapOf("POSTGRES_HOST_AUTH_METHOD" to "trust"))
 
-        val host = databaseContainer.host
-        val port = databaseContainer.getMappedPort(PostgreSQLContainer.POSTGRESQL_PORT)
-        val databaseName = databaseContainer.databaseName
-
-        System.setProperty("database.url", "$host:$port/$databaseName")
-        System.setProperty("database.user", databaseContainer.username)
-        System.setProperty("database.password", databaseContainer.password)
-
-        log.info("Database credentials: user = '{}', password = '{}'",
-                databaseContainer.username, databaseContainer.password)
-
-        databaseContainer.followOutput(Slf4jLogConsumer(log))
-    }
-
-    private fun createDatabaseContainer(): PostgreSQLContainer<*> {
-        val envMap = HashMap<String, String>()
-        envMap["POSTGRES_HOST_AUTH_METHOD"] = "trust"
-
-        return KtPostgresDbContainer()
-            .withUsername("postgres")
-            .withPassword("postgres")
-            .withDatabaseName("l2k_game_test_db")
-            .waitingFor(HostPortWaitStrategy())
-            .withEnv(envMap)
-    }
 }
-
-class KtPostgresDbContainer: PostgreSQLContainer<KtPostgresDbContainer>(IMAGE)

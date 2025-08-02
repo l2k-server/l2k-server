@@ -1,9 +1,9 @@
 package org.l2kserver.game.extensions.model.stats
 
-import org.l2kserver.game.domain.character.CharacterClass
-import org.l2kserver.game.domain.item.template.Slot
-import org.l2kserver.game.domain.item.template.WeaponType
 import org.l2kserver.game.model.PaperDoll
+import org.l2kserver.game.model.actor.character.CharacterClass
+import org.l2kserver.game.model.item.Slot
+import org.l2kserver.game.model.item.WeaponType
 import org.l2kserver.game.model.stats.BasicStats
 import org.l2kserver.game.model.stats.Stats
 import kotlin.math.pow
