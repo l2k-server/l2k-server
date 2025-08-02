@@ -4,12 +4,12 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.l2kserver.game.AbstractTests
-import org.l2kserver.game.domain.shortcut.Shortcut
-import org.l2kserver.game.domain.shortcut.ShortcutType
+import org.l2kserver.game.domain.Shortcut
 import org.l2kserver.game.extensions.model.shortcut.findBy
 import org.l2kserver.game.extensions.model.skill.save
 import org.l2kserver.game.handler.dto.request.CreateShortcutRequest
 import org.l2kserver.game.handler.dto.response.CreateShortcutResponse
+import org.l2kserver.game.model.actor.character.ShortcutType
 import org.l2kserver.game.model.skill.Skill
 import org.springframework.beans.factory.annotation.Autowired
 import kotlin.test.Test
@@ -36,7 +36,7 @@ class ShortcutServiceTest(
             index = testIndex,
             shortcutActionId = testActionId
         )
-        withContext(context){ shortcutService.registerShortcut(request) }
+        withContext(context) { shortcutService.registerShortcut(request) }
 
         val response = assertIs<CreateShortcutResponse>(context.responseChannel.receive())
 

@@ -1,10 +1,6 @@
 package org.l2kserver.game.model.skill
 
-import org.l2kserver.game.domain.skill.LearnedSkillEntity
-import org.l2kserver.game.domain.skill.SkillConsumablesTemplate
-import org.l2kserver.game.domain.skill.SkillEffectTemplate
-import org.l2kserver.game.domain.skill.SkillEffectType
-import org.l2kserver.game.domain.skill.SkillTemplate
+import org.l2kserver.game.domain.LearnedSkillEntity
 
 class Skill(
     private val entity: LearnedSkillEntity,
@@ -16,7 +12,6 @@ class Skill(
     val skillName = template.skillName
     val skillLevel by entity::skillLevel
     val skillType = template.skillType
-    val isMagic = template.isMagic
     val targetType = template.targetType
 
     val reuseDelay: Int = template.reuseDelay

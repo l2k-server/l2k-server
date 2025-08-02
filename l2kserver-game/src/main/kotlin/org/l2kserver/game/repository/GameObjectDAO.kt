@@ -1,6 +1,6 @@
 package org.l2kserver.game.repository
 
-import org.l2kserver.game.model.position.Position
+import org.l2kserver.game.model.actor.position.Position
 import org.l2kserver.game.model.actor.PlayerCharacter
 import org.l2kserver.game.model.actor.GameObject
 import org.springframework.stereotype.Component
@@ -32,10 +32,9 @@ class GameObjectDAO: Iterable<GameObject> {
         playerCharacter
     }
 
-    fun <T: GameObject> save(gameObject: T): T {
+    fun <T: GameObject> save(gameObject: T?) = if (gameObject == null) null else {
         objectMap[gameObject.id] = gameObject
-
-        return gameObject
+        gameObject
     }
 
     fun findByIdOrNull(id: Int) = objectMap[id]

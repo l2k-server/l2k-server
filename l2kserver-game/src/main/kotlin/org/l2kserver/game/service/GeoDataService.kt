@@ -3,9 +3,9 @@ package org.l2kserver.game.service
 import com.l2jserver.geodriver.Cell
 import com.l2jserver.geodriver.GeoDriver
 import org.l2kserver.game.extensions.getRandomPoint
-import org.l2kserver.game.model.CollisionBox
-import org.l2kserver.game.model.position.Position
-import org.l2kserver.game.model.Zone
+import org.l2kserver.game.model.actor.CollisionBox
+import org.l2kserver.game.model.actor.position.Position
+import org.l2kserver.game.model.zone.Zone
 import org.l2kserver.game.utils.BresenhamIterator
 import org.springframework.stereotype.Service
 import kotlin.random.Random

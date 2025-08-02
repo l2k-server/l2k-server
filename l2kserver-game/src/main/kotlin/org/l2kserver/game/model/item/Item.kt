@@ -1,13 +1,8 @@
 package org.l2kserver.game.model.item
 
-import org.l2kserver.game.domain.item.template.Grade
-import org.l2kserver.game.domain.item.template.ItemCategory
 import org.l2kserver.game.extensions.model.item.toItem
+import org.l2kserver.game.domain.ItemEntity
 import org.l2kserver.game.model.stats.Stats
-import org.l2kserver.game.domain.item.entity.ItemEntity
-import org.l2kserver.game.domain.item.template.ItemGroup
-import org.l2kserver.game.domain.item.template.ItemType
-import org.l2kserver.game.domain.item.template.Slot
 
 /**
  * In-game item instance

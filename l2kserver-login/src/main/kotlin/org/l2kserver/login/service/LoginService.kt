@@ -120,7 +120,7 @@ class LoginService(
                     port = gameserverInfo.port,
                     ageLimit = gameserverInfo.ageLimit,
                     isPvp = gameserverInfo.isPvp,
-                    currentPlayers = 0, //TODO find in redis
+                    currentPlayers = 0, //TODO find in hazelcast
                     maxPlayers = gameserverInfo.maxPlayers,
                     isOnline = account.accessLevel >= gameserverInfo.accessLevel
                             && ServerUtils.checkOnline(gameserverInfo.ip, gameserverInfo.port),

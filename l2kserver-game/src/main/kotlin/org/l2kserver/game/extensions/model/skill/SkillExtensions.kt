@@ -2,12 +2,12 @@ package org.l2kserver.game.extensions.model.skill
 
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.upsert
-import org.l2kserver.game.domain.skill.LearnedSkillEntity
-import org.l2kserver.game.domain.skill.LearnedSkillsTable
-import org.l2kserver.game.domain.skill.SkillTemplate
+import org.l2kserver.game.domain.LearnedSkillEntity
+import org.l2kserver.game.domain.LearnedSkillsTable
+import org.l2kserver.game.model.skill.SkillTemplate
 import org.l2kserver.game.model.skill.Skill
 
-fun LearnedSkillEntity.toSkill() = Skill(this, SkillTemplate.findById(this.skillId))
+fun LearnedSkillEntity.toSkill() = Skill(this, SkillTemplate.Registry.findById(this.skillId)!!) //TODO in not found?
 
 fun Skill.Companion.findAllByCharacterIdAndSubclassIndex(characterId: Int, subclassIndex: Int) = LearnedSkillEntity
     .find { (LearnedSkillsTable.characterId eq characterId) and (LearnedSkillsTable.subclassIndex eq subclassIndex) }

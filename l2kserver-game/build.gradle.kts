@@ -18,13 +18,6 @@ repositories {
     maven("https://jitpack.io")
 }
 
-extra["testcontainersVersion"] = "1.21.3"
-dependencyManagement {
-    imports {
-        mavenBom("org.testcontainers:testcontainers-bom:${property("testcontainersVersion")}")
-    }
-}
-
 dependencies {
     // Spring
     implementation("org.springframework.boot:spring-boot-starter")
@@ -34,12 +27,6 @@ dependencies {
 
     // Kotlin
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-slf4j:1.10.2")
-
-    // Kotlin scripting (for AI)
-    implementation("org.jetbrains.kotlin:kotlin-scripting-common")
-    implementation("org.jetbrains.kotlin:kotlin-scripting-jvm")
-    implementation("org.jetbrains.kotlin:kotlin-scripting-jvm-host")
-    implementation("org.jetbrains.kotlin:kotlin-script-runtime")
 
     // Jackson
     implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml")
@@ -62,12 +49,14 @@ dependencies {
     // L2J
     implementation("org.bitbucket.l2jserver:l2j-server-geo-driver:2.6.4.1")
 
-    // L2K plugin api
+    // L2K
+    implementation(project(":l2kserver-game-model"))
     implementation(project(":l2kserver-plugin-api"))
 
     // Test
     testImplementation(kotlin("test"))
     testImplementation("org.springframework.boot:spring-boot-starter-test")
+    testImplementation("org.springframework.boot:spring-boot-testcontainers")
     testImplementation("org.testcontainers:postgresql")
 
     testImplementation("org.awaitility:awaitility:4.3.0")
@@ -107,6 +96,6 @@ tasks.register<Zip>("packDistribution") {
 
     from(layout.buildDirectory.dir("libs")) { into("/") }
     from(layout.projectDirectory.dir("config")) { into("/config") }
-    from(layout.projectDirectory.dir("data")) { into("/data") }
+    from(layout.projectDirectory.dir("geodata")) { into("/geodata") }
     from(layout.projectDirectory.dir("plugins")) { into("/plugins") }
 }

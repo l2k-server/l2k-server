@@ -1,8 +1,6 @@
 package org.l2kserver.game.model.item
 
-import org.l2kserver.game.domain.item.entity.ItemEntity
-import org.l2kserver.game.domain.item.template.ItemGroup
-import org.l2kserver.game.domain.item.template.SimpleItemTemplate
+import org.l2kserver.game.domain.ItemEntity
 
 class SimpleItem(
     itemEntity: ItemEntity,

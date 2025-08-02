@@ -11,7 +11,7 @@ private const val TILE_X_MAX = 26
 private const val TILE_Y_MIN = 10
 private const val TILE_Y_MAX = 26
 
-private const val GEODATA_PATH = "./data/geodata"
+private const val GEODATA_PATH = "./geodata"
 
 @Configuration
 class GeoDriverConfiguration {

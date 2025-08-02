@@ -1,11 +1,11 @@
 package org.l2kserver.game.extensions.model.item
 
 import org.jetbrains.exposed.sql.transactions.transaction
-import org.l2kserver.game.domain.item.template.ItemTemplate
 import org.l2kserver.game.handler.dto.request.RequestedToBuyItem
 import org.l2kserver.game.handler.dto.request.RequestedToSellItem
 import org.l2kserver.game.handler.dto.request.RequestedToSellToPrivateStoreItem
 import org.l2kserver.game.model.item.Item
+import org.l2kserver.game.model.item.ItemTemplate
 import org.l2kserver.game.model.store.ItemInInventory
 import org.l2kserver.game.model.store.ItemInWishList
 import org.l2kserver.game.model.store.ItemOnSale
@@ -48,7 +48,9 @@ fun RequestedToSellItem.toItemOnSale(ownerId: Int): ItemOnSale = transaction {
 
 fun RequestedToBuyItem.toItemInWishList(ownerId: Int): ItemInWishList = transaction {
     val requestedItem = this@toItemInWishList
-    val itemTemplate = ItemTemplate.findById(requestedItem.templateId)
+    val itemTemplate = requireNotNull(ItemTemplate.Registry.findById(requestedItem.templateId)) {
+        "No item template found by id ${requestedItem.templateId}" //TODO Nullable
+    }
     require(itemTemplate.isSellable) { "Player '$ownerId' is trying to buy non-sellable item in private store (buy)!" }
 
     return@transaction ItemInWishList(

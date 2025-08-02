@@ -1,7 +1,7 @@
 package org.l2kserver.game.handler.dto.request
 
+import org.l2kserver.game.model.actor.character.ShortcutType
 import java.nio.ByteBuffer
-import org.l2kserver.game.domain.shortcut.ShortcutType
 
 const val REGISTER_SHORTCUT_REQUEST_PACKET_ID: UByte = 51u
 

@@ -47,3 +47,5 @@ gradlew launchTestLoginServer
 ```bat
 gradlew launchTestGameServer
 ```
+
+To log into the game use login "admin" and password "admin" :3

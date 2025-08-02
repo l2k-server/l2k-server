@@ -4,9 +4,9 @@ import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.insertAndGetId
-import org.l2kserver.game.domain.shortcut.Shortcut
-import org.l2kserver.game.domain.shortcut.ShortcutTable
-import org.l2kserver.game.domain.shortcut.ShortcutType
+import org.l2kserver.game.domain.Shortcut
+import org.l2kserver.game.domain.ShortcutTable
+import org.l2kserver.game.model.actor.character.ShortcutType
 
 fun Shortcut.Companion.create(
     characterId: Int,

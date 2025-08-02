@@ -1,6 +1,6 @@
 package org.l2kserver.game.handler.dto.response
 
-import org.l2kserver.game.domain.skill.SkillType
+import org.l2kserver.game.model.skill.SkillType
 import org.l2kserver.game.extensions.littleEndianByteArray
 import org.l2kserver.game.extensions.putUByte
 import org.l2kserver.game.extensions.toInt

@@ -24,8 +24,8 @@ import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
 import kotlinx.coroutines.cancel
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
-import org.l2kserver.game.domain.map.Town
-import org.l2kserver.game.domain.shortcut.Shortcut
+import org.l2kserver.game.model.map.Town
+import org.l2kserver.game.domain.Shortcut
 import org.l2kserver.game.extensions.model.actor.existDeletingByAccountName
 import org.l2kserver.game.extensions.model.actor.countByAccountName
 import org.l2kserver.game.extensions.model.actor.create
@@ -51,14 +51,13 @@ import org.l2kserver.game.handler.dto.response.ReviveResponse
 import org.l2kserver.game.handler.dto.response.ShortcutPanelResponse
 import org.l2kserver.game.handler.dto.response.SystemMessageResponse
 import org.l2kserver.game.handler.dto.response.UpdateStatusResponse
+import org.l2kserver.game.model.actor.AccessLevel
 import org.l2kserver.game.model.actor.PlayerCharacter
-import org.l2kserver.game.model.actor.isDead
 import org.l2kserver.game.model.item.Item
-import org.l2kserver.game.model.position.Position
-import org.l2kserver.game.model.actor.enumeration.AccessLevel
-import org.l2kserver.game.model.actor.enumeration.CharacterClassName
-import org.l2kserver.game.model.actor.enumeration.CharacterRace
-import org.l2kserver.game.model.actor.enumeration.Gender
+import org.l2kserver.game.model.actor.position.Position
+import org.l2kserver.game.model.actor.character.CharacterRace
+import org.l2kserver.game.model.actor.character.Gender
+import org.l2kserver.game.model.actor.character.CharacterClassName
 import org.l2kserver.game.network.session.SessionContext
 import org.l2kserver.game.network.session.send
 import org.l2kserver.game.network.session.sendTo
@@ -69,8 +68,6 @@ import kotlin.math.roundToInt
 
 private const val CHARACTERS_MAX_AMOUNT = 7
 private const val CHARACTERS_INFO_UPDATE_DELAY = 60_000L
-
-private const val FLORAN_VILLAGE_ID = 17
 
 @Service
 class CharacterService(
@@ -132,13 +129,11 @@ class CharacterService(
             val playerCharacters = PlayerCharacter.findAllByAccountName(context.getAccountName())
 
             //Send characters list to
-            context.responseChannel.send(
-                CharacterListResponse(
-                    gameSessionKey1 = context.getAuthorizationKey().gameSessionKey1,
-                    accountName = context.getAccountName(),
-                    playerCharacters = playerCharacters
-                )
-            )
+            send(CharacterListResponse(
+                gameSessionKey1 = context.getAuthorizationKey().gameSessionKey1,
+                accountName = context.getAccountName(),
+                playerCharacters = playerCharacters
+            ))
         } catch (e: Exception) {
             log.error("Error occurred while getting characters of user ${context.getAccountName()}", e)
         }
@@ -325,12 +320,13 @@ class CharacterService(
 
         log.debug("Start respawning '{}'", character)
 
+        //TODO If no town found, teleport to 147451, 27014, -2205 (Center of Aden)
         val respawnPosition = when (request.respawnAt) {
-            RespawnAt.VILLAGE -> {
-                if (character.karma > 0) Town.findById(FLORAN_VILLAGE_ID).spawnPositions.random()
-                else Town.findClosestByPosition(character.position).spawnPositions.random()
-                //TODO During a siege, character should be teleported to other town... or not?
-            }
+            //TODO During a siege, character should be teleported to other town... or not?
+            RespawnAt.VILLAGE -> Town.Registry.getRandomSpawnPointByPosition(
+                character.position,
+                isOutlaw = character.karma > 0
+            )
             RespawnAt.CLAN_HALL -> TODO()
             RespawnAt.CASTLE -> TODO()
             RespawnAt.SIEGE_HEADQUARTERS -> TODO()
@@ -385,8 +381,9 @@ class CharacterService(
     }
 
     suspend fun disconnectGame() {
-        val character = gameObjectDAO.findCharacterById(sessionContext().getCharacterId())
-        removeFromGameWorld(character)
+        sessionContext().getCharacterIdOrNull()?.let { characterId ->
+            gameObjectDAO.findCharacterByIdOrNull(characterId)?.let { removeFromGameWorld(it) }
+        }
     }
 
     /**

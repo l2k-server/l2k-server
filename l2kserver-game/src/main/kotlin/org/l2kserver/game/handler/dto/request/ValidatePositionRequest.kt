@@ -1,8 +1,8 @@
 package org.l2kserver.game.handler.dto.request
 
 import java.nio.ByteBuffer
-import org.l2kserver.game.model.position.Heading
-import org.l2kserver.game.model.position.Position
+import org.l2kserver.game.model.actor.position.Heading
+import org.l2kserver.game.model.actor.position.Position
 
 const val VALIDATE_POSITION_REQUEST_PACKET_ID: UByte = 72u
 

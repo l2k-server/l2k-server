@@ -1,27 +1,24 @@
 package org.l2kserver.game.model.actor
 
 import java.util.concurrent.ConcurrentHashMap
-import org.l2kserver.game.domain.character.CharacterClass
 import org.l2kserver.game.model.PaperDoll
-import org.l2kserver.game.model.position.Position
-import org.l2kserver.game.model.stats.Stats
+import org.l2kserver.game.model.actor.position.Position
 import org.l2kserver.game.utils.LevelUtils
 import org.l2kserver.game.extensions.model.item.countWeightByOwnerId
 import org.l2kserver.game.model.item.Item
-import org.l2kserver.game.domain.character.PlayerCharacterEntity
-import org.l2kserver.game.domain.character.CharacterTemplate
+import org.l2kserver.game.domain.PlayerCharacterEntity
 import org.l2kserver.game.extensions.model.actor.toPlayerCharacter
 import org.l2kserver.game.extensions.model.item.findAllEquippedByOwnerId
 import org.l2kserver.game.extensions.model.stats.applyBasicStats
 import org.l2kserver.game.extensions.model.stats.applyEquipment
 import org.l2kserver.game.extensions.model.stats.applyLimitations
 import org.l2kserver.game.extensions.model.stats.applyModifiers
-import org.l2kserver.game.model.CollisionBox
-import org.l2kserver.game.model.position.Heading
-import org.l2kserver.game.model.actor.enumeration.MoveType
-import org.l2kserver.game.model.actor.enumeration.Posture
-import org.l2kserver.game.model.actor.enumeration.PvpState
+import org.l2kserver.game.model.actor.character.CharacterClass
+import org.l2kserver.game.model.actor.character.CharacterTemplate
+import org.l2kserver.game.model.actor.character.PvpState
+import org.l2kserver.game.model.actor.position.Heading
 import org.l2kserver.game.model.stats.BasicStats
+import org.l2kserver.game.model.stats.Stats
 import org.l2kserver.game.model.stats.TradeAndInventoryStats
 import org.l2kserver.game.model.store.PrivateStore
 
@@ -91,7 +88,7 @@ class PlayerCharacter(
     var paperDoll = PaperDoll(Item.findAllEquippedByOwnerId(this.id))
     val itemsWeight: Int get() = Item.countWeightByOwnerId(this.id)
 
-    override val collisionBox: CollisionBox = CharacterTemplate.findByName(characterClass.baseClassName).collisionBox
+    override val collisionBox: CollisionBox = CharacterTemplate.Registry.findByClassName(characterClass.baseClassName).collisionBox
 
     override var isFighting = false
     override var isMoving = false
@@ -125,4 +122,15 @@ class PlayerCharacter(
     override fun isEnemyOf(other: Actor) = karma > 0 || pvpState != PvpState.NOT_IN_PVP
 
     override fun toString() = "Character(name=$name id=$id gender=$gender race=$race)"
+}
+
+/**
+ * User's access level.
+ */
+enum class AccessLevel {
+    /** Average player */
+    PLAYER,
+
+    /** GAME_MASTER can use admin commands and has some other privileges */
+    GAME_MASTER
 }

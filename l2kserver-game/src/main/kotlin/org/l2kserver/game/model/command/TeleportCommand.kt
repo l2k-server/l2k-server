@@ -5,7 +5,7 @@ import com.github.ajalt.clikt.parameters.arguments.optional
 import com.github.ajalt.clikt.parameters.options.convert
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.required
-import org.l2kserver.game.model.position.Position
+import org.l2kserver.game.model.actor.position.Position
 
 /**
  * Command to teleport

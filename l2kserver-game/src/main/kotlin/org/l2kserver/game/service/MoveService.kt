@@ -20,11 +20,10 @@ import org.l2kserver.game.handler.dto.response.StartMovingResponse
 import org.l2kserver.game.handler.dto.response.StartMovingToTargetResponse
 import org.l2kserver.game.handler.dto.response.TeleportResponse
 import org.l2kserver.game.handler.dto.response.ValidatePositionResponse
-import org.l2kserver.game.model.position.Position
+import org.l2kserver.game.model.actor.position.Position
 import org.l2kserver.game.model.actor.Actor
 import org.l2kserver.game.model.actor.GameObject
 import org.l2kserver.game.model.actor.PlayerCharacter
-import org.l2kserver.game.model.actor.moveSpeed
 import org.l2kserver.game.network.session.send
 import org.l2kserver.game.network.session.sendTo
 import org.l2kserver.game.network.session.sessionContext

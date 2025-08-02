@@ -3,9 +3,9 @@ package org.l2kserver.game.handler.dto.response
 import org.l2kserver.game.extensions.littleEndianByteArray
 import org.l2kserver.game.extensions.putUByte
 import org.l2kserver.game.extensions.toInt
-import org.l2kserver.game.model.actor.Npc
+import org.l2kserver.game.model.actor.AccessLevel
+import org.l2kserver.game.model.actor.NpcImpl
 import org.l2kserver.game.model.actor.PlayerCharacter
-import org.l2kserver.game.model.actor.enumeration.AccessLevel
 
 private const val ACTOR_DIED_RESPONSE_PACKET_ID: UByte = 6u
 
@@ -47,7 +47,7 @@ data class ActorDiedResponse(
  * Notifies client about NPC's death
  */
 @Suppress("FunctionName")
-fun NpcDiedResponse(npc: Npc) = ActorDiedResponse(
+fun NpcDiedResponse(npc: NpcImpl) = ActorDiedResponse(
     actorId = npc.id,
     toVillage = false,
     toClanHideout = false,

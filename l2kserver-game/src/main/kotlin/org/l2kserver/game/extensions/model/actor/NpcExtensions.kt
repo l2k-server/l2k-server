@@ -1,14 +1,13 @@
 package org.l2kserver.game.extensions.model.actor
 
-import org.l2kserver.game.ai.L2AiScript
-import org.l2kserver.game.model.position.Position
-import org.l2kserver.game.model.actor.Npc
-import org.l2kserver.game.domain.npc.NpcTemplate
-import org.l2kserver.game.model.position.Heading
-import org.l2kserver.game.model.actor.SpawnedAt
-import org.l2kserver.game.model.actor.enumeration.MoveType
+import org.l2kserver.game.model.actor.position.Position
+import org.l2kserver.game.model.actor.NpcImpl
+import org.l2kserver.game.model.actor.npc.NpcTemplate
+import org.l2kserver.game.model.actor.position.Heading
+import org.l2kserver.game.model.actor.MoveType
+import org.l2kserver.game.model.actor.npc.SpawnedAt
 
-fun NpcTemplate.toNpc(id: Int, position: Position, heading: Heading, spawnedAt: SpawnedAt) = Npc(
+fun NpcTemplate.toNpc(id: Int, position: Position, heading: Heading, spawnedAt: SpawnedAt) = NpcImpl(
     id = id,
     name = this.name,
     templateId = this.id,
@@ -28,5 +27,5 @@ fun NpcTemplate.toNpc(id: Int, position: Position, heading: Heading, spawnedAt: 
     moveType = MoveType.WALK,
     weaponType = this.weaponType,
     hasShield = this.hasShield,
-    ai = this.aiType?.let { L2AiScript.get(it) }
+    ai = this.ai
 )

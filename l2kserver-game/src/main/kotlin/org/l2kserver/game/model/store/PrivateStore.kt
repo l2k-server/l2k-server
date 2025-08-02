@@ -1,7 +1,7 @@
 package org.l2kserver.game.model.store
 
 import kotlinx.coroutines.sync.Mutex
-import org.l2kserver.game.domain.item.template.Slot
+import org.l2kserver.game.model.item.Slot
 
 private const val PRIVATE_STORE_SELL_ID = 1
 private const val PRIVATE_STORE_BUY_ID = 3

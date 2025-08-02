@@ -5,7 +5,7 @@ import org.l2kserver.game.extensions.putUTF16String
 import org.l2kserver.game.extensions.putUByte
 import org.l2kserver.game.extensions.toByte
 import org.l2kserver.game.model.actor.PlayerCharacter
-import org.l2kserver.game.model.actor.enumeration.MoveType
+import org.l2kserver.game.model.actor.MoveType
 
 private const val CHARACTER_INFO_RESPONSE_PACKET_ID: UByte = 4u
 

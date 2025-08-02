@@ -3,7 +3,7 @@ package org.l2kserver.example.java.plugin;
 import org.l2kserver.plugin.api.L2kGameServerPlugin;
 import org.l2kserver.plugin.api.annotation.GameServerPlugin;
 
-@GameServerPlugin("Example plugin, written in Java")
+@GameServerPlugin(pluginId = "Example plugin, written in Java")
 public class ExampleJavaPlugin implements L2kGameServerPlugin {
 
     @Override

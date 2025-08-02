@@ -2,12 +2,12 @@ package org.l2kserver.game.model
 
 import java.util.EnumMap
 import org.jetbrains.exposed.sql.transactions.transaction
-import org.l2kserver.game.domain.item.template.Slot
 import org.l2kserver.game.extensions.filterIsInstanceAnd
 import org.l2kserver.game.model.item.Armor
 import org.l2kserver.game.model.item.EquippableItem
 import org.l2kserver.game.model.item.Item
 import org.l2kserver.game.model.item.Jewelry
+import org.l2kserver.game.model.item.Slot
 import org.l2kserver.game.model.item.Weapon
 
 /**

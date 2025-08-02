@@ -10,7 +10,6 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
-import org.l2kserver.game.domain.item.template.WeaponType
 import org.l2kserver.game.extensions.logger
 import org.l2kserver.game.extensions.model.item.findAllByOwnerIdAndTemplateId
 import org.l2kserver.game.extensions.model.item.reduceAmountBy
@@ -25,13 +24,10 @@ import org.l2kserver.game.handler.dto.response.SystemMessageResponse
 import org.l2kserver.game.handler.dto.response.UpdateItemsResponse
 import org.l2kserver.game.handler.dto.response.UpdateStatusResponse
 import org.l2kserver.game.model.actor.Actor
-import org.l2kserver.game.model.actor.Npc
+import org.l2kserver.game.model.actor.NpcImpl
 import org.l2kserver.game.model.actor.PlayerCharacter
-import org.l2kserver.game.model.actor.isBehind
-import org.l2kserver.game.model.actor.isDead
-import org.l2kserver.game.model.actor.isEnoughCloseToAttack
-import org.l2kserver.game.model.actor.isOnSideOf
 import org.l2kserver.game.model.item.Item
+import org.l2kserver.game.model.item.WeaponType
 import org.l2kserver.game.network.session.send
 import org.l2kserver.game.network.session.sendTo
 import org.l2kserver.game.repository.GameObjectDAO
@@ -271,7 +267,7 @@ class CombatService(
         }
         else attacked.currentHp = maxOf(0, attacked.currentHp - hit.damage)
 
-        if (attacked is Npc) synchronized(attacked.opponentsDamage) {
+        if (attacked is NpcImpl) synchronized(attacked.opponentsDamage) {
             val damageDealt = attacked.opponentsDamage[attacker] ?: 0
             attacked.opponentsDamage[attacker] = damageDealt + hit.damage
         }
@@ -393,7 +389,7 @@ class CombatService(
         actorStateService.disableCombatState(actor)
 
         when (actor) {
-            is Npc -> {
+            is NpcImpl -> {
                 broadcastPacket(NpcDiedResponse(actor), actor.position)
                 npcService.handleNpcDeath(actor)
                 rewardService.manageRewardForKillingNpc(actor)

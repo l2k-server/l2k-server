@@ -17,13 +17,6 @@ repositories {
     maven("https://jitpack.io")
 }
 
-extra["testcontainersVersion"] = "1.21.3"
-dependencyManagement {
-    imports {
-        mavenBom("org.testcontainers:testcontainers-bom:${property("testcontainersVersion")}")
-    }
-}
-
 dependencies {
     // Spring
     implementation("org.springframework.boot:spring-boot-starter")
@@ -52,6 +45,7 @@ dependencies {
     // Test
     testImplementation(kotlin("test"))
     testImplementation("org.springframework.boot:spring-boot-starter-test")
+    testImplementation("org.springframework.boot:spring-boot-testcontainers")
     testImplementation("org.testcontainers:postgresql")
 }
 

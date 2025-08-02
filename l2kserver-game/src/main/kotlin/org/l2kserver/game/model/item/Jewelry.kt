@@ -1,9 +1,6 @@
 package org.l2kserver.game.model.item
 
-import org.l2kserver.game.domain.item.entity.ItemEntity
-import org.l2kserver.game.domain.item.template.Grade
-import org.l2kserver.game.domain.item.template.ItemGroup
-import org.l2kserver.game.domain.item.template.JewelryTemplate
+import org.l2kserver.game.domain.ItemEntity
 import org.l2kserver.game.model.stats.Stats
 
 private const val JEWELRY_SAFE_ENCHANT_LEVEL = 3
