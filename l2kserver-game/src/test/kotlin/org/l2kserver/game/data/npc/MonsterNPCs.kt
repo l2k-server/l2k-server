@@ -3,7 +3,7 @@ package org.l2kserver.game.data.npc
 import org.l2kserver.game.data.ai.GENERAL_AI
 import org.l2kserver.game.model.actor.CollisionBox
 import org.l2kserver.game.model.actor.npc.NpcRace
-import org.l2kserver.game.model.actor.npc.L2kNpcTemplate
+import org.l2kserver.game.model.actor.npc.NpcTemplate
 import org.l2kserver.game.model.actor.npc.SpawnData
 import org.l2kserver.game.model.reward.Reward
 import org.l2kserver.game.model.reward.RewardItem
@@ -12,7 +12,7 @@ import org.l2kserver.game.model.stats.Stats
 import org.l2kserver.game.model.zone.Point
 import org.l2kserver.game.model.zone.SpawnZone
 
-val GREMLIN = L2kNpcTemplate(
+val GREMLIN = NpcTemplate(
     id = 1018342,
     name = "Gremlin",
     level = 1,

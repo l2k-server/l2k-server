@@ -19,6 +19,6 @@ data class ScatteredItem(
     val isStackable: Boolean,
     val amount: Int,
     val enchantLevel: Int
-): GameObject {
+): GameWorldObject {
     override val collisionBox = CollisionBox(0.0, 0.0)
 }

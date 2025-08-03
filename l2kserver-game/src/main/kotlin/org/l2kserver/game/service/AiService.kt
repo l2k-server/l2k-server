@@ -12,7 +12,7 @@ import org.l2kserver.game.model.actor.npc.ai.MoveIntent
 import org.l2kserver.game.model.actor.npc.ai.SayIntent
 import org.l2kserver.game.model.actor.npc.ai.WaitIntent
 import org.l2kserver.game.repository.GameObjectRepository
-import org.l2kserver.game.utils.GameTimeUtils
+import org.l2kserver.game.model.time.GameTime
 import org.springframework.boot.context.event.ApplicationReadyEvent
 import org.springframework.context.event.EventListener
 import org.springframework.stereotype.Service
@@ -35,7 +35,7 @@ class AiService(
                 if (!npc.isDead()) performAiAction(npc)
             }
 
-            delay(GameTimeUtils.MILLIS_IN_TICK)
+            delay(GameTime.MILLIS_IN_TICK)
         }
     }
 

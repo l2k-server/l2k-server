@@ -12,7 +12,10 @@ import org.l2kserver.game.model.reward.Reward
 import org.l2kserver.game.model.stats.Stats
 import org.l2kserver.game.model.zone.SpawnZone
 
-interface L2kNpc: Actor {
+/**
+ * Non-player character
+ */
+interface NpcInstance: Actor {
     override val id: Int
     override val name: String
     val templateId: Int

@@ -10,7 +10,7 @@ import org.l2kserver.game.handler.dto.response.NpcChatWindowResponse
 import org.l2kserver.game.model.actor.position.Position
 import org.l2kserver.game.model.actor.Npc
 import org.l2kserver.game.repository.GameObjectRepository
-import org.l2kserver.game.model.actor.npc.L2kNpcTemplate
+import org.l2kserver.game.model.actor.npc.NpcTemplate
 import org.l2kserver.game.extensions.model.actor.toInfoResponse
 import org.l2kserver.game.handler.dto.response.DeleteObjectResponse
 import org.l2kserver.game.model.actor.npc.SpawnedAt
@@ -43,7 +43,7 @@ class NpcService(
 
     @EventListener(ApplicationReadyEvent::class)
     fun init() = asyncTaskService.launchJob("INITIAL_SPAWN_TASK") {
-        L2kNpcTemplate.Registry.forEach { template ->
+        NpcTemplate.Registry.forEach { template ->
             template.spawn.positions?.forEach { spawnAtPosition(template, it) }
             template.spawn.zones?.forEach { zone -> repeat(zone.npcAmount) { spawnAtZone(template, zone) }}
         }
@@ -69,7 +69,7 @@ class NpcService(
         gameObjectRepository.delete(npc)
 
         //Respawn this NPC after delay
-        val template = L2kNpcTemplate.Registry.findById(npc.templateId)!!
+        val template = NpcTemplate.Registry.findById(npc.templateId)!!
         delay(template.spawn.respawnDelay)
 
         //Spawn NPC at position or zone, depending on what is present
@@ -82,7 +82,7 @@ class NpcService(
      *
      * @return Spawned NPC
      */
-    suspend fun spawnAtPosition(template: L2kNpcTemplate, spawnPosition: SpawnPosition): Npc {
+    suspend fun spawnAtPosition(template: NpcTemplate, spawnPosition: SpawnPosition): Npc {
         val (position, heading) = spawnPosition.toPositionAndHeading()
         val npc = template.toNpc(
             IdUtils.getNextNpcId(),
@@ -103,7 +103,7 @@ class NpcService(
      *
      * @return Spawned NPC
      */
-    suspend fun spawnAtZone(template: L2kNpcTemplate, zone: SpawnZone): Npc {
+    suspend fun spawnAtZone(template: NpcTemplate, zone: SpawnZone): Npc {
         lateinit var position: Position
         do {
             position = geoDataService.getRandomSpawnPosition(template.collisionBox, zone)

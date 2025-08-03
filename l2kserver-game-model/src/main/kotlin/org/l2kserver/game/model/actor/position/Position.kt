@@ -28,6 +28,9 @@ data class Position(
 
     fun deltaZ(other: Position) = other.z - this.z
 
+    /**
+     * Calculate distance between the positions (3D)
+     */
     fun distanceTo(other: Position): Int {
         val deltaX = deltaX(other).toDouble()
         val deltaY = deltaY(other).toDouble()

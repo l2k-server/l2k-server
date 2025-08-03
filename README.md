@@ -11,13 +11,6 @@ At the moment Interlude version is being developed
 
 ## Local (DEV) launch
 
-### Game client
-Login server will start at 2106 port, so you'll have to modify l2.ini file (for example, with L2FileEdit). Set ServerAddr=127.0.0.1 and Port=2106
-
-![L2.ini content example](docs/assets/server_and_port_edit.png)  
-
-### Game server
-
 Both servers use Testcontainers for test launch, so Docker must be installed and running.
 
 #### On Linux / macOS
@@ -48,4 +41,5 @@ gradlew launchTestLoginServer
 gradlew launchTestGameServer
 ```
 
+Login server will start at 2106 port
 To log into the game use login "admin" and password "admin" :3

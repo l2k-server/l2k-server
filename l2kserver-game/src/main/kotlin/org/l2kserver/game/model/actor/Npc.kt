@@ -1,13 +1,14 @@
 package org.l2kserver.game.model.actor
 
-import org.l2kserver.game.model.actor.npc.L2kNpc
+import org.l2kserver.game.model.actor.npc.NpcInstance
 import java.util.concurrent.ConcurrentHashMap
 import org.l2kserver.game.model.actor.position.Position
 import org.l2kserver.game.model.actor.npc.NpcRace
 import org.l2kserver.game.model.actor.npc.SpawnedAt
 import org.l2kserver.game.model.actor.position.Heading
-import org.l2kserver.game.model.item.WeaponType
 import org.l2kserver.game.model.actor.npc.ai.Ai
+import org.l2kserver.game.model.item.ArmorTemplate
+import org.l2kserver.game.model.item.WeaponTemplate
 import org.l2kserver.game.model.reward.Reward
 import org.l2kserver.game.model.stats.Stats
 
@@ -53,10 +54,11 @@ class Npc(
     override var currentHp: Int,
     override var currentMp: Int,
     override var moveType: MoveType,
-    override val weaponType: WeaponType?,
-    override val hasShield: Boolean,
-    override val ai: Ai?
-): L2kNpc {
+    override val ai: Ai?,
+
+    var equippedWeaponTemplate: WeaponTemplate? = null,
+    var equippedShieldTemplate: ArmorTemplate? = null
+): NpcInstance {
 
     /**
      * How much damage had the opponents dealt to this NPC
@@ -76,6 +78,9 @@ class Npc(
 
     override var targetId: Int? = null
     override val targetedBy: MutableSet<Int> = ConcurrentHashMap.newKeySet<Int>(0)
+
+    override val weaponType = equippedWeaponTemplate?.type
+    override val hasShield = equippedShieldTemplate != null
 
     override fun toString() = "Npc(name=$name id=$id)"
 }

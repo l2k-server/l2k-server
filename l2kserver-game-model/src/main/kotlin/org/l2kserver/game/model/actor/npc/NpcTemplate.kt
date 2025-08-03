@@ -5,12 +5,11 @@ import org.l2kserver.game.model.GameData
 import org.l2kserver.game.model.GameDataRegistry
 import org.l2kserver.game.model.actor.npc.ai.Ai
 import org.l2kserver.game.model.actor.position.SpawnPosition
-import org.l2kserver.game.model.item.WeaponType
 import org.l2kserver.game.model.reward.Reward
 import org.l2kserver.game.model.stats.Stats
 import org.l2kserver.game.model.zone.SpawnZone
 
-data class L2kNpcTemplate(
+data class NpcTemplate(
     override val id: Int,
     val name: String,
     val title: String? = null,
@@ -24,8 +23,8 @@ data class L2kNpcTemplate(
     val reward: Reward = Reward(),
     val spawn: SpawnData,
     val replicas: List<String> = emptyList(),
-    val weaponType: WeaponType? = null,
-    val hasShield: Boolean = false,
+    val equippedWeaponTemplateId: Int? = null,
+    val equippedShieldTemplateId: Int? = null,
     val ai: Ai? = null
 ): GameData {
     init {
@@ -33,7 +32,8 @@ data class L2kNpcTemplate(
         require(isEnemy xor replicas.isNotEmpty()) { "Monsters must have no replicas!" }
     }
 
-    object Registry: GameDataRegistry<L2kNpcTemplate>()
+
+    object Registry: GameDataRegistry<NpcTemplate>()
 }
 
 data class SpawnData(

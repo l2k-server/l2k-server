@@ -22,13 +22,13 @@ import org.l2kserver.game.handler.dto.response.TeleportResponse
 import org.l2kserver.game.handler.dto.response.ValidatePositionResponse
 import org.l2kserver.game.model.actor.position.Position
 import org.l2kserver.game.model.actor.Actor
-import org.l2kserver.game.model.actor.GameObject
+import org.l2kserver.game.model.actor.GameWorldObject
 import org.l2kserver.game.model.actor.PlayerCharacter
 import org.l2kserver.game.network.session.send
 import org.l2kserver.game.network.session.sendTo
 import org.l2kserver.game.network.session.sessionContext
 import org.l2kserver.game.repository.GameObjectRepository
-import org.l2kserver.game.utils.GameTimeUtils
+import org.l2kserver.game.model.time.GameTime
 import org.springframework.stereotype.Service
 import kotlin.coroutines.coroutineContext
 import kotlin.math.hypot
@@ -114,7 +114,7 @@ class MoveService(
 
                 moveTimestamp = System.currentTimeMillis()
                 //Sleep for 1 tick minus time of updating operation
-                delay(GameTimeUtils.MILLIS_IN_TICK - (System.currentTimeMillis() - startUpdatingPositionTimestamp))
+                delay(GameTime.MILLIS_IN_TICK - (System.currentTimeMillis() - startUpdatingPositionTimestamp))
             }
 
             log.trace("Actor '{}' has arrived to position '{}'", actor, actor.position)
@@ -132,7 +132,7 @@ class MoveService(
     /**
      * Moves [actor] to [target] by specified [requiredDistance]
      */
-    suspend fun move(actor: Actor, target: GameObject, requiredDistance: Int = 0) = newSuspendedTransaction {
+    suspend fun move(actor: Actor, target: GameWorldObject, requiredDistance: Int = 0) = newSuspendedTransaction {
         //Actor should turn to target anyway
         val turningJob = launchTurning(actor, target.position)
 
@@ -180,7 +180,7 @@ class MoveService(
 
                 moveTimestamp = System.currentTimeMillis()
                 //Sleep for 1 tick minus time of updating operation
-                delay(GameTimeUtils.MILLIS_IN_TICK - (System.currentTimeMillis() - startUpdatingPositionTimestamp))
+                delay(GameTime.MILLIS_IN_TICK - (System.currentTimeMillis() - startUpdatingPositionTimestamp))
                 //TODO Commit?
             }
             turningJob.join()
@@ -209,13 +209,13 @@ class MoveService(
                 val deltaHeading = (newHeading - actor.heading).toShort().toInt()
 
                 val rotation = if (deltaHeading > 0)
-                    minOf((ROTATE_SPEED_PER_SEC / 1000 * GameTimeUtils.MILLIS_IN_TICK).toInt(), deltaHeading)
-                else maxOf((-ROTATE_SPEED_PER_SEC / 1000 * GameTimeUtils.MILLIS_IN_TICK).toInt(), deltaHeading)
+                    minOf((ROTATE_SPEED_PER_SEC / 1000 * GameTime.MILLIS_IN_TICK).toInt(), deltaHeading)
+                else maxOf((-ROTATE_SPEED_PER_SEC / 1000 * GameTime.MILLIS_IN_TICK).toInt(), deltaHeading)
 
                 actor.heading += rotation
             }
 
-            delay(GameTimeUtils.MILLIS_IN_TICK)
+            delay(GameTime.MILLIS_IN_TICK)
         }
         log.trace("Successfully turned actor '{}' to target position '{}'", actor, targetPosition)
     }
@@ -305,7 +305,7 @@ class MoveService(
      * If null, no StartMovingResponse will be sent to new players, who see this actor
      */
     private suspend fun updateObjectsAround(
-        prevGameObjectsAround: List<GameObject>,
+        prevGameObjectsAround: List<GameWorldObject>,
         actor: Actor,
         destination: Position? = null
     ) {

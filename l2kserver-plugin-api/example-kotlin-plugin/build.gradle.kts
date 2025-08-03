@@ -12,6 +12,8 @@ repositories {
 
 dependencies {
     implementation(project(":l2kserver-plugin-api"))
+    implementation(project(":l2kserver-game-model"))
+
     ksp(project(":l2kserver-plugin-api"))
 }
 

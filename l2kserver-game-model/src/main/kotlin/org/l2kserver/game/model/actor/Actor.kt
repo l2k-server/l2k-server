@@ -5,18 +5,6 @@ import org.l2kserver.game.model.actor.position.Position
 import org.l2kserver.game.model.item.WeaponType
 import org.l2kserver.game.model.stats.Stats
 
-/**
- * Interface for all game objects in the world - characters, monsters, dropped items etc.
- *
- * @property id Game object unique identifier
- * @property position Game object position in game world
- * @property collisionBox This game object's collision box
- */
-interface GameObject {
-    val id: Int
-    val position: Position
-    val collisionBox: CollisionBox
-}
 
 /**
  * Game actor (npc, monster, player character, etc.)
@@ -29,20 +17,22 @@ interface GameObject {
  * @property currentHp Actor's current HP
  * @property currentMp Actor's current MP
  * @property moveType This actor's moving mode (sitting, walking, or running)
- * @property isImmobilized
- * @property isParalyzed is this actor paralyzed (cannot move or act)
- * @property weaponType this actor's weapon type
- * @property hasShield does this actor have equipped shield
- * @property isFighting is this actor in fighting stance
- * @property isMoving is this actor running
+ * @property isImmobilized True if character cannot move
+ * @property isParalyzed Is this actor paralyzed (cannot move or act)
+ * @property weaponType This actor's weapon type
+ * @property hasShield Does this actor have equipped shield
+ * @property isFighting Is this actor in fighting stance
+ * @property isMoving Is this actor running
  * @property targetId This actor's target id
  * @property targetedBy IDs of actors, who target this actor
  */
-interface Actor: GameObject {
+interface Actor: GameWorldObject {
+    override val id: Int
+    override var position: Position
+    override val collisionBox: CollisionBox
     val stats: Stats
     val name: String
     val level: Int
-    override var position: Position
     var heading: Heading
     var currentHp: Int
     var currentMp: Int

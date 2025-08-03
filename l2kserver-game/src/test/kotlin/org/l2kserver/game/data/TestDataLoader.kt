@@ -30,7 +30,7 @@ import org.l2kserver.game.model.actor.character.Gender
 import org.l2kserver.game.model.actor.character.L2kCharacterClass
 import org.l2kserver.game.model.actor.character.CharacterRace
 import org.l2kserver.game.model.actor.character.ShortcutType
-import org.l2kserver.game.model.actor.npc.L2kNpcTemplate
+import org.l2kserver.game.model.actor.npc.NpcTemplate
 import org.l2kserver.game.model.item.ItemTemplate
 import org.l2kserver.game.model.skill.SkillTemplate
 import org.l2kserver.game.repository.PlayerCharacterRepository
@@ -63,7 +63,7 @@ class TestDataLoader(
             HUMAN_FIGHTER
         )
 
-        L2kNpcTemplate.Registry.register(
+        NpcTemplate.Registry.register(
             GRAND_MASTER_ROIEN,
             GREMLIN
         )
