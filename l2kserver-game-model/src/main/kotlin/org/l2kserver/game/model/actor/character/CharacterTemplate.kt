@@ -11,7 +11,7 @@ import org.l2kserver.game.model.actor.position.Position
  * @property shortcuts New character's starting shortcuts
  * @property collisionBox New character's collision box
  */
-data class L2kCharacterTemplate(
+data class CharacterTemplate(
     val position: Position,
     val items: List<InitialItem>,
     val shortcuts: List<InitialShortcut>,

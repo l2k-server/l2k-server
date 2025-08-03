@@ -47,9 +47,9 @@ data class NpcInfoResponse(
         putDouble(npc.collisionBox.radius)
         putDouble(npc.collisionBox.height)
 
-        putInt(0) //right hand weapon
-        putInt(0)
-        putInt(0) //left hand
+        putInt(npc.equippedWeaponTemplate?.id ?: 0)
+        putInt(0) //breastplate ??
+        putInt(npc.equippedShieldTemplate?.id ?: 0)
 
         put(1) //showName(?)
         put((npc.moveType == MoveType.RUN).toByte())

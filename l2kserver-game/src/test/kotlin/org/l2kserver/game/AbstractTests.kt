@@ -20,7 +20,7 @@ import org.l2kserver.game.model.actor.ScatteredItem
 import org.l2kserver.game.model.actor.character.CharacterRace
 import org.l2kserver.game.model.actor.character.Gender
 import org.l2kserver.game.model.actor.character.InitialItem
-import org.l2kserver.game.model.actor.npc.L2kNpcTemplate
+import org.l2kserver.game.model.actor.npc.NpcTemplate
 import org.l2kserver.game.model.item.Item
 import org.l2kserver.game.model.actor.position.Position
 import org.l2kserver.game.model.item.ItemTemplate
@@ -64,7 +64,7 @@ abstract class AbstractTests {
         SessionContext.clear()
         gameObjectRepository.deleteAll()
         actorStateService.flushStates()
-        L2kNpcTemplate.Registry.flush()
+        NpcTemplate.Registry.flush()
     }
 
     protected fun createRandomAuthorizationKey() = AuthorizationKey(

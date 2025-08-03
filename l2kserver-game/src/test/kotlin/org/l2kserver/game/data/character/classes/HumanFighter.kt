@@ -8,7 +8,7 @@ import org.l2kserver.game.model.actor.CollisionBox
 import org.l2kserver.game.model.actor.character.InitialItem
 import org.l2kserver.game.model.actor.character.InitialShortcut
 import org.l2kserver.game.model.actor.character.L2kCharacterClass
-import org.l2kserver.game.model.actor.character.L2kCharacterTemplate
+import org.l2kserver.game.model.actor.character.CharacterTemplate
 import org.l2kserver.game.model.actor.character.PerLevelGain
 import org.l2kserver.game.model.actor.character.ShortcutType
 import org.l2kserver.game.model.actor.position.Position
@@ -71,7 +71,7 @@ val HUMAN_FIGHTER = L2kCharacterClass(
         mpAdd = 5.46,
         mpMod = 0.14,
     ),
-    characterTemplate = L2kCharacterTemplate(
+    characterTemplate = CharacterTemplate(
         position = Position(-71338, 258271, -3104),
         items = listOf(
             InitialItem(SQUIRES_SHIRT.id, isEquipped = true),

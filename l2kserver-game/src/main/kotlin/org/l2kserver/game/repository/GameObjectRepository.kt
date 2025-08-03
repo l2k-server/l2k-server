@@ -2,7 +2,7 @@ package org.l2kserver.game.repository
 
 import org.l2kserver.game.model.actor.position.Position
 import org.l2kserver.game.model.actor.PlayerCharacter
-import org.l2kserver.game.model.actor.GameObject
+import org.l2kserver.game.model.actor.GameWorldObject
 import org.springframework.stereotype.Component
 import java.util.concurrent.ConcurrentHashMap
 import org.l2kserver.game.model.actor.Actor
@@ -12,9 +12,9 @@ import org.l2kserver.game.service.VISION_RANGE
  * Storage of game entities in game world
  */
 @Component
-class GameObjectRepository: Iterable<GameObject> {
+class GameObjectRepository: Iterable<GameWorldObject> {
 
-    private val objectMap = ConcurrentHashMap<Int, GameObject>()
+    private val objectMap = ConcurrentHashMap<Int, GameWorldObject>()
 
     override fun iterator() = objectMap.values.iterator()
 
@@ -29,7 +29,7 @@ class GameObjectRepository: Iterable<GameObject> {
         return character
     }
 
-    fun <T: GameObject> save(gameObject: T?) = if (gameObject == null) null else {
+    fun <T: GameWorldObject> save(gameObject: T?) = if (gameObject == null) null else {
         objectMap[gameObject.id] = gameObject
         gameObject
     }
@@ -55,7 +55,7 @@ class GameObjectRepository: Iterable<GameObject> {
             "No character found by name '$characterName'"
         }
 
-    fun findAllNear(gameObject: GameObject) = objectMap.values.filter {
+    fun findAllNear(gameObject: GameWorldObject) = objectMap.values.filter {
         it.position.isCloseTo(gameObject.position, VISION_RANGE) && it.id != gameObject.id
     }
 
@@ -63,7 +63,7 @@ class GameObjectRepository: Iterable<GameObject> {
      * Finds all characters near GameObject.
      * @return all the characters near provided GameObject except provided GameObject
      */
-    fun findAllCharactersNear(gameObject: GameObject, distance: Int = VISION_RANGE) = objectMap.values.filter {
+    fun findAllCharactersNear(gameObject: GameWorldObject, distance: Int = VISION_RANGE) = objectMap.values.filter {
         it.position.isCloseTo(gameObject.position, distance) && it.id != gameObject.id && it is PlayerCharacter
     }
 
@@ -84,7 +84,7 @@ class GameObjectRepository: Iterable<GameObject> {
     fun existsById(id: Int) = objectMap.containsKey(id)
 
     @Suppress("UNCHECKED_CAST")
-    fun <T: GameObject> delete(gameObject: T) = objectMap.remove(gameObject.id) as T?
+    fun <T: GameWorldObject> delete(gameObject: T) = objectMap.remove(gameObject.id) as T?
 
     fun deleteById(id: Int) = objectMap.remove(id)
 

@@ -5,7 +5,7 @@ import org.l2kserver.game.extensions.putUTF16String
 import org.l2kserver.game.extensions.putUByte
 import org.l2kserver.game.model.actor.PlayerCharacter
 import org.l2kserver.game.model.session.AuthorizationKey
-import org.l2kserver.game.utils.GameTimeUtils
+import org.l2kserver.game.model.time.GameTime
 
 private const val SELECT_CHARACTER_RESPONSE_PACKET_ID: UByte = 21u
 data class SelectCharacterResponse(
@@ -52,7 +52,7 @@ data class SelectCharacterResponse(
 
         repeat(32) { putInt(0)}
 
-        putInt(GameTimeUtils.gameTime.toInt())
+        putInt(GameTime.gameMinutes.toInt())
 
         repeat(14) { putInt(0)}
     }

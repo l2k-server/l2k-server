@@ -1,5 +1,8 @@
-.kotlin/
 .idea
+.vscode/
+
+.kotlin/
 .gradle/
 
 **/build
+

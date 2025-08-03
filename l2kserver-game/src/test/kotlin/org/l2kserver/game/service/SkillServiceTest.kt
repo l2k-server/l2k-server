@@ -9,7 +9,7 @@ import org.l2kserver.game.AbstractTests
 import org.l2kserver.game.data.npc.GREMLIN
 import org.l2kserver.game.data.skill.MORTAL_BLOW
 import org.l2kserver.game.data.skill.POWER_STRIKE
-import org.l2kserver.game.model.actor.npc.L2kNpcTemplate
+import org.l2kserver.game.model.actor.npc.NpcTemplate
 import org.l2kserver.game.domain.LearnedSkillsTable
 import org.l2kserver.game.handler.dto.request.UseSkillRequest
 import org.l2kserver.game.handler.dto.response.ActionFailedResponse
@@ -78,7 +78,7 @@ class SkillServiceTest(
 
         // Create our target
         val target = npcService.spawnAtPosition(
-            template = L2kNpcTemplate.Registry.register(GREMLIN),
+            template = NpcTemplate.Registry.register(GREMLIN),
             spawnPosition = character.position.toSpawnPosition()
         )
         context.responseChannel.receive() //Skip NpcInfoResponse
@@ -109,7 +109,7 @@ class SkillServiceTest(
 
         // Create our target
         val target = npcService.spawnAtPosition(
-            template = L2kNpcTemplate.Registry.register(GREMLIN),
+            template = NpcTemplate.Registry.register(GREMLIN),
             spawnPosition = character.position.toSpawnPosition()
         )
         context.responseChannel.receive() //Skip NpcInfoResponse

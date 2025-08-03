@@ -29,7 +29,7 @@ data class L2kCharacterClass(
     val emptySlotStats: Map<Slot, Stats>,
     val perLevelGain: PerLevelGain,
     val parentClass: L2kCharacterClass? = null,
-    val characterTemplate: L2kCharacterTemplate? = null
+    val characterTemplate: CharacterTemplate? = null
 ): GameData {
 
     /**
