@@ -1,13 +1,14 @@
 package org.l2kserver.game.model.skill
 
-import org.l2kserver.game.domain.LearnedSkillEntity
+import org.l2kserver.game.domain.SkillEntity
 
 class Skill(
-    private val entity: LearnedSkillEntity,
+    private val entity: SkillEntity,
     private val template: SkillTemplate
 ) {
     companion object
 
+    val subclassIndex = entity.subclassIndex
     val skillId = entity.skillId
     val skillName = template.skillName
     val skillLevel by entity::skillLevel
@@ -24,6 +25,7 @@ class Skill(
     val consumables: SkillConsumables? get() = template.consumes?.toSkillConsumables()
     val effects: List<SkillEffect> get() = template.effects.map { it.toSkillEffect() }
 
+    var nextUsageTime by entity::nextUsageTime
 
     private fun SkillConsumablesTemplate.toSkillConsumables() = SkillConsumables(
         mp = requireNotNull(this.mp.getOrNull(skillLevel - 1)) {

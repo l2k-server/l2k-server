@@ -2,16 +2,16 @@ package org.l2kserver.game.extensions.model.skill
 
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.upsert
-import org.l2kserver.game.domain.LearnedSkillEntity
-import org.l2kserver.game.domain.LearnedSkillsTable
+import org.l2kserver.game.domain.SkillEntity
+import org.l2kserver.game.domain.SkillsTable
 import org.l2kserver.game.model.skill.SkillTemplate
 import org.l2kserver.game.model.skill.Skill
 
-fun LearnedSkillEntity.toSkill() = Skill(this, SkillTemplate.Registry.findById(this.skillId)!!) //TODO in not found?
+fun SkillEntity.toSkill() = Skill(this, SkillTemplate.Registry.findById(this.skillId)!!) //TODO in not found?
 
-fun Skill.Companion.findAllByCharacterIdAndSubclassIndex(characterId: Int, subclassIndex: Int) = LearnedSkillEntity
-    .find { (LearnedSkillsTable.characterId eq characterId) and (LearnedSkillsTable.subclassIndex eq subclassIndex) }
-    .map(LearnedSkillEntity::toSkill)
+fun Skill.Companion.findAllByCharacterIdAndSubclassIndex(characterId: Int, vararg subclassIndices: Int?) = SkillEntity
+    .find { (SkillsTable.characterId eq characterId) and (SkillsTable.subclassIndex inList subclassIndices.asList()) }
+    .map(SkillEntity::toSkill)
 
 
 /**
@@ -27,11 +27,11 @@ fun Skill.Companion.findBy(skillId: Int, characterId: Int, subclassIndex: Int) =
 /**
  * Finds learnt skill in database, or null, if nothing found
  */
-fun Skill.Companion.findByOrNull(skillId: Int, characterId: Int, subclassIndex: Int): Skill? = LearnedSkillEntity
+fun Skill.Companion.findByOrNull(skillId: Int, characterId: Int, subclassIndex: Int): Skill? = SkillEntity
     .find {
-        (LearnedSkillsTable.skillId eq skillId) and
-                (LearnedSkillsTable.characterId eq characterId) and
-                (LearnedSkillsTable.subclassIndex eq subclassIndex)
+        (SkillsTable.skillId eq skillId) and
+                (SkillsTable.characterId eq characterId) and
+                (SkillsTable.subclassIndex eq subclassIndex)
     }
     .firstOrNull()
     ?.toSkill()
@@ -44,17 +44,17 @@ fun Skill.Companion.findByOrNull(skillId: Int, characterId: Int, subclassIndex: 
  * @param skillId Skill ID
  * @param skillLevel Skill level
  */
-fun Skill.Companion.save(
+fun Skill.Companion.create(
     characterId: Int,
     subclassIndex: Int,
     skillId: Int,
     skillLevel: Int
 ): Skill {
-    LearnedSkillsTable.upsert { statement ->
-        statement[LearnedSkillsTable.characterId] = characterId
-        statement[LearnedSkillsTable.subclassIndex] = subclassIndex
-        statement[LearnedSkillsTable.skillId] = skillId
-        statement[LearnedSkillsTable.skillLevel] = skillLevel
+    SkillsTable.upsert { statement ->
+        statement[SkillsTable.characterId] = characterId
+        statement[SkillsTable.subclassIndex] = subclassIndex
+        statement[SkillsTable.skillId] = skillId
+        statement[SkillsTable.skillLevel] = skillLevel
     }
 
     return Skill.findBy(skillId, characterId, subclassIndex)

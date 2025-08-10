@@ -22,9 +22,9 @@ import org.l2kserver.game.data.npc.GREMLIN
 import org.l2kserver.game.data.skill.MORTAL_BLOW
 import org.l2kserver.game.data.skill.POWER_STRIKE
 import org.l2kserver.game.domain.AccessLevel
-import org.l2kserver.game.domain.LearnedSkillsTable
 import org.l2kserver.game.domain.PlayerCharacterTable
 import org.l2kserver.game.domain.Shortcut
+import org.l2kserver.game.domain.SkillsTable
 import org.l2kserver.game.extensions.model.shortcut.create
 import org.l2kserver.game.model.actor.character.Gender
 import org.l2kserver.game.model.actor.character.L2kCharacterClass
@@ -119,14 +119,14 @@ class TestDataLoader(
             it[accessLevel] = AccessLevel.GAME_MASTER
         }
 
-        LearnedSkillsTable.insert {
+        SkillsTable.insert {
             it[characterId] = character.id
             it[subclassIndex] = 0
             it[skillId] = MORTAL_BLOW.id
             it[skillLevel] = 1
         }
 
-        LearnedSkillsTable.insert {
+        SkillsTable.insert {
             it[characterId] = character.id
             it[subclassIndex] = 0
             it[skillId] = POWER_STRIKE.id
@@ -134,6 +134,10 @@ class TestDataLoader(
         }
 
         Shortcut.create(character.id, 0, 1, ShortcutType.SKILL, POWER_STRIKE.id, 5)
+
+        character.currentCp = character.stats.maxCp
+        character.currentHp = character.stats.maxHp
+        character.currentMp = character.stats.maxMp
     }
 
 }

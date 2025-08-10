@@ -6,7 +6,7 @@ import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransacti
 import org.l2kserver.game.AbstractTests
 import org.l2kserver.game.domain.Shortcut
 import org.l2kserver.game.extensions.model.shortcut.findBy
-import org.l2kserver.game.extensions.model.skill.save
+import org.l2kserver.game.extensions.model.skill.create
 import org.l2kserver.game.handler.dto.request.CreateShortcutRequest
 import org.l2kserver.game.handler.dto.response.CreateShortcutResponse
 import org.l2kserver.game.model.actor.character.ShortcutType
@@ -64,7 +64,7 @@ class ShortcutServiceTest(
         val testIndex = 0
         val testSkillLevel = 1
 
-        newSuspendedTransaction { Skill.save(character.id, character.activeSubclass, testActionId, testSkillLevel) }
+        newSuspendedTransaction { Skill.create(character.id, character.activeSubclass, testActionId, testSkillLevel) }
 
         val request = CreateShortcutRequest(
             type = testActionType,

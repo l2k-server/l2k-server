@@ -1,6 +1,3 @@
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
-
 plugins {
     kotlin("jvm")
     kotlin("plugin.spring") version "2.0.21"
@@ -58,11 +55,7 @@ detekt {
 }
 
 kotlin {
-    compilerOptions {
-        jvmTarget.set(JvmTarget.JVM_21)
-        freeCompilerArgs.add("-Xjsr305=strict")
-        apiVersion.set(KotlinVersion.KOTLIN_2_0)
-    }
+    jvmToolchain(21)
 }
 
 // Disable creating plain jar
