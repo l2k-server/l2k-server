@@ -171,6 +171,11 @@ open class SystemMessageResponse private constructor(
         systemMessageId = 63, item.enchantLevel - 1, item
     )
 
+    /** Message: [skill] is not available at this time: being prepared for reuse. */
+    data class IsBeingPreparedForReuse(val skill: Skill): SystemMessageResponse(
+        systemMessageId = 48, skill
+    )
+
     override val data = littleEndianByteArray {
         putUByte(SYSTEM_MESSAGE_RESPONSE_PACKET_ID)
         putInt(systemMessageId)

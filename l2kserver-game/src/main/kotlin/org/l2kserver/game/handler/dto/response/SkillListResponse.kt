@@ -9,7 +9,7 @@ import org.l2kserver.game.model.skill.Skill
 private const val SKILL_LIST_RESPONSE_PACKET_ID: UByte = 88u
 
 data class SkillListResponse(
-    val skills: List<Skill>
+    val skills: Collection<Skill>
 ): ResponsePacket {
 
     override val data = littleEndianByteArray {

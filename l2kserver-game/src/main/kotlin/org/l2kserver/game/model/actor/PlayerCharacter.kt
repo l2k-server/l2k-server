@@ -8,6 +8,7 @@ import org.l2kserver.game.extensions.model.item.countWeightByOwnerId
 import org.l2kserver.game.model.item.Item
 import org.l2kserver.game.domain.PlayerCharacterEntity
 import org.l2kserver.game.extensions.model.item.findAllEquippedByOwnerId
+import org.l2kserver.game.extensions.model.skill.findAllByCharacterIdAndSubclassIndex
 import org.l2kserver.game.extensions.model.stats.applyBasicStats
 import org.l2kserver.game.extensions.model.stats.applyEquipment
 import org.l2kserver.game.extensions.model.stats.applyLimitations
@@ -15,6 +16,7 @@ import org.l2kserver.game.extensions.model.stats.applyModifiers
 import org.l2kserver.game.model.actor.character.L2kCharacterClass
 import org.l2kserver.game.model.actor.character.PvpState
 import org.l2kserver.game.model.actor.position.Heading
+import org.l2kserver.game.model.skill.Skill
 import org.l2kserver.game.model.stats.BasicStats
 import org.l2kserver.game.model.stats.Stats
 import org.l2kserver.game.model.stats.TradeAndInventoryStats
@@ -100,10 +102,14 @@ class PlayerCharacter(
     override val stats: Stats get() = characterClass.combatStats
         .applyEquipment(paperDoll, characterClass)
         .applyModifiers(level, characterClass, basicStats)
-        .applyLimitations()
+        .applyLimitations() //TODO apply skills
 
     val tradeAndInventoryStats: TradeAndInventoryStats get() = characterClass.tradeAndInventoryStats
         .applyBasicStats(basicStats)//TODO apply skills
+
+    val skills: Map<Int, Skill> get() = Skill.findAllByCharacterIdAndSubclassIndex(
+        characterId = this.id, subclassIndices = arrayOf(null, this.activeSubclass)
+    ).associateBy { it.skillId }
 
     var privateStore: PrivateStore? = null
 
@@ -117,4 +123,13 @@ class PlayerCharacter(
     override fun isEnemyOf(other: Actor) = karma > 0 || pvpState != PvpState.NOT_IN_PVP
 
     override fun toString() = "Character(name=$name id=$id gender=$gender race=$race)"
+
+    /**
+     * Finds skill by [skillId] in this character's skill list
+     *
+     * @throws IllegalStateException if no skill was found
+     */
+    fun getSkillById(skillId: Int) = requireNotNull(this.skills[skillId]) {
+        "$this has no skill with id = $skillId"
+    }
 }

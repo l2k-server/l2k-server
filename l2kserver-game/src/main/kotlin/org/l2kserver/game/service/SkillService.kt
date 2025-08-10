@@ -8,8 +8,6 @@ import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransacti
 import org.l2kserver.game.model.skill.SkillTargetType
 import org.l2kserver.game.model.skill.SkillType
 import org.l2kserver.game.extensions.logger
-import org.l2kserver.game.extensions.model.skill.findAllByCharacterIdAndSubclassIndex
-import org.l2kserver.game.extensions.model.skill.findBy
 import org.l2kserver.game.handler.dto.request.UseSkillRequest
 import org.l2kserver.game.handler.dto.response.ActionFailedResponse
 import org.l2kserver.game.handler.dto.response.PlaySoundResponse
@@ -28,7 +26,9 @@ import org.l2kserver.game.network.session.send
 import org.l2kserver.game.network.session.sessionContext
 import org.l2kserver.game.repository.GameObjectRepository
 import org.springframework.stereotype.Service
+import java.time.Instant
 import kotlin.collections.contains
+import kotlin.coroutines.coroutineContext
 import kotlin.math.roundToInt
 import kotlin.math.roundToLong
 
@@ -51,8 +51,7 @@ class SkillService(
      */
     suspend fun getSkillList() = newSuspendedTransaction {
         val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
-        val skills = Skill.findAllByCharacterIdAndSubclassIndex(character.id, character.activeSubclass)
-        send(SkillListResponse(skills))
+        send(SkillListResponse(character.skills.values))
         log.info("Successfully sent skill list to character {}", character)
     }
 
@@ -61,7 +60,8 @@ class SkillService(
      */
     suspend fun useSkill(request: UseSkillRequest): Unit = newSuspendedTransaction {
         val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
-        val skill = Skill.findBy(request.skillId, character.id, character.activeSubclass)
+        val skill = character.getSkillById(request.skillId)
+
         useSkill(character, skill)
     }
 
@@ -69,7 +69,7 @@ class SkillService(
      * Handles [actor]'s intent to use the [skill]
      */
     suspend fun useSkill(actor: Actor, skill: Skill) {
-        log.debug("Actor '{}' tries to use skill '{}'", actor, skill)
+        log.debug("'{}' tries to use skill '{}'", actor, skill)
         when (skill.skillType) {
             SkillType.ACTIVE, SkillType.MAGIC -> useActiveSkill(actor, skill)
             SkillType.PASSIVE -> send(ActionFailedResponse)
@@ -85,78 +85,79 @@ class SkillService(
     /**
      * Handles [actor]'s intent to use `ACTIVE` [skill]
      */
-    suspend fun useActiveSkill(actor: Actor, skill: Skill) {
+    suspend fun useActiveSkill(actor: Actor, skill: Skill) = asyncTaskService.launchAction(actor.id) {
         //TODO Check casting
-        when (skill.targetType) {
+        if (Instant.now().isBefore(skill.nextUsageTime)) {
+            send(SystemMessageResponse.IsBeingPreparedForReuse(skill))
+            send(ActionFailedResponse)
+        }
+        else when (skill.targetType) {
             SkillTargetType.ENEMY -> useOffensiveTargetSkill(actor, skill)
         }
     }
 
-    private suspend fun useOffensiveTargetSkill(actor: Actor, skill: Skill) {
-        //TODO Check cooldown
+    private suspend fun useOffensiveTargetSkill(actor: Actor, skill: Skill) = newSuspendedTransaction {
         //Check if actor can use skill
-        if (!actor.canUseSkill(skill)) return
+        if (!actor.canUseSkill(skill)) return@newSuspendedTransaction
         val target = actor.targetId?.let { gameObjectRepository.findActorByIdOrNull(it) } ?: run {
             send(SystemMessageResponse.TargetCannotBeFound)
             actor.targetId = null
-            return
+            return@newSuspendedTransaction
         }
 
-        asyncTaskService.launchAction(actor.id) {
-            try {
-                moveService.move(actor, target, skill.castRange)
+        try {
+            moveService.move(actor, target, skill.castRange)
 
-                if (!actor.position.isCloseTo(target.position, skill.castRange)) {
-                    send(SystemMessageResponse.TargetOutOfRange)
-                    return@launchAction
-                }
-
-                //Check if actor can use skill again - immediately before use
-                if (actor.canUseSkill(skill)) {
-                    //TODO calculate spent resources
-                    if (actor is PlayerCharacter) {
-                        val characterStatusResponse = UpdateStatusResponse(
-                            objectId = actor.id,
-                            StatusAttribute.CUR_HP to actor.currentHp,
-                            StatusAttribute.CUR_MP to actor.currentMp,
-                            StatusAttribute.CUR_CP to actor.currentCp,
-                            StatusAttribute.MAX_CP to actor.stats.maxCp
-                        )
-                        send(characterStatusResponse)
-                    }
-
-                    val castTime = skill.castTime //TODO calculate depending on casting/attack speed
-
-                    val castingSpeed = if (skill.skillType == SkillType.MAGIC)
-                        actor.stats.castingSpd else actor.stats.atkSpd
-                    val reuseDelay = skill.reuseDelay * REUSE_DELAY_COEFFICIENT / castingSpeed
-
-                    withContext(coroutineContext + NonCancellable) {
-                        send(SystemMessageResponse.YouUse(skill))
-                        send(GaugeResponse(GaugeColor.BLUE, castTime))
-                        broadcastPacket(SkillUsedResponse(
-                            casterId = actor.id,
-                            targetId = target.id,
-                            skillId = skill.skillId,
-                            skillLevel = skill.skillLevel,
-                            castTime = castTime,
-                            reuseDelay = reuseDelay.roundToInt(),
-                            casterPosition = actor.position
-                        ))
-
-                        //Time, needed to cast a skill and finish skill animation TODO At L2J this time is set for every skill
-                        val castingSkillTime = (castTime * 1.7).roundToLong()
-                        delay(castingSkillTime)
-                    }
-
-                    //TODO Perform skill effect
-                    ///////////////////////////////////////////////////////////////////////////////
-                }
-            } catch (e: CancellationException) {
-                log.debug("Casting skill '{}' by '{}' was interrupted for reason {}", skill, actor, e.message)
-                send(ActionFailedResponse)
+            if (!actor.position.isCloseTo(target.position, skill.castRange)) {
+                send(SystemMessageResponse.TargetOutOfRange)
+                return@newSuspendedTransaction
             }
 
+            //Check if actor can use skill again - immediately before use
+            if (actor.canUseSkill(skill)) {
+                //TODO calculate spent resources
+                if (actor is PlayerCharacter) {
+                    val characterStatusResponse = UpdateStatusResponse(
+                        objectId = actor.id,
+                        StatusAttribute.CUR_HP to actor.currentHp,
+                        StatusAttribute.CUR_MP to actor.currentMp,
+                        StatusAttribute.CUR_CP to actor.currentCp,
+                        StatusAttribute.MAX_CP to actor.stats.maxCp
+                    )
+                    send(characterStatusResponse)
+                }
+
+                val castTime = skill.castTime //TODO calculate depending on casting/attack speed
+
+                val castingSpeed = if (skill.skillType == SkillType.MAGIC)
+                    actor.stats.castingSpd else actor.stats.atkSpd
+                val reuseDelay = (skill.reuseDelay * REUSE_DELAY_COEFFICIENT / castingSpeed).roundToInt()
+
+                skill.nextUsageTime = Instant.now().plusMillis(reuseDelay.toLong())
+
+                withContext(coroutineContext + NonCancellable) {
+                    send(SystemMessageResponse.YouUse(skill))
+                    send(GaugeResponse(GaugeColor.BLUE, castTime))
+                    broadcastPacket(SkillUsedResponse(
+                        casterId = actor.id,
+                        targetId = target.id,
+                        skillId = skill.skillId,
+                        skillLevel = skill.skillLevel,
+                        castTime = castTime,
+                        reuseDelay = reuseDelay,
+                        casterPosition = actor.position
+                    ))
+                    //Time, needed to cast a skill and finish skill animation TODO At L2J this time is set for every skill
+                    val castingSkillTime = (castTime * 1.7).roundToLong()
+                    delay(castingSkillTime)
+                }
+
+                //TODO Perform skill effect
+                ///////////////////////////////////////////////////////////////////////////////
+            }
+        } catch (e: CancellationException) {
+            log.debug("Casting skill '{}' by '{}' was interrupted for reason {}", skill, actor, e.message)
+            send(ActionFailedResponse)
         }
     }
 

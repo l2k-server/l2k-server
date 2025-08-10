@@ -1,9 +1,9 @@
 package org.l2kserver.game.extensions
 
-import org.l2kserver.game.domain.LearnedSkillEntity
-import org.l2kserver.game.domain.LearnedSkillsTable
+import org.l2kserver.game.domain.SkillEntity
+import org.l2kserver.game.domain.SkillsTable
 import org.l2kserver.game.extensions.model.skill.toSkill
 
-fun LearnedSkillEntity.Companion.findAllByCharacterId(characterId: Int) = this
-    .find { LearnedSkillsTable.characterId eq characterId }
-    .map(LearnedSkillEntity::toSkill)
+fun SkillEntity.Companion.findAllByCharacterId(characterId: Int) = this
+    .find { SkillsTable.characterId eq characterId }
+    .map(SkillEntity::toSkill)

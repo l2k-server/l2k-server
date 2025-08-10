@@ -25,7 +25,7 @@ import org.junit.jupiter.api.assertThrows
 import org.l2kserver.game.data.character.classes.HUMAN_FIGHTER
 import org.l2kserver.game.domain.PlayerCharacterEntity
 import org.l2kserver.game.domain.Shortcut
-import org.l2kserver.game.domain.LearnedSkillEntity
+import org.l2kserver.game.domain.SkillEntity
 import org.l2kserver.game.extensions.findAllByCharacterId
 import org.l2kserver.game.extensions.model.item.findAllByOwnerId
 import org.l2kserver.game.handler.dto.response.ExitGameResponse
@@ -197,7 +197,7 @@ class CharacterServiceTests(
                     "Items of deleted character must be deleted too")
                 assertTrue(Shortcut.findAllByCharacterId(character.id).isEmpty(),
                     "Shortcuts of deleted character must be deleted too")
-                assertTrue(LearnedSkillEntity.findAllByCharacterId(character.id).isEmpty(),
+                assertTrue(SkillEntity.findAllByCharacterId(character.id).isEmpty(),
                     "Learned skills of deleted character must be deleted too")
             }
         }

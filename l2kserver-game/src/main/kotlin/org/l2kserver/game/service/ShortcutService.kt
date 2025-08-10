@@ -10,9 +10,7 @@ import org.l2kserver.game.domain.Shortcut
 import org.l2kserver.game.extensions.model.shortcut.create
 import org.l2kserver.game.extensions.model.shortcut.deleteBy
 import org.l2kserver.game.extensions.model.shortcut.findBy
-import org.l2kserver.game.extensions.model.skill.findBy
 import org.l2kserver.game.model.actor.character.ShortcutType
-import org.l2kserver.game.model.skill.Skill
 import org.l2kserver.game.network.session.send
 import org.l2kserver.game.network.session.sessionContext
 import org.springframework.stereotype.Service
@@ -30,7 +28,7 @@ class ShortcutService(
         Shortcut.findBy(request.index, character.id, character.activeSubclass)?.delete()
 
         val actionLevel = if (request.type == ShortcutType.SKILL)
-            Skill.findBy(request.shortcutActionId, character.id, character.activeSubclass).skillLevel
+            character.getSkillById(request.shortcutActionId).skillLevel
         else 1
 
         val newShortcut = Shortcut.create(
