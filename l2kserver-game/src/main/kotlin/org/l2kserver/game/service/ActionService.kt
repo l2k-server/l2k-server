@@ -28,7 +28,7 @@ import org.l2kserver.game.repository.GameObjectRepository
 import org.springframework.stereotype.Service
 import kotlin.math.roundToInt
 
-const val INTERACTION_DISTANCE = 50
+const val INTERACTION_DISTANCE = 40
 
 /**
  * Handles player's actions, like attacking, setting target, switching sit and stand...
@@ -149,7 +149,10 @@ class ActionService(
      */
     private suspend fun PlayerCharacter.interactWith(target: Actor) = asyncTaskService.launchAction(this.id) {
         val character = this@interactWith
-        moveService.move(character, target)
+        val requiredDistance = INTERACTION_DISTANCE +
+                (this@interactWith.collisionBox.radius + target.collisionBox.radius).roundToInt()
+
+        moveService.move(character, target, requiredDistance)
 
         val enoughCloseToInteract = this@interactWith.position.isCloseTo(
             other = target.position,

@@ -6,12 +6,9 @@ fun Boolean.toByte(): Byte = if (this) 1 else 0
 /** Transforms Boolean to Int. True = 1, False = 0 */
 fun Boolean.toInt() = if (this) 1 else 0
 
-/** Transforms String to IntRange */
-fun String.toIntRange(): IntRange {
-    val rangeIndices = this.split("..")
-    require(rangeIndices.size == 2) { "$this cannot be parsed to int range" }
-
-    return rangeIndices[0].toInt()..rangeIndices[1].toInt()
+/** Performs given [action] on each element if it is not null */
+inline fun <T> Array<T>.forEachNotNull(action: (T) -> Unit) = forEach {
+    if (it != null) action(it)
 }
 
 /** Performs given [action] on each element matching given [predicate] */

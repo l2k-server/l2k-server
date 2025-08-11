@@ -100,11 +100,15 @@ class CombatService(
         }
 
         asyncTaskService.launchAction(attacker.id) {
-            while (isActive && !attacked.isDead() && gameObjectRepository.existsById(attacked.id)) {
+            while (isActive && !attacker.isParalyzed && !attacked.isDead() && gameObjectRepository.existsById(attacked.id)) {
                 try {
-                    moveService.move(attacker, attacked, attacker.stats.attackRange)
+                    val requiredDistance = attacker.stats.attackRange +
+                            (attacker.collisionBox.radius + attacked.collisionBox.radius).roundToInt()
 
-                    if (!attacker.isEnoughCloseToAttack(attacked)) {
+                    moveService.move(attacker, attacked, requiredDistance)
+
+                    //Check if movement was interrupted or stopped at some obstacle
+                    if (!attacker.position.isCloseTo(attacked.position, requiredDistance)) {
                         send(SystemMessageResponse.TargetOutOfRange)
                         break
                     }

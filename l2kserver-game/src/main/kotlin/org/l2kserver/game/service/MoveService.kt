@@ -32,7 +32,6 @@ import org.l2kserver.game.model.time.GameTime
 import org.springframework.stereotype.Service
 import kotlin.coroutines.coroutineContext
 import kotlin.math.hypot
-import kotlin.math.roundToInt
 
 private const val ROTATE_SPEED_PER_SEC = 65536
 
@@ -161,8 +160,8 @@ class MoveService(
             var previousTargetPosition = target.position
 
             while (coroutineContext.isActive && gameObjectRepository.existsById(target.id)) {
-                val startUpdatingPositionTimestamp = System.currentTimeMillis()
                 if (actor.isImmobilized) return@newSuspendedTransaction
+                val startUpdatingPositionTimestamp = System.currentTimeMillis()
 
                 if (previousTargetPosition != target.position) {
                     broadcastPacket(StartMovingResponse(actor.id, actor.position, target.position), actor.position)
@@ -261,7 +260,7 @@ class MoveService(
         val gameObjectsAround = gameObjectRepository.findAllNear(gameObjectRepository.findById(actor.id))
 
         //Checking this at the beginning of position updating gives one more tick to move to emulate moving properly
-        if (actor.position.isCloseTo(destination, actor.collisionBox.radius.roundToInt())) return true
+        if (actor.position.isCloseTo(destination)) return true
 
         val deltaX = actor.position.deltaX(destination).toDouble()
         val deltaY = actor.position.deltaY(destination).toDouble()

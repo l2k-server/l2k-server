@@ -39,9 +39,9 @@ private const val REUSE_DELAY_COEFFICIENT = 333.0
  */
 @Service
 class SkillService(
-    override val gameObjectRepository: GameObjectRepository,
     private val moveService: MoveService,
-    private val asyncTaskService: AsyncTaskService
+    private val asyncTaskService: AsyncTaskService,
+    override val gameObjectRepository: GameObjectRepository
 ) : AbstractService() {
 
     override val log = logger()
@@ -106,9 +106,13 @@ class SkillService(
         }
 
         try {
-            moveService.move(actor, target, skill.castRange)
+            val requiredDistance = skill.castRange +
+                    (actor.collisionBox.radius + target.collisionBox.radius).roundToInt()
 
-            if (!actor.position.isCloseTo(target.position, skill.castRange)) {
+            moveService.move(actor, target, requiredDistance)
+
+            //Check if movement was interrupted or stopped at some obstacle
+            if (!actor.position.isCloseTo(target.position, requiredDistance)) {
                 send(SystemMessageResponse.TargetOutOfRange)
                 return@newSuspendedTransaction
             }
@@ -169,6 +173,7 @@ class SkillService(
      * @return true - if actor can use [skill], false if not
      */
     private suspend fun Actor.canUseSkill(skill: Skill): Boolean = when {
+        this.isParalyzed -> false
         skill.requires?.weaponTypes?.contains(this.weaponType) == false -> {
             send(PlaySoundResponse(Sound.ITEMSOUND_SYS_IMPOSSIBLE))
             send(ActionFailedResponse)
