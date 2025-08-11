@@ -12,7 +12,7 @@ repositories {
 }
 
 dependencies {
-    implementation(project(":l2kserver-game-model"))
+    implementation(project(":l2k-server-game-model"))
     implementation("com.google.devtools.ksp:symbol-processing-api:1.9.0-1.0.13")
 
     testImplementation(kotlin("test"))

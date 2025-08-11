@@ -6,14 +6,14 @@ pluginManagement {
 plugins {
     id("org.gradle.toolchains.foojay-resolver-convention") version "0.8.0"
 }
-rootProject.name = "l2kserver"
+rootProject.name = "l2k-server"
 
-include("l2kserver-game")
-include("l2kserver-login")
-include("l2kserver-game-model")
-include("l2kserver-plugin-api")
+include("l2k-server-game")
+include("l2k-server-login")
+include("l2k-server-game-model")
+include("l2k-server-plugin-api")
 
-include("l2kserver-plugin-api:example-java-plugin")
-findProject(":l2kserver-plugin-api:example-java-plugin")?.name = "example-java-plugin"
-include("l2kserver-plugin-api:example-kotlin-plugin")
-findProject(":l2kserver-plugin-api:example-kotlin-plugin")?.name = "example-kotlin-plugin"
+include("l2k-server-plugin-api:example-java-plugin")
+findProject(":l2k-server-plugin-api:example-java-plugin")?.name = "example-java-plugin"
+include("l2k-server-plugin-api:example-kotlin-plugin")
+findProject(":l2k-server-plugin-api:example-kotlin-plugin")?.name = "example-kotlin-plugin"

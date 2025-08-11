@@ -47,8 +47,8 @@ dependencies {
     implementation("org.bitbucket.l2jserver:l2j-server-geo-driver:2.6.4.1")
 
     // L2K
-    implementation(project(":l2kserver-game-model"))
-    implementation(project(":l2kserver-plugin-api"))
+    implementation(project(":l2k-server-game-model"))
+    implementation(project(":l2k-server-plugin-api"))
 
     // Test
     testImplementation(kotlin("test"))
