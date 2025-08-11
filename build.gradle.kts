@@ -6,13 +6,13 @@ plugins {
 }
 
 tasks.register<Exec>("launchTestLoginServer") {
-    dependsOn(":l2kserver-login:bootTestRun")
+    dependsOn(":l2k-server-login:bootTestRun")
     group = "l2k"
     description = "Launch login server in test mode"
 }
 
 tasks.register<Exec>("launchTestGameServer") {
-    dependsOn(":l2kserver-game:bootTestRun")
+    dependsOn(":l2k-server-game:bootTestRun")
     group = "l2k"
     description = "Launch game server in test mode"
 }

@@ -11,10 +11,10 @@ repositories {
 }
 
 dependencies {
-    implementation(project(":l2kserver-plugin-api"))
-    implementation(project(":l2kserver-game-model"))
+    implementation(project(":l2k-server-plugin-api"))
+    implementation(project(":l2k-server-game-model"))
 
-    ksp(project(":l2kserver-plugin-api"))
+    ksp(project(":l2k-server-plugin-api"))
 }
 
 tasks.test {
