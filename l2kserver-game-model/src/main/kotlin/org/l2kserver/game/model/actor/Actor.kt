@@ -87,14 +87,6 @@ interface Actor: GameWorldObject {
     }
 
     /**
-     * Check if actor can attack [target] from his current position
-     */
-    fun isEnoughCloseToAttack(target: Actor) = this.position.isCloseTo(
-        other = target.position,
-        distance = this.stats.attackRange + Position.ACCEPTABLE_DELTA
-    )
-
-    /**
      * Is this actor dead
      */
     fun isDead() = this.currentHp <= 0

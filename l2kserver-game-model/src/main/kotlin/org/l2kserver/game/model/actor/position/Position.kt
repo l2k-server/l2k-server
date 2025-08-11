@@ -52,7 +52,7 @@ data class Position(
     /**
      * Returns true if the distance between positions is lesser than provided
      */
-    fun isCloseTo(other: Position, distance: Int = ACCEPTABLE_DELTA) = this.distanceTo(other) <= distance
+    fun isCloseTo(other: Position, distance: Int = 0) = this.distanceTo(other) <= distance + ACCEPTABLE_DELTA
 
     /**
      * Calculates position between `this` and [other], which is [distanceToTarget] away from `other`

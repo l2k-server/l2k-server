@@ -1,5 +1,6 @@
 package org.l2kserver.game.handler.dto.response
 
+import org.l2kserver.game.extensions.forEachNotNull
 import org.l2kserver.game.extensions.littleEndianByteArray
 import org.l2kserver.game.extensions.putUTF16String
 import org.l2kserver.game.extensions.putUByte
@@ -10,7 +11,7 @@ private const val SYSTEM_MESSAGE_RESPONSE_PACKET_ID: UByte = 100u
 
 open class SystemMessageResponse private constructor(
     val systemMessageId: Int,
-    private vararg val placeholders: Any
+    private vararg val placeholders: Any?
 ) : ResponsePacket {
 
     companion object {
@@ -161,14 +162,14 @@ open class SystemMessageResponse private constructor(
         systemMessageId = 561, sellerName, item, amount
     )
 
-    /** Message: "Your [item] has been successfully enchanted." */
+    /**
+     * If item was not enchanted before - message: "Your [item] has been successfully enchanted.",
+     * if it already was - "Your +[Item.enchantLevel][item] has been successfully enchanted."
+     **/
     data class YourItemHasBeenSuccessfullyEnchanted(val item: Item): SystemMessageResponse(
-        systemMessageId = 62, item
-    )
-
-    /** Message: "Your +[Item.enchantLevel][item] has been successfully enchanted." */
-    data class YourEnchantedItemHasBeenSuccessfullyEnchanted(val item: Item): SystemMessageResponse(
-        systemMessageId = 63, item.enchantLevel - 1, item
+        systemMessageId = if (item.enchantLevel > 1) 63 else 62,
+        if (item.enchantLevel > 1) item.enchantLevel - 1 else null,
+        item
     )
 
     /** Message: [skill] is not available at this time: being prepared for reuse. */
@@ -181,7 +182,7 @@ open class SystemMessageResponse private constructor(
         putInt(systemMessageId)
         putInt(placeholders.size)
 
-        placeholders.forEach {
+        placeholders.forEachNotNull {
             when (it) {
                 is String -> {
                     putInt(PlaceholderType.TEXT)
