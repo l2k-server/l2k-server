@@ -1,11 +1,14 @@
 package org.l2kserver.game.model.item
 
 import org.l2kserver.game.domain.ItemEntity
+import org.l2kserver.game.model.item.instance.ItemInstance
+import org.l2kserver.game.model.item.template.ItemGroup
+import org.l2kserver.game.model.item.template.SimpleItemTemplate
 
-class SimpleItem(
-    itemEntity: ItemEntity,
+class SimpleItemInstance(
+    private val itemEntity: ItemEntity,
     itemTemplate: SimpleItemTemplate
-): Item {
+): ItemInstance {
     override val id: Int = itemEntity.id.value
 
     override val templateId by itemEntity::templateId

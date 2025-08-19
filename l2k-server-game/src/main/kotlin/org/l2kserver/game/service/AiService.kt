@@ -2,7 +2,7 @@ package org.l2kserver.game.service
 
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
-import org.l2kserver.game.extensions.forEachInstance
+import org.l2kserver.game.model.extensions.forEachInstance
 import org.l2kserver.game.extensions.logger
 import org.l2kserver.game.handler.dto.response.ChatMessageResponse
 import org.l2kserver.game.model.actor.Npc
@@ -29,7 +29,7 @@ class AiService(
     override val log = logger()
 
     @EventListener(ApplicationReadyEvent::class)
-    fun init() = asyncTaskService.launchJob("AI_JOB") {
+    fun init() = asyncTaskService.launchTask("AI_JOB") {
         while (isActive) {
             gameObjectRepository.forEachInstance<Npc> { npc ->
                 if (!npc.isDead()) performAiAction(npc)

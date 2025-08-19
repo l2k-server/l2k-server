@@ -33,7 +33,7 @@ fun PrivateStoreSellStartRequest(data: ByteBuffer): PrivateStoreSellStartRequest
     require(slotsAmount > 0) { "Private store (sell) slots amount must not be negative!" }
 
     val items: List<RequestedToSellItem> =
-        if (slotsAmount <= 0 || slotsAmount * Int.SIZE_BYTES * 3 != data.remaining()) emptyList()
+        if (slotsAmount * Int.SIZE_BYTES * 3 != data.remaining()) emptyList()
         else List(slotsAmount) {
             RequestedToSellItem(
                 itemId = data.getInt(),
@@ -91,6 +91,7 @@ fun BuyInPrivateStoreRequest(data: ByteBuffer): BuyInPrivateStoreRequest {
  * @property amount How many items should be sold
  * @property price Item price in private store
  */
+//TODO Rename - too easy to mess up with RequestedToSellToPrivateStoreItem
 data class RequestedToSellItem(
     val itemId: Int,
     val amount: Int,

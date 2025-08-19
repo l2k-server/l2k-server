@@ -1,5 +1,6 @@
-package org.l2kserver.game.model.item
+package org.l2kserver.game.model.item.template
 
+import org.l2kserver.game.model.item.ConsumableItem
 import org.l2kserver.game.model.stats.Stats
 
 data class WeaponTemplate(
@@ -50,10 +51,3 @@ enum class WeaponType(override val availableSlots: Set<Slot>, val randomCoeffici
     FIST(setOf(Slot.TWO_HANDS), 5),
     POLE(setOf(Slot.TWO_HANDS), 10)
 }
-
-data class ConsumableItem(
-    val id: Int,
-    val amount: Int = 1
-)
-
-infix fun Int.of(item: ItemTemplate) = ConsumableItem(item.id, this)

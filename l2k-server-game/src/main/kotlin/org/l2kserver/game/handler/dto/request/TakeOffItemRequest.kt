@@ -1,6 +1,6 @@
 package org.l2kserver.game.handler.dto.request
 
-import org.l2kserver.game.model.item.Slot
+import org.l2kserver.game.model.item.template.Slot
 import java.nio.ByteBuffer
 
 const val DISARM_ITEM_REQUEST_PACKET_ID: UByte = 17u

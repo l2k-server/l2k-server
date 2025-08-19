@@ -42,7 +42,7 @@ class NpcService(
     override val log = logger()
 
     @EventListener(ApplicationReadyEvent::class)
-    fun init() = asyncTaskService.launchJob("INITIAL_SPAWN_TASK") {
+    fun init() = asyncTaskService.launchTask("INITIAL_SPAWN_TASK") {
         NpcTemplate.Registry.forEach { template ->
             template.spawn.positions?.forEach { spawnAtPosition(template, it) }
             template.spawn.zones?.forEach { zone -> repeat(zone.npcAmount) { spawnAtZone(template, zone) }}

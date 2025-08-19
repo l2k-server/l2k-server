@@ -11,8 +11,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.l2kserver.game.extensions.logger
-import org.l2kserver.game.extensions.model.item.findAllByOwnerIdAndTemplateId
-import org.l2kserver.game.extensions.model.item.reduceAmountBy
 import org.l2kserver.game.handler.dto.response.ActionFailedResponse
 import org.l2kserver.game.handler.dto.response.AttackResponse
 import org.l2kserver.game.handler.dto.response.Hit
@@ -26,8 +24,7 @@ import org.l2kserver.game.handler.dto.response.UpdateStatusResponse
 import org.l2kserver.game.model.actor.Actor
 import org.l2kserver.game.model.actor.Npc
 import org.l2kserver.game.model.actor.PlayerCharacter
-import org.l2kserver.game.model.item.Item
-import org.l2kserver.game.model.item.WeaponType
+import org.l2kserver.game.model.item.template.WeaponType
 import org.l2kserver.game.network.session.send
 import org.l2kserver.game.network.session.sendTo
 import org.l2kserver.game.repository.GameObjectRepository
@@ -182,18 +179,18 @@ class CombatService(
 
         // Consume mana and arrows for shot, if attacker is PlayerCharacter
         if (attacker is PlayerCharacter) {
-            val weapon = attacker.paperDoll.getWeapon()!!
+            val weapon = attacker.inventory.weapon!!
 
             //Check if player has enough mana
             if (attacker.currentMp < weapon.manaCost) {
-                send(SystemMessageResponse.NotEnoughMP)
+                send(SystemMessageResponse.NotEnoughMp)
                 coroutineContext.cancel()
                 return
             }
 
             //If weapon consumes smth
             weapon.consumes?.let { consumable ->
-                val arrows = Item.findAllByOwnerIdAndTemplateId(attacker.id, consumable.id).firstOrNull()
+                val arrows = attacker.inventory.findAllByTemplateId(consumable.id).firstOrNull()
                 //Check if player has enough ammo
                 if (arrows == null || consumable.amount > arrows.amount) {
                     send(SystemMessageResponse.NotEnoughArrows)
@@ -202,7 +199,7 @@ class CombatService(
                 }
 
                 //Subtract ammo
-                val updatedArrows = arrows.reduceAmountBy(consumable.amount)
+                val updatedArrows = attacker.inventory.reduceAmount(arrows.id,consumable.amount)
                 if (updatedArrows == null) send(UpdateItemsResponse.operationRemove(arrows))
                 else send(UpdateItemsResponse.operationModify(updatedArrows))
             }

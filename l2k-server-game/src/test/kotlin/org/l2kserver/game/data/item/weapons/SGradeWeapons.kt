@@ -1,8 +1,8 @@
 package org.l2kserver.game.data.item.weapons
 
-import org.l2kserver.game.model.item.Grade
-import org.l2kserver.game.model.item.WeaponTemplate
-import org.l2kserver.game.model.item.WeaponType
+import org.l2kserver.game.model.item.template.Grade
+import org.l2kserver.game.model.item.template.WeaponTemplate
+import org.l2kserver.game.model.item.template.WeaponType
 import org.l2kserver.game.model.stats.Stats
 
 val DEMON_SPLINTER = WeaponTemplate(

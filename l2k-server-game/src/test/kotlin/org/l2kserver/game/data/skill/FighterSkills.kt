@@ -1,6 +1,6 @@
 package org.l2kserver.game.data.skill
 
-import org.l2kserver.game.model.item.WeaponType
+import org.l2kserver.game.model.item.template.WeaponType
 import org.l2kserver.game.model.skill.SkillConsumablesTemplate
 import org.l2kserver.game.model.skill.SkillEffectTemplate
 import org.l2kserver.game.model.skill.SkillEffectType
@@ -16,9 +16,10 @@ val POWER_STRIKE = SkillTemplate(
     targetType = SkillTargetType.ENEMY,
     reuseDelay = 13_000,
     castTime = 1_080,
+    repriseTime = 720,
     castRange = 40,
     effectRange = 400,
-    requirements = SkillRequirements(
+    requires = SkillRequirements(
         weaponTypes = listOf(
             WeaponType.SWORD_ONE_HANDED,
             WeaponType.SWORD_TWO_HANDED,
@@ -46,9 +47,10 @@ val MORTAL_BLOW = SkillTemplate(
     targetType = SkillTargetType.ENEMY,
     reuseDelay = 11_000,
     castTime = 1_080,
+    repriseTime = 720,
     castRange = 40,
     effectRange = 400,
-    requirements = SkillRequirements(
+    requires = SkillRequirements(
         weaponTypes = listOf(WeaponType.DAGGER)
     ),
     maxSkillLevel = 24,

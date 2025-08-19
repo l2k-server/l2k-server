@@ -1,9 +1,9 @@
 package org.l2kserver.game.extensions.model.stats
 
-import org.l2kserver.game.model.PaperDoll
+import org.l2kserver.game.model.actor.PlayerCharacter
 import org.l2kserver.game.model.actor.character.L2kCharacterClass
-import org.l2kserver.game.model.item.Slot
-import org.l2kserver.game.model.item.WeaponType
+import org.l2kserver.game.model.item.template.Slot
+import org.l2kserver.game.model.item.template.WeaponType
 import org.l2kserver.game.model.stats.BasicStats
 import org.l2kserver.game.model.stats.Stats
 import kotlin.math.pow
@@ -17,20 +17,19 @@ private const val BOW_DEFAULT_ATTACK_RANGE = 450
 /**
  * Apply stats of the equipment
  *
- * @param paperDoll Equipped items
- * @param characterClass Character class - contains stats of empty slots
+ * @param character Equipment owner
  */
-fun Stats.applyEquipment(paperDoll: PaperDoll, characterClass: L2kCharacterClass): Stats {
+fun Stats.applyEquipment(character: PlayerCharacter): Stats {
     var result = this
 
-    var weaponStats = paperDoll.getWeapon()?.stats ?: characterClass.emptySlotStats[Slot.RIGHT_HAND]
+    val weaponStats = character.inventory.weapon?.stats ?: character.characterClass.emptySlotStats[Slot.RIGHT_HAND]
 
-    result += weaponStats?.applyDefaultRange(paperDoll.getWeapon()?.type ?: WeaponType.FIST)
+    result += weaponStats?.applyDefaultRange(character.inventory.weapon?.type ?: WeaponType.FIST)
 
-    val upperBodyStats = paperDoll[Slot.UPPER_BODY]?.stats ?: characterClass.emptySlotStats[Slot.UPPER_BODY]
-    val lowerBodyStats = paperDoll[Slot.LOWER_BODY]?.stats ?: characterClass.emptySlotStats[Slot.LOWER_BODY]
+    val upperBodyStats = character.inventory[Slot.UPPER_BODY]?.stats ?: character.characterClass.emptySlotStats[Slot.UPPER_BODY]
+    val lowerBodyStats = character.inventory[Slot.LOWER_BODY]?.stats ?: character.characterClass.emptySlotStats[Slot.LOWER_BODY]
 
-    result += paperDoll[Slot.UPPER_AND_LOWER_BODY]?.stats ?: (upperBodyStats?.plus(lowerBodyStats))
+    result += character.inventory[Slot.UPPER_AND_LOWER_BODY]?.stats ?: (upperBodyStats?.plus(lowerBodyStats))
 
     val slotsLeft = Slot.entries - listOf(
         Slot.RIGHT_HAND,
@@ -40,7 +39,7 @@ fun Stats.applyEquipment(paperDoll: PaperDoll, characterClass: L2kCharacterClass
         Slot.UPPER_AND_LOWER_BODY
     )
     slotsLeft.forEach {
-        result += paperDoll[it]?.stats ?: characterClass.emptySlotStats[it]
+        result += character.inventory[it]?.stats ?: character.characterClass.emptySlotStats[it]
     }
 
     return result

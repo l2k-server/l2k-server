@@ -1,11 +1,9 @@
 package org.l2kserver.game.handler.dto.response
 
 import org.l2kserver.game.extensions.littleEndianByteArray
-import org.l2kserver.game.extensions.model.item.countWeightByOwnerId
 import org.l2kserver.game.extensions.putUByte
 import org.l2kserver.game.model.actor.Actor
 import org.l2kserver.game.model.actor.PlayerCharacter
-import org.l2kserver.game.model.item.Item
 
 private const val UPDATE_STATUS_RESPONSE_PACKET_ID: UByte = 14u
 
@@ -53,7 +51,7 @@ data class UpdateStatusResponse(
          */
         fun weightOf(character: PlayerCharacter) = UpdateStatusResponse(
             character.id,
-            StatusAttribute.CUR_LOAD to Item.countWeightByOwnerId(character.id)
+            StatusAttribute.CUR_LOAD to character.inventory.weight
         )
     }
 

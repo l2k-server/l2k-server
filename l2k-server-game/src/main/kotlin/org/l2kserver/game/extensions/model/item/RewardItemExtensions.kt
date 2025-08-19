@@ -2,7 +2,7 @@ package org.l2kserver.game.extensions.model.item
 
 import org.l2kserver.game.model.actor.position.Position
 import org.l2kserver.game.model.actor.ScatteredItem
-import org.l2kserver.game.model.item.ItemTemplate
+import org.l2kserver.game.model.item.template.ItemTemplate
 import org.l2kserver.game.model.reward.RewardItem
 import org.l2kserver.game.utils.IdUtils
 

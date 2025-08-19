@@ -96,19 +96,19 @@ class AdminCommandService(
         log.debug("Got command to enchant '{}' of '{}' by '{}'", itemToEnchant, characterToEnchant, enchantLevel)
 
         val item = when(itemToEnchant) {
-            ItemToEnchant.UNDERWEAR -> characterToEnchant.paperDoll.underwear
-            ItemToEnchant.RIGHT_EARRING -> characterToEnchant.paperDoll.rightEarring
-            ItemToEnchant.LEFT_EARRING -> characterToEnchant.paperDoll.leftEarring
-            ItemToEnchant.NECKLACE -> characterToEnchant.paperDoll.necklace
-            ItemToEnchant.RIGHT_RING -> characterToEnchant.paperDoll.rightRing
-            ItemToEnchant.LEFT_RING -> characterToEnchant.paperDoll.leftRing
-            ItemToEnchant.HEADGEAR -> characterToEnchant.paperDoll.headgear
-            ItemToEnchant.WEAPON -> characterToEnchant.paperDoll.getWeapon()
-            ItemToEnchant.SHIELD -> characterToEnchant.paperDoll.shield
-            ItemToEnchant.GLOVES -> characterToEnchant.paperDoll.gloves
-            ItemToEnchant.UPPER_BODY -> characterToEnchant.paperDoll.upperBody
-            ItemToEnchant.LOWER_BODY -> characterToEnchant.paperDoll.lowerBody
-            ItemToEnchant.BOOTS -> characterToEnchant.paperDoll.boots
+            ItemToEnchant.UNDERWEAR -> characterToEnchant.inventory.underwear
+            ItemToEnchant.RIGHT_EARRING -> characterToEnchant.inventory.rightEarring
+            ItemToEnchant.LEFT_EARRING -> characterToEnchant.inventory.leftEarring
+            ItemToEnchant.NECKLACE -> characterToEnchant.inventory.necklace
+            ItemToEnchant.RIGHT_RING -> characterToEnchant.inventory.rightRing
+            ItemToEnchant.LEFT_RING -> characterToEnchant.inventory.leftRing
+            ItemToEnchant.HEADGEAR -> characterToEnchant.inventory.headgear
+            ItemToEnchant.WEAPON -> characterToEnchant.inventory.weapon
+            ItemToEnchant.SHIELD -> characterToEnchant.inventory.shield
+            ItemToEnchant.GLOVES -> characterToEnchant.inventory.gloves
+            ItemToEnchant.UPPER_BODY -> characterToEnchant.inventory.upperBody
+            ItemToEnchant.LOWER_BODY -> characterToEnchant.inventory.lowerBody
+            ItemToEnchant.BOOTS -> characterToEnchant.inventory.boots
         }
 
         if (item == null) {

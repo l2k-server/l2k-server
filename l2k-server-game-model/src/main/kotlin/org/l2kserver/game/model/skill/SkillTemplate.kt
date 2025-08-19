@@ -2,7 +2,8 @@ package org.l2kserver.game.model.skill
 
 import org.l2kserver.game.model.GameData
 import org.l2kserver.game.model.GameDataRegistry
-import org.l2kserver.game.model.item.WeaponType
+import org.l2kserver.game.model.item.ConsumableItem
+import org.l2kserver.game.model.item.template.WeaponType
 
 /**
  * Data class representing common skill data
@@ -12,9 +13,10 @@ import org.l2kserver.game.model.item.WeaponType
  * @property skillType - Skill type - active, passive or toggle
  * @property reuseDelay - Base cooldown of this skill
  * @property castTime - Base casting time of this skill
+ * @property repriseTime - Time to return to the starting position after skill casting
  * @property castRange - Range to target to cast this skill, or radius for mass skill
  * @property effectRange - TODO
- * @property requirements - Requirements to use this skill
+ * @property requires - Requirements to use this skill
  * @property maxSkillLevel - Max level of this skill to be learnt
  * @property consumes - Skill consumables - mp, items, etc.
  * @property effects - Effects, dealt by this skill
@@ -26,9 +28,10 @@ data class SkillTemplate(
     val targetType: SkillTargetType,
     val reuseDelay: Int,
     val castTime: Int,
+    val repriseTime: Int = 0,
     val castRange: Int = 0,
     val effectRange: Int = 0,
-    val requirements: SkillRequirements? = null,
+    val requires: SkillRequirements? = null,
     val maxSkillLevel: Int,
     val consumes: SkillConsumablesTemplate? = null,
     val effects: List<SkillEffectTemplate>
@@ -59,10 +62,14 @@ data class SkillRequirements(
 /**
  * Skill consumables
  *
+ * @property hp - How much HP is spent to cast skill on each level (Note: skill level starts with 1)
  * @property mp - How much mana is spent to cast skill on each level (Note: skill level starts with 1)
+ * @property item - Which item is spent to cast skill on each level (Note: skill level starts with 1)
  */
 data class SkillConsumablesTemplate(
-    val mp: List<Int>
+    val hp: List<Int>? = null,
+    val mp: List<Int>? = null,
+    val item: List<ConsumableItem?>? = null
 )
 
 /**
@@ -89,9 +96,18 @@ enum class SkillEffectType {
 }
 
 /**
- * Targets that the effect is applied to
+ * Type of target, this skill can be used on
  */
 enum class SkillTargetType {
-    /** Effect will be applied to actor's target */
-    ENEMY
+    /**
+     * Effect will be applied to actor's target enemy.
+     * These skills can be applied to friendly targets only with `forced` parameter
+     */
+    ENEMY,
+
+    /**
+     * Effect will be applied to actor's target enemy.
+     * These skills can be applied to friendly targets only with `forced` parameter
+     */
+    FRIEND
 }

@@ -23,11 +23,11 @@ import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransacti
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.junit.jupiter.api.assertThrows
 import org.l2kserver.game.data.character.classes.HUMAN_FIGHTER
+import org.l2kserver.game.domain.ItemEntity
 import org.l2kserver.game.domain.PlayerCharacterEntity
 import org.l2kserver.game.domain.Shortcut
 import org.l2kserver.game.domain.SkillEntity
 import org.l2kserver.game.extensions.findAllByCharacterId
-import org.l2kserver.game.extensions.model.item.findAllByOwnerId
 import org.l2kserver.game.handler.dto.response.ExitGameResponse
 import org.l2kserver.game.handler.dto.response.FullCharacterResponse
 import org.l2kserver.game.handler.dto.response.InventoryResponse
@@ -36,7 +36,6 @@ import org.l2kserver.game.handler.dto.response.ShortcutPanelResponse
 import org.l2kserver.game.handler.dto.response.SystemMessageResponse
 import org.l2kserver.game.model.actor.character.CharacterRace
 import org.l2kserver.game.model.actor.character.Gender
-import org.l2kserver.game.model.item.Item
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
@@ -193,7 +192,7 @@ class CharacterServiceTests(
             transaction {
                 assertNull(PlayerCharacterEntity.findById(character.id),
                     "PlayerCharacter must be deleted")
-                assertTrue(Item.findAllByOwnerId(character.id).isEmpty(),
+                assertTrue(ItemEntity.findAllByOwnerId(character.id).toList().isEmpty(),
                     "Items of deleted character must be deleted too")
                 assertTrue(Shortcut.findAllByCharacterId(character.id).isEmpty(),
                     "Shortcuts of deleted character must be deleted too")

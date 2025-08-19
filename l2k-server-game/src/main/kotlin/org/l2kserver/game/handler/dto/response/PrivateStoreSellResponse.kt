@@ -4,7 +4,7 @@ import org.l2kserver.game.extensions.littleEndianByteArray
 import org.l2kserver.game.extensions.putUByte
 import org.l2kserver.game.extensions.putUShort
 import org.l2kserver.game.extensions.putUTF16String
-import org.l2kserver.game.extensions.toInt
+import org.l2kserver.game.model.extensions.toInt
 import org.l2kserver.game.model.store.ItemInInventory
 import org.l2kserver.game.model.store.ItemOnSale
 import kotlin.collections.forEach

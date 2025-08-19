@@ -2,14 +2,14 @@ package org.l2kserver.game.handler.dto.response
 
 import org.l2kserver.game.extensions.littleEndianByteArray
 import org.l2kserver.game.extensions.putUByte
-import org.l2kserver.game.model.item.Item
+import org.l2kserver.game.model.item.instance.ItemInstance
 
 private const val UPDATE_ITEM_RESPONSE_PACKET_ID: UByte = 39u
 
 /**
  * Response to notify client about changes in inventory
  *
- * @property operations List of item updates - [Item] to [UpdateItemOperationType]
+ * @property operations List of item updates - [ItemInstance] to [UpdateItemOperationType]
  */
 data class UpdateItemsResponse(
     val operations: List<UpdateItemOperation>
@@ -23,17 +23,17 @@ data class UpdateItemsResponse(
 
         fun build() = UpdateItemsResponse(this.operations)
 
-        fun operationAdd(item: Item): Builder {
+        fun operationAdd(item: ItemInstance): Builder {
             operations.add(UpdateItemOperation(item, UpdateItemOperationType.ADD))
             return this
         }
 
-        fun operationModify(item: Item): Builder {
+        fun operationModify(item: ItemInstance): Builder {
             operations.add(UpdateItemOperation(item, UpdateItemOperationType.MODIFY))
             return this
         }
 
-        fun operationDelete(item: Item): Builder {
+        fun operationDelete(item: ItemInstance): Builder {
             operations.add(UpdateItemOperation(item, UpdateItemOperationType.REMOVE))
             return this
         }
@@ -45,12 +45,12 @@ data class UpdateItemsResponse(
     }
 
     companion object {
-        fun operationAdd(item: Item) = UpdateItemsResponse(item to UpdateItemOperationType.ADD)
-        fun operationModify(item: Item) = UpdateItemsResponse(item to UpdateItemOperationType.MODIFY)
-        fun operationRemove(item: Item) = UpdateItemsResponse(item to UpdateItemOperationType.REMOVE)
+        fun operationAdd(item: ItemInstance) = UpdateItemsResponse(item to UpdateItemOperationType.ADD)
+        fun operationModify(item: ItemInstance) = UpdateItemsResponse(item to UpdateItemOperationType.MODIFY)
+        fun operationRemove(item: ItemInstance) = UpdateItemsResponse(item to UpdateItemOperationType.REMOVE)
     }
 
-    constructor(vararg updatedItemPairs: Pair<Item, UpdateItemOperationType>): this(
+    constructor(vararg updatedItemPairs: Pair<ItemInstance, UpdateItemOperationType>): this(
         updatedItemPairs.asList().map { UpdateItemOperation(it.first, it.second) }
     )
 
@@ -67,7 +67,7 @@ data class UpdateItemsResponse(
             putShort(it.item.category.id.toShort())
             putShort(0)
             putShort(if (it.item.isEquipped) 1 else 0)
-            putInt(it.item.equippedAt?.id ?: 0)
+            putInt(it.item.type.availableSlots.firstOrNull()?.id ?: 0)
             putShort(it.item.enchantLevel.toShort())
             putShort(0) // Custom Type 2 (?)
             putInt(it.item.augmentationId)
@@ -77,7 +77,7 @@ data class UpdateItemsResponse(
 
 }
 
-data class UpdateItemOperation(val item: Item, val operationType: UpdateItemOperationType)
+data class UpdateItemOperation(val item: ItemInstance, val operationType: UpdateItemOperationType)
 
 enum class UpdateItemOperationType(val id: Int) {
     ADD(1),

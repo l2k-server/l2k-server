@@ -4,17 +4,19 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import org.jetbrains.exposed.sql.deleteAll
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
+import org.jetbrains.exposed.sql.transactions.transaction
+import org.junit.jupiter.api.assertNull
 import kotlin.test.Test
 import org.junit.jupiter.api.assertThrows
 import org.l2kserver.game.AbstractTests
 import org.l2kserver.game.data.item.armor.LEATHER_SHIELD
 import org.l2kserver.game.data.item.arrows.BONE_ARROW
 import org.l2kserver.game.data.item.arrows.WOODEN_ARROW
+import org.l2kserver.game.data.item.etc.ADENA
 import org.l2kserver.game.data.item.weapons.DAGGER
 import org.l2kserver.game.data.item.weapons.HEAVENS_DIVIDER
 import org.l2kserver.game.data.item.weapons.SQUIRES_SWORD
 import org.l2kserver.game.data.item.weapons.WILLOW_STAFF
-import org.l2kserver.game.extensions.model.item.createAllFrom
 import org.l2kserver.game.handler.dto.request.DeleteItemRequest
 import org.l2kserver.game.handler.dto.request.DropItemRequest
 import org.l2kserver.game.handler.dto.request.TakeOffItemRequest
@@ -26,20 +28,15 @@ import org.l2kserver.game.handler.dto.response.UpdateItemOperationType
 import org.l2kserver.game.handler.dto.response.UpdateItemsResponse
 import org.l2kserver.game.handler.dto.response.UpdateStatusResponse
 import org.l2kserver.game.model.actor.position.Position
-import org.l2kserver.game.model.item.Item
-import org.l2kserver.game.domain.ItemTable
-import org.l2kserver.game.extensions.model.item.existsById
-import org.l2kserver.game.extensions.model.item.findAllByOwnerIdAndTemplateId
-import org.l2kserver.game.extensions.model.item.findAllEquippedByOwnerId
 import org.l2kserver.game.extensions.toItemOnSale
 import org.l2kserver.game.handler.dto.response.DeleteObjectResponse
 import org.l2kserver.game.handler.dto.response.PickUpItemResponse
 import org.l2kserver.game.handler.dto.response.StatusAttribute
-import org.l2kserver.game.model.PaperDoll
+import org.l2kserver.game.domain.ItemEntity
+import org.l2kserver.game.domain.ItemTable
 import org.l2kserver.game.model.actor.Posture
-import org.l2kserver.game.model.actor.character.InitialItem
-import org.l2kserver.game.model.item.ItemTemplate
-import org.l2kserver.game.model.item.Slot
+import org.l2kserver.game.model.item.template.ItemTemplate
+import org.l2kserver.game.model.item.template.Slot
 import org.l2kserver.game.model.store.PrivateStore
 import org.springframework.beans.factory.annotation.Autowired
 import kotlin.random.Random
@@ -48,7 +45,6 @@ import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
-import kotlin.test.assertTrue
 
 class ItemServiceTests(
     @Autowired private val itemService: ItemService
@@ -60,11 +56,11 @@ class ItemServiceTests(
         val character = createTestCharacter()
         context.setCharacterId(character.id)
 
-        val itemId = createTestItem(2369, character.id).id
+        val itemId = createTestItem(2369, character).id
 
         withContext(context) { itemService.deleteItem(DeleteItemRequest(itemId, 1)) }
 
-        assertFalse(Item.existsById(itemId), "Item must not exist")
+        assertFalse(transaction { ItemEntity.existsById(itemId) }, "Item must not exist")
 
         val updateResponse = assertIs<UpdateItemsResponse>(context.responseChannel.receive())
         val (item, operation) = updateResponse.operations[0]
@@ -81,16 +77,12 @@ class ItemServiceTests(
         val character = createTestCharacter()
         context.setCharacterId(character.id)
 
-        val itemId = createTestItem(
-            templateId = 2369,
-            ownerId = character.id,
-            isEquipped = true
-        ).id
+        val itemId = createTestItem(SQUIRES_SWORD.id, owner = character, isEquipped = true).id
 
         withContext(context) { itemService.deleteItem(DeleteItemRequest(itemId, 1)) }
 
         newSuspendedTransaction {
-            assertFalse(Item.existsById(itemId), "Deleted item should not exist")
+            assertFalse(ItemEntity.existsById(itemId), "Deleted item should not exist")
 
             assertIs<FullCharacterResponse>(context.responseChannel.receive())
 
@@ -112,16 +104,12 @@ class ItemServiceTests(
         val character = createTestCharacter()
         context.setCharacterId(character.id)
 
-        val itemId = createTestItem(
-            templateId = 57,
-            ownerId = character.id,
-            amount = 10
-        ).id
+        val itemId = createTestItem(ADENA.id, owner = character, amount = 10).id
 
         withContext(context) { itemService.deleteItem(DeleteItemRequest(itemId, 1)) }
 
         newSuspendedTransaction {
-            assertEquals(9, Item.findById(itemId).amount)
+            assertEquals(9, ItemEntity.findById(itemId)?.amount)
 
             val updatedItems = assertIs<UpdateItemsResponse>(context.responseChannel.receive())
             val (item, operation) = updatedItems.operations[0]
@@ -139,15 +127,14 @@ class ItemServiceTests(
         val testAmount = 10
         val itemId = createTestItem(
             templateId = 57,
-            ownerId = character.id,
+            owner = character,
             amount = testAmount
         ).id
 
         withContext(context) { itemService.deleteItem(DeleteItemRequest(itemId, 1000)) }
 
         newSuspendedTransaction {
-            assertEquals(testAmount, Item.findById(itemId).amount)
-
+            assertEquals(testAmount, ItemEntity.findById(itemId)?.amount)
             assertIs<SystemMessageResponse.NotEnoughItems>(context.responseChannel.receive())
         }
     }
@@ -158,11 +145,7 @@ class ItemServiceTests(
         val character = createTestCharacter()
         context.setCharacterId(character.id)
 
-        val itemId = createTestItem(
-            templateId = 2369,
-            ownerId = character.id,
-            isEquipped = true
-        ).id
+        val itemId = createTestItem(SQUIRES_SWORD.id, owner = character, isEquipped = true).id
 
         withContext(context) { itemService.useItem(UseItemRequest(itemId)) }
 
@@ -177,7 +160,7 @@ class ItemServiceTests(
 
             assertIs<FullCharacterResponse>(context.responseChannel.receive())
 
-            assertFalse(Item.findById(itemId).isEquipped)
+            assertNull(ItemEntity.findById(itemId)!!.equippedAt)
         }
     }
 
@@ -188,13 +171,9 @@ class ItemServiceTests(
         context.setCharacterId(character.id)
 
         newSuspendedTransaction { ItemTable.deleteAll() }
-        val itemId = createTestItem(
-            templateId = 2369,
-            ownerId = character.id,
-            isEquipped = true
-        ).id
+        val itemId = createTestItem(SQUIRES_SWORD.id, owner = character, isEquipped = true).id
 
-        newSuspendedTransaction { character.paperDoll = PaperDoll(Item.findAllEquippedByOwnerId(character.id)) }
+        character.inventory.reload()
 
         withContext(context) { itemService.takeOffItem(TakeOffItemRequest(Slot.RIGHT_HAND)) }
 
@@ -209,7 +188,7 @@ class ItemServiceTests(
 
             assertIs<FullCharacterResponse>(context.responseChannel.receive())
 
-            assertFalse(Item.findById(itemId).isEquipped)
+            assertNull(ItemEntity.findById(itemId)!!.equippedAt)
         }
     }
 
@@ -221,18 +200,12 @@ class ItemServiceTests(
 
         val items = newSuspendedTransaction {
             ItemTable.deleteAll() // Delete initial items
-
-            val items = Item.createAllFrom(
-                ownerId = character.id,
-                initialItems = listOf(
-                    InitialItem(SQUIRES_SWORD.id,isEquipped = true),
-                    InitialItem(DAGGER.id)
-                )
-            ).toList()
-
-            character.paperDoll = PaperDoll(Item.findAllEquippedByOwnerId(character.id))
-            items
+            listOf(
+                createTestItem(SQUIRES_SWORD.id, owner = character, isEquipped = true),
+                createTestItem(DAGGER.id, owner = character)
+            )
         }
+
         withContext(context) { itemService.useItem(UseItemRequest(items[1].id)) }
 
         newSuspendedTransaction {
@@ -252,7 +225,7 @@ class ItemServiceTests(
 
             assertIs<FullCharacterResponse>(context.responseChannel.receive())
 
-            assertTrue(Item.findById(usedItem.id).isEquipped)
+            assertEquals(Slot.RIGHT_HAND, ItemEntity.findById(usedItem.id)!!.equippedAt)
         }
     }
 
@@ -264,19 +237,12 @@ class ItemServiceTests(
 
         val items = newSuspendedTransaction {
             ItemTable.deleteAll() // Delete initial items
-
-            val items = Item.createAllFrom(
-                ownerId = character.id,
-                initialItems = listOf(
-                    InitialItem(SQUIRES_SWORD.id, isEquipped = true),
-                    InitialItem(LEATHER_SHIELD.id,isEquipped = true),
-                    InitialItem(id = WILLOW_STAFF.id)
-                )
+            listOf(
+                createTestItem(SQUIRES_SWORD.id, owner = character, isEquipped = true),
+                createTestItem(LEATHER_SHIELD.id, owner = character, isEquipped = true),
+                createTestItem(WILLOW_STAFF.id, owner = character)
             )
-            character.paperDoll = PaperDoll(Item.findAllEquippedByOwnerId(character.id))
-            items
         }
-
 
         withContext(context) { itemService.useItem(UseItemRequest(items[2].id)) }
 
@@ -305,7 +271,7 @@ class ItemServiceTests(
 
             assertIs<FullCharacterResponse>(context.responseChannel.receive())
 
-            assertTrue(Item.findById(usedItem.id).isEquipped)
+            assertEquals(Slot.TWO_HANDS, ItemEntity.findById(usedItem.id)!!.equippedAt)
         }
     }
 
@@ -315,7 +281,7 @@ class ItemServiceTests(
         val character = createTestCharacter()
         context.setCharacterId(character.id)
 
-        val item = createTestItem(WILLOW_STAFF.id, character.id)
+        val item = createTestItem(WILLOW_STAFF.id, character)
 
         withContext(context) {
             itemService.dropItem(
@@ -334,7 +300,7 @@ class ItemServiceTests(
         newSuspendedTransaction {
             val droppedItemResponse = assertIs<DroppedItemResponse>(context.responseChannel.receive())
             assertEquals(character.id, droppedItemResponse.dropperId)
-            assertFalse(Item.existsById(item.id), "Item must not exist")
+            assertFalse(ItemEntity.existsById(item.id), "Item must not exist")
 
             val updateItemResponse = assertIs<UpdateItemsResponse>(context.responseChannel.receive())
             val (updatedItem, operation) = updateItemResponse.operations[0]
@@ -354,7 +320,7 @@ class ItemServiceTests(
         val character = createTestCharacter()
         context.setCharacterId(character.id)
 
-        val itemId = createTestItem(WILLOW_STAFF.id, character.id, isEquipped = true).id
+        val itemId = createTestItem(WILLOW_STAFF.id, character, isEquipped = true).id
 
         withContext(context) {
             itemService.dropItem(
@@ -372,7 +338,7 @@ class ItemServiceTests(
 
 
         newSuspendedTransaction {
-            assertFalse(Item.existsById(itemId), "Deleted item should not exist")
+            assertFalse(ItemEntity.existsById(itemId), "Deleted item should not exist")
 
             val droppedItemResponse = assertIs<DroppedItemResponse>(context.responseChannel.receive())
             assertEquals(character.id, droppedItemResponse.dropperId)
@@ -397,7 +363,7 @@ class ItemServiceTests(
         val character = createTestCharacter()
         context.setCharacterId(character.id)
 
-        val itemId = createTestItem(57, character.id, 10).id
+        val itemId = createTestItem(57, character, 10).id
 
         withContext(context) {
             itemService.dropItem(
@@ -413,8 +379,10 @@ class ItemServiceTests(
             )
         }
 
+        gameObjectRepository.loadCharacter(character)
+
         newSuspendedTransaction {
-            assertEquals(8, Item.findById(itemId).amount)
+            assertEquals(8, ItemEntity.findById(itemId)!!.amount)
 
             val droppedItemResponse = assertIs<DroppedItemResponse>(context.responseChannel.receive())
             assertEquals(character.id, droppedItemResponse.dropperId)
@@ -437,7 +405,7 @@ class ItemServiceTests(
         context.setCharacterId(character.id)
 
         val testAmount = 10
-        val itemId = createTestItem(57, character.id, testAmount).id
+        val itemId = createTestItem(57, character, testAmount).id
 
         withContext(context) {
             itemService.dropItem(
@@ -453,7 +421,7 @@ class ItemServiceTests(
             )
         }
 
-        assertEquals(testAmount, newSuspendedTransaction { Item.findById(itemId).amount })
+        assertEquals(testAmount, newSuspendedTransaction { ItemEntity.findById(itemId)!!.amount })
 
         assertIs<SystemMessageResponse.NotEnoughItems>(context.responseChannel.receive())
     }
@@ -467,7 +435,7 @@ class ItemServiceTests(
 
         val anotherCharacter = createTestCharacter(name = "${testCharacterName}2")
 
-        val item = createTestItem(8, anotherCharacter.id)
+        val item = createTestItem(8, anotherCharacter)
 
         assertThrows<IllegalArgumentException> {
             withContext(context) {
@@ -516,7 +484,7 @@ class ItemServiceTests(
         val character = createTestCharacter()
         context.setCharacterId(character.id)
 
-        val item = createTestItem(10, character.id)
+        val item = createTestItem(10, character)
 
         withContext(context) {
             itemService.dropItem(
@@ -541,7 +509,7 @@ class ItemServiceTests(
         val character = createTestCharacter()
         context.setCharacterId(character.id)
 
-        val item = createTestItem(WILLOW_STAFF.id, character.id)
+        val item = createTestItem(WILLOW_STAFF.id, character)
 
         withContext(context) {
             itemService.dropItem(
@@ -568,14 +536,16 @@ class ItemServiceTests(
         context.setCharacterId(character.id)
 
         //Create store
-        val woodenArrow = createTestItem(WOODEN_ARROW.id, character.id, 100)
+        val woodenArrow = createTestItem(WOODEN_ARROW.id, character, 100)
+        character.inventory.reload()
+
         character.posture = Posture.SITTING
         character.privateStore = PrivateStore.Sell(
             title = "Wooden arrows - cheap and cheerful",
             items = listOf(woodenArrow.toItemOnSale(woodenArrow.amount, 2)),
             packageSale = true
         )
-        val boneArrowId = createTestItem(BONE_ARROW.id, character.id, 100).id
+        val boneArrowId = createTestItem(BONE_ARROW.id, character, 100).id
 
         //Then
         withContext(context) { itemService.deleteItem(DeleteItemRequest(boneArrowId, 1)) }
@@ -592,14 +562,16 @@ class ItemServiceTests(
         context.setCharacterId(character.id)
 
         // Create store
-        val woodenArrow = createTestItem(WOODEN_ARROW.id, character.id, 100)
+        val woodenArrow = createTestItem(WOODEN_ARROW.id, character, 100)
+        character.inventory.reload()
+
         character.posture = Posture.SITTING
         character.privateStore = PrivateStore.Sell(
             title = "Wooden arrows - cheap and cheerful",
             items = listOf(woodenArrow.toItemOnSale(woodenArrow.amount, 2)),
             packageSale = true
         )
-        val boneArrowId = createTestItem(BONE_ARROW.id, character.id, 100).id
+        val boneArrowId = createTestItem(BONE_ARROW.id, character, 100).id
 
         // Then
         withContext(context) { itemService.dropItem(DropItemRequest(boneArrowId, 1, character.position)) }
@@ -616,7 +588,9 @@ class ItemServiceTests(
         context.setCharacterId(character.id)
 
         // Create store
-        val heavensDivider = createTestItem(HEAVENS_DIVIDER.id, character.id, 1)
+        val heavensDivider = createTestItem(HEAVENS_DIVIDER.id, character)
+        character.inventory.reload()
+
         character.posture = Posture.SITTING
         character.privateStore = PrivateStore.Sell(
             title = "Wooden arrows - cheap and cheerful",
@@ -640,7 +614,7 @@ class ItemServiceTests(
         context.setCharacterId(character.id)
 
         //Create already existing item
-        val existingItem = createTestItem(HEAVENS_DIVIDER.id, character.id)
+        val existingItem = createTestItem(HEAVENS_DIVIDER.id, character)
 
         //Create scattered item
         val scatteredItem = createTestScatteredItem(
@@ -669,7 +643,9 @@ class ItemServiceTests(
 
         assertIs<SystemMessageResponse.YouHaveObtained>(context.responseChannel.receive())
         assertFalse(gameObjectRepository.existsById(scatteredItem.id), "Picked up item must disappear")
-        assertEquals(2, Item.findAllByOwnerIdAndTemplateId(character.id, HEAVENS_DIVIDER.id).size)
+        transaction {
+            assertEquals(2, ItemEntity.findAllByOwnerIdAndTemplateId(character.id, HEAVENS_DIVIDER.id).toList().size)
+        }
     }
 
     @Test
@@ -680,7 +656,7 @@ class ItemServiceTests(
         context.setCharacterId(character.id)
 
         //Create already existing item
-        createTestItem(WOODEN_ARROW.id, character.id, 100)
+        createTestItem(WOODEN_ARROW.id, character, 100)
 
         //Create scattered item
         val scatteredItem = createTestScatteredItem(
@@ -709,7 +685,9 @@ class ItemServiceTests(
         assertIs<SystemMessageResponse.YouHaveObtained>(context.responseChannel.receive())
         assertFalse(gameObjectRepository.existsById(scatteredItem.id), "Picked up item must disappear")
 
-        val arrows = Item.findAllByOwnerIdAndTemplateId(character.id, WOODEN_ARROW.id)
+        val arrows = transaction {
+            ItemEntity.findAllByOwnerIdAndTemplateId(character.id, WOODEN_ARROW.id).toList()
+        }
         assertEquals(1, arrows.size, "Should add new item to existing item stack")
         assertEquals(200, arrows.first().amount)
     }

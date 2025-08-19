@@ -5,7 +5,13 @@ import kotlinx.coroutines.withContext
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.junit.jupiter.api.assertThrows
 import org.l2kserver.game.AbstractTests
-import org.l2kserver.game.extensions.model.item.findAllByOwnerIdAndTemplateId
+import org.l2kserver.game.data.item.arrows.BONE_ARROW
+import org.l2kserver.game.data.item.arrows.WOODEN_ARROW
+import org.l2kserver.game.data.item.etc.ADENA
+import org.l2kserver.game.data.item.weapons.DEMON_SPLINTER
+import org.l2kserver.game.data.item.weapons.HEAVENS_DIVIDER
+import org.l2kserver.game.data.item.weapons.TALLUM_BLADE_DARK_LEGIONS_EDGE
+import org.l2kserver.game.domain.ItemEntity
 import org.l2kserver.game.extensions.toItemInWishList
 import org.l2kserver.game.extensions.toItemOnSale
 import org.l2kserver.game.handler.dto.request.PrivateStoreBuySetMessageRequest
@@ -35,7 +41,6 @@ import org.l2kserver.game.handler.dto.response.UpdateItemOperationType
 import org.l2kserver.game.handler.dto.response.UpdateItemsResponse
 import org.l2kserver.game.handler.dto.response.UpdateStatusResponse
 import org.l2kserver.game.model.actor.Posture
-import org.l2kserver.game.model.item.Item
 import org.l2kserver.game.model.actor.position.Position
 import org.l2kserver.game.model.store.PrivateStore
 import org.springframework.beans.factory.annotation.Autowired
@@ -47,13 +52,6 @@ import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
-
-private const val ADENA_TEMPLATE_ID = 57
-private const val DEMON_SPLINTER_TEMPLATE_ID = 6371
-private const val HEAVENS_DIVIDER_TEMPLATE_ID = 6372
-private const val TALLUM_BLADE_DARK_LEGIONS_EDGE_TEMPLATE_ID = 6580
-private const val WOODEN_ARROW_TEMPLATE_ID = 17
-private const val BONE_ARROW_TEMPLATE_ID = 1341
 
 @Suppress("LargeClass")
 class TradeServiceTests(
@@ -68,9 +66,9 @@ class TradeServiceTests(
         context.setCharacterId(character.id)
 
         //Create our goods
-        val adena = createTestItem(ADENA_TEMPLATE_ID, character.id, 1000)
-        val demonSplinter = createTestItem(DEMON_SPLINTER_TEMPLATE_ID, character.id)
-        val heavensDivider = createTestItem(HEAVENS_DIVIDER_TEMPLATE_ID, character.id)
+        val adena = createTestItem(ADENA.id, character, 1000)
+        val demonSplinter = createTestItem(DEMON_SPLINTER.id, character)
+        val heavensDivider = createTestItem(HEAVENS_DIVIDER.id, character)
 
         withContext(context) { tradeService.getItemsForPrivateStoreSell() }
 
@@ -100,11 +98,11 @@ class TradeServiceTests(
         //Create our goods
         val arrowsAmount = 1000
         val arrowPrice = 2
-        val woodenArrow = createTestItem(WOODEN_ARROW_TEMPLATE_ID, character.id, arrowsAmount)
+        val woodenArrow = createTestItem(WOODEN_ARROW.id, character, arrowsAmount)
 
         val testWeaponsPrice = 50_000_000
-        val demonSplinter = createTestItem(DEMON_SPLINTER_TEMPLATE_ID, character.id)
-        val heavensDivider = createTestItem(HEAVENS_DIVIDER_TEMPLATE_ID, character.id)
+        val demonSplinter = createTestItem(DEMON_SPLINTER.id, character)
+        val heavensDivider = createTestItem(HEAVENS_DIVIDER.id, character)
 
         //Open our little store!
         withContext(context) {
@@ -173,7 +171,7 @@ class TradeServiceTests(
         val arrowsInInventoryAmount = 700
         val arrowPrice = 2
         val woodenArrow = createTestItem(
-            WOODEN_ARROW_TEMPLATE_ID, character.id, arrowsForSaleAmount+arrowsInInventoryAmount
+            WOODEN_ARROW.id, character, arrowsForSaleAmount+arrowsInInventoryAmount
         )
 
         character.posture = Posture.SITTING
@@ -218,7 +216,7 @@ class TradeServiceTests(
         //Create our goods
         val arrowsAmount = 1000
         val arrowPrice = 2
-        val woodenArrow = createTestItem(WOODEN_ARROW_TEMPLATE_ID, character.id, arrowsAmount)
+        val woodenArrow = createTestItem(WOODEN_ARROW.id, character, arrowsAmount)
 
         //Open our little store!
         val exception = assertThrows<IllegalArgumentException> {
@@ -246,7 +244,7 @@ class TradeServiceTests(
         //Create our goods
         val arrowsAmount = 1000
         val arrowPrice = 2
-        val woodenArrow = createTestItem(WOODEN_ARROW_TEMPLATE_ID, character.id, arrowsAmount)
+        val woodenArrow = createTestItem(WOODEN_ARROW.id, character, arrowsAmount)
 
         //Open our little store!
         val exception = assertThrows<IllegalArgumentException> {
@@ -277,11 +275,11 @@ class TradeServiceTests(
         //Create our goods
         val amount = 1000
         val price = 2
-        val woodenArrow = createTestItem(WOODEN_ARROW_TEMPLATE_ID, character.id, amount)
-        val boneArrow = createTestItem(BONE_ARROW_TEMPLATE_ID, character.id, amount)
-        val demonSplinter = createTestItem(DEMON_SPLINTER_TEMPLATE_ID, character.id)
-        val heavensDivider = createTestItem(HEAVENS_DIVIDER_TEMPLATE_ID, character.id)
-        val duals = createTestItem(TALLUM_BLADE_DARK_LEGIONS_EDGE_TEMPLATE_ID, character.id)
+        val woodenArrow = createTestItem(WOODEN_ARROW.id, character, amount)
+        val boneArrow = createTestItem(BONE_ARROW.id, character, amount)
+        val demonSplinter = createTestItem(DEMON_SPLINTER.id, character)
+        val heavensDivider = createTestItem(HEAVENS_DIVIDER.id, character)
+        val duals = createTestItem(TALLUM_BLADE_DARK_LEGIONS_EDGE.id, character)
 
         //Open our little store!
         withContext(context) {
@@ -309,7 +307,7 @@ class TradeServiceTests(
         //Create our goods
         val amount = 1000
         val price = 2
-        val adena = createTestItem(ADENA_TEMPLATE_ID, character.id, amount)
+        val adena = createTestItem(ADENA.id, character, amount)
 
         //Open our little store!
         val exception = assertThrows<IllegalArgumentException>{
@@ -336,7 +334,7 @@ class TradeServiceTests(
         val arrowsInInventoryAmount = 700
         val arrowPrice = 2
         val woodenArrow = createTestItem(
-            WOODEN_ARROW_TEMPLATE_ID, character.id, arrowsForSaleAmount+arrowsInInventoryAmount
+            WOODEN_ARROW.id, character, arrowsForSaleAmount+arrowsInInventoryAmount
         )
 
         character.posture = Posture.SITTING
@@ -369,7 +367,7 @@ class TradeServiceTests(
         val arrowsInInventoryAmount = 700
         val arrowPrice = 2
         val woodenArrow = createTestItem(
-            WOODEN_ARROW_TEMPLATE_ID, character.id, arrowsForSaleAmount+arrowsInInventoryAmount
+            WOODEN_ARROW.id, character, arrowsForSaleAmount+arrowsInInventoryAmount
         )
 
         character.posture = Posture.SITTING
@@ -406,8 +404,8 @@ class TradeServiceTests(
         val arrowPrice = 2
         val demonSplinterPrice = 50000
 
-        val woodenArrow = createTestItem(WOODEN_ARROW_TEMPLATE_ID, seller.id, arrowsAmount)
-        val demonSplinter = createTestItem(DEMON_SPLINTER_TEMPLATE_ID, seller.id)
+        val woodenArrow = createTestItem(WOODEN_ARROW.id, seller, arrowsAmount)
+        val demonSplinter = createTestItem(DEMON_SPLINTER.id, seller)
 
         // Create store
         seller.posture = Posture.SITTING
@@ -427,7 +425,7 @@ class TradeServiceTests(
 
         // Create customer's adena
         val initialBuyerAdena = 1000000
-        createTestItem(ADENA_TEMPLATE_ID, buyer.id, initialBuyerAdena)
+        createTestItem(ADENA.id, buyer, initialBuyerAdena)
 
         // Let's buy some arrows!
         val arrowsToBuyAmount = 600
@@ -450,12 +448,12 @@ class TradeServiceTests(
         val buyerSystemMessageArrows = assertIs<SystemMessageResponse.YouHavePurchasedStackable>(
             buyerContext.responseChannel.receive())
         assertEquals(arrowsToBuyAmount, buyerSystemMessageArrows.amount)
-        assertEquals(WOODEN_ARROW_TEMPLATE_ID, buyerSystemMessageArrows.item.templateId)
+        assertEquals(WOODEN_ARROW.id, buyerSystemMessageArrows.item.templateId)
 
         val buyerSystemMessageDemonSplinter = assertIs<SystemMessageResponse.YouHavePurchasedNonStackable>(
             buyerContext.responseChannel.receive())
         assertEquals(1, buyerSystemMessageDemonSplinter.item.amount)
-        assertEquals(DEMON_SPLINTER_TEMPLATE_ID, buyerSystemMessageDemonSplinter.item.templateId)
+        assertEquals(DEMON_SPLINTER.id, buyerSystemMessageDemonSplinter.item.templateId)
 
         //Check items responses
         val buyerUpdateItemsResponse = assertIs<UpdateItemsResponse>(buyerContext.responseChannel.receive())
@@ -463,21 +461,21 @@ class TradeServiceTests(
 
         // Check adena update
         val buyerAdenaOperation = buyerUpdateItemsResponse.operations
-            .find { it.item.templateId == ADENA_TEMPLATE_ID }
+            .find { it.item.templateId == ADENA.id }
         assertNotNull(buyerAdenaOperation)
         assertEquals(UpdateItemOperationType.MODIFY, buyerAdenaOperation.operationType)
         assertEquals(initialBuyerAdena - totalPrice, buyerAdenaOperation.item.amount)
 
         // Check items update
         val buyerArrowOperation = buyerUpdateItemsResponse.operations
-            .find { it.item.templateId == WOODEN_ARROW_TEMPLATE_ID }
+            .find { it.item.templateId == WOODEN_ARROW.id }
 
         assertNotNull(buyerArrowOperation)
         assertEquals(UpdateItemOperationType.ADD, buyerArrowOperation.operationType)
         assertEquals(arrowsToBuyAmount, buyerArrowOperation.item.amount)
 
         val buyerSplinterOperation = buyerUpdateItemsResponse.operations
-            .find { it.item.templateId == DEMON_SPLINTER_TEMPLATE_ID }
+            .find { it.item.templateId == DEMON_SPLINTER.id }
         assertNotNull(buyerSplinterOperation)
         assertEquals(UpdateItemOperationType.ADD, buyerSplinterOperation.operationType)
         assertEquals(1, buyerSplinterOperation.item.amount)
@@ -491,60 +489,62 @@ class TradeServiceTests(
             sellerContext.responseChannel.receive())
         assertEquals(buyer.name, sellerSystemMessageArrows.customerName)
         assertEquals(arrowsToBuyAmount, sellerSystemMessageArrows.amount)
-        assertEquals(WOODEN_ARROW_TEMPLATE_ID, sellerSystemMessageArrows.item.templateId)
+        assertEquals(WOODEN_ARROW.id, sellerSystemMessageArrows.item.templateId)
 
         val sellerSystemMessageDemonSplinter = assertIs<SystemMessageResponse.OtherHasPurchasedNonStackable>(
             sellerContext.responseChannel.receive())
         assertEquals(buyer.name, sellerSystemMessageDemonSplinter.customerName)
         assertEquals(1, sellerSystemMessageDemonSplinter.item.amount)
-        assertEquals(DEMON_SPLINTER_TEMPLATE_ID, sellerSystemMessageDemonSplinter.item.templateId)
+        assertEquals(DEMON_SPLINTER.id, sellerSystemMessageDemonSplinter.item.templateId)
 
         val sellerUpdateItems = assertIs<UpdateItemsResponse>(sellerContext.responseChannel.receive())
         assertEquals(3, sellerUpdateItems.operations.size)
 
         // Check seller's adena update
-        val sellerAdenaOperation = sellerUpdateItems.operations.find { it.item.templateId == ADENA_TEMPLATE_ID }
+        val sellerAdenaOperation = sellerUpdateItems.operations.find { it.item.templateId == ADENA.id }
         assertNotNull(sellerAdenaOperation)
         assertEquals(UpdateItemOperationType.ADD, sellerAdenaOperation.operationType)
         assertEquals(totalPrice, sellerAdenaOperation.item.amount)
 
         // Check seller's item updates
         val sellerArrowOperation = sellerUpdateItems.operations
-            .find { it.item.templateId == WOODEN_ARROW_TEMPLATE_ID }
+            .find { it.item.templateId == WOODEN_ARROW.id }
         assertNotNull(sellerArrowOperation)
         assertEquals(UpdateItemOperationType.MODIFY, sellerArrowOperation.operationType)
         assertEquals(arrowsAmount - arrowsToBuyAmount, sellerArrowOperation.item.amount)
 
         val sellerSplinterOperation = sellerUpdateItems.operations
-            .find { it.item.templateId == DEMON_SPLINTER_TEMPLATE_ID }
+            .find { it.item.templateId == DEMON_SPLINTER.id }
         assertNotNull(sellerSplinterOperation)
         assertEquals(UpdateItemOperationType.REMOVE, sellerSplinterOperation.operationType)
 
         val sellerUpdateStatus = assertIs<UpdateStatusResponse>(sellerContext.responseChannel.receive())
         assertContains(sellerUpdateStatus.attributes, StatusAttribute.CUR_LOAD)
 
-        // Check seller adena at database
-        val sellerAdena = Item.findAllByOwnerIdAndTemplateId(seller.id, ADENA_TEMPLATE_ID).firstOrNull()
-        assertNotNull(sellerAdena)
-        assertEquals(totalPrice, sellerAdena.amount)
+        transaction {
+            // Check seller adena at database
+            val sellerAdena = ItemEntity.findAllByOwnerIdAndTemplateId(seller.id, ADENA.id).firstOrNull()
+            assertNotNull(sellerAdena)
+            assertEquals(totalPrice, sellerAdena.amount)
 
-        // Check buyer adena at database
-        val remainingBuyerAdena = Item.findAllByOwnerIdAndTemplateId(buyer.id, ADENA_TEMPLATE_ID).firstOrNull()
-        assertNotNull(remainingBuyerAdena)
-        assertEquals(initialBuyerAdena - totalPrice, remainingBuyerAdena.amount)
+            // Check buyer adena at database
+            val remainingBuyerAdena = ItemEntity.findAllByOwnerIdAndTemplateId(buyer.id, ADENA.id).firstOrNull()
+            assertNotNull(remainingBuyerAdena)
+            assertEquals(initialBuyerAdena - totalPrice, remainingBuyerAdena.amount)
 
-        // Check items at database
-        val sellerArrow = Item.findAllByOwnerIdAndTemplateId(seller.id, WOODEN_ARROW_TEMPLATE_ID).firstOrNull()
-        assertNotNull(sellerArrow)
-        assertEquals(arrowsAmount - arrowsToBuyAmount, sellerArrow.amount)
+            // Check items at database
+            val sellerArrow = ItemEntity.findAllByOwnerIdAndTemplateId(seller.id, WOODEN_ARROW.id).firstOrNull()
+            assertNotNull(sellerArrow)
+            assertEquals(arrowsAmount - arrowsToBuyAmount, sellerArrow.amount)
 
-        val buyerArrow = Item.findAllByOwnerIdAndTemplateId(buyer.id, WOODEN_ARROW_TEMPLATE_ID).firstOrNull()
-        assertNotNull(buyerArrow)
-        assertEquals(arrowsToBuyAmount, buyerArrow.amount)
+            val buyerArrow = ItemEntity.findAllByOwnerIdAndTemplateId(buyer.id, WOODEN_ARROW.id).firstOrNull()
+            assertNotNull(buyerArrow)
+            assertEquals(arrowsToBuyAmount, buyerArrow.amount)
 
-        val buyerSplinter = Item.findAllByOwnerIdAndTemplateId(buyer.id, DEMON_SPLINTER_TEMPLATE_ID).firstOrNull()
-        assertNotNull(buyerSplinter)
-        assertEquals(1, buyerSplinter.amount)
+            val buyerSplinter = ItemEntity.findAllByOwnerIdAndTemplateId(buyer.id, DEMON_SPLINTER.id).firstOrNull()
+            assertNotNull(buyerSplinter)
+            assertEquals(1, buyerSplinter.amount)
+        }
     }
 
     @Test
@@ -559,11 +559,11 @@ class TradeServiceTests(
         buyerContext.setCharacterId(buyer.id)
 
         // Create goods
-        val woodenArrow = createTestItem(WOODEN_ARROW_TEMPLATE_ID, seller.id, 1000)
+        val woodenArrow = createTestItem(WOODEN_ARROW.id, seller, 1000)
         val arrowPrice = 1000
 
         // Create customer aden (lesser than price)
-        createTestItem(ADENA_TEMPLATE_ID, buyer.id, 500)
+        createTestItem(ADENA.id, buyer, 500)
 
         // Create store
         seller.posture = Posture.SITTING
@@ -599,7 +599,7 @@ class TradeServiceTests(
 
         // Create goods
         val arrowsAmount = 1000
-        val woodenArrow = createTestItem(WOODEN_ARROW_TEMPLATE_ID, seller.id, arrowsAmount)
+        val woodenArrow = createTestItem(WOODEN_ARROW.id, seller, arrowsAmount)
         val arrowPrice = 2
 
         // Create store
@@ -612,7 +612,7 @@ class TradeServiceTests(
         )
 
         // Create customer's adena
-        createTestItem(ADENA_TEMPLATE_ID, buyer.id, 1000000)
+        createTestItem(ADENA.id, buyer, 1000000)
 
         // Buy (more than store has)
         withContext(buyerContext) {
@@ -625,12 +625,14 @@ class TradeServiceTests(
         // Check
         assertIs<ActionFailedResponse>(buyerContext.responseChannel.receive())
 
-        val sellerArrow = Item.findAllByOwnerIdAndTemplateId(seller.id, WOODEN_ARROW_TEMPLATE_ID).firstOrNull()
-        assertNotNull(sellerArrow)
-        assertEquals(arrowsAmount, sellerArrow.amount)
+        transaction {
+            val sellerArrow = ItemEntity.findAllByOwnerIdAndTemplateId(seller.id, WOODEN_ARROW.id).firstOrNull()
+            assertNotNull(sellerArrow)
+            assertEquals(arrowsAmount, sellerArrow.amount)
 
-        val buyerArrow = Item.findAllByOwnerIdAndTemplateId(buyer.id, WOODEN_ARROW_TEMPLATE_ID).firstOrNull()
-        assertNull(buyerArrow)
+            val buyerArrow = ItemEntity.findAllByOwnerIdAndTemplateId(buyer.id, WOODEN_ARROW.id).firstOrNull()
+            assertNull(buyerArrow)
+        }
     }
 
     @Test
@@ -645,8 +647,8 @@ class TradeServiceTests(
         buyerContext.setCharacterId(buyer.id)
 
         // Create items and adena
-        val woodenArrow = createTestItem(WOODEN_ARROW_TEMPLATE_ID, seller.id, 1000)
-        createTestItem(ADENA_TEMPLATE_ID, buyer.id, 1000000)
+        val woodenArrow = createTestItem(WOODEN_ARROW.id, seller, 1000)
+        createTestItem(ADENA.id, buyer, 1000000)
 
         // Try to buy
         withContext(buyerContext) {
@@ -661,16 +663,16 @@ class TradeServiceTests(
     }
 
     @Test
-    fun shouldSendCharactersItemsFowPrivateStoreBuy(): Unit = runBlocking {
+    fun shouldSendCharactersItemsForPrivateStoreBuy(): Unit = runBlocking {
         //Create our character
         val context = createTestSessionContext()
         val character = createTestCharacter()
         context.setCharacterId(character.id)
 
         //Create our goods
-        val adena = createTestItem(ADENA_TEMPLATE_ID, character.id, 1000)
-        val demonSplinter = createTestItem(DEMON_SPLINTER_TEMPLATE_ID, character.id)
-        val heavensDivider = createTestItem(HEAVENS_DIVIDER_TEMPLATE_ID, character.id)
+        val adena = createTestItem(ADENA.id, character, 1000)
+        val demonSplinter = createTestItem(DEMON_SPLINTER.id, character)
+        val heavensDivider = createTestItem(HEAVENS_DIVIDER.id, character)
 
         withContext(context) { tradeService.getItemsForPrivateStoreBuy() }
 
@@ -699,14 +701,14 @@ class TradeServiceTests(
         //Create items
         val arrowsAmount = 1000
         val arrowPrice = 2
-        val woodenArrow = createTestItem(WOODEN_ARROW_TEMPLATE_ID, customerCharacter.id, arrowsAmount)
+        val woodenArrow = createTestItem(WOODEN_ARROW.id, customerCharacter, arrowsAmount)
 
         val testWeaponsPrice = 50_000_000
-        val demonSplinter = createTestItem(DEMON_SPLINTER_TEMPLATE_ID, customerCharacter.id)
-        val heavensDivider = createTestItem(HEAVENS_DIVIDER_TEMPLATE_ID, customerCharacter.id)
+        val demonSplinter = createTestItem(DEMON_SPLINTER.id, customerCharacter)
+        val heavensDivider = createTestItem(HEAVENS_DIVIDER.id, customerCharacter)
 
         //Create adena
-        createTestItem(ADENA_TEMPLATE_ID, character.id, testWeaponsPrice * 2 + arrowPrice * arrowsAmount)
+        createTestItem(ADENA.id, character, testWeaponsPrice * 2 + arrowPrice * arrowsAmount)
 
         //Open our little store!
         withContext(context) {
@@ -783,9 +785,9 @@ class TradeServiceTests(
             tradeService.setPrivateStoreBuyMessage(PrivateStoreBuySetMessageRequest(testStoreMessage))
             tradeService.startPrivateStoreBuy(PrivateStoreBuyStartRequest(
                 items = listOf(
-                    RequestedToBuyItem(WOODEN_ARROW_TEMPLATE_ID, 0, 1000, 1),
-                    RequestedToBuyItem(DEMON_SPLINTER_TEMPLATE_ID, 0, 1, 50_000_000),
-                    RequestedToBuyItem(HEAVENS_DIVIDER_TEMPLATE_ID, 0, 1, 50_000_000)
+                    RequestedToBuyItem(WOODEN_ARROW.id, 0, 1000, 1),
+                    RequestedToBuyItem(DEMON_SPLINTER.id, 0, 1, 50_000_000),
+                    RequestedToBuyItem(HEAVENS_DIVIDER.id, 0, 1, 50_000_000)
                 )
             ))
         }
@@ -806,14 +808,14 @@ class TradeServiceTests(
 
         val testStoreMessage = "Baium Express"
 
-        createTestItem(ADENA_TEMPLATE_ID, character.id, 50_000)
+        createTestItem(ADENA.id, character, 50_000)
 
         //Open our little store!
         val exception = assertThrows<IllegalArgumentException> {
             withContext(context) {
                 tradeService.setPrivateStoreBuyMessage(PrivateStoreBuySetMessageRequest(testStoreMessage))
                 tradeService.startPrivateStoreBuy(PrivateStoreBuyStartRequest(
-                    items = listOf(RequestedToBuyItem(ADENA_TEMPLATE_ID, 0, 1000, 1))
+                    items = listOf(RequestedToBuyItem(ADENA.id, 0, 1000, 1))
                 ))
             }
         }
@@ -833,7 +835,7 @@ class TradeServiceTests(
         val arrowsInInventoryAmount = 700
         val arrowPrice = 2
         val woodenArrow = createTestItem(
-            WOODEN_ARROW_TEMPLATE_ID, character.id, arrowsInInventoryAmount
+            WOODEN_ARROW.id, character, arrowsInInventoryAmount
         )
 
         character.posture = Posture.SITTING
@@ -882,13 +884,13 @@ class TradeServiceTests(
         val woodenArrowsInInventoryAmount = 700
         val woodenArrowPrice = 2
 
-        val woodenArrow = createTestItem(WOODEN_ARROW_TEMPLATE_ID, customerCharacter.id, woodenArrowsInInventoryAmount)
+        val woodenArrow = createTestItem(WOODEN_ARROW.id, customerCharacter, woodenArrowsInInventoryAmount)
 
         val boneArrowsToBuyAmount = 1000
         val boneArrowsInInventoryAmount = 1500
         val boneArrowPrice = 3
 
-        val boneArrow = createTestItem(BONE_ARROW_TEMPLATE_ID, customerCharacter.id, boneArrowsInInventoryAmount)
+        val boneArrow = createTestItem(BONE_ARROW.id, customerCharacter, boneArrowsInInventoryAmount)
 
         character.posture = Posture.SITTING
         character.privateStore = PrivateStore.Buy(
@@ -909,11 +911,11 @@ class TradeServiceTests(
         val privateStoreItems = (character.privateStore as? PrivateStore.Buy)?.items?.map { it.templateId }
         assertEquals(privateStoreItems, response.items.map { it.templateId })
 
-        val woodenArrowsInResponse = response.items.find { it.templateId == WOODEN_ARROW_TEMPLATE_ID }
+        val woodenArrowsInResponse = response.items.find { it.templateId == WOODEN_ARROW.id }
         assertNotNull(woodenArrowsInResponse)
         assertEquals(woodenArrowsInInventoryAmount, woodenArrowsInResponse.amount)
 
-        val boneArrowsInResponse = response.items.find { it.templateId == BONE_ARROW_TEMPLATE_ID }
+        val boneArrowsInResponse = response.items.find { it.templateId == BONE_ARROW.id }
         assertNotNull(boneArrowsInResponse)
         assertEquals(boneArrowsToBuyAmount, boneArrowsInResponse.amount)
     }
@@ -925,7 +927,7 @@ class TradeServiceTests(
         val storeOwner = createTestCharacter(name = "StoreOwner")
         storeOwnerContext.setCharacterId(storeOwner.id)
         val storeOwnerAdenaAmount = 1000000
-        createTestItem(ADENA_TEMPLATE_ID, storeOwner.id, storeOwnerAdenaAmount)
+        createTestItem(ADENA.id, storeOwner, storeOwnerAdenaAmount)
 
         // Create seller
         val sellerContext = createTestSessionContext()
@@ -936,8 +938,8 @@ class TradeServiceTests(
         val arrowsAmount = 1000
         val arrowPrice = 2
         val demonSplinterPrice = 50_000
-        val woodenArrow = createTestItem(WOODEN_ARROW_TEMPLATE_ID, seller.id, arrowsAmount)
-        val demonSplinter = createTestItem(DEMON_SPLINTER_TEMPLATE_ID, seller.id)
+        val woodenArrow = createTestItem(WOODEN_ARROW.id, seller, arrowsAmount)
+        val demonSplinter = createTestItem(DEMON_SPLINTER.id, seller)
 
         // Create store
         storeOwner.privateStore = PrivateStore.Buy(
@@ -970,29 +972,29 @@ class TradeServiceTests(
         )
         assertEquals(storeOwner.name, soldArrowsSystemMessage.customerName)
         assertEquals(500, soldArrowsSystemMessage.amount)
-        assertEquals(WOODEN_ARROW_TEMPLATE_ID, soldArrowsSystemMessage.item.templateId)
+        assertEquals(WOODEN_ARROW.id, soldArrowsSystemMessage.item.templateId)
 
         val soldDemonSplinterSystemMessage = assertIs<SystemMessageResponse.OtherHasPurchasedNonStackable>(
             sellerContext.responseChannel.receive()
         )
         assertEquals(storeOwner.name, soldDemonSplinterSystemMessage.customerName)
-        assertEquals(DEMON_SPLINTER_TEMPLATE_ID, soldDemonSplinterSystemMessage.item.templateId)
+        assertEquals(DEMON_SPLINTER.id, soldDemonSplinterSystemMessage.item.templateId)
 
         // UpdateItems response of seller
         val sellerUpdateItems = assertIs<UpdateItemsResponse>(sellerContext.responseChannel.receive())
         assertEquals(3, sellerUpdateItems.operations.size)
 
-        val sellerAdenaOperation = sellerUpdateItems.operations.find { it.item.templateId == ADENA_TEMPLATE_ID }
+        val sellerAdenaOperation = sellerUpdateItems.operations.find { it.item.templateId == ADENA.id }
         assertNotNull(sellerAdenaOperation)
         assertEquals(UpdateItemOperationType.ADD, sellerAdenaOperation.operationType)
         assertEquals(totalPrice, sellerAdenaOperation.item.amount)
 
-        val sellerArrowOperation = sellerUpdateItems.operations.find { it.item.templateId == WOODEN_ARROW_TEMPLATE_ID }
+        val sellerArrowOperation = sellerUpdateItems.operations.find { it.item.templateId == WOODEN_ARROW.id }
         assertNotNull(sellerArrowOperation)
         assertEquals(UpdateItemOperationType.MODIFY, sellerArrowOperation.operationType)
         assertEquals(arrowsAmount - arrowsToSellAmount, sellerArrowOperation.item.amount)
 
-        val sellerSplinterOperation = sellerUpdateItems.operations.find { it.item.templateId == DEMON_SPLINTER_TEMPLATE_ID }
+        val sellerSplinterOperation = sellerUpdateItems.operations.find { it.item.templateId == DEMON_SPLINTER.id }
         assertNotNull(sellerSplinterOperation)
         assertEquals(UpdateItemOperationType.REMOVE, sellerSplinterOperation.operationType)
 
@@ -1006,29 +1008,29 @@ class TradeServiceTests(
         )
         assertEquals(seller.name, boughtArrowsSystemMessage.sellerName)
         assertEquals(arrowsToSellAmount, boughtArrowsSystemMessage.amount)
-        assertEquals(WOODEN_ARROW_TEMPLATE_ID, boughtArrowsSystemMessage.item.templateId)
+        assertEquals(WOODEN_ARROW.id, boughtArrowsSystemMessage.item.templateId)
 
         val storeOwnerSystemMessage = assertIs<SystemMessageResponse.YouHavePurchasedNonStackable>(
             storeOwnerContext.responseChannel.receive()
         )
         assertEquals(seller.name, storeOwnerSystemMessage.sellerName)
-        assertEquals(DEMON_SPLINTER_TEMPLATE_ID, storeOwnerSystemMessage.item.templateId)
+        assertEquals(DEMON_SPLINTER.id, storeOwnerSystemMessage.item.templateId)
 
         // UpdateItems response of seller
         val storeOwnerUpdateItems = assertIs<UpdateItemsResponse>(storeOwnerContext.responseChannel.receive())
         assertEquals(3, storeOwnerUpdateItems.operations.size)
 
-        val storeOwnerAdenaOperation = storeOwnerUpdateItems.operations.find { it.item.templateId == ADENA_TEMPLATE_ID }
+        val storeOwnerAdenaOperation = storeOwnerUpdateItems.operations.find { it.item.templateId == ADENA.id }
         assertNotNull(storeOwnerAdenaOperation)
         assertEquals(UpdateItemOperationType.MODIFY, storeOwnerAdenaOperation.operationType)
         assertEquals(storeOwnerAdenaAmount - totalPrice, storeOwnerAdenaOperation.item.amount)
 
-        val storeOwnerArrowOperation = storeOwnerUpdateItems.operations.find { it.item.templateId == WOODEN_ARROW_TEMPLATE_ID }
+        val storeOwnerArrowOperation = storeOwnerUpdateItems.operations.find { it.item.templateId == WOODEN_ARROW.id }
         assertNotNull(storeOwnerArrowOperation)
         assertEquals(UpdateItemOperationType.ADD, storeOwnerArrowOperation.operationType)
         assertEquals(arrowsToSellAmount, storeOwnerArrowOperation.item.amount)
 
-        val storeOwnerSplinterOperation = storeOwnerUpdateItems.operations.find { it.item.templateId == DEMON_SPLINTER_TEMPLATE_ID }
+        val storeOwnerSplinterOperation = storeOwnerUpdateItems.operations.find { it.item.templateId == DEMON_SPLINTER.id }
         assertNotNull(storeOwnerSplinterOperation)
         assertEquals(UpdateItemOperationType.ADD, storeOwnerSplinterOperation.operationType)
         assertEquals(1, storeOwnerSplinterOperation.item.amount)
@@ -1036,30 +1038,38 @@ class TradeServiceTests(
         val storeOwnerUpdateStatus = assertIs<UpdateStatusResponse>(storeOwnerContext.responseChannel.receive())
         assertEquals(StatusAttribute.CUR_LOAD, storeOwnerUpdateStatus.attributes.keys.first())
 
-        // Check adena in database
-        val storeOwnerAdenaInDb = Item.findAllByOwnerIdAndTemplateId(storeOwner.id, ADENA_TEMPLATE_ID).firstOrNull()
-        assertNotNull(storeOwnerAdenaInDb)
-        assertEquals(storeOwnerAdenaAmount - totalPrice, storeOwnerAdenaInDb.amount)
+        transaction {
+            // Check adena in database
+            val storeOwnerAdenaInDb = ItemEntity
+                .findAllByOwnerIdAndTemplateId(storeOwner.id, ADENA.id).firstOrNull()
+            assertNotNull(storeOwnerAdenaInDb)
+            assertEquals(storeOwnerAdenaAmount - totalPrice, storeOwnerAdenaInDb.amount)
 
-        val sellerAdenaInDb = Item.findAllByOwnerIdAndTemplateId(seller.id, ADENA_TEMPLATE_ID).firstOrNull()
-        assertNotNull(sellerAdenaInDb)
-        assertEquals(totalPrice, sellerAdenaInDb.amount)
+            val sellerAdenaInDb = ItemEntity
+                .findAllByOwnerIdAndTemplateId(seller.id, ADENA.id).firstOrNull()
+            assertNotNull(sellerAdenaInDb)
+            assertEquals(totalPrice, sellerAdenaInDb.amount)
 
-        // Check items in database
-        val storeOwnerArrow = Item.findAllByOwnerIdAndTemplateId(storeOwner.id, WOODEN_ARROW_TEMPLATE_ID).firstOrNull()
-        assertNotNull(storeOwnerArrow)
-        assertEquals(arrowsToSellAmount, storeOwnerArrow.amount)
+            // Check items in database
+            val storeOwnerArrow = ItemEntity
+                .findAllByOwnerIdAndTemplateId(storeOwner.id, WOODEN_ARROW.id).firstOrNull()
+            assertNotNull(storeOwnerArrow)
+            assertEquals(arrowsToSellAmount, storeOwnerArrow.amount)
 
-        val sellerArrow = Item.findAllByOwnerIdAndTemplateId(seller.id, WOODEN_ARROW_TEMPLATE_ID).firstOrNull()
-        assertNotNull(sellerArrow)
-        assertEquals(arrowsAmount - arrowsToSellAmount, sellerArrow.amount)
+            val sellerArrow = ItemEntity
+                .findAllByOwnerIdAndTemplateId(seller.id, WOODEN_ARROW.id).firstOrNull()
+            assertNotNull(sellerArrow)
+            assertEquals(arrowsAmount - arrowsToSellAmount, sellerArrow.amount)
 
-        val storeOwnerSplinter = Item.findAllByOwnerIdAndTemplateId(storeOwner.id, DEMON_SPLINTER_TEMPLATE_ID).firstOrNull()
-        assertNotNull(storeOwnerSplinter)
-        assertEquals(1, storeOwnerSplinter.amount)
+            val storeOwnerSplinter = ItemEntity
+                .findAllByOwnerIdAndTemplateId(storeOwner.id, DEMON_SPLINTER.id).firstOrNull()
+            assertNotNull(storeOwnerSplinter)
+            assertEquals(1, storeOwnerSplinter.amount)
 
-        val sellerSplinter = Item.findAllByOwnerIdAndTemplateId(seller.id, DEMON_SPLINTER_TEMPLATE_ID).firstOrNull()
-        assertNull(sellerSplinter)
+            val sellerSplinter = ItemEntity
+                .findAllByOwnerIdAndTemplateId(seller.id, DEMON_SPLINTER.id).firstOrNull()
+            assertNull(sellerSplinter)
+        }
     }
 
     @Test
@@ -1069,14 +1079,14 @@ class TradeServiceTests(
         val storeOwner = createTestCharacter(name = "StoreOwner")
         storeOwnerContext.setCharacterId(storeOwner.id)
         val storeOwnerAdenaAmountBefore = 500
-        createTestItem(ADENA_TEMPLATE_ID, storeOwner.id, storeOwnerAdenaAmountBefore)
+        createTestItem(ADENA.id, storeOwner, storeOwnerAdenaAmountBefore)
 
         val sellerContext = createTestSessionContext()
         val seller = createTestCharacter(name = "Seller")
         sellerContext.setCharacterId(seller.id)
 
         // Create item to sell
-        val woodenArrow = createTestItem(WOODEN_ARROW_TEMPLATE_ID, seller.id, 1000)
+        val woodenArrow = createTestItem(WOODEN_ARROW.id, seller, 1000)
         val arrowPrice = storeOwnerAdenaAmountBefore * 2
 
         // Create store
@@ -1098,19 +1108,28 @@ class TradeServiceTests(
         assertIs<ActionFailedResponse>(sellerContext.responseChannel.receive())
 
         // Verify that transaction did not occur by checking database state
-        val storeOwnerAdenaAmountAfter = Item
-            .findAllByOwnerIdAndTemplateId(storeOwner.id, ADENA_TEMPLATE_ID).firstOrNull()?.amount ?: 0
-        assertEquals(storeOwnerAdenaAmountBefore, storeOwnerAdenaAmountAfter, "Store owner's adena should remain unchanged")
+        transaction {
+            val storeOwnerAdenaAmountAfter = ItemEntity
+                .findAllByOwnerIdAndTemplateId(storeOwner.id, ADENA.id).firstOrNull()?.amount ?: 0
+            assertEquals(
+                storeOwnerAdenaAmountBefore,
+                storeOwnerAdenaAmountAfter,
+                "Store owner's adena should remain unchanged"
+            )
 
-        val sellerAdena = Item.findAllByOwnerIdAndTemplateId(seller.id, ADENA_TEMPLATE_ID).firstOrNull()
-        assertNull(sellerAdena, "Seller should not have received any adena")
+            val sellerAdena = ItemEntity
+                .findAllByOwnerIdAndTemplateId(seller.id, ADENA.id).firstOrNull()
+            assertNull(sellerAdena, "Seller should not have received any adena")
 
-        val storeOwnerArrow = Item.findAllByOwnerIdAndTemplateId(storeOwner.id, WOODEN_ARROW_TEMPLATE_ID).firstOrNull()
-        assertNull(storeOwnerArrow, "Store owner should not have received any arrows")
+            val storeOwnerArrow = ItemEntity
+                .findAllByOwnerIdAndTemplateId(storeOwner.id, WOODEN_ARROW.id).firstOrNull()
+            assertNull(storeOwnerArrow, "Store owner should not have received any arrows")
 
-        val sellerArrow = Item.findAllByOwnerIdAndTemplateId(seller.id, WOODEN_ARROW_TEMPLATE_ID).firstOrNull()
-        assertNotNull(sellerArrow)
-        assertEquals(1000, sellerArrow.amount, "Seller's arrows should remain unchanged")
+            val sellerArrow = ItemEntity
+                .findAllByOwnerIdAndTemplateId(seller.id, WOODEN_ARROW.id).firstOrNull()
+            assertNotNull(sellerArrow)
+            assertEquals(1000, sellerArrow.amount, "Seller's arrows should remain unchanged")
+        }
     }
 
     @Test
@@ -1120,7 +1139,7 @@ class TradeServiceTests(
         val storeOwner = createTestCharacter(name = "StoreOwner")
         storeOwnerContext.setCharacterId(storeOwner.id)
         val storeOwnerAdenaAmountBefore = 1_000_000
-        createTestItem(ADENA_TEMPLATE_ID, storeOwner.id, storeOwnerAdenaAmountBefore)
+        createTestItem(ADENA.id, storeOwner, storeOwnerAdenaAmountBefore)
 
         val sellerContext = createTestSessionContext()
         val seller = createTestCharacter(name = "Seller")
@@ -1128,7 +1147,7 @@ class TradeServiceTests(
 
         // Create item to sell
         val woodenArrowAmount = 1000
-        val woodenArrow = createTestItem(WOODEN_ARROW_TEMPLATE_ID, seller.id, woodenArrowAmount)
+        val woodenArrow = createTestItem(WOODEN_ARROW.id, seller, woodenArrowAmount)
         val arrowPrice = 2
 
         // Create store
@@ -1157,17 +1176,19 @@ class TradeServiceTests(
         // Check action failed
         assertIs<ActionFailedResponse>(sellerContext.responseChannel.receive())
 
-        // Check items in database
-        val storeOwnerAdena = Item.findAllByOwnerIdAndTemplateId(storeOwner.id, ADENA_TEMPLATE_ID).firstOrNull()
-        assertNotNull(storeOwnerAdena)
-        assertEquals(storeOwnerAdenaAmountBefore, storeOwnerAdena.amount)
+        transaction {
+            // Check items in database
+            val storeOwnerAdena = ItemEntity.findAllByOwnerIdAndTemplateId(storeOwner.id, ADENA.id).firstOrNull()
+            assertNotNull(storeOwnerAdena)
+            assertEquals(storeOwnerAdenaAmountBefore, storeOwnerAdena.amount)
 
-        val sellerArrow = Item.findAllByOwnerIdAndTemplateId(seller.id, WOODEN_ARROW_TEMPLATE_ID).firstOrNull()
-        assertNotNull(sellerArrow)
-        assertEquals(woodenArrowAmount, sellerArrow.amount)
+            val sellerArrow = ItemEntity.findAllByOwnerIdAndTemplateId(seller.id, WOODEN_ARROW.id).firstOrNull()
+            assertNotNull(sellerArrow)
+            assertEquals(woodenArrowAmount, sellerArrow.amount)
 
-        val storeOwnerArrow = Item.findAllByOwnerIdAndTemplateId(storeOwner.id, WOODEN_ARROW_TEMPLATE_ID).firstOrNull()
-        assertNull(storeOwnerArrow)
+            val storeOwnerArrow = ItemEntity.findAllByOwnerIdAndTemplateId(storeOwner.id, WOODEN_ARROW.id).firstOrNull()
+            assertNull(storeOwnerArrow)
+        }
     }
 
     @Test
@@ -1177,13 +1198,13 @@ class TradeServiceTests(
         val storeOwner = createTestCharacter(name = "StoreOwner")
         storeOwnerContext.setCharacterId(storeOwner.id)
         val storeOwnerAdenaAmountBefore = 1_000_000
-        createTestItem(ADENA_TEMPLATE_ID, storeOwner.id, storeOwnerAdenaAmountBefore)
+        createTestItem(ADENA.id, storeOwner, storeOwnerAdenaAmountBefore)
 
         val sellerContext = createTestSessionContext()
         val seller = createTestCharacter(name = "Seller")
         sellerContext.setCharacterId(seller.id)
         val woodenArrowAmount = 1000
-        val woodenArrow = createTestItem(WOODEN_ARROW_TEMPLATE_ID, seller.id, woodenArrowAmount)
+        val woodenArrow = createTestItem(WOODEN_ARROW.id, seller, woodenArrowAmount)
 
         // Try to sell to non-existent store
         withContext(sellerContext) {
@@ -1196,17 +1217,19 @@ class TradeServiceTests(
         // Check action failed
         assertIs<ActionFailedResponse>(sellerContext.responseChannel.receive())
 
-        // Check items in database
-        val storeOwnerAdena = Item.findAllByOwnerIdAndTemplateId(storeOwner.id, ADENA_TEMPLATE_ID).firstOrNull()
-        assertNotNull(storeOwnerAdena)
-        assertEquals(storeOwnerAdenaAmountBefore, storeOwnerAdena.amount)
+        transaction {
+            // Check items in database
+            val storeOwnerAdena = ItemEntity.findAllByOwnerIdAndTemplateId(storeOwner.id, ADENA.id).firstOrNull()
+            assertNotNull(storeOwnerAdena)
+            assertEquals(storeOwnerAdenaAmountBefore, storeOwnerAdena.amount)
 
-        val sellerArrow = Item.findAllByOwnerIdAndTemplateId(seller.id, WOODEN_ARROW_TEMPLATE_ID).firstOrNull()
-        assertNotNull(sellerArrow)
-        assertEquals(woodenArrowAmount, sellerArrow.amount)
+            val sellerArrow = ItemEntity.findAllByOwnerIdAndTemplateId(seller.id, WOODEN_ARROW.id).firstOrNull()
+            assertNotNull(sellerArrow)
+            assertEquals(woodenArrowAmount, sellerArrow.amount)
 
-        val storeOwnerArrow = Item.findAllByOwnerIdAndTemplateId(storeOwner.id, WOODEN_ARROW_TEMPLATE_ID).firstOrNull()
-        assertNull(storeOwnerArrow)
+            val storeOwnerArrow = ItemEntity.findAllByOwnerIdAndTemplateId(storeOwner.id, WOODEN_ARROW.id).firstOrNull()
+            assertNull(storeOwnerArrow)
+        }
     }
 
     @Test
@@ -1216,14 +1239,14 @@ class TradeServiceTests(
         val storeOwner = createTestCharacter(name = "StoreOwner")
         storeOwnerContext.setCharacterId(storeOwner.id)
         val storeOwnerAdenaAmountBefore = 1_000_000
-        createTestItem(ADENA_TEMPLATE_ID, storeOwner.id, storeOwnerAdenaAmountBefore)
+        createTestItem(ADENA.id, storeOwner, storeOwnerAdenaAmountBefore)
 
         val sellerContext = createTestSessionContext()
         val seller = createTestCharacter(name = "Seller")
         sellerContext.setCharacterId(seller.id)
         val arrowPrice = 2
         val woodenArrowAmount = 1000
-        val woodenArrow = createTestItem(WOODEN_ARROW_TEMPLATE_ID, seller.id, woodenArrowAmount)
+        val woodenArrow = createTestItem(WOODEN_ARROW.id, seller, woodenArrowAmount)
 
         // Create store
         storeOwner.privateStore = PrivateStore.Buy(
@@ -1249,17 +1272,22 @@ class TradeServiceTests(
         
         assertIs<ActionFailedResponse>(sellerContext.responseChannel.receive())
 
-        // Check items in database
-        val storeOwnerAdena = Item.findAllByOwnerIdAndTemplateId(storeOwner.id, ADENA_TEMPLATE_ID).firstOrNull()
-        assertNotNull(storeOwnerAdena)
-        assertEquals(storeOwnerAdenaAmountBefore, storeOwnerAdena.amount)
+        transaction {
+            // Check items in database
+            val storeOwnerAdena = ItemEntity
+                .findAllByOwnerIdAndTemplateId(storeOwner.id, ADENA.id).firstOrNull()
+            assertNotNull(storeOwnerAdena)
+            assertEquals(storeOwnerAdenaAmountBefore, storeOwnerAdena.amount)
 
-        val sellerArrow = Item.findAllByOwnerIdAndTemplateId(seller.id, WOODEN_ARROW_TEMPLATE_ID).firstOrNull()
-        assertNotNull(sellerArrow)
-        assertEquals(woodenArrowAmount, sellerArrow.amount)
+            val sellerArrow = ItemEntity
+                .findAllByOwnerIdAndTemplateId(seller.id, WOODEN_ARROW.id).firstOrNull()
+            assertNotNull(sellerArrow)
+            assertEquals(woodenArrowAmount, sellerArrow.amount)
 
-        val storeOwnerArrow = Item.findAllByOwnerIdAndTemplateId(storeOwner.id, WOODEN_ARROW_TEMPLATE_ID).firstOrNull()
-        assertNull(storeOwnerArrow)
+            val storeOwnerArrow = ItemEntity
+                .findAllByOwnerIdAndTemplateId(storeOwner.id, WOODEN_ARROW.id).firstOrNull()
+            assertNull(storeOwnerArrow)
+        }
     }
 
 }

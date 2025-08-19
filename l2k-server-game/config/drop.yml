@@ -10,8 +10,9 @@
 drop.minLevelDifferenceForPenalty: 5
 
 # Chance of level penalty applied per level.
-# This means for every level of levelDifference greater than minLevelDifferenceForPenalty
-# there will be chance 0.18 that drop will not happen
+# This means for every level of levelDifference greater
+# than minLevelDifferenceForPenalty there will be chance 0.18
+# that drop will not happen
 # Default: 0.18
 drop.levelPenaltyBaseValue: 0.18
 

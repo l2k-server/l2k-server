@@ -1,7 +1,7 @@
 package org.l2kserver.game.data.item.arrows
 
-import org.l2kserver.game.model.item.ArrowTemplate
-import org.l2kserver.game.model.item.Grade
+import org.l2kserver.game.model.item.template.ArrowTemplate
+import org.l2kserver.game.model.item.template.Grade
 
 val WOODEN_ARROW = ArrowTemplate(
     id = 17,

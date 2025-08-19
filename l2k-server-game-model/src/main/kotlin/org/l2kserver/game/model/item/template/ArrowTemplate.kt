@@ -1,4 +1,4 @@
-package org.l2kserver.game.model.item
+package org.l2kserver.game.model.item.template
 
 data class ArrowTemplate(
     override val id: Int,

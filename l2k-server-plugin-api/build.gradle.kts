@@ -1,6 +1,6 @@
 plugins {
     kotlin("jvm")
-    id("io.gitlab.arturbosch.detekt") version "1.23.8"
+    id("io.gitlab.arturbosch.detekt")
 }
 
 group = "org.l2kserver"

@@ -1,6 +1,5 @@
 package org.l2kserver.game.service
 
-import io.ktor.utils.io.CancellationException
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
@@ -18,9 +17,11 @@ import org.l2kserver.game.handler.dto.response.SkillUsedResponse
 import org.l2kserver.game.handler.dto.response.Sound
 import org.l2kserver.game.handler.dto.response.StatusAttribute
 import org.l2kserver.game.handler.dto.response.SystemMessageResponse
+import org.l2kserver.game.handler.dto.response.UpdateItemsResponse
 import org.l2kserver.game.handler.dto.response.UpdateStatusResponse
 import org.l2kserver.game.model.actor.Actor
 import org.l2kserver.game.model.actor.PlayerCharacter
+import org.l2kserver.game.model.item.ConsumableItem
 import org.l2kserver.game.model.skill.Skill
 import org.l2kserver.game.network.session.send
 import org.l2kserver.game.network.session.sessionContext
@@ -28,15 +29,11 @@ import org.l2kserver.game.repository.GameObjectRepository
 import org.springframework.stereotype.Service
 import java.time.Instant
 import kotlin.collections.contains
-import kotlin.coroutines.coroutineContext
 import kotlin.math.roundToInt
-import kotlin.math.roundToLong
 
-private const val REUSE_DELAY_COEFFICIENT = 333.0
+private const val CAST_TIME_COEFFICIENT = 333
 
-/**
- * Handles learning, enchanting, using skills, etc.
- */
+/** Handles learning, enchanting, using skills, etc. */
 @Service
 class SkillService(
     private val moveService: MoveService,
@@ -46,32 +43,26 @@ class SkillService(
 
     override val log = logger()
 
-    /**
-     * Sends a full list of skills to the player in the current session
-     */
+    /** Sends a full list of skills to the player in the current session */
     suspend fun getSkillList() = newSuspendedTransaction {
         val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
         send(SkillListResponse(character.skills.values))
         log.info("Successfully sent skill list to character {}", character)
     }
 
-    /**
-     * Handles request to use skill
-     */
+    /** Handles request to use skill */
     suspend fun useSkill(request: UseSkillRequest): Unit = newSuspendedTransaction {
         val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
         val skill = character.getSkillById(request.skillId)
 
-        useSkill(character, skill)
+        useSkill(character, skill, request.forced, request.holdPosition)
     }
 
-    /**
-     * Handles [actor]'s intent to use the [skill]
-     */
-    suspend fun useSkill(actor: Actor, skill: Skill) {
+    /** Handles [actor]'s intent to use the [skill] */
+    suspend fun useSkill(actor: Actor, skill: Skill, forced: Boolean = false, holdPosition: Boolean = false) {
         log.debug("'{}' tries to use skill '{}'", actor, skill)
         when (skill.skillType) {
-            SkillType.ACTIVE, SkillType.MAGIC -> useActiveSkill(actor, skill)
+            SkillType.ACTIVE, SkillType.MAGIC -> useActiveSkill(actor, skill, forced, holdPosition)
             SkillType.PASSIVE -> send(ActionFailedResponse)
             SkillType.TOGGLE -> {
                 //TODO Toggle skills
@@ -84,84 +75,105 @@ class SkillService(
 
     /**
      * Handles [actor]'s intent to use `ACTIVE` [skill]
+     *
+     * @param forced Skill will be applied even to wrong target (if possible)
+     * @param holdPosition actor won't move closer to use skill
      */
-    suspend fun useActiveSkill(actor: Actor, skill: Skill) = asyncTaskService.launchAction(actor.id) {
-        //TODO Check casting
-        if (Instant.now().isBefore(skill.nextUsageTime)) {
-            send(SystemMessageResponse.IsBeingPreparedForReuse(skill))
-            send(ActionFailedResponse)
-        }
-        else when (skill.targetType) {
-            SkillTargetType.ENEMY -> useOffensiveTargetSkill(actor, skill)
-        }
-    }
+    suspend fun useActiveSkill(
+        actor: Actor, skill: Skill, forced: Boolean, holdPosition: Boolean
+    ) = asyncTaskService.launchAction(actor.id) {
+        //TODO Check if actor is already casting
+        val target = actor.targetId?.let { gameObjectRepository.findActorByIdOrNull(it) }
 
-    private suspend fun useOffensiveTargetSkill(actor: Actor, skill: Skill) = newSuspendedTransaction {
-        //Check if actor can use skill
-        if (!actor.canUseSkill(skill)) return@newSuspendedTransaction
-        val target = actor.targetId?.let { gameObjectRepository.findActorByIdOrNull(it) } ?: run {
-            send(SystemMessageResponse.TargetCannotBeFound)
-            actor.targetId = null
-            return@newSuspendedTransaction
-        }
+        //TODO Introduce parameter - if target is enemy, but "friendly" skill used - fail using or use it on yourself
+        // https://github.com/orgs/l2k-server/projects/1/views/3?pane=issue&itemId=124732573&issue=l2k-server%7Cl2k-server%7C47
 
-        try {
-            val requiredDistance = skill.castRange +
-                    (actor.collisionBox.radius + target.collisionBox.radius).roundToInt()
+        // If skill must be used on target - move to target
+        if (listOf(SkillTargetType.ENEMY, SkillTargetType.FRIEND).contains(skill.targetType)) {
+            //Check that actor can use skill - before moving to it
+            if (!actor.canUseSkill(skill, target, forced)) {
+                send(SystemMessageResponse.TargetCannotBeFound,
+                    PlaySoundResponse(Sound.ITEMSOUND_SYS_IMPOSSIBLE),
+                    ActionFailedResponse)
+                actor.targetId = null
+                return@launchAction
+            }
 
-            moveService.move(actor, target, requiredDistance)
+            //canUseSkill method also checks that target exists, so here we can use unsafe call
+            val requiredDistance = skill.castRange + (actor.collisionBox.radius + target!!.collisionBox.radius).roundToInt()
+            if (!holdPosition) moveService.move(actor, target, requiredDistance)
 
             //Check if movement was interrupted or stopped at some obstacle
             if (!actor.position.isCloseTo(target.position, requiredDistance)) {
                 send(SystemMessageResponse.TargetOutOfRange)
-                return@newSuspendedTransaction
+                return@launchAction
             }
+        }
 
-            //Check if actor can use skill again - immediately before use
-            if (actor.canUseSkill(skill)) {
-                //TODO calculate spent resources
-                if (actor is PlayerCharacter) {
-                    val characterStatusResponse = UpdateStatusResponse(
-                        objectId = actor.id,
-                        StatusAttribute.CUR_HP to actor.currentHp,
-                        StatusAttribute.CUR_MP to actor.currentMp,
-                        StatusAttribute.CUR_CP to actor.currentCp,
-                        StatusAttribute.MAX_CP to actor.stats.maxCp
-                    )
-                    send(characterStatusResponse)
-                }
+        // Check if actor can use skill - before casting skill
+        if (!actor.canUseSkill(skill, target, forced)) return@launchAction
 
-                val castTime = skill.castTime //TODO calculate depending on casting/attack speed
+        // Consume resources
+        actor.spendResourcesFor(skill)
 
-                val castingSpeed = if (skill.skillType == SkillType.MAGIC)
-                    actor.stats.castingSpd else actor.stats.atkSpd
-                val reuseDelay = (skill.reuseDelay * REUSE_DELAY_COEFFICIENT / castingSpeed).roundToInt()
+        // Casting animation
+        // All skills that do not require a target are essentially cast on yourself
+        actor.castSkillOn(skill, target ?: actor)
 
-                skill.nextUsageTime = Instant.now().plusMillis(reuseDelay.toLong())
+        //TODO Perform skill effect
+        ///////////////////////////////////////////////////////////////////////////////
+    }
 
-                withContext(coroutineContext + NonCancellable) {
-                    send(SystemMessageResponse.YouUse(skill))
-                    send(GaugeResponse(GaugeColor.BLUE, castTime))
-                    broadcastPacket(SkillUsedResponse(
-                        casterId = actor.id,
-                        targetId = target.id,
-                        skillId = skill.skillId,
-                        skillLevel = skill.skillLevel,
-                        castTime = castTime,
-                        reuseDelay = reuseDelay,
-                        casterPosition = actor.position
-                    ))
-                    //Time, needed to cast a skill and finish skill animation TODO At L2J this time is set for every skill
-                    val castingSkillTime = (castTime * 1.7).roundToLong()
-                    delay(castingSkillTime)
-                }
+    /** Subtract HP, MP or items, required to use [skill] */
+    private suspend fun Actor.spendResourcesFor(skill: Skill) = newSuspendedTransaction {
+        val actor = this@spendResourcesFor
 
-                //TODO Perform skill effect
-                ///////////////////////////////////////////////////////////////////////////////
-            }
-        } catch (e: CancellationException) {
-            log.debug("Casting skill '{}' by '{}' was interrupted for reason {}", skill, actor, e.message)
-            send(ActionFailedResponse)
+        var statusUpdated = false
+        skill.consumes?.hp?.let { actor.currentHp -= it; statusUpdated = true }
+        skill.consumes?.mp?.let { actor.currentMp -= it; statusUpdated = true }
+        if (actor is PlayerCharacter) skill.consumes?.item?.let {
+            val resourceItem = actor.inventory.findById(it.id)
+            val reducedItem = actor.inventory.reduceAmount(it.id, it.amount)
+            if (reducedItem == null) send(UpdateItemsResponse.operationRemove(resourceItem))
+            else send(UpdateItemsResponse.operationModify(reducedItem))
+        }
+
+        if (actor is PlayerCharacter && statusUpdated) {
+            send(UpdateStatusResponse(
+                objectId = actor.id,
+                StatusAttribute.CUR_HP to actor.currentHp,
+                StatusAttribute.CUR_MP to actor.currentMp,
+                StatusAttribute.CUR_CP to actor.currentCp,
+                StatusAttribute.MAX_CP to actor.stats.maxCp
+            ))
+        }
+    }
+
+    /** Cast [skill] (only animation, no effects will be applied) and apply cooldown */
+    private suspend fun Actor.castSkillOn(skill: Skill, target: Actor) {
+        val castingSpeed = if (skill.skillType == SkillType.MAGIC) this.stats.castingSpd else this.stats.atkSpd
+
+        val castTime = skill.castTime * CAST_TIME_COEFFICIENT / castingSpeed
+        val repriseTime = skill.repriseTime * CAST_TIME_COEFFICIENT / castingSpeed
+        val reuseDelay = skill.reuseDelay * CAST_TIME_COEFFICIENT / castingSpeed
+
+        newSuspendedTransaction { skill.nextUsageTime = Instant.now().plusMillis(reuseDelay.toLong()) }
+
+        withContext(kotlin.coroutines.coroutineContext + NonCancellable) {
+            send(SystemMessageResponse.YouUse(skill))
+            send(GaugeResponse(GaugeColor.BLUE, castTime))
+            broadcastPacket(SkillUsedResponse(
+                casterId = this@castSkillOn.id,
+                targetId = target.id,
+                skillId = skill.skillId,
+                skillLevel = skill.skillLevel,
+                castTime = castTime,
+                reuseDelay = reuseDelay,
+                casterPosition = this@castSkillOn.position
+            ))
+
+            //Time, needed to cast a skill and finish skill animation
+            delay((castTime + repriseTime).toLong())
         }
     }
 
@@ -170,36 +182,64 @@ class SkillService(
      * and returns false
      *
      * @param skill Skill that the actor is trying to use
+     * @param target Skill target
+     * @param forced Is this skill forced to use (ctrl pressed)
      * @return true - if actor can use [skill], false if not
      */
-    private suspend fun Actor.canUseSkill(skill: Skill): Boolean = when {
-        this.isParalyzed -> false
-        skill.requires?.weaponTypes?.contains(this.weaponType) == false -> {
-            send(PlaySoundResponse(Sound.ITEMSOUND_SYS_IMPOSSIBLE))
-            send(ActionFailedResponse)
+    private suspend fun Actor.canUseSkill(skill: Skill, target: Actor?, forced: Boolean): Boolean = when {
+        this.isParalyzed -> false //TODO Physical/Magical silence
+        Instant.now().isBefore(skill.nextUsageTime) -> {
+            send(SystemMessageResponse.IsBeingPreparedForReuse(skill), ActionFailedResponse)
             false
         }
-        skill.targetType == SkillTargetType.ENEMY && this.targetId == null -> {
+        (skill.consumes?.hp ?: 0) > this.currentHp -> {
+            send(SystemMessageResponse.NotEnoughHp, ActionFailedResponse)
+            false
+        }
+        (skill.consumes?.mp ?: 0) > this.currentMp -> {
+            send(SystemMessageResponse.NotEnoughMp, ActionFailedResponse)
+            false
+        }
+        this is PlayerCharacter && !this.hasEnoughConsumable(skill.consumes?.item) -> {
+            send(SystemMessageResponse.NotEnoughItems, ActionFailedResponse)
+            false
+        }
+        skill.requires?.weaponTypes?.contains(this.weaponType) == false -> {
+            send(PlaySoundResponse(Sound.ITEMSOUND_SYS_IMPOSSIBLE), ActionFailedResponse)
+            false
+        }
+        skill.castsOnEnemy() && this.targetId == null -> {
             send(SystemMessageResponse.YouMustSelectTarget)
             send(PlaySoundResponse(Sound.ITEMSOUND_SYS_IMPOSSIBLE))
             send(ActionFailedResponse)
             false
         }
-        skill.targetType == SkillTargetType.ENEMY && this.targetId == this.id -> {
+        skill.castsOnEnemy() && this.targetId == this.id -> {
             send(SystemMessageResponse.CannotUseThisOnYourself)
             send(PlaySoundResponse(Sound.ITEMSOUND_SYS_IMPOSSIBLE))
             send(ActionFailedResponse)
             false
         }
-        skill.targetType == SkillTargetType.ENEMY && this.targetId?.let { gameObjectRepository.existsById(it) } != true -> {
+        skill.castsOnEnemy() && target == null -> {
             send(SystemMessageResponse.TargetCannotBeFound)
             send(PlaySoundResponse(Sound.ITEMSOUND_SYS_IMPOSSIBLE))
             send(ActionFailedResponse)
             this.targetId = null
             false
         }
-
+        skill.castsOnEnemy() && target?.isEnemyOf(this) == false && !forced -> {
+            send(ActionFailedResponse)
+            false
+        }
+        //TODO Check PeaceZone
+        //TODO Check geodata
         else -> true
+    }
+
+    /** Checks if PlayerCharacter has enough consumable item in the inventory. If [consumable] is null - returns true */
+    private fun PlayerCharacter.hasEnoughConsumable(consumable: ConsumableItem?): Boolean {
+        return if (consumable == null) true
+        else this.inventory.existsByIdAndAmount(consumable.id, consumable.amount)
     }
 
 }

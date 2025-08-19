@@ -35,6 +35,9 @@ import org.l2kserver.game.handler.dto.request.RequestPacket
 import org.l2kserver.game.network.session.sessionContext
 import org.slf4j.MDC
 
+private const val MIN_PACKET_SIZE = 3
+private const val MAX_PACKET_SIZE = 65535
+
 @Component
 class L2GameTcpServer(
     private val l2GameRequestHandler: L2GameRequestHandler,
@@ -74,7 +77,10 @@ class L2GameTcpServer(
                 try {
                     while (coroutineContext.isActive) {
                         //L2 uses LittleEndian byte order
-                        val dataSize = readChannel.readShort().reverseByteOrder()
+                        val dataSize = readChannel.readShort().reverseByteOrder().toUShort().toInt()
+                        require(dataSize in MIN_PACKET_SIZE..MAX_PACKET_SIZE) {
+                            "Client tries to send too huge packet"
+                        }
 
                         val data = withTimeout(readTimeout) {
                             readChannel.readBytes(dataSize - Short.SIZE_BYTES)
@@ -90,7 +96,7 @@ class L2GameTcpServer(
                     log.info("Disconnected {}", socket.remoteAddress)
                     l2GameRequestHandler.handleDisconnect()
 
-                    delay(3000) // wait for 3 seconds to send remaining packets
+                    delay(2000) // wait for 2 seconds to send remaining packets
                     sendingJob.cancel()
                     socket.close()
                 }

@@ -41,5 +41,5 @@ gradlew launchTestLoginServer
 gradlew launchTestGameServer
 ```
 
-Login server will start at 2106 port
+Login server will start at 2106 port.
 To log into the game use login "admin" and password "admin" :3

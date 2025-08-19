@@ -5,7 +5,7 @@ import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
-import org.l2kserver.game.extensions.forEachInstance
+import org.l2kserver.game.model.extensions.forEachInstance
 import org.l2kserver.game.extensions.logger
 import org.l2kserver.game.handler.dto.response.ChangeMoveTypeResponse
 import org.l2kserver.game.handler.dto.response.PvPStatusResponse
@@ -27,6 +27,9 @@ import org.springframework.stereotype.Service
 import kotlin.math.roundToInt
 
 private const val COMBAT_TIME_MS = 15_000
+
+const val ACTOR_STATE_JOB = "ACTOR_STATE_JOB"
+const val REGENERATION_JOB = "REGENERATION_JOB"
 
 private const val REGENERATION_TASK_DELAY_MS = 3_000L // 5 minutes for doors
 private const val REGENERATION_MULTIPLIER_ON_SITTING = 1.5
@@ -58,7 +61,7 @@ class ActorStateService(
 
     @EventListener(ApplicationReadyEvent::class)
     fun init() {
-        asyncTaskService.launchJob("ACTOR_STATE_JOB") {
+        asyncTaskService.launchTask(ACTOR_STATE_JOB) {
             while (isActive) {
                 try {
                     updateActorsFightingState()
@@ -71,7 +74,7 @@ class ActorStateService(
             }
         }
 
-        asyncTaskService.launchJob("REGENERATION_JOB") {
+        asyncTaskService.launchTask(REGENERATION_JOB) {
             while (isActive) {
                 regenerate()
                 delay(REGENERATION_TASK_DELAY_MS)

@@ -1,7 +1,10 @@
-package org.l2kserver.game.model.item
+package org.l2kserver.game.model.item.instance
 
-import org.l2kserver.game.extensions.model.item.toItem
-import org.l2kserver.game.domain.ItemEntity
+import org.l2kserver.game.model.item.template.Grade
+import org.l2kserver.game.model.item.template.ItemCategory
+import org.l2kserver.game.model.item.template.ItemGroup
+import org.l2kserver.game.model.item.template.ItemType
+import org.l2kserver.game.model.item.template.Slot
 import org.l2kserver.game.model.stats.Stats
 
 /**
@@ -24,7 +27,7 @@ import org.l2kserver.game.model.stats.Stats
  * @property category Item category
  * @property group Item group
  */
-sealed interface Item {
+interface ItemInstance {
      val id: Int
      val templateId: Int
      var ownerId: Int
@@ -45,34 +48,30 @@ sealed interface Item {
      val category: ItemCategory
      val group: ItemGroup
 
-    val isEquipped: Boolean get() = equippedAt != null
-
-    companion object {
-        fun findById(id: Int) = requireNotNull(ItemEntity.findById(id)?.toItem()) { "No item was found by id='$id'" }
-    }
+     val isEquipped: Boolean get() = equippedAt != null
 }
+
+/**
+ * In-game item instance, that can be used
+ */
+interface UsableItemInstance: ItemInstance
 
 /**
  * In-game item instance, that can be equipped
  *
  * @property stats Stats that will be given to the character when equipping the item
  */
-sealed interface EquippableItem : Item {
+interface EquippableItemInstance : ItemInstance {
     val stats: Stats
 
     override val isStackable: Boolean get() = false
 }
 
 /**
- * In-game item instance, that can be used
- */
-sealed interface UsableItem: Item
-
-/**
  * In-game item that can be crystallized
  *
  * @property crystalCount How many crystals will be given for this item crystallization
  */
-sealed interface CrystallizableItem: Item {
+interface CrystallizableItemInstance: ItemInstance {
     val crystalCount: Int
 }

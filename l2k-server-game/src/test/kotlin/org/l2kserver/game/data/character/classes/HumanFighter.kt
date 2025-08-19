@@ -12,7 +12,7 @@ import org.l2kserver.game.model.actor.character.CharacterTemplate
 import org.l2kserver.game.model.actor.character.PerLevelGain
 import org.l2kserver.game.model.actor.character.ShortcutType
 import org.l2kserver.game.model.actor.position.Position
-import org.l2kserver.game.model.item.Slot
+import org.l2kserver.game.model.item.template.Slot
 import org.l2kserver.game.model.stats.BasicStats
 import org.l2kserver.game.model.stats.CON
 import org.l2kserver.game.model.stats.DEX
