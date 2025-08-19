@@ -3,7 +3,7 @@ package org.l2kserver.game.handler.dto.response
 import org.l2kserver.game.extensions.littleEndianByteArray
 import org.l2kserver.game.extensions.putUTF16String
 import org.l2kserver.game.extensions.putUByte
-import org.l2kserver.game.extensions.toByte
+import org.l2kserver.game.model.extensions.toByte
 import org.l2kserver.game.model.actor.PlayerCharacter
 import org.l2kserver.game.model.actor.MoveType
 
@@ -53,53 +53,53 @@ data class FullCharacterResponse(
 
         putInt(playerCharacter.sp)
 
-        putInt(playerCharacter.itemsWeight)
+        putInt(playerCharacter.inventory.weight)
         putInt(playerCharacter.tradeAndInventoryStats.weightLimit)
 
         putInt(40)
 
-        putInt(playerCharacter.paperDoll.twoSlotsAccessory?.id ?: 0)
-        putInt(playerCharacter.paperDoll.leftEarring?.id ?: 0)
-        putInt(playerCharacter.paperDoll.rightEarring?.id ?: 0)
-        putInt(playerCharacter.paperDoll.necklace?.id ?: 0)
-        putInt(playerCharacter.paperDoll.leftRing?.id ?: 0)
-        putInt(playerCharacter.paperDoll.rightRing?.id ?: 0)
-        putInt(playerCharacter.paperDoll.headgear?.id ?: 0)
-        putInt(playerCharacter.paperDoll.oneHanded?.id ?: 0)
-        putInt(playerCharacter.paperDoll.shield?.id ?: 0)
-        putInt(playerCharacter.paperDoll.gloves?.id ?: 0)
-        putInt(playerCharacter.paperDoll.upperBody?.id ?: 0)
-        putInt(playerCharacter.paperDoll.lowerBody?.id ?: 0)
-        putInt(playerCharacter.paperDoll.boots?.id ?: 0)
-        putInt(playerCharacter.paperDoll.underwear?.id ?: 0)
-        putInt(playerCharacter.paperDoll.twoHanded?.id ?: 0)
-        putInt(playerCharacter.paperDoll.hairAccessory?.id
-            ?: playerCharacter.paperDoll.twoSlotsAccessory?.id ?: 0)
-        putInt(playerCharacter.paperDoll.faceAccessory?.id ?: 0)
+        putInt(playerCharacter.inventory.twoSlotsAccessory?.id ?: 0)
+        putInt(playerCharacter.inventory.leftEarring?.id ?: 0)
+        putInt(playerCharacter.inventory.rightEarring?.id ?: 0)
+        putInt(playerCharacter.inventory.necklace?.id ?: 0)
+        putInt(playerCharacter.inventory.leftRing?.id ?: 0)
+        putInt(playerCharacter.inventory.rightRing?.id ?: 0)
+        putInt(playerCharacter.inventory.headgear?.id ?: 0)
+        putInt(playerCharacter.inventory.oneHanded?.id ?: 0)
+        putInt(playerCharacter.inventory.shield?.id ?: 0)
+        putInt(playerCharacter.inventory.gloves?.id ?: 0)
+        putInt(playerCharacter.inventory.upperBody?.id ?: 0)
+        putInt(playerCharacter.inventory.lowerBody?.id ?: 0)
+        putInt(playerCharacter.inventory.boots?.id ?: 0)
+        putInt(playerCharacter.inventory.underwear?.id ?: 0)
+        putInt(playerCharacter.inventory.twoHanded?.id ?: 0)
+        putInt(playerCharacter.inventory.hairAccessory?.id
+            ?: playerCharacter.inventory.twoSlotsAccessory?.id ?: 0)
+        putInt(playerCharacter.inventory.faceAccessory?.id ?: 0)
 
-        putInt(playerCharacter.paperDoll.twoSlotsAccessory?.templateId ?: 0)
-        putInt(playerCharacter.paperDoll.leftEarring?.templateId ?: 0)
-        putInt(playerCharacter.paperDoll.rightEarring?.templateId ?: 0)
-        putInt(playerCharacter.paperDoll.necklace?.templateId ?: 0)
-        putInt(playerCharacter.paperDoll.leftRing?.templateId ?: 0)
-        putInt(playerCharacter.paperDoll.rightRing?.templateId ?: 0)
-        putInt(playerCharacter.paperDoll.headgear?.templateId ?: 0)
-        putInt(playerCharacter.paperDoll.oneHanded?.templateId ?: 0)
-        putInt(playerCharacter.paperDoll.shield?.templateId ?: 0)
-        putInt(playerCharacter.paperDoll.gloves?.templateId ?: 0)
-        putInt(playerCharacter.paperDoll.upperBody?.templateId ?: 0)
-        putInt(playerCharacter.paperDoll.lowerBody?.templateId ?: 0)
-        putInt(playerCharacter.paperDoll.boots?.templateId ?: 0)
-        putInt(playerCharacter.paperDoll.underwear?.templateId ?: 0)
-        putInt(playerCharacter.paperDoll.twoHanded?.templateId ?: 0)
-        putInt(playerCharacter.paperDoll.hairAccessory?.templateId
-            ?: playerCharacter.paperDoll.twoSlotsAccessory?.templateId ?: 0)
-        putInt(playerCharacter.paperDoll.faceAccessory?.templateId ?: 0)
+        putInt(playerCharacter.inventory.twoSlotsAccessory?.templateId ?: 0)
+        putInt(playerCharacter.inventory.leftEarring?.templateId ?: 0)
+        putInt(playerCharacter.inventory.rightEarring?.templateId ?: 0)
+        putInt(playerCharacter.inventory.necklace?.templateId ?: 0)
+        putInt(playerCharacter.inventory.leftRing?.templateId ?: 0)
+        putInt(playerCharacter.inventory.rightRing?.templateId ?: 0)
+        putInt(playerCharacter.inventory.headgear?.templateId ?: 0)
+        putInt(playerCharacter.inventory.oneHanded?.templateId ?: 0)
+        putInt(playerCharacter.inventory.shield?.templateId ?: 0)
+        putInt(playerCharacter.inventory.gloves?.templateId ?: 0)
+        putInt(playerCharacter.inventory.upperBody?.templateId ?: 0)
+        putInt(playerCharacter.inventory.lowerBody?.templateId ?: 0)
+        putInt(playerCharacter.inventory.boots?.templateId ?: 0)
+        putInt(playerCharacter.inventory.underwear?.templateId ?: 0)
+        putInt(playerCharacter.inventory.twoHanded?.templateId ?: 0)
+        putInt(playerCharacter.inventory.hairAccessory?.templateId
+            ?: playerCharacter.inventory.twoSlotsAccessory?.templateId ?: 0)
+        putInt(playerCharacter.inventory.faceAccessory?.templateId ?: 0)
 
         put(ByteArray(28))
-        putInt(playerCharacter.paperDoll.getWeapon()?.augmentationId ?: 0) //at l2j - right hand item augmentation
+        putInt(playerCharacter.inventory.weapon?.augmentationId ?: 0) //at l2j - right hand item augmentation
         put(ByteArray(24))
-        putInt(playerCharacter.paperDoll.getWeapon()?.augmentationId ?: 0) //at l2j - two-handed item augmentation
+        putInt(playerCharacter.inventory.weapon?.augmentationId ?: 0) //at l2j - two-handed item augmentation
         put(ByteArray(8))
 
         putInt(playerCharacter.stats.pAtk)
@@ -176,7 +176,7 @@ data class FullCharacterResponse(
         putInt(playerCharacter.stats.maxCp)
         putInt(playerCharacter.currentCp)
 
-        put(minOf(16, playerCharacter.paperDoll.getWeapon()?.enchantLevel ?: 0).toByte()) //TODO if mounted - 0
+        put(minOf(16, playerCharacter.inventory.weapon?.enchantLevel ?: 0).toByte()) //TODO if mounted - 0
 
         put(0) //TODO team circle around feet 1 = Blue, 2 = red
 

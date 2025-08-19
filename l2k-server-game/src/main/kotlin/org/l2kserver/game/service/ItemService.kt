@@ -2,11 +2,9 @@ package org.l2kserver.game.service
 
 import kotlinx.coroutines.isActive
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
-import org.l2kserver.game.extensions.forEachInstanceMatching
+import org.l2kserver.game.model.extensions.forEachInstanceMatching
 import org.l2kserver.game.extensions.logger
-import org.l2kserver.game.extensions.model.item.delete
-import org.l2kserver.game.extensions.model.item.findAllByOwnerIdAndTemplateId
-import org.l2kserver.game.extensions.model.item.toItem
+import org.l2kserver.game.extensions.model.item.toItemInstance
 import org.l2kserver.game.extensions.model.item.toScatteredItem
 import org.l2kserver.game.handler.dto.request.DeleteItemRequest
 import org.l2kserver.game.handler.dto.request.DropItemRequest
@@ -26,14 +24,13 @@ import org.l2kserver.game.model.actor.position.Position
 import org.l2kserver.game.model.actor.Actor
 import org.l2kserver.game.model.actor.PlayerCharacter
 import org.l2kserver.game.model.actor.ScatteredItem
-import org.l2kserver.game.model.item.Arrow
-import org.l2kserver.game.model.item.EquippableItem
-import org.l2kserver.game.model.item.Item
-import org.l2kserver.game.model.item.ItemTemplate
-import org.l2kserver.game.model.item.Slot
-import org.l2kserver.game.model.item.UsableItem
+import org.l2kserver.game.model.item.instance.EquippableItemInstance
+import org.l2kserver.game.model.item.instance.ItemInstance
+import org.l2kserver.game.model.item.template.ItemTemplate
+import org.l2kserver.game.model.item.template.Slot
+import org.l2kserver.game.model.item.instance.UsableItemInstance
 import org.l2kserver.game.model.item.Weapon
-import org.l2kserver.game.model.item.WeaponType
+import org.l2kserver.game.model.item.template.WeaponType
 import org.l2kserver.game.model.reward.RewardItem
 import org.l2kserver.game.model.store.PrivateStore
 import org.l2kserver.game.network.session.send
@@ -65,7 +62,9 @@ class ItemService(
      * Handles request to use item
      */
     suspend fun useItem(request: UseItemRequest) {
-        val (character, item) = getItemAndOwner(request.itemId)
+        val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
+        val item = character.inventory.findById(request.itemId)
+
         log.info("Character '{}' tries to use item '{}'", character.name, item)
 
         when {
@@ -79,8 +78,8 @@ class ItemService(
                 send(SystemMessageResponse.ItemCannotBeUsed(item), ActionFailedResponse)
                 return
             }
-            item is EquippableItem -> equipOrDisarmItem(character, item)
-            item is UsableItem -> {
+            item is EquippableItemInstance -> equipOrDisarmItem(character, item)
+            item is UsableItemInstance -> {
                 //TODO https://github.com/l2kserver/l2kserver-game/issues/29
                 send(SystemMessageResponse("Using items is not implemented yet"), ActionFailedResponse)
                 return
@@ -93,8 +92,9 @@ class ItemService(
      */
     suspend fun takeOffItem(request: TakeOffItemRequest) {
         val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
-        val item = checkNotNull(character.paperDoll[request.slot]) {
-            "Character has no item equipped at slot ${request.slot}"
+        val item = character.inventory[request.slot] ?: run {
+            log.warn("Character has no item equipped at slot ${request.slot}")
+            return
         }
 
         log.debug("Player '{}' tries to take off item {}", character.name, item)
@@ -106,7 +106,8 @@ class ItemService(
      * Handles request to delete item
      */
     suspend fun deleteItem(request: DeleteItemRequest) {
-        val (character, item) = getItemAndOwner(request.itemId)
+        val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
+        val item = character.inventory.findById(request.itemId)
         log.debug("'{}' tries to delete '{}' items '{}'", character, request.amount, item)
 
         when {
@@ -128,7 +129,9 @@ class ItemService(
     }
 
     suspend fun dropItem(request: DropItemRequest) {
-        val (character, item) = getItemAndOwner(request.itemId)
+        val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
+        val item = character.inventory.findById(request.itemId)
+
         log.debug("'{}' tries to drop '{}' items '{}'", character, request.amount, item)
 
         when {
@@ -218,12 +221,12 @@ class ItemService(
         broadcastPacket(DeleteObjectResponse(deletedScatteredItem.id), character.position)
 
         newSuspendedTransaction {
-            val existingItem = Item.findAllByOwnerIdAndTemplateId(character.id, deletedScatteredItem.templateId).firstOrNull()
-            val consumableId = character.paperDoll.getWeapon()?.consumes?.id
+            val existingItem = character.inventory.findAllByTemplateId(deletedScatteredItem.templateId).firstOrNull()
+            val consumableId = character.inventory.weapon?.consumes?.id
 
             val item = if (existingItem == null || !existingItem.isStackable) {
-                val newItem = deletedScatteredItem.toItem(
-                    character.id,
+                val newItem = deletedScatteredItem.toItemInstance(
+                    character,
                     equippedAt = if (consumableId == deletedScatteredItem.templateId) Slot.LEFT_HAND else null
                 )
                 sendTo(character.id, UpdateItemsResponse.operationAdd(newItem))
@@ -250,7 +253,7 @@ class ItemService(
      * @param amount Amount of items to delete
      * @param owner Owner of this [item]
      */
-    suspend fun deleteItem(item: Item, amount: Int, owner: PlayerCharacter) = newSuspendedTransaction {
+    suspend fun deleteItem(item: ItemInstance, amount: Int, owner: PlayerCharacter) = newSuspendedTransaction {
         require(item.isStackable || amount == 1) { "Cannot remove '$amount' of non-stackable '$item' of '${owner}'!" }
 
         if (amount > item.amount) {
@@ -263,14 +266,13 @@ class ItemService(
             sendTo(owner.id, UpdateItemsResponse.operationModify(item))
         } else {
             val responseBuilder = UpdateItemsResponse.Builder()
-            if (item.isEquipped && item is EquippableItem) {
-                owner.paperDoll.disarmItem(item)
-                owner.paperDoll
+            if (item.isEquipped && item is EquippableItemInstance) {
+                owner.inventory.disarmItem(item)
+                owner.inventory
                 responseBuilder.operationModify(item)
-
                 val consumableId = (item as? Weapon)?.consumes?.id
                 if (consumableId != null) {
-                    val arrow = Item.findAllByOwnerIdAndTemplateId(owner.id, consumableId).firstOrNull() as? Arrow
+                    val arrow = owner.inventory.findAllByTemplateId(consumableId).firstOrNull()
                     arrow?.let {
                         it.equippedAt = null
                         responseBuilder.operationModify(it)
@@ -280,7 +282,7 @@ class ItemService(
             }
             responseBuilder.operationDelete(item)
             sendTo(owner.id, responseBuilder.build())
-            item.delete()
+            owner.inventory.delete(item)
         }
 
         sendTo(owner.id, UpdateStatusResponse.weightOf(owner))
@@ -293,10 +295,10 @@ class ItemService(
      * @param item Item, that will be equipped/taken off
      */
     @Suppress("NestedBlockDepth") //TODO Refactor?
-    private suspend fun equipOrDisarmItem(playerCharacter: PlayerCharacter, item: EquippableItem) {
-        val updatedItems = ArrayList<Item>(3)
+    private suspend fun equipOrDisarmItem(playerCharacter: PlayerCharacter, item: EquippableItemInstance) {
+        val updatedItems = ArrayList<ItemInstance>(3)
         newSuspendedTransaction {
-            val paperDoll = playerCharacter.paperDoll
+            val paperDoll = playerCharacter.inventory
 
             if (item.isEquipped) updatedItems.add(paperDoll.disarmItem(item))
             else when {
@@ -376,7 +378,7 @@ class ItemService(
                     }
                 }
             }
-            updatedItems += equipAndDisarmArrows(updatedItems, playerCharacter.id)
+            updatedItems += equipAndDisarmArrows(updatedItems, playerCharacter)
         }
 
         newSuspendedTransaction {
@@ -397,43 +399,23 @@ class ItemService(
     }
 
     private suspend fun equipAndDisarmArrows(
-        updatedItems: ArrayList<Item>, characterId: Int
-    ): List<Item> = buildList(2) {
+        updatedItems: ArrayList<ItemInstance>, character: PlayerCharacter
+    ): List<ItemInstance> = buildList(2) {
         updatedItems.forEachInstanceMatching<Weapon>({ it.type == WeaponType.BOW }) { bow ->
             if (bow.isEquipped) bow.consumes?.let {
-                Item.findAllByOwnerIdAndTemplateId(characterId, it.id)
-                    .filterIsInstance<Arrow>()
-                    .firstOrNull()
-                    ?.let { arrow -> add(arrow.toEquipped(Slot.LEFT_HAND)) }
+                character.inventory.findAllByTemplateId(it.id).firstOrNull()
+                    ?.let { consumable ->
+                        consumable.equippedAt = Slot.LEFT_HAND
+                        add(consumable)
+                    }
             }
             else bow.consumes?.let {
-                Item.findAllByOwnerIdAndTemplateId(characterId, it.id)
-                    .filterIsInstance<Arrow>()
-                    .firstOrNull()
-                    ?.let { arrow -> add(arrow.toUnequipped()) }
+                character.inventory.findAllByTemplateId(it.id).firstOrNull()?.let { consumable ->
+                    consumable.equippedAt = null
+                    add(consumable)
+                }
             }
         }
-    }
-
-    /**
-     * Loads character and requested item, and checks if player owns this item
-     *
-     * @param itemId Item id
-     *
-     * @return character and item
-     */
-    private suspend fun getItemAndOwner(itemId: Int): Pair<PlayerCharacter, Item> = newSuspendedTransaction {
-        val context = sessionContext()
-        val character = gameObjectRepository.findCharacterById(context.getCharacterId())
-        val item = requireNotNull(Item.findById(itemId)) {
-            "Player with characterId=${character.id} tried to use non-existing item!"
-        }
-
-        require(item.ownerId == character.id) {
-            "Player ${context.getAccountName()} with character=$character tried to use someone else's item!"
-        }
-
-        Pair(character, item)
     }
 
 }

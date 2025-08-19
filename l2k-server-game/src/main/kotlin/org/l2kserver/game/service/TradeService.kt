@@ -3,16 +3,9 @@ package org.l2kserver.game.service
 import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.sync.withLock
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
-import org.l2kserver.game.extensions.allUniqueBy
+import org.l2kserver.game.model.extensions.allUniqueBy
 import org.l2kserver.game.extensions.logger
-import org.l2kserver.game.extensions.model.item.copyTo
-import org.l2kserver.game.extensions.model.item.delete
-import org.l2kserver.game.extensions.model.item.existsByIdAndAmountAndOwnerId
-import org.l2kserver.game.extensions.model.item.findAllByOwnerIdAndTemplateId
-import org.l2kserver.game.extensions.model.item.findAllNotEquippedByOwnerId
-import org.l2kserver.game.extensions.model.item.findNotEquippedByIdAndOwnerIdOrNull
-import org.l2kserver.game.extensions.model.item.findCharacterAdena
-import org.l2kserver.game.extensions.model.item.toItem
+import org.l2kserver.game.extensions.model.item.toItemInstance
 import org.l2kserver.game.extensions.model.item.toItemInInventory
 import org.l2kserver.game.extensions.model.item.toItemInWishList
 import org.l2kserver.game.extensions.model.item.toItemOnSale
@@ -38,7 +31,7 @@ import org.l2kserver.game.handler.dto.response.SystemMessageResponse
 import org.l2kserver.game.handler.dto.response.UpdateItemsResponse
 import org.l2kserver.game.handler.dto.response.UpdateStatusResponse
 import org.l2kserver.game.model.actor.PlayerCharacter
-import org.l2kserver.game.model.item.Item
+import org.l2kserver.game.model.item.instance.ItemInstance
 import org.l2kserver.game.model.store.ItemInWishList
 import org.l2kserver.game.model.store.ItemOnSale
 import org.l2kserver.game.model.store.PrivateStore
@@ -47,7 +40,9 @@ import org.l2kserver.game.network.session.sendTo
 import org.l2kserver.game.network.session.sessionContext
 import org.l2kserver.game.repository.GameObjectRepository
 import org.springframework.stereotype.Service
+import java.sql.Connection
 import kotlin.collections.map
+import kotlin.math.roundToInt
 
 private const val PRIVATE_STORE_MESSAGE_MAX_SIZE = 29
 
@@ -71,7 +66,7 @@ class TradeService(
     /**
      * Start exchanging with [ExchangeRequest.targetId]
      */
-    @Suppress("UnusedParameter")
+    @Suppress("unused")
     suspend fun startExchanging(request: ExchangeRequest) {
         TODO("https://github.com/orgs/l2kserver/projects/1/views/3?pane=issue&itemId=103187674&issue=l2kserver%7Cl2kserver-game%7C16")
     }
@@ -93,9 +88,7 @@ class TradeService(
         }
     }
 
-    /**
-     * Handles request to get items for private store (sell)
-     */
+    /** Handles request to get items for private store (sell) */
     suspend fun getItemsForPrivateStoreSell() = newSuspendedTransaction {
         val context = sessionContext()
         val character = gameObjectRepository.findCharacterById(context.getCharacterId())
@@ -111,16 +104,15 @@ class TradeService(
 
         stopPrivateStore()
 
-        val itemsInInventory = Item
-            .findAllNotEquippedByOwnerId(character.id)
+        val itemsInInventory = character.inventory
             .mapNotNull { item ->
                 val itemOnSale = privateStore?.items[item.id]
 
-                if (!item.isSellable || (itemOnSale != null && itemOnSale.amount >= item.amount)) null
+                if (item.isEquipped || !item.isSellable || (itemOnSale != null && itemOnSale.amount >= item.amount)) null
                 else item.toItemInInventory(item.amount - (itemOnSale?.amount ?: 0))
             }
 
-        val adenaAmount = Item.findCharacterAdena(character.id)?.amount ?: 0
+        val adenaAmount = character.inventory.adena?.amount ?: 0
 
         send(
             ItemListForPrivateStoreSellResponse(
@@ -133,18 +125,14 @@ class TradeService(
         )
     }
 
-    /**
-     * Set message of private store (sell) to cache
-     */
+    /** Set message of private store (sell) to cache */
     suspend fun setPrivateStoreSellMessage(request: PrivateStoreSellSetMessageRequest) {
         setPrivateStoreMessage(request.message)?.let {
             send(PrivateStoreSellSetMessageResponse(sessionContext().getCharacterId(), it))
         }
     }
 
-    /**
-     * Start private store (sell)
-     */
+    /** Start private store (sell) */
     suspend fun startPrivateStoreSell(request: PrivateStoreSellStartRequest) = newSuspendedTransaction {
         val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
         log.debug("Starting private store by request '{}' of character '{}'", request, character)
@@ -162,7 +150,7 @@ class TradeService(
             return@newSuspendedTransaction
         }
 
-        val itemsOnSale = request.items.map { it.toItemOnSale(character.id) }
+        val itemsOnSale = request.items.map { it.toItemOnSale(character) }
         require(itemsOnSale.allUniqueBy { it.itemId }) { "Several slots cannot refer to the same item!" }
 
         character.sitDown()
@@ -176,15 +164,14 @@ class TradeService(
         log.info("Started PrivateStoreSell='{}' of character '{}'", privateStore, character)
     }
 
-    /**
-     * Buy items in private store
-     */
+    /** Buy items in private store */
     suspend fun buyInPrivateStore(request: BuyInPrivateStoreRequest) {
         val customer = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
         val seller = gameObjectRepository.findCharacterById(request.storeOwnerId)
         log.debug("Start purchasing items='{}' from '{}' by '{}'", request.items, customer, seller)
 
-        if (!customer.position.isCloseTo(seller.position, INTERACTION_DISTANCE)) {
+        val requiredDistance = INTERACTION_DISTANCE + (customer.collisionBox.radius + seller.collisionBox.radius).roundToInt()
+        if (!customer.position.isCloseTo(seller.position, requiredDistance)) {
             log.debug("StoreOwner is too far to buy")
             send(PlaySoundResponse(Sound.ITEMSOUND_SYS_SHORTAGE))
             send(ActionFailedResponse)
@@ -199,7 +186,8 @@ class TradeService(
 
         //Lock store for transaction time
         privateStore.mutex.withLock {
-            newSuspendedTransaction {
+            var itemsOnSale = privateStore.items
+            newSuspendedTransaction(transactionIsolation = Connection.TRANSACTION_SERIALIZABLE) {
                 if (!checkAllPresent(privateStore.items, request.items, seller)) {
                     log.debug(
                         "[SELL] '{}' or '{}' inventory does not contain all required items from request '{}'",
@@ -210,7 +198,7 @@ class TradeService(
                 }
                 val totalPrice = calculateTotalPrice(privateStore.items, request.items)
 
-                val customerAdena = Item.findCharacterAdena(customer.id)
+                val customerAdena = customer.inventory.adena
 
                 if ((customerAdena?.amount ?: 0) < totalPrice) {
                     send(SystemMessageResponse.NotEnoughAdena)
@@ -220,15 +208,16 @@ class TradeService(
 
                 //Transfer adena
                 val (adenaOperationsOfCustomer, adenaOperationsOfSeller) = transferItem(
-                    customerAdena!!, to = seller, amount = totalPrice
+                    customerAdena!!, from = customer, to = seller, amount = totalPrice
                 )
 
                 //Transfer items
                 val (itemOperationsOfSeller, itemOperationsOfCustomer) = request.items.map {
-                    val item = it.toItem(seller.id)
-                    val operations = transferItem(item, to = customer, amount = it.amount)
+                    val item = it.toItemInstance(seller)
+                    val operations = transferItem(item, from = seller, to = customer, amount = it.amount)
 
-                    seller.privateStore = privateStore.subtractTradedItem(it)
+                    //Subtract sold items from itemsOnSale
+                    itemsOnSale = itemsOnSale.subtractTradedItem(it)
 
                     sendTo(customer.id, SystemMessageResponse.youHavePurchased(item, seller.name, it.amount))
                     sendTo(seller.id, SystemMessageResponse.otherHasPurchased(customer.name, item, it.amount))
@@ -242,22 +231,23 @@ class TradeService(
                 sendTo(customer.id, UpdateStatusResponse.weightOf(customer))
                 sendTo(seller.id, UpdateStatusResponse.weightOf(seller))
 
-                if (seller.privateStore == null) broadcastActorInfo(seller)
+                //If no items left to sell - close store, otherwise update it
+                if (itemsOnSale.isEmpty()) {
+                    seller.privateStore = null
+                    broadcastActorInfo(seller)
+                }
+                else seller.privateStore = privateStore.copy(items = itemsOnSale)
             }
         }
     }
 
-    /**
-     * Start private manufacture
-     */
+    /** Start private manufacture */
     suspend fun startGeneralPrivateManufacture() {
         //TODO https://github.com/l2kserver/l2kserver-game/issues/27
         send(SystemMessageResponse("Private manufacture is not implemented yet"), ActionFailedResponse)
     }
 
-    /**
-     * Shows [character]'s private store info
-     */
+    /** Shows [character]'s private store info */
     suspend fun showPrivateStoreOf(character: PlayerCharacter) {
         val privateStore = character.privateStore ?: run {
             log.warn("No private store of character '{}' found", character)
@@ -269,9 +259,7 @@ class TradeService(
         send(privateStore.toInfoResponse(character, customer))
     }
 
-    /**
-     * Sends to the client items, suitable for private store (Buy)
-     */
+    /** Sends to the client items, suitable for private store (Buy) */
     suspend fun getItemsForPrivateStoreBuy(): Unit = newSuspendedTransaction {
         val context = sessionContext()
         val character = gameObjectRepository.findCharacterById(context.getCharacterId())
@@ -287,11 +275,11 @@ class TradeService(
 
         stopPrivateStore()
 
-        val itemsInInventory = Item.findAllNotEquippedByOwnerId(character.id)
-            .filter { it.isSellable }
+        val itemsInInventory = character.inventory
+            .filter { !it.isEquipped && it.isSellable }
             .map { it.toItemInInventory() }
 
-        val adenaAmount = Item.findCharacterAdena(character.id)?.amount ?: 0
+        val adenaAmount = character.inventory.adena?.amount ?: 0
 
         send(
             ItemListForPrivateStoreBuyResponse(
@@ -303,18 +291,14 @@ class TradeService(
         )
     }
 
-    /**
-     * Set message of private store (sell) to cache
-     */
+    /** Set message of private store (sell) to cache */
     suspend fun setPrivateStoreBuyMessage(request: PrivateStoreBuySetMessageRequest) {
         setPrivateStoreMessage(request.message)?.let {
             send(PrivateStoreBuySetMessageResponse(sessionContext().getCharacterId(), it))
         }
     }
 
-    /**
-     * Start private store (buy)
-     */
+    /** Start private store (buy) */
     suspend fun startPrivateStoreBuy(request: PrivateStoreBuyStartRequest): Unit = newSuspendedTransaction {
         val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
         log.debug("Starting private store (Buy) by request '{}' of character '{}'", request, character)
@@ -331,7 +315,7 @@ class TradeService(
             return@newSuspendedTransaction
         }
 
-        val characterAdenaAmount = Item.findCharacterAdena(character.id)?.amount ?: 0
+        val characterAdenaAmount = character.inventory.adena?.amount ?: 0
         val totalPrice = request.items.map { it.amount * it.price }.reduce { acc, i -> acc + i }
 
         if (characterAdenaAmount < totalPrice) {
@@ -357,7 +341,8 @@ class TradeService(
         val storeOwner = gameObjectRepository.findCharacterById(request.storeOwnerId)
         log.debug("Start selling items='{}' from '{}' by '{}'", request.items, seller, storeOwner)
 
-        if (!seller.position.isCloseTo(storeOwner.position, INTERACTION_DISTANCE)) {
+        val requiredDistance = INTERACTION_DISTANCE + (seller.collisionBox.radius + storeOwner.collisionBox.radius).roundToInt()
+        if (!seller.position.isCloseTo(storeOwner.position, requiredDistance)) {
             log.debug("StoreOwner is too far to sell")
             send(PlaySoundResponse(Sound.ITEMSOUND_SYS_SHORTAGE))
             send(ActionFailedResponse)
@@ -372,8 +357,9 @@ class TradeService(
 
         //Lock store for transaction time
         privateStore.mutex.withLock {
-            newSuspendedTransaction {
-                if (!checkAllPresent(privateStore.items, request.items, seller.id)) {
+            var itemsInWishList = privateStore.items
+            newSuspendedTransaction(transactionIsolation = Connection.TRANSACTION_SERIALIZABLE) {
+                if (!checkAllPresent(privateStore.items, request.items, seller)) {
                     log.debug(
                         "[BUY] '{}' or '{}' inventory does not contain all required items from request '{}'",
                         privateStore, seller, request
@@ -383,7 +369,7 @@ class TradeService(
                 }
 
                 val totalPrice = calculateTotalPrice(privateStore.items, request.items)
-                val storeOwnerAdena = Item.findCharacterAdena(storeOwner.id)
+                val storeOwnerAdena = storeOwner.inventory.adena
 
                 if ((storeOwnerAdena?.amount ?: 0) < totalPrice) {
                     send(ActionFailedResponse)
@@ -392,15 +378,16 @@ class TradeService(
 
                 //Transfer adena
                 val (adenaOperationsOfStoreOwner, adenaOperationsOfSeller) = transferItem(
-                    storeOwnerAdena!!, to = seller, amount = totalPrice
+                    storeOwnerAdena!!, from = storeOwner, to = seller, amount = totalPrice
                 )
 
                 //Transfer items
                 val (itemOperationsOfSeller, itemOperationsOfStoreOwner) = request.items.map {
-                    val item = it.toItem(seller.id)
-                    val operations = transferItem(item, to = storeOwner, amount = it.amount)
+                    val item = it.toItemInstance(seller)
+                    val operations = transferItem(item, from = seller, to = storeOwner, amount = it.amount)
 
-                    storeOwner.privateStore = privateStore.subtractTradedItem(it)
+                    //Subtract bought items from itemsInWishList
+                    itemsInWishList = itemsInWishList.subtractTradedItem(it)
 
                     sendTo(storeOwner.id, SystemMessageResponse.youHavePurchased(item, seller.name, it.amount))
                     sendTo(seller.id, SystemMessageResponse.otherHasPurchased(storeOwner.name, item, it.amount))
@@ -414,7 +401,12 @@ class TradeService(
                 sendTo(storeOwner.id, UpdateStatusResponse.weightOf(storeOwner))
                 sendTo(seller.id, UpdateStatusResponse.weightOf(seller))
 
-                if (storeOwner.privateStore == null) broadcastActorInfo(storeOwner)
+                //If no items left to sell - close store, otherwise update it
+                if (itemsInWishList.isEmpty()) {
+                    storeOwner.privateStore = null
+                    broadcastActorInfo(storeOwner)
+                }
+                else storeOwner.privateStore = privateStore.copy(items = itemsInWishList)
             }
         }
     }
@@ -426,55 +418,23 @@ class TradeService(
      */
     //All the responses should be sent only after all the item transferring is complete
     private suspend fun transferItem(
-        item: Item, to: PlayerCharacter, amount: Int
+        item: ItemInstance, from: PlayerCharacter, to: PlayerCharacter, amount: Int
     ): Pair<UpdateItemsResponse.Builder, UpdateItemsResponse.Builder> {
         require(amount <= item.amount) { "Not enough $item to transfer!" }
 
         val updateItemOperationsFrom = UpdateItemsResponse.Builder()
         val updateItemOperationsTo = UpdateItemsResponse.Builder()
 
-        var existingReceiversItem =
-            Item.findAllByOwnerIdAndTemplateId(to.id, item.templateId, withLock = true).firstOrNull()
+        val existingReceiversItem = to.inventory.findAllByTemplateId(item.templateId).firstOrNull()
 
-        when {
-            // When item is not stackable, or full stack of item should be
-            // transferred and [to] has no such item - just change the owner
-            !item.isStackable || (amount == item.amount && existingReceiversItem == null) -> {
-                item.ownerId = to.id
-                updateItemOperationsTo.operationAdd(item)
-                updateItemOperationsFrom.operationDelete(item)
-            }
-            // Else - when a full stack of items should be transferred,
-            // but [to] has such item - add its amount to [to]'s item and delete it at [from]
-            amount == item.amount && existingReceiversItem != null -> {
-                existingReceiversItem.amount += amount
-                item.delete()
+        val itemFrom = from.inventory.reduceAmount(item.id, amount)
+        val itemTo = to.inventory.createItem(item.templateId, amount, enchantLevel = item.enchantLevel)
 
-                updateItemOperationsTo.operationModify(existingReceiversItem)
-                updateItemOperationsFrom.operationDelete(item)
-            }
-            // Else - when [to] has no such item and item is transferred partially - create
-            // item at [to] and modify item at [from]
-            amount < item.amount && existingReceiversItem == null -> {
-                val newItem = item.copyTo(to.id, amount = amount)
-                item.amount -= amount
+        if (!itemTo.isStackable || existingReceiversItem == null) updateItemOperationsTo.operationAdd(itemTo)
+        else updateItemOperationsTo.operationModify(itemTo)
 
-                updateItemOperationsTo.operationAdd(newItem)
-                updateItemOperationsFrom.operationModify(item)
-            }
-            // Else - when [to] has such item and item is transferred partially - modify both items
-            amount < item.amount && existingReceiversItem != null -> {
-                existingReceiversItem.amount += amount
-                item.amount -= amount
-
-                updateItemOperationsTo.operationModify(existingReceiversItem)
-                updateItemOperationsFrom.operationModify(item)
-            }
-            else -> throw UnsupportedOperationException(
-                "Cannot recognize how to transfer $item of ${item.ownerId} to $to with existingItem=$existingReceiversItem"
-            )
-
-        }
+        if (itemFrom == null) updateItemOperationsFrom.operationDelete(item)
+        else updateItemOperationsFrom.operationModify(itemFrom)
 
         return updateItemOperationsFrom to updateItemOperationsTo
     }
@@ -504,8 +464,7 @@ class TradeService(
         itemsInStore: Map<Int, ItemOnSale>, requestedItems: Iterable<RequestedToSellItem>, seller: PlayerCharacter
     ) = requestedItems.all { requestedItem ->
         val itemInStoreAmount = itemsInStore[requestedItem.itemId]?.amount ?: 0
-        val itemInInventoryAmount =
-            Item.findNotEquippedByIdAndOwnerIdOrNull(requestedItem.itemId, seller.id)?.amount ?: 0
+        val itemInInventoryAmount = seller.inventory.findNotEquippedByIdOrNull(requestedItem.itemId)?.amount ?: 0
 
         itemInStoreAmount >= requestedItem.amount && itemInInventoryAmount >= requestedItem.amount
     }
@@ -513,14 +472,14 @@ class TradeService(
     private fun checkAllPresent(
         itemsInWishList: Iterable<ItemInWishList>,
         requestedItems: Iterable<RequestedToSellToPrivateStoreItem>,
-        sellerId: Int,
+        seller: PlayerCharacter,
     ): Boolean = requestedItems.all { requestedItem ->
         val existsInPrivateStore = itemsInWishList.any {
             it.templateId == requestedItem.templateId &&
                 it.enchantLevel == requestedItem.enchantLevel &&
                     it.amount >= requestedItem.amount
         }
-        val existsInventory = Item.existsByIdAndAmountAndOwnerId(requestedItem.itemId, requestedItem.amount, sellerId)
+        val existsInventory = seller.inventory.existsByIdAndAmount(requestedItem.itemId, requestedItem.amount)
 
         existsInPrivateStore && existsInventory
     }

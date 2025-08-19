@@ -1,10 +1,10 @@
 package org.l2kserver.game.handler.dto.response
 
-import org.l2kserver.game.extensions.forEachNotNull
+import org.l2kserver.game.model.extensions.forEachNotNull
 import org.l2kserver.game.extensions.littleEndianByteArray
 import org.l2kserver.game.extensions.putUTF16String
 import org.l2kserver.game.extensions.putUByte
-import org.l2kserver.game.model.item.Item
+import org.l2kserver.game.model.item.instance.ItemInstance
 import org.l2kserver.game.model.skill.Skill
 
 private const val SYSTEM_MESSAGE_RESPONSE_PACKET_ID: UByte = 100u
@@ -16,7 +16,7 @@ open class SystemMessageResponse private constructor(
 
     companion object {
 
-        fun youHavePurchased(item: Item, sellerName: String, amount: Int) =
+        fun youHavePurchased(item: ItemInstance, sellerName: String, amount: Int) =
             if (item.isStackable)
                 YouHavePurchasedStackable(sellerName, item, amount)
             else if (!item.isStackable && item.enchantLevel > 0)
@@ -24,7 +24,7 @@ open class SystemMessageResponse private constructor(
             else
                 YouHavePurchasedNonStackable(sellerName, item)
 
-        fun otherHasPurchased(customerName: String, item: Item, amount: Int) =
+        fun otherHasPurchased(customerName: String, item: ItemInstance, amount: Int) =
             if (item.isStackable) OtherHasPurchasedStackable(customerName, item, amount)
             else if (!item.isStackable && item.enchantLevel > 0)
                 OtherHasPurchasedEnchanted(customerName, item)
@@ -42,16 +42,16 @@ open class SystemMessageResponse private constructor(
     data object Welcome: SystemMessageResponse(systemMessageId = 34)
 
     /** Message: "You have equipped your [item]" */
-    data class EquipItem(val item: Item): SystemMessageResponse(systemMessageId = 49, item)
+    data class EquipItem(val item: ItemInstance): SystemMessageResponse(systemMessageId = 49, item)
 
     /** Message: "[item] has been disarmed" */
-    data class DisarmItem(val item: Item): SystemMessageResponse(systemMessageId = 417, item)
+    data class DisarmItem(val item: ItemInstance): SystemMessageResponse(systemMessageId = 417, item)
 
     /** Message: "This item cannot be discarded" */
     data object CannotDiscardItem: SystemMessageResponse(systemMessageId = 98)
 
     /** Message: "[item] cannot be used due to unsuitable terms."*/
-    data class ItemCannotBeUsed(val item: Item): SystemMessageResponse(systemMessageId = 113, item)
+    data class ItemCannotBeUsed(val item: ItemInstance): SystemMessageResponse(systemMessageId = 113, item)
 
     /** Message: While operating a private store or workshop, you cannot discard, destroy, or trade an item. */
     data object CannotDiscardDestroyOrTradeWhileInShop: SystemMessageResponse(systemMessageId = 1065)
@@ -77,16 +77,13 @@ open class SystemMessageResponse private constructor(
     /** Message: "That is too far from you to discard" */
     data object TooFarToDiscard: SystemMessageResponse(systemMessageId = 151)
 
-    /** Message: "Incorrect item count" */
-    data object NotEnoughItems: SystemMessageResponse(systemMessageId = 351)
-
     /** Message: "Attention: [characterName] picked up [item]" */
     data class AttentionPlayerPickedUp(
-        val characterName: String, val item: Item
+        val characterName: String, val item: ItemInstance
     ): SystemMessageResponse(systemMessageId = 1533, characterName, item)
 
     /** Message: "You have obtained $itemName" */
-    data class YouHaveObtained(val item: Item): SystemMessageResponse(systemMessageId = 30, item)
+    data class YouHaveObtained(val item: ItemInstance): SystemMessageResponse(systemMessageId = 30, item)
 
     /** Message: "You hit [damage] damage." */
     data class YouHit(val damage: Int): SystemMessageResponse(systemMessageId = 35, damage)
@@ -123,8 +120,11 @@ open class SystemMessageResponse private constructor(
     /**  Message: "You have exceeded the quantity that can be inputted." */
     data object YouHaveExceededPrivateStoreQuantity: SystemMessageResponse(systemMessageId = 1036)
 
+    /** Message: Not enough HP. */
+    data object NotEnoughHp: SystemMessageResponse(systemMessageId = 23)
+
     /**  Message: "Not enough MP." */
-    data object NotEnoughMP: SystemMessageResponse(systemMessageId = 24)
+    data object NotEnoughMp: SystemMessageResponse(systemMessageId = 24)
 
     /** Message: "You have run out of arrows."*/
     data object NotEnoughArrows: SystemMessageResponse(systemMessageId = 112)
@@ -132,33 +132,36 @@ open class SystemMessageResponse private constructor(
     /** Message: "You do not have enough adena."*/
     data object NotEnoughAdena: SystemMessageResponse(systemMessageId = 279)
 
+    /** Message: "Incorrect item count" */
+    data object NotEnoughItems: SystemMessageResponse(systemMessageId = 351)
+
     /** Message: "[customerName] purchased [item]." */
-    data class OtherHasPurchasedNonStackable(val customerName: String, val item: Item): SystemMessageResponse(
+    data class OtherHasPurchasedNonStackable(val customerName: String, val item: ItemInstance): SystemMessageResponse(
         systemMessageId = 378, customerName, item
     )
 
     /** Message: "[customerName] purchased +[item.item.enchantLevel][item]." */
-    data class OtherHasPurchasedEnchanted(val customerName: String, val item: Item): SystemMessageResponse(
+    data class OtherHasPurchasedEnchanted(val customerName: String, val item: ItemInstance): SystemMessageResponse(
         systemMessageId = 379, customerName, item.enchantLevel, item
     )
 
     /** Message: "[customerName] purchased [amount] [item]." */
-    data class OtherHasPurchasedStackable(val customerName: String, val item: Item, val amount: Int): SystemMessageResponse(
+    data class OtherHasPurchasedStackable(val customerName: String, val item: ItemInstance, val amount: Int): SystemMessageResponse(
         systemMessageId = 380, customerName, item, amount
     )
 
     /** Message: "You have purchased [item] from [sellerName]."*/
-    data class YouHavePurchasedNonStackable(val sellerName: String, val item: Item): SystemMessageResponse(
+    data class YouHavePurchasedNonStackable(val sellerName: String, val item: ItemInstance): SystemMessageResponse(
         systemMessageId = 559, sellerName, item
     )
 
     /** Message: "You have purchased +[item.item.enchantLevel][item] from [sellerName]."*/
-    data class YouHavePurchasedEnchanted(val sellerName: String, val item: Item): SystemMessageResponse(
+    data class YouHavePurchasedEnchanted(val sellerName: String, val item: ItemInstance): SystemMessageResponse(
         systemMessageId = 560, sellerName, item.enchantLevel, item
     )
 
     /** Message: "You have purchased [amount] [item] from [sellerName]."*/
-    data class YouHavePurchasedStackable(val sellerName: String, val item: Item, val amount: Int): SystemMessageResponse(
+    data class YouHavePurchasedStackable(val sellerName: String, val item: ItemInstance, val amount: Int): SystemMessageResponse(
         systemMessageId = 561, sellerName, item, amount
     )
 
@@ -166,7 +169,7 @@ open class SystemMessageResponse private constructor(
      * If item was not enchanted before - message: "Your [item] has been successfully enchanted.",
      * if it already was - "Your +[Item.enchantLevel][item] has been successfully enchanted."
      **/
-    data class YourItemHasBeenSuccessfullyEnchanted(val item: Item): SystemMessageResponse(
+    data class YourItemHasBeenSuccessfullyEnchanted(val item: ItemInstance): SystemMessageResponse(
         systemMessageId = if (item.enchantLevel > 1) 63 else 62,
         if (item.enchantLevel > 1) item.enchantLevel - 1 else null,
         item
@@ -194,7 +197,7 @@ open class SystemMessageResponse private constructor(
                     putInt(it)
                 }
 
-                is Item -> {
+                is ItemInstance -> {
                     putInt(PlaceholderType.ITEM)
                     putInt(it.templateId)
                 }

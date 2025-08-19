@@ -1,13 +1,10 @@
 package org.l2kserver.game.model.actor
 
 import java.util.concurrent.ConcurrentHashMap
-import org.l2kserver.game.model.PaperDoll
+import org.l2kserver.game.domain.Inventory
 import org.l2kserver.game.model.actor.position.Position
 import org.l2kserver.game.utils.LevelUtils
-import org.l2kserver.game.extensions.model.item.countWeightByOwnerId
-import org.l2kserver.game.model.item.Item
 import org.l2kserver.game.domain.PlayerCharacterEntity
-import org.l2kserver.game.extensions.model.item.findAllEquippedByOwnerId
 import org.l2kserver.game.extensions.model.skill.findAllByCharacterIdAndSubclassIndex
 import org.l2kserver.game.extensions.model.stats.applyBasicStats
 import org.l2kserver.game.extensions.model.stats.applyEquipment
@@ -76,8 +73,7 @@ class PlayerCharacter(
 
     override var heading = Heading()
 
-    var paperDoll = PaperDoll(Item.findAllEquippedByOwnerId(this.id))
-    val itemsWeight: Int get() = Item.countWeightByOwnerId(this.id)
+    val inventory = Inventory(this)
 
     override val collisionBox: CollisionBox get() {
         //Scan character class and its parent classes for character template, to get its collision box
@@ -91,7 +87,7 @@ class PlayerCharacter(
     override var isMoving = false
 
     override var targetId: Int? = null
-    override val targetedBy: MutableSet<Int> = ConcurrentHashMap.newKeySet<Int>(0)
+    override val targetedBy: MutableSet<Int> = ConcurrentHashMap.newKeySet(0)
 
     var pvpState = PvpState.NOT_IN_PVP
 
@@ -100,7 +96,7 @@ class PlayerCharacter(
     val basicStats: BasicStats get() = characterClass.basicStats
 
     override val stats: Stats get() = characterClass.combatStats
-        .applyEquipment(paperDoll, characterClass)
+        .applyEquipment(this)
         .applyModifiers(level, characterClass, basicStats)
         .applyLimitations() //TODO apply skills
 
@@ -116,8 +112,8 @@ class PlayerCharacter(
     override val isImmobilized: Boolean get() = isParalyzed //TODO check if rooted, stunned, paralyzed, casting, etc...
     override val isParalyzed: Boolean get() = posture != Posture.STANDING
 
-    override val weaponType get() = paperDoll.getWeapon()?.type
-    override val hasShield: Boolean get() = paperDoll.shield != null
+    override val weaponType get() = inventory.weapon?.type
+    override val hasShield: Boolean get() = inventory.shield != null
 
     //TODO Siege and clan relations
     override fun isEnemyOf(other: Actor) = karma > 0 || pvpState != PvpState.NOT_IN_PVP

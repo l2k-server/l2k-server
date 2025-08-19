@@ -1,4 +1,4 @@
-package org.l2kserver.game.extensions
+package org.l2kserver.game.model.extensions
 
 /** Transforms Boolean to Byte. True = 1, False = 0 */
 fun Boolean.toByte(): Byte = if (this) 1 else 0

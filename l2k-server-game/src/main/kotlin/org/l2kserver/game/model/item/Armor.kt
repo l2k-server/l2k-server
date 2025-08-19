@@ -1,6 +1,12 @@
 package org.l2kserver.game.model.item
 
 import org.l2kserver.game.domain.ItemEntity
+import org.l2kserver.game.model.item.instance.CrystallizableItemInstance
+import org.l2kserver.game.model.item.instance.EquippableItemInstance
+import org.l2kserver.game.model.item.template.ArmorTemplate
+import org.l2kserver.game.model.item.template.ArmorType
+import org.l2kserver.game.model.item.template.Grade
+import org.l2kserver.game.model.item.template.ItemGroup
 import org.l2kserver.game.model.stats.Stats
 
 // For full body armor safe enchant level is 4, but stats are calculated as it is 3
@@ -10,9 +16,9 @@ private const val ARMOR_PER_UNSAFE_ENCHANT_P_DEF_BONUS = 3
 private const val ARMOR_PER_SAFE_ENCHANT_P_DEF_BONUS = 1
 
 class Armor(
-    itemEntity: ItemEntity,
+    private val itemEntity: ItemEntity,
     private val itemTemplate: ArmorTemplate,
-): EquippableItem, CrystallizableItem {
+): EquippableItemInstance, CrystallizableItemInstance {
     override val id: Int = itemEntity.id.value
 
     override val templateId by itemEntity::templateId

@@ -6,13 +6,14 @@ import org.jetbrains.exposed.sql.transactions.transaction
 import org.junit.jupiter.api.BeforeEach
 import org.l2kserver.game.configuration.HazelcastInstanceTestConfiguration
 import org.l2kserver.game.data.character.classes.HUMAN_FIGHTER
+import org.l2kserver.game.domain.ItemEntity
 import org.l2kserver.game.model.session.AuthorizationKey
 import org.l2kserver.game.repository.GameObjectRepository
 import org.l2kserver.game.domain.PlayerCharacterTable
 import org.l2kserver.game.domain.ItemTable
 import org.l2kserver.game.domain.ShortcutTable
 import org.l2kserver.game.domain.SkillsTable
-import org.l2kserver.game.extensions.model.item.createAllFrom
+import org.l2kserver.game.extensions.model.item.toItemInstance
 import org.l2kserver.game.model.GameData
 import org.l2kserver.game.model.GameDataRegistry
 import org.l2kserver.game.model.actor.PlayerCharacter
@@ -21,18 +22,18 @@ import org.l2kserver.game.model.actor.character.CharacterRace
 import org.l2kserver.game.model.actor.character.Gender
 import org.l2kserver.game.model.actor.character.InitialItem
 import org.l2kserver.game.model.actor.npc.NpcTemplate
-import org.l2kserver.game.model.item.Item
 import org.l2kserver.game.model.actor.position.Position
-import org.l2kserver.game.model.item.ItemTemplate
+import org.l2kserver.game.model.item.template.ItemTemplate
 import org.l2kserver.game.network.session.SessionContext
 import org.l2kserver.game.repository.PlayerCharacterRepository
 import org.l2kserver.game.service.ActorStateService
+import org.l2kserver.game.service.AsyncTaskService
+import org.l2kserver.game.service.REGENERATION_JOB
 import org.l2kserver.game.utils.IdUtils
+import org.l2kserver.game.utils.getPrivateProperty
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import kotlin.random.Random
-import kotlin.reflect.full.memberProperties
-import kotlin.reflect.jvm.isAccessible
 
 @SpringBootTest(
     // Local HazelcastInstance must be started for tests, in due not to conflict with bootRunTest gradle task
@@ -40,6 +41,9 @@ import kotlin.reflect.jvm.isAccessible
     classes = [HazelcastInstanceTestConfiguration::class]
 )
 abstract class AbstractTests {
+
+    @Autowired
+    private lateinit var asyncTaskService: AsyncTaskService
 
     @Autowired
     private lateinit var actorStateService: ActorStateService
@@ -64,6 +68,7 @@ abstract class AbstractTests {
         SessionContext.clear()
         gameObjectRepository.deleteAll()
         actorStateService.flushStates()
+        asyncTaskService.cancelTask(REGENERATION_JOB)
         NpcTemplate.Registry.flush()
     }
 
@@ -102,12 +107,13 @@ abstract class AbstractTests {
     }
 
     protected suspend fun createTestItem(
-        templateId: Int,
-        ownerId: Int,
-        amount: Int = 1,
-        isEquipped: Boolean = false
+        templateId: Int, owner: PlayerCharacter, amount: Int = 1, isEquipped: Boolean = false
     ) = transaction {
-        Item.createAllFrom(ownerId, listOf(InitialItem(templateId, amount, isEquipped))).first()
+        val item = ItemEntity.createAllFrom(owner.id, listOf(InitialItem(templateId, amount, isEquipped)))
+            .first().toItemInstance()!!
+        owner.inventory.reload()
+
+        item
     }
 
     protected suspend fun createTestScatteredItem(
@@ -140,11 +146,4 @@ abstract class AbstractTests {
         val gameDataMap: MutableMap<Int, Long> = this.getPrivateProperty("gameDataStorage")!!
         gameDataMap.clear()
     }
-
-    @Suppress("UNCHECKED_CAST")
-    private inline fun <reified T : Any, R> T.getPrivateProperty(name: String): R? = T::class
-        .memberProperties
-        .firstOrNull { it.name == name }
-        ?.apply { isAccessible = true }
-        ?.get(this) as? R?
 }

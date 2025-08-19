@@ -19,9 +19,7 @@ class GameObjectRepository: Iterable<GameWorldObject> {
     override fun iterator() = objectMap.values.iterator()
 
     /**
-     * Loads character from database and places it to game world
-     *
-     * @throws IllegalArgumentException if no character with given id exists
+     * Loads character to game world
      * @return loaded Character
      */
     fun loadCharacter(character: PlayerCharacter): PlayerCharacter {

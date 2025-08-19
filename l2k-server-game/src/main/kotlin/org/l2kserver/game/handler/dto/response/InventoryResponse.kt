@@ -2,12 +2,12 @@ package org.l2kserver.game.handler.dto.response
 
 import org.l2kserver.game.extensions.littleEndianByteArray
 import org.l2kserver.game.extensions.putUByte
-import org.l2kserver.game.model.item.Item
+import org.l2kserver.game.model.item.instance.ItemInstance
 
 private const val ITEMS_RESPONSE_PACKET_ID: UByte = 27u
 
 data class InventoryResponse(
-    val items: List<Item>,
+    val items: Collection<ItemInstance>,
     val showInventory: Boolean = false
 ) : ResponsePacket {
 
@@ -24,7 +24,7 @@ data class InventoryResponse(
             putShort(it.category.id.toShort())
             putShort(0) // Custom Type (?)
             putShort(if (it.isEquipped) 1 else 0)
-            putInt(it.equippedAt?.id ?: 0)
+            putInt(it.type.availableSlots.firstOrNull()?.id ?: 0)
             putShort(it.enchantLevel.toShort())
             putShort(0) // Custom Type 2 (?)
             putInt(it.augmentationId)

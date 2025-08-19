@@ -7,8 +7,8 @@ import org.l2kserver.game.model.actor.npc.NpcRace
 import org.l2kserver.game.model.actor.npc.SpawnedAt
 import org.l2kserver.game.model.actor.position.Heading
 import org.l2kserver.game.model.actor.npc.ai.Ai
-import org.l2kserver.game.model.item.ArmorTemplate
-import org.l2kserver.game.model.item.WeaponTemplate
+import org.l2kserver.game.model.item.template.ArmorTemplate
+import org.l2kserver.game.model.item.template.WeaponTemplate
 import org.l2kserver.game.model.reward.Reward
 import org.l2kserver.game.model.stats.Stats
 

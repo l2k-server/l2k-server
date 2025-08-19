@@ -1,7 +1,5 @@
 package org.l2kserver.game.extensions.model.store
 
-import org.l2kserver.game.extensions.model.item.findAllNotEquippedByOwnerIdAndTemplateIds
-import org.l2kserver.game.extensions.model.item.findCharacterAdena
 import org.l2kserver.game.handler.dto.request.RequestedToSellItem
 import org.l2kserver.game.handler.dto.request.RequestedToSellToPrivateStoreItem
 import org.l2kserver.game.handler.dto.response.PrivateStoreBuySetMessageResponse
@@ -10,36 +8,39 @@ import org.l2kserver.game.handler.dto.response.ResponsePacket
 import org.l2kserver.game.handler.dto.response.ShowPrivateStoreBuyResponse
 import org.l2kserver.game.handler.dto.response.ShowPrivateStoreSellResponse
 import org.l2kserver.game.model.actor.PlayerCharacter
-import org.l2kserver.game.model.item.Item
 import org.l2kserver.game.model.store.ItemInWishList
 import org.l2kserver.game.model.store.PrivateStore
 import org.l2kserver.game.model.store.ItemOnSale
 import kotlin.Int
 
 /**
- * Subtracts traded item from store list. If no traded items left in item slot - removes it
+ * Subtracts traded item from store list. If no traded items left in item slot - removes it.
  * If all the slots are empty now - returns null
  *
  * @return Updated private store or null, if no items left in store
  */
-fun PrivateStore.Sell.subtractTradedItem(requestedToSellItem: RequestedToSellItem): PrivateStore? {
-    val updatedItems: MutableMap<Int, ItemOnSale> = LinkedHashMap(this.items)
+fun Map<Int, ItemOnSale>.subtractTradedItem(requestedToSellItem: RequestedToSellItem) = this[requestedToSellItem.itemId]?.let {
+    val newItems = this.toMutableMap()
 
-    updatedItems[requestedToSellItem.itemId]?.let {
-        val newAmount = it.amount - requestedToSellItem.amount
+    val newAmount = it.amount - requestedToSellItem.amount
 
-        if (newAmount <= 0) updatedItems.remove(requestedToSellItem.itemId)
-        else updatedItems[requestedToSellItem.itemId] = it.copy(amount = newAmount)
-    }
+    if (newAmount <= 0) newItems.remove(requestedToSellItem.itemId)
+    else newItems[requestedToSellItem.itemId] = it.copy(amount = newAmount)
 
-    return if (updatedItems.isEmpty()) null else this.copy(items = updatedItems)
-}
+    newItems as Map<Int, ItemOnSale>
+} ?: this
 
-fun PrivateStore.Buy.subtractTradedItem(requestedItem: RequestedToSellToPrivateStoreItem): PrivateStore? {
+/**
+ * Subtracts traded item from store list. If no traded items left in item slot - removes it.
+ * If all the slots are empty now - returns null
+ *
+ * @return Updated private store or null, if no items left in store
+ */
+fun List<ItemInWishList>.subtractTradedItem(requestedItem: RequestedToSellToPrivateStoreItem): List<ItemInWishList> {
     val updatedItems = ArrayList<ItemInWishList>()
 
-    for (i: Int in this.items.indices) {
-        val itemInWishList = this.items[i]
+    for (i: Int in this.indices) {
+        val itemInWishList = this[i]
         val templateMatches = itemInWishList.templateId == requestedItem.templateId
         val enchantMatches = itemInWishList.enchantLevel == requestedItem.enchantLevel
 
@@ -47,34 +48,33 @@ fun PrivateStore.Buy.subtractTradedItem(requestedItem: RequestedToSellToPrivateS
             val newAmount = itemInWishList.amount - requestedItem.amount
             if (newAmount > 0) updatedItems.add(itemInWishList.copy(amount = newAmount))
 
-            updatedItems += this.items.subList(i + 1, this.items.size)
+            updatedItems += this.subList(i + 1, this.size)
             break
         }
         else updatedItems.add(itemInWishList)
     }
 
-    return if (updatedItems.isEmpty()) null else this.copy(items = updatedItems)
+    return updatedItems as List<ItemInWishList>
 }
-
 
 fun PrivateStore.toInfoResponse(storeOwner: PlayerCharacter, storeCustomer: PlayerCharacter): ResponsePacket =
     when (this) {
         is PrivateStore.Sell -> ShowPrivateStoreSellResponse(
             ownerId = storeOwner.id,
-            buyerAdena = Item.findCharacterAdena(storeCustomer.id)?.amount ?: 0,
+            buyerAdena = storeCustomer.inventory.adena?.amount ?: 0,
             items = this.items.values,
             packageSale = this.packageSale
         )
 
         is PrivateStore.Buy -> {
             //Find all the items, which customer can sell to private store
-            val customerItems = Item.findAllNotEquippedByOwnerIdAndTemplateIds(
-                storeCustomer.id, this.items.map { it.templateId }
-            ).toMutableSet()
+            val customerItems = storeCustomer.inventory
+                .findAllNotEquippedByTemplateIds(this.items.map { it.templateId })
+                .toMutableSet()
 
             ShowPrivateStoreBuyResponse(
                 ownerId = storeOwner.id,
-                customerAdena = Item.findCharacterAdena(storeCustomer.id)?.amount ?: 0,
+                customerAdena = storeCustomer.inventory.adena?.amount ?: 0,
                 items = this.items.map { itemInWishList ->
                     // Find customer item in customer items set
                     val customerItem = customerItems.find {

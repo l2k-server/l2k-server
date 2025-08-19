@@ -28,7 +28,6 @@ import org.l2kserver.game.domain.AccessLevel
 import org.l2kserver.game.model.map.Town
 import org.l2kserver.game.domain.Shortcut
 import org.l2kserver.game.extensions.model.actor.toInfoResponse
-import org.l2kserver.game.extensions.model.item.findAllByOwnerId
 import org.l2kserver.game.extensions.model.shortcut.findAllBy
 import org.l2kserver.game.extensions.model.store.toMessageResponse
 import org.l2kserver.game.handler.dto.request.RespawnAt
@@ -47,7 +46,6 @@ import org.l2kserver.game.handler.dto.response.ShortcutPanelResponse
 import org.l2kserver.game.handler.dto.response.SystemMessageResponse
 import org.l2kserver.game.handler.dto.response.UpdateStatusResponse
 import org.l2kserver.game.model.actor.PlayerCharacter
-import org.l2kserver.game.model.item.Item
 import org.l2kserver.game.model.actor.position.Position
 import org.l2kserver.game.model.actor.character.CharacterRace
 import org.l2kserver.game.model.actor.character.Gender
@@ -90,7 +88,7 @@ class CharacterService(
      * is sent to him every minute to update deleting time on client side and delete deleted characters
      */
     @EventListener(ApplicationReadyEvent::class)
-    fun init() = asyncTaskService.launchJob("UPDATE_CHARACTERS_INFO_JOB") {
+    fun init() = asyncTaskService.launchTask("UPDATE_CHARACTERS_INFO_JOB") {
         while (isActive) {
             val deletedPlayerCharacterOwners = playerCharacterRepository.deleteAllWithExpiredDeletionDate()
                 .map { it.accountName }
@@ -284,11 +282,10 @@ class CharacterService(
             "Cannot enter game: no character with id $characterId exists!"
         }
         gameObjectRepository.loadCharacter(character)
-        val items = Item.findAllByOwnerId(character.id)
         val shortcuts = Shortcut.findAllBy(character.id, character.activeSubclass)
 
         send(FullCharacterResponse(character))
-        send(InventoryResponse(items))
+        send(InventoryResponse(character.inventory))
         send(ShortcutPanelResponse(shortcuts))
         send(SystemMessageResponse.Welcome)
 

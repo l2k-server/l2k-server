@@ -21,11 +21,11 @@ class AsyncTaskService {
 
     private val log = logger()
 
-    /**
-     * Storage for action jobs, performed by actors
-     */
+    /** Storage for action jobs, performed by actors */
     private val actionJobMap = ConcurrentHashMap<Int, Job>()
-    private val tasks = ConcurrentHashMap.newKeySet<Job>()
+
+    /** Storage for global tasks */
+    private val taskJobMap = ConcurrentHashMap<String, Job>()
 
     /**
      * Cancels action job of actor with provided [actorId]
@@ -59,18 +59,20 @@ class AsyncTaskService {
     /**
      * Launches a global task
      */
-    fun launchJob(taskName: String, task: suspend CoroutineScope.() -> Unit) {
-        tasks.add(CoroutineScope(Dispatchers.Default + CoroutineName(taskName)).launch(block = task))
+    fun launchTask(taskName: String, action: suspend CoroutineScope.() -> Unit) {
+        taskJobMap[taskName] = CoroutineScope(Dispatchers.Default + CoroutineName(taskName)).launch(block = action)
         log.info("Started $taskName")
     }
+
+    fun cancelTask(taskName: String) = taskJobMap[taskName]?.cancel()
 
     @PreDestroy
     fun shutdown() {
         actionJobMap.keys.forEach { cancelActionByActorId(it) }
 
-        tasks.forEach {
-            log.info("Cancelling ${(it as CoroutineScope).coroutineContext[CoroutineName]!!.name}")
-            it.cancel()
+        taskJobMap.forEach { name, task ->
+            log.info("Cancelling $name}")
+            task.cancel()
         }
     }
 

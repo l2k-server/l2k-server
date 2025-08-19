@@ -6,7 +6,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
-import org.l2kserver.game.extensions.forEachMatching
+import org.l2kserver.game.model.extensions.forEachMatching
 import org.l2kserver.game.extensions.logger
 import org.l2kserver.game.extensions.model.actor.toInfoResponse
 import org.l2kserver.game.handler.dto.request.MoveRequest
@@ -152,7 +152,10 @@ class MoveService(
         )
 
         try {
-            broadcastPacket(StartMovingResponse(actor.id, actor.position, target.position))
+            broadcastPacket(
+                StartMovingResponse(actor.id, actor.position, destinationPosition),
+                actor.position
+            )
             send(StartMovingToTargetResponse(actor.id, target.id, requiredDistance, actor.position))
             actor.isMoving = true
 

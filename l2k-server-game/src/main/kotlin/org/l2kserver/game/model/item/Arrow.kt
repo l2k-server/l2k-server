@@ -1,11 +1,14 @@
 package org.l2kserver.game.model.item
 
 import org.l2kserver.game.domain.ItemEntity
+import org.l2kserver.game.model.item.instance.ItemInstance
+import org.l2kserver.game.model.item.template.ArrowTemplate
+import org.l2kserver.game.model.item.template.ItemGroup
 
 class Arrow(
-    itemEntity: ItemEntity,
+    private val itemEntity: ItemEntity,
     itemTemplate: ArrowTemplate
-): Item {
+): ItemInstance {
     override val id: Int = itemEntity.id.value
 
     override val templateId by itemEntity::templateId
@@ -27,15 +30,6 @@ class Arrow(
     override val isStackable = true
     override val category = itemTemplate.category
     override val group = ItemGroup.ETC
-
-    fun toEquipped(slot: Slot): Arrow {
-        this.equippedAt = slot
-        return this
-    }
-    fun toUnequipped(): Arrow {
-        this.equippedAt = null
-        return this
-    }
 
     override fun toString() = "Arrow(name=$name id=$id amount=$amount)"
 

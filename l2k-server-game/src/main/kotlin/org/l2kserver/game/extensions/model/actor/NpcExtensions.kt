@@ -6,9 +6,9 @@ import org.l2kserver.game.model.actor.npc.NpcTemplate
 import org.l2kserver.game.model.actor.position.Heading
 import org.l2kserver.game.model.actor.MoveType
 import org.l2kserver.game.model.actor.npc.SpawnedAt
-import org.l2kserver.game.model.item.ArmorTemplate
-import org.l2kserver.game.model.item.ItemTemplate
-import org.l2kserver.game.model.item.WeaponTemplate
+import org.l2kserver.game.model.item.template.ArmorTemplate
+import org.l2kserver.game.model.item.template.ItemTemplate
+import org.l2kserver.game.model.item.template.WeaponTemplate
 
 fun NpcTemplate.toNpc(id: Int, position: Position, heading: Heading, spawnedAt: SpawnedAt) = Npc(
     id = id,

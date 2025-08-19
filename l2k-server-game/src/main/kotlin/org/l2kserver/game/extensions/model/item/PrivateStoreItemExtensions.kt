@@ -4,23 +4,25 @@ import org.jetbrains.exposed.sql.transactions.transaction
 import org.l2kserver.game.handler.dto.request.RequestedToBuyItem
 import org.l2kserver.game.handler.dto.request.RequestedToSellItem
 import org.l2kserver.game.handler.dto.request.RequestedToSellToPrivateStoreItem
-import org.l2kserver.game.model.item.Item
-import org.l2kserver.game.model.item.ItemTemplate
+import org.l2kserver.game.model.actor.PlayerCharacter
+import org.l2kserver.game.model.item.instance.ItemInstance
+import org.l2kserver.game.model.item.template.ItemTemplate
 import org.l2kserver.game.model.store.ItemInInventory
 import org.l2kserver.game.model.store.ItemInWishList
 import org.l2kserver.game.model.store.ItemOnSale
 import kotlin.Int
 
 /**
- * Finds requested item in [ownerId]'s inventory and checks if it can be requested to sell
+ * Finds requested item in [owner]'s inventory and checks if it can be requested to sell
  */
-fun RequestedToSellItem.toItem(ownerId: Int): Item = transaction {
-    val requestedItem = this@toItem
-    val item = Item.findById(requestedItem.itemId)
+fun RequestedToSellItem.toItemInstance(owner: PlayerCharacter): ItemInstance = transaction {
+    val requestedItem = this@toItemInstance
+    val item = owner.inventory.findById(requestedItem.itemId)
+
     require(!item.isEquipped) { "Equipped item cannot be placed to private store!" }
 
     require(item.amount >= requestedItem.amount) { "Not enough $item to sell!" }
-    require(item.isSellable) { "Player '$ownerId' is trying to sell non-sellable item in private store!" }
+    require(item.isSellable) { "$owner is trying to sell non-sellable item in private store!" }
 
     item
 }
@@ -28,11 +30,11 @@ fun RequestedToSellItem.toItem(ownerId: Int): Item = transaction {
 /**
  * Convert private store item from request to ItemOnSale
  *
- * @param ownerId Current item owner
+ * @param owner Current item owner
  */
-fun RequestedToSellItem.toItemOnSale(ownerId: Int): ItemOnSale = transaction {
+fun RequestedToSellItem.toItemOnSale(owner: PlayerCharacter): ItemOnSale = transaction {
     val requestedItem = this@toItemOnSale
-    val item = requestedItem.toItem(ownerId)
+    val item = requestedItem.toItemInstance(owner)
 
     return@transaction ItemOnSale(
         itemId = item.id,
@@ -64,18 +66,18 @@ fun RequestedToBuyItem.toItemInWishList(ownerId: Int): ItemInWishList = transact
     )
 }
 
-fun RequestedToSellToPrivateStoreItem.toItem(ownerId: Int): Item = transaction {
-    val requestedItem = this@toItem
-    val item = Item.findById(requestedItem.itemId)
+fun RequestedToSellToPrivateStoreItem.toItemInstance(owner: PlayerCharacter): ItemInstance = transaction {
+    val requestedItem = this@toItemInstance
+    val item = owner.inventory.findById(requestedItem.itemId)
     require(!item.isEquipped) { "Equipped item cannot be placed to private store!" }
 
     require(item.amount >= requestedItem.amount) { "Not enough $item to sell!" }
-    require(item.isSellable) { "Player '$ownerId' is trying to sell non-sellable item in private store!" }
+    require(item.isSellable) { "$owner is trying to sell non-sellable item in private store!" }
 
     item
 }
 
-fun Item.toItemInInventory(amount: Int = this.amount) = ItemInInventory(
+fun ItemInstance.toItemInInventory(amount: Int = this.amount) = ItemInInventory(
     itemId = this.id,
     templateId = this.templateId,
     enchantLevel = this.enchantLevel,

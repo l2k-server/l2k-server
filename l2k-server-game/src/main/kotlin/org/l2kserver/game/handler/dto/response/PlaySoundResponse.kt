@@ -3,7 +3,7 @@ package org.l2kserver.game.handler.dto.response
 import org.l2kserver.game.extensions.littleEndianByteArray
 import org.l2kserver.game.extensions.putUByte
 import org.l2kserver.game.extensions.putUTF16String
-import org.l2kserver.game.extensions.toInt
+import org.l2kserver.game.model.extensions.toInt
 
 private const val PLAY_SOUND_RESPONSE_PACKET_ID: UByte = 152u
 

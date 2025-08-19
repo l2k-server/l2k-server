@@ -1,26 +1,20 @@
 package org.l2kserver.game.network.session
 
+import kotlinx.coroutines.channels.BufferOverflow
 import java.io.Closeable
 import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.channels.Channel.Factory.UNLIMITED
 import org.l2kserver.game.handler.dto.response.ResponsePacket
 import org.l2kserver.game.model.session.AuthorizationKey
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.coroutineContext
 
-/**
- * Storage for all sessions
- *
- * Key - session id, value - session context
- */
+private const val RESPONSE_CHANNEL_CAPACITY = 127
+
+/** Storage for all sessions. Key - session id, value - session context */
 private val sessionsMap = ConcurrentHashMap<Int, SessionContext>()
 
-/**
- * Storage for sessions of players, who entered game
- *
- * Key - character id, value - session context
- */
+/** Storage for sessions of players, who entered game. Key - character id, value - session context */
 private val inGameSessionsMap = ConcurrentHashMap<Int, SessionContext>()
 
 /**
@@ -32,6 +26,7 @@ private val inGameSessionsMap = ConcurrentHashMap<Int, SessionContext>()
  * @property characterId Selected character's id
  */
 class SessionContext(val sessionId: Int) : CoroutineContext.Element, Closeable {
+
     companion object Key : CoroutineContext.Key<SessionContext>, Iterable<SessionContext> {
         override fun iterator() = sessionsMap.values.iterator()
 
@@ -41,6 +36,11 @@ class SessionContext(val sessionId: Int) : CoroutineContext.Element, Closeable {
 
         fun clear() = sessionsMap.clear()
     }
+
+    init {
+        sessionsMap[sessionId] = this
+    }
+
     override val key: CoroutineContext.Key<*> = SessionContext
 
     private var accountName: String? = null
@@ -51,14 +51,10 @@ class SessionContext(val sessionId: Int) : CoroutineContext.Element, Closeable {
      */
     fun getAccountName() = checkNotNull(accountName) { "No account name found in session. Is user authorized?" }
 
-    /**
-     * Set account name
-     */
+    /** Set account name */
     fun setAccountName(value: String) { accountName = value }
 
-    /**
-     * @return account name or null, if there is no account name in session
-     */
+    /** Returns account name or null, if there is no account name in session */
     fun getAccountNameOrNull() = accountName
 
     private var authorizationKey: AuthorizationKey? = null
@@ -69,9 +65,7 @@ class SessionContext(val sessionId: Int) : CoroutineContext.Element, Closeable {
      */
     fun getAuthorizationKey() = checkNotNull(authorizationKey) { "No authorization key found in session. Is user authorized?" }
 
-    /**
-     * Set authorization key
-     */
+    /** Set authorization key */
     fun setAuthorizationKey(value: AuthorizationKey) { authorizationKey = value }
 
     private var characterId: Int? = null
@@ -82,9 +76,7 @@ class SessionContext(val sessionId: Int) : CoroutineContext.Element, Closeable {
      */
     fun getCharacterId() = checkNotNull(characterId) { "Player $accountName has not selected character" }
 
-    /**
-     * Set selected character id
-     */
+    /** Set selected character id */
     fun setCharacterId(value: Int?) {
         if (value == null) characterId?.let { inGameSessionsMap.remove(it) }
         else inGameSessionsMap[value] = this
@@ -92,25 +84,15 @@ class SessionContext(val sessionId: Int) : CoroutineContext.Element, Closeable {
         characterId = value
     }
 
-    /**
-     * @return selected character id or null, if there is no selected character id in session
-     */
+    /** Returns selected character id or null, if there is no selected character id in session */
     fun getCharacterIdOrNull() = characterId
 
-    val responseChannel = Channel<ResponsePacket>(UNLIMITED)
+    val responseChannel = Channel<ResponsePacket>(RESPONSE_CHANNEL_CAPACITY, BufferOverflow.DROP_OLDEST)
 
-    init {
-        sessionsMap[sessionId] = this
-    }
-
-    /**
-     * @return `true` if player is now in characters menu or creates character
-     */
+    /** Returns`true` if player is now in characters menu or creates character */
     fun inCharacterMenu(): Boolean = accountName != null && characterId == null
 
-    /**
-     * Flush player's session data
-     */
+    /** Flush player's session data */
     override fun close() {
         characterId?.let { inGameSessionsMap.remove(it) }
         sessionsMap.remove(sessionId)
@@ -126,16 +108,12 @@ suspend inline fun sessionContext() = checkNotNull(coroutineContext[SessionConte
     "Coroutine is not in SessionContext"
 }
 
-/**
- * Sends [responses] to the current session owner. If no SessionContext found - does nothing
- */
+/** Sends [responses] to the current session owner. If no SessionContext found - does nothing */
 suspend inline fun send(vararg responses: ResponsePacket) = responses.forEach {
     coroutineContext[SessionContext]?.responseChannel?.send(it)
 }
 
-/**
- * Sends [responses] to character with id = [addresseeCharacterId]. If no characters session found, does nothing
- */
+/** Sends [responses] to character with id = [addresseeCharacterId]. If no characters session found, does nothing */
 suspend fun sendTo(addresseeCharacterId: Int, vararg responses: ResponsePacket) = responses.forEach {
     inGameSessionsMap[addresseeCharacterId]?.responseChannel?.send(it)
 }

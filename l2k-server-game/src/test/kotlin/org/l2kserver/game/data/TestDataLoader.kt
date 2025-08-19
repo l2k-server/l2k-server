@@ -10,6 +10,11 @@ import org.l2kserver.game.data.item.armor.SQUIRES_SHIRT
 import org.l2kserver.game.data.item.arrows.BONE_ARROW
 import org.l2kserver.game.data.item.arrows.WOODEN_ARROW
 import org.l2kserver.game.data.item.etc.ADENA
+import org.l2kserver.game.data.item.jewelry.EARRING_OF_STRENGTH
+import org.l2kserver.game.data.item.jewelry.EARRING_OF_WISDOM
+import org.l2kserver.game.data.item.jewelry.NECKLACE_OF_COURAGE
+import org.l2kserver.game.data.item.jewelry.RING_OF_ANGUISH
+import org.l2kserver.game.data.item.jewelry.RING_OF_KNOWLEDGE
 import org.l2kserver.game.data.item.weapons.BOW
 import org.l2kserver.game.data.item.weapons.DAGGER
 import org.l2kserver.game.data.item.weapons.DEMON_SPLINTER
@@ -22,6 +27,7 @@ import org.l2kserver.game.data.npc.GREMLIN
 import org.l2kserver.game.data.skill.MORTAL_BLOW
 import org.l2kserver.game.data.skill.POWER_STRIKE
 import org.l2kserver.game.domain.AccessLevel
+import org.l2kserver.game.domain.ItemEntity
 import org.l2kserver.game.domain.PlayerCharacterTable
 import org.l2kserver.game.domain.Shortcut
 import org.l2kserver.game.domain.SkillsTable
@@ -31,7 +37,8 @@ import org.l2kserver.game.model.actor.character.L2kCharacterClass
 import org.l2kserver.game.model.actor.character.CharacterRace
 import org.l2kserver.game.model.actor.character.ShortcutType
 import org.l2kserver.game.model.actor.npc.NpcTemplate
-import org.l2kserver.game.model.item.ItemTemplate
+import org.l2kserver.game.model.item.template.ItemTemplate
+import org.l2kserver.game.model.item.template.Slot
 import org.l2kserver.game.model.skill.SkillTemplate
 import org.l2kserver.game.repository.PlayerCharacterRepository
 import org.springframework.boot.context.event.ApplicationStartedEvent
@@ -84,6 +91,13 @@ class TestDataLoader(
             SQUIRES_SHIRT,
             SQUIRES_PANTS,
             LEATHER_SHIELD,
+
+            //Jewelry
+            EARRING_OF_STRENGTH,
+            EARRING_OF_WISDOM,
+            RING_OF_ANGUISH,
+            RING_OF_KNOWLEDGE,
+            NECKLACE_OF_COURAGE,
 
             //ETC
             ADENA,
@@ -138,6 +152,79 @@ class TestDataLoader(
         character.currentCp = character.stats.maxCp
         character.currentHp = character.stats.maxHp
         character.currentMp = character.stats.maxMp
+
+        ItemEntity.new {
+            this.templateId = LEATHER_SHIELD.id
+            this.ownerId = character.id
+            this.enchantLevel = 16
+            this.equippedAt = Slot.LEFT_HAND
+        }
+
+        ItemEntity.new {
+            this.templateId = ADENA.id
+            this.ownerId = character.id
+            this.amount = UShort.MAX_VALUE.toInt()
+        }
+
+        ItemEntity.new {
+            this.templateId = HEAVENS_DIVIDER.id
+            this.ownerId = character.id
+            this.enchantLevel = 16
+        }
+
+        ItemEntity.new {
+            this.templateId = TALLUM_BLADE_DARK_LEGIONS_EDGE.id
+            this.ownerId = character.id
+            this.enchantLevel = 16
+        }
+
+        ItemEntity.new {
+            this.templateId = DEMON_SPLINTER.id
+            this.ownerId = character.id
+            this.enchantLevel = 16
+        }
+
+        ItemEntity.new {
+            this.templateId = EARRING_OF_STRENGTH.id
+            this.ownerId = character.id
+        }
+
+        ItemEntity.new {
+            this.templateId = EARRING_OF_WISDOM.id
+            this.ownerId = character.id
+        }
+
+        ItemEntity.new {
+            this.templateId = RING_OF_ANGUISH.id
+            this.ownerId = character.id
+        }
+
+        ItemEntity.new {
+            this.templateId = RING_OF_KNOWLEDGE.id
+            this.ownerId = character.id
+        }
+
+        ItemEntity.new {
+            this.templateId = NECKLACE_OF_COURAGE.id
+            this.ownerId = character.id
+        }
+
+        ItemEntity.new {
+            this.templateId = BOW.id
+            this.ownerId = character.id
+        }
+
+        ItemEntity.new {
+            this.templateId = WOODEN_ARROW.id
+            this.ownerId = character.id
+            this.amount = 21
+        }
+
+        ItemEntity.new {
+            this.templateId = BONE_ARROW.id
+            this.ownerId = character.id
+            this.amount = 21
+        }
     }
 
 }

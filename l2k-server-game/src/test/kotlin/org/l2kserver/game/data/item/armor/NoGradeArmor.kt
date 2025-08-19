@@ -1,8 +1,8 @@
 package org.l2kserver.game.data.item.armor
 
-import org.l2kserver.game.model.item.ArmorTemplate
-import org.l2kserver.game.model.item.ArmorType
-import org.l2kserver.game.model.item.Grade
+import org.l2kserver.game.model.item.template.ArmorTemplate
+import org.l2kserver.game.model.item.template.ArmorType
+import org.l2kserver.game.model.item.template.Grade
 import org.l2kserver.game.model.stats.Stats
 
 val LEATHER_SHIELD = ArmorTemplate(

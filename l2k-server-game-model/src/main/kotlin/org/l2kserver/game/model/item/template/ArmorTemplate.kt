@@ -1,4 +1,4 @@
-package org.l2kserver.game.model.item
+package org.l2kserver.game.model.item.template
 
 import org.l2kserver.game.model.stats.Stats
 
@@ -23,21 +23,6 @@ data class ArmorTemplate(
  * Type of armor item
  *
  * @param availableSlots Slots, where item of this type will be placed when equipped
- *
- * @property UNDERWEAR Underwear armor type
- * @property UPPER_BODY_LIGHT Upper body/Light armor type
- * @property UPPER_BODY_HEAVY Upper body/Heavy armor type
- * @property UPPER_BODY_ROBE Upped body/Robe armor type
- * @property LOWER_BODY_LIGHT Lower body/Light armor type
- * @property LOWER_BODY_HEAVY Lower body/Heavy armor type
- * @property LOWER_BODY_ROBE Lower body/Robe armor type
- * @property UPPER_AND_LOWER_BODY_LIGHT Upper and Lower body/Light armor type
- * @property UPPER_AND_LOWER_BODY_HEAVY Upper and Lower body/Heavy armor type
- * @property UPPER_AND_LOWER_BODY_ROBE Upper and Lower body/Robe armor type
- * @property HEADGEAR Headgear armor type
- * @property GLOVES Gloves armor type
- * @property BOOTS Boots armor type
- * @property SHIELD Shield armor type
  */
 enum class ArmorType(override val availableSlots: Set<Slot>): ItemType {
     UNDERWEAR(setOf(Slot.UNDERWEAR)),

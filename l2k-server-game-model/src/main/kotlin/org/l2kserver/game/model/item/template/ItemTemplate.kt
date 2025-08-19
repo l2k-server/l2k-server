@@ -1,4 +1,4 @@
-package org.l2kserver.game.model.item
+package org.l2kserver.game.model.item.template
 
 import org.l2kserver.game.model.GameData
 import org.l2kserver.game.model.GameDataRegistry

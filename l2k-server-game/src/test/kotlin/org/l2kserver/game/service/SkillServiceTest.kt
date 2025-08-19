@@ -218,7 +218,11 @@ class SkillServiceTest(
 
         character.targetId = character.id
 
-        withContext(context) { skillService.useSkill(UseSkillRequest(POWER_STRIKE.id, false, false)) }
+        withContext(context) { skillService.useSkill(UseSkillRequest(
+            skillId = POWER_STRIKE.id,
+            forced = false,
+            holdPosition = false
+        )) }
 
         // Check results
         assertIs<SystemMessageResponse.CannotUseThisOnYourself>(context.responseChannel.receive())

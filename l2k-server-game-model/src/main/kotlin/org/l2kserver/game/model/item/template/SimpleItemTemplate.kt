@@ -1,4 +1,4 @@
-package org.l2kserver.game.model.item
+package org.l2kserver.game.model.item.template
 
 /**
  * Template of a simple item, that cannot be consumed of equipped (for example materials or adena)

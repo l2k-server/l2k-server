@@ -1,6 +1,6 @@
 package org.l2kserver.game.service
 
-import org.l2kserver.game.extensions.forEachInstanceMatching
+import org.l2kserver.game.model.extensions.forEachInstanceMatching
 import org.l2kserver.game.extensions.logger
 import org.l2kserver.game.handler.dto.request.ChatMessageRequest
 import org.l2kserver.game.handler.dto.response.ChatMessageResponse

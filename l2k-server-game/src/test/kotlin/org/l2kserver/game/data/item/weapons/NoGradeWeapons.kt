@@ -1,10 +1,10 @@
 package org.l2kserver.game.data.item.weapons
 
 import org.l2kserver.game.data.item.arrows.WOODEN_ARROW
-import org.l2kserver.game.model.item.ConsumableItem
-import org.l2kserver.game.model.item.Grade
-import org.l2kserver.game.model.item.WeaponTemplate
-import org.l2kserver.game.model.item.WeaponType
+import org.l2kserver.game.model.item.template.Grade
+import org.l2kserver.game.model.item.template.WeaponTemplate
+import org.l2kserver.game.model.item.template.WeaponType
+import org.l2kserver.game.model.item.of
 import org.l2kserver.game.model.stats.Stats
 
 val WILLOW_STAFF = WeaponTemplate(
@@ -71,7 +71,7 @@ val BOW = WeaponTemplate(
     crystalCount = 0,
     soulshotUsed = 1,
     spiritshotUsed = 1,
-    consumes = ConsumableItem(WOODEN_ARROW.id),
+    consumes = 1 of WOODEN_ARROW,
     manaCost = 1
 )
 

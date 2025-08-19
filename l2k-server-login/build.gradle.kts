@@ -1,9 +1,9 @@
 plugins {
     kotlin("jvm")
-    kotlin("plugin.spring") version "2.0.21"
-    id("io.gitlab.arturbosch.detekt") version "1.23.8"
-    id("org.springframework.boot") version "3.4.4"
-    id("io.spring.dependency-management") version "1.1.0"
+    kotlin("plugin.spring")
+    id("io.gitlab.arturbosch.detekt")
+    id("org.springframework.boot")
+    id("io.spring.dependency-management")
 }
 
 group = "org.l2kserver"
@@ -19,7 +19,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter")
 
     // Ktor
-    implementation("io.ktor:ktor-network:3.2.2")
+    implementation("io.ktor:ktor-network:3.2.3")
 
     //Jackson
     implementation("com.fasterxml.jackson.core:jackson-core")
@@ -36,8 +36,8 @@ dependencies {
     implementation("org.jetbrains.exposed:exposed-java-time:0.61.0")
     runtimeOnly("org.postgresql:postgresql")
 
-    implementation("org.flywaydb:flyway-core:11.10.4")
-    runtimeOnly("org.flywaydb:flyway-database-postgresql:11.10.4")
+    implementation("org.flywaydb:flyway-core:11.11.1")
+    runtimeOnly("org.flywaydb:flyway-database-postgresql:11.11.1")
 
     // Test
     testImplementation(kotlin("test"))

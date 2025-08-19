@@ -4,17 +4,16 @@ import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.deleteReturning
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
+import org.l2kserver.game.domain.ItemEntity
 import org.l2kserver.game.domain.PlayerCharacterEntity
 import org.l2kserver.game.domain.PlayerCharacterTable
 import org.l2kserver.game.domain.Shortcut
 import org.l2kserver.game.extensions.logger
-import org.l2kserver.game.extensions.model.item.createAllFrom
 import org.l2kserver.game.extensions.model.shortcut.createAllFrom
 import org.l2kserver.game.model.actor.PlayerCharacter
 import org.l2kserver.game.model.actor.character.CharacterRace
 import org.l2kserver.game.model.actor.character.Gender
 import org.l2kserver.game.model.actor.character.L2kCharacterClass
-import org.l2kserver.game.model.item.Item
 import org.springframework.stereotype.Component
 import java.time.LocalDateTime
 
@@ -60,7 +59,7 @@ class PlayerCharacterRepository {
             this
         }
 
-        Item.createAllFrom(characterEntity.id.value, characterTemplate.items)
+        ItemEntity.createAllFrom(characterEntity.id.value, characterTemplate.items)
         Shortcut.createAllFrom(characterEntity.id.value, characterTemplate.shortcuts)
 
         val character = characterEntity.toPlayerCharacter()!!
