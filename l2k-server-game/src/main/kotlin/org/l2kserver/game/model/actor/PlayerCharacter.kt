@@ -91,7 +91,7 @@ class PlayerCharacter(
 
     var pvpState = PvpState.NOT_IN_PVP
 
-    override val level: Int get() = LevelUtils.getByExp(exp)
+    override val level: Int get() = LevelUtils.getLevelByExp(exp)
 
     val basicStats: BasicStats get() = characterClass.basicStats
 

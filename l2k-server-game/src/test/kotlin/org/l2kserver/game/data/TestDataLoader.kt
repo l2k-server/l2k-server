@@ -41,6 +41,7 @@ import org.l2kserver.game.model.item.template.ItemTemplate
 import org.l2kserver.game.model.item.template.Slot
 import org.l2kserver.game.model.skill.SkillTemplate
 import org.l2kserver.game.repository.PlayerCharacterRepository
+import org.l2kserver.game.utils.LevelUtils
 import org.springframework.boot.context.event.ApplicationStartedEvent
 import org.springframework.context.event.EventListener
 import org.springframework.stereotype.Component
@@ -128,7 +129,7 @@ class TestDataLoader(
             faceType = 3
         )
 
-        character.exp = 48229L // 10 lvl
+        character.exp = LevelUtils.getRequiredExpForLevel(15)
         PlayerCharacterTable.update({ PlayerCharacterTable.id eq character.id }) {
             it[accessLevel] = AccessLevel.GAME_MASTER
         }

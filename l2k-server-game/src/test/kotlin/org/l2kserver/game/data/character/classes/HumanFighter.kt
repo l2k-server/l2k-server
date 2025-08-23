@@ -31,7 +31,6 @@ val HUMAN_FIGHTER = L2kCharacterClass(
         maxHp = 80,
         maxMp = 30,
 
-        mDef = 41,
         speed = 115,
         castingSpd = 333,
 
@@ -61,7 +60,12 @@ val HUMAN_FIGHTER = L2kCharacterClass(
         Slot.UPPER_BODY to Stats(pDef = 31),
         Slot.LOWER_BODY to Stats(pDef = 18),
         Slot.GLOVES to Stats(pDef = 8),
-        Slot.BOOTS to Stats(pDef = 7)
+        Slot.BOOTS to Stats(pDef = 7),
+        Slot.RIGHT_RING to Stats(mDef = 5),
+        Slot.LEFT_RING to Stats(mDef = 5),
+        Slot.RIGHT_EARRING to Stats(mDef = 9),
+        Slot.LEFT_EARRING to Stats(mDef = 9),
+        Slot.NECKLACE to Stats(mDef = 13),
     ),
     perLevelGain = PerLevelGain(
         cpAdd = 4.73,

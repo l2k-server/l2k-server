@@ -2,6 +2,7 @@ package org.l2kserver.game.handler.dto.response
 
 import org.l2kserver.game.extensions.littleEndianByteArray
 import org.l2kserver.game.extensions.putUByte
+import org.l2kserver.game.model.Hit
 import org.l2kserver.game.model.actor.position.Position
 import org.l2kserver.game.model.actor.Actor
 
@@ -46,38 +47,17 @@ data class AttackResponse(
 
 }
 
-/**
- * Data class representing single target hit
- *
- * @param targetId ID of game object that was hit
- * @param damage How many damage has the attack dealt
- * @param usedSoulshot is soulshot used during this attack
- * @param isCritical is this attack critical
- * @param isBlocked is this attack blocked by shield
- * @param isAvoided is this attack missed
- */
-data class Hit(
-    val targetId: Int,
-    val damage: Int = 0,
+private fun Hit.toByteArray() = littleEndianByteArray {
+    putInt(targetId)
+    putInt(damage)
 
-    val usedSoulshot: Boolean = false,
-    val isCritical: Boolean = false,
-    val isBlocked: Boolean = false,
-    val isAvoided: Boolean = false
-) {
-    fun toByteArray() = littleEndianByteArray {
-        putInt(targetId)
-        putInt(damage)
+    // The result will be byte value, where left bits correspond to attack flags
+    // If all flags enabled, the result will be 0b11110000
+    var flags: UByte = 0u
+    if (isAvoided) flags = flags or 128u
+    if (isCritical) flags = flags or 32u
+    if (isBlocked) flags = flags or 64u
+    if (usedSoulshot) flags = flags or 16u // TODO + soulshotGrade
 
-        // The result will be byte value, where left bits correspond to attack flags
-        // If all flags enabled, the result will be 0b11110000
-        var flags: UByte = 0u
-        if (isAvoided) flags = flags or 128u
-        if (isCritical) flags = flags or 32u
-        if (isBlocked) flags = flags or 64u
-        if (usedSoulshot) flags = flags or 16u // TODO + soulshotGrade
-
-        putUByte(flags)
-    }
-
+    putUByte(flags)
 }

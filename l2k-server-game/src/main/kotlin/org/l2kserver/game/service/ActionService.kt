@@ -92,8 +92,7 @@ class ActionService(
         //TODO Cancel casting if character is casting
 
         character.targetId?.let {
-            val target = gameObjectRepository.findActorById(it)
-            target.targetedBy.remove(character.id)
+            gameObjectRepository.findActorByIdOrNull(it)?.targetedBy?.remove(character.id)
         }
 
         character.targetId = null

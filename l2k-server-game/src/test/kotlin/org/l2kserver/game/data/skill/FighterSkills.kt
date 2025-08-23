@@ -1,9 +1,8 @@
 package org.l2kserver.game.data.skill
 
+import org.l2kserver.game.model.skill.effect.SingleTargetPhysicalDamageSkillEffect
 import org.l2kserver.game.model.item.template.WeaponType
 import org.l2kserver.game.model.skill.SkillConsumablesTemplate
-import org.l2kserver.game.model.skill.SkillEffectTemplate
-import org.l2kserver.game.model.skill.SkillEffectType
 import org.l2kserver.game.model.skill.SkillRequirements
 import org.l2kserver.game.model.skill.SkillTargetType
 import org.l2kserver.game.model.skill.SkillTemplate
@@ -32,9 +31,7 @@ val POWER_STRIKE = SkillTemplate(
         mp = listOf(10, 10, 11, 13, 13, 14, 17, 18, 19)
     ),
     effects = listOf(
-        SkillEffectTemplate(
-            effectType = SkillEffectType.PHYS_DAMAGE,
-            targetType = SkillTargetType.ENEMY,
+        SingleTargetPhysicalDamageSkillEffect(
             power = listOf(25, 27, 30, 39, 42, 46, 60, 65, 70)
         )
     )
@@ -58,9 +55,7 @@ val MORTAL_BLOW = SkillTemplate(
         mp = listOf(9,9,10,11,12,13,16,16,17,19,20,20,21,22,23,25,26,27,28,28,29,32,33,34)
     ),
     effects = listOf(
-        SkillEffectTemplate(
-            effectType = SkillEffectType.PHYS_DAMAGE,
-            targetType = SkillTargetType.ENEMY,
+        SingleTargetPhysicalDamageSkillEffect( //TODO This is Blow effect - it calculates differently
             power = listOf(73,80,88,115,126,137,178,193,210,268,291,314,367,396,427,494,531,571,656,703,752,859,916,977)
             //TODO Lethal effect
         )

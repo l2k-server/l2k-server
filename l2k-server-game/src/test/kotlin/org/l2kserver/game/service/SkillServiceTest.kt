@@ -13,12 +13,14 @@ import org.l2kserver.game.data.skill.POWER_STRIKE
 import org.l2kserver.game.domain.SkillsTable
 import org.l2kserver.game.handler.dto.request.UseSkillRequest
 import org.l2kserver.game.handler.dto.response.ActionFailedResponse
+import org.l2kserver.game.handler.dto.response.ChangeMoveTypeResponse
 import org.l2kserver.game.handler.dto.response.PlaySoundResponse
 import org.l2kserver.game.handler.dto.response.GaugeColor
 import org.l2kserver.game.handler.dto.response.GaugeResponse
 import org.l2kserver.game.handler.dto.response.SkillListResponse
 import org.l2kserver.game.handler.dto.response.SkillUsedResponse
 import org.l2kserver.game.handler.dto.response.Sound
+import org.l2kserver.game.handler.dto.response.StartFightingResponse
 import org.l2kserver.game.handler.dto.response.SystemMessageResponse
 import org.l2kserver.game.handler.dto.response.UpdateStatusResponse
 import org.l2kserver.game.model.actor.npc.NpcTemplate
@@ -167,6 +169,11 @@ class SkillServiceTest(
         assertIs<SystemMessageResponse.YouUse>(context.responseChannel.receive())
         assertIs<GaugeResponse>(context.responseChannel.receive())
         assertIs<SkillUsedResponse>(context.responseChannel.receive())
+
+        //Consume target stance responses
+        assertIs<ChangeMoveTypeResponse>(context.responseChannel.receive())
+        assertIs<StartFightingResponse>(context.responseChannel.receive())
+        assertIs<SystemMessageResponse.YouHit>(context.responseChannel.receive())
 
         delay(1000)
         // Second skill usage
