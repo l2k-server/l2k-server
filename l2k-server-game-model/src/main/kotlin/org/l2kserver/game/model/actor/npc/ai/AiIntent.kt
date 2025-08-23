@@ -18,10 +18,10 @@ value class MoveIntent(val position: Position): AiIntent
 value class AttackIntent(val target: Actor): AiIntent
 
 @JvmInline
-value class AiIntents(private val actions: MutableList<AiIntent>): Iterable<AiIntent> {
+value class AiIntents private constructor(
+    private val actions: MutableList<AiIntent>
+): Iterable<AiIntent> by actions {
     constructor(): this(ArrayList<AiIntent>())
-
-    override fun iterator() = actions.iterator()
 
     @Suppress("unused")
     fun say(message: String) {

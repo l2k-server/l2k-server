@@ -4,6 +4,7 @@ import org.l2kserver.game.model.GameData
 import org.l2kserver.game.model.GameDataRegistry
 import org.l2kserver.game.model.item.ConsumableItem
 import org.l2kserver.game.model.item.template.WeaponType
+import org.l2kserver.game.model.skill.effect.SkillEffect
 
 /**
  * Data class representing common skill data
@@ -34,7 +35,7 @@ data class SkillTemplate(
     val requires: SkillRequirements? = null,
     val maxSkillLevel: Int,
     val consumes: SkillConsumablesTemplate? = null,
-    val effects: List<SkillEffectTemplate>
+    val effects: List<SkillEffect>
 ): GameData {
 
     object Registry: GameDataRegistry<SkillTemplate>()
@@ -73,41 +74,26 @@ data class SkillConsumablesTemplate(
 )
 
 /**
- * Effect dealt by skill
- *
- * @property effectType Type of effect - physical damage, magical damage, buff, etc.
- * @property targetType Target that the effect is applied to - Target, Self, Party, etc. If null,
- * global targetType of skill itself will be used
- * @property power Power of skill on each level (Note: skill level starts with 1)
- */
-data class SkillEffectTemplate(
-    val effectType: SkillEffectType,
-    val targetType: SkillTargetType?,
-    val power: List<Int>?
-)
-
-/**
- * Type of skill effect
- *
- * @property PHYS_DAMAGE Deal physical damage to effect targets
- */
-enum class SkillEffectType {
-    PHYS_DAMAGE
-}
-
-/**
- * Type of target, this skill can be used on
+ * Type of target, the skill can be used on.
+ * This tells on which target type skill will be <strong>cast</strong>,
+ * effects has their own target types
  */
 enum class SkillTargetType {
     /**
-     * Effect will be applied to actor's target enemy.
+     * Skill will be cast on actor's target enemy.
      * These skills can be applied to friendly targets only with `forced` parameter
      */
     ENEMY,
 
     /**
-     * Effect will be applied to actor's target enemy.
+     * Skill will be cast on actor's target 'friend' - summon, other non-PK player, friendly NPC, etc.
+     * These skills can be applied to enemy targets only with `forced` parameter
+     */
+    FRIEND,
+
+    /**
+     * Skill will be cast on the actor himself
      * These skills can be applied to friendly targets only with `forced` parameter
      */
-    FRIEND
+    SELF
 }

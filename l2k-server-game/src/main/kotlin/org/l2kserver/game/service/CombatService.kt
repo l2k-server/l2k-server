@@ -11,9 +11,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.l2kserver.game.extensions.logger
+import org.l2kserver.game.extensions.model.actor.hit
 import org.l2kserver.game.handler.dto.response.ActionFailedResponse
 import org.l2kserver.game.handler.dto.response.AttackResponse
-import org.l2kserver.game.handler.dto.response.Hit
 import org.l2kserver.game.handler.dto.response.GaugeColor
 import org.l2kserver.game.handler.dto.response.GaugeResponse
 import org.l2kserver.game.handler.dto.response.NpcDiedResponse
@@ -21,6 +21,7 @@ import org.l2kserver.game.handler.dto.response.PlayerDiedResponse
 import org.l2kserver.game.handler.dto.response.SystemMessageResponse
 import org.l2kserver.game.handler.dto.response.UpdateItemsResponse
 import org.l2kserver.game.handler.dto.response.UpdateStatusResponse
+import org.l2kserver.game.model.Hit
 import org.l2kserver.game.model.actor.Actor
 import org.l2kserver.game.model.actor.Npc
 import org.l2kserver.game.model.actor.PlayerCharacter
@@ -32,26 +33,10 @@ import org.springframework.stereotype.Service
 import kotlin.coroutines.coroutineContext
 import kotlin.math.roundToInt
 import kotlin.math.roundToLong
-import kotlin.random.Random
 
 private const val DELAY_BETWEEN_ATTACKS_BASE = 470_000L
 private const val BOW_REUSE_DELAY = 499_500L
 private const val ARROW_SPEED_PER_MS = 0.9
-
-private const val ACCURACY_FROM_SIDE_MODIFIER = 1.1
-private const val ACCURACY_FROM_BACK_MODIFIER = 1.3
-
-private const val CRIT_RATE_FROM_SIDE_MODIFIER = 1.1
-private const val CRIT_RATE_FROM_BACK_MODIFIER = 1.2
-
-private const val PHYSICAL_ATTACK_BASE = 70
-private const val PHYSICAL_DMG_FROM_SIDE_MODIFIER = 1.1
-private const val PHYSICAL_DMG_FROM_BACK_MODIFIER = 1.2
-
-private const val EVASION_CHANCE_BASE = 88
-
-private const val BONUS_SHIELD_DEF_RATE_AGAINST_BOW = 30
-private const val BONUS_SHIELD_DEF_RATE_AGAINST_DAGGER = 12
 
 /**
  * Service to handle all fighting stuff - auto attacks, offensive skills, damage, etc.
@@ -69,9 +54,7 @@ class CombatService(
 
     override val log = logger()
 
-    /**
-     * Key - actor ID, value - time when actor can hit again
-     */
+    /** Key - actor ID, value - time when actor can hit again */
     private val nextAttackAvailableTimeMap = ConcurrentHashMap<Int, Long>()
 
     /**
@@ -140,6 +123,48 @@ class CombatService(
         }
     }
 
+    suspend fun performHit(hit: Hit, attacker: Actor) {
+        val attacked = gameObjectRepository.findActorById(hit.targetId)
+        if (attacked.isDead()) return //Needed for double weapon, if target was killed by first hit
+
+        actorStateService.activateCombatState(attacked)
+
+        if (hit.isAvoided) {
+            send(SystemMessageResponse.YouMissed)
+            sendTo(
+                attacked.id,
+                SystemMessageResponse.YouHaveAvoidedAttackOf(attacker.name)
+            )
+            return
+        }
+
+        //If fighters are players, subtract fom CP first
+        if (attacker is PlayerCharacter && attacked is PlayerCharacter) {
+            val hitOnHp = -minOf(attacked.currentCp - hit.damage, 0)
+
+            attacked.currentCp = maxOf(0, attacked.currentCp - hit.damage)
+            attacked.currentHp = maxOf(0, attacked.currentHp - hitOnHp)
+        }
+        else attacked.currentHp = maxOf(0, attacked.currentHp - hit.damage)
+
+        if (attacked is Npc) synchronized(attacked.opponentsDamage) {
+            val damageDealt = attacked.opponentsDamage[attacker] ?: 0
+            attacked.opponentsDamage[attacker] = damageDealt + hit.damage
+        }
+
+        if (hit.isCritical) send(SystemMessageResponse.CriticalHit)
+        if (hit.isBlocked) sendTo(attacked.id, SystemMessageResponse.ShieldDefenceSuccessful)
+
+        send(SystemMessageResponse.YouHit(hit.damage))
+        sendTo(attacked.id, SystemMessageResponse.YouWereHitBy(attacker.name, hit.damage))
+
+        val updatedStatus = UpdateStatusResponse.hpMpCpOf(attacked)
+        sendTo(attacked.id, updatedStatus)
+        attacked.targetedBy.forEach { sendTo(it, updatedStatus) }
+
+        if (attacked.currentHp == 0) killActor(attacked, attacker)
+    }
+
     /**
      * Performs [hitAmount] melee attacks.
      *
@@ -153,7 +178,7 @@ class CombatService(
         val attackDuration = calculateAttackTime(attacker.stats.atkSpd)
         nextAttackAvailableTimeMap[attacker.id] = currentTimeMillis() + attackDuration
 
-        val hits = List(hitAmount) { calculateAttack(attacker, attacked, hitAmount) }
+        val hits = List(hitAmount) { attacker.hit(attacked, attackPowerDivider = hitAmount) }
 
         val delayBeforeHit = attackDuration / (1 + hitAmount)
         broadcastPacket(AttackResponse(attacker, hits), attacker.position)
@@ -162,7 +187,7 @@ class CombatService(
         delay(delayBeforeHit)
 
         hits.forEach {
-            performHit(it, attacked, attacker)
+            performHit(it, attacker)
             //Delay for the time between the hit and the end of the attack animation
             delay(delayBeforeHit)
         }
@@ -215,10 +240,10 @@ class CombatService(
         nextAttackAvailableTimeMap[attacker.id] = currentTimeMillis() + attackDuration + reuseDelay
 
         send(SystemMessageResponse.YouCarefullyNockAnArrow)
-        val attack = calculateAttack(attacker, attacked, 1)
+        val hit = attacker.hit(attacked)
 
         send(GaugeResponse(GaugeColor.RED, (attackDuration + reuseDelay).toInt()))
-        broadcastPacket(AttackResponse(attacker, listOf(attack)), attacker.position)
+        broadcastPacket(AttackResponse(attacker, listOf(hit)), attacker.position)
 
         //Delay before launching an arrow
         delay((attackDuration * 0.9).roundToLong())
@@ -227,7 +252,7 @@ class CombatService(
         CoroutineScope(coroutineContext + NonCancellable).launch {
             //Delay for time it takes for the arrow to reach the target
             delay((attacker.position.distanceTo(attacked.position) / ARROW_SPEED_PER_MS).toLong())
-            newSuspendedTransaction { performHit(attack, attacked, attacker) }
+            newSuspendedTransaction { performHit(hit, attacker) }
         }
 
         //Delay for the time between the hit and the end of the attack animation
@@ -246,134 +271,6 @@ class CombatService(
         send(SystemMessageResponse("Pole attack is not implemented yet"))
         send(ActionFailedResponse)
         coroutineContext.cancel()
-    }
-
-    private suspend fun performHit(hit: Hit, attacked: Actor, attacker: Actor) {
-        if (attacked.isDead()) return //Needed for double weapon, if target was killed by first hit
-
-        actorStateService.activateCombatState(attacked)
-
-        if (hit.isAvoided) {
-            send(SystemMessageResponse.YouMissed)
-            sendTo(attacked.id, SystemMessageResponse.YouHaveAvoidedAttackOf(attacker.name))
-            return
-        }
-
-        //If fighters are players, subtract fom CP first
-        if (attacker is PlayerCharacter && attacked is PlayerCharacter) {
-            val hitOnHp = -minOf(attacked.currentCp - hit.damage, 0)
-
-            attacked.currentCp = maxOf(0, attacked.currentCp - hit.damage)
-            attacked.currentHp = maxOf(0, attacked.currentHp - hitOnHp)
-        }
-        else attacked.currentHp = maxOf(0, attacked.currentHp - hit.damage)
-
-        if (attacked is Npc) synchronized(attacked.opponentsDamage) {
-            val damageDealt = attacked.opponentsDamage[attacker] ?: 0
-            attacked.opponentsDamage[attacker] = damageDealt + hit.damage
-        }
-
-        if (hit.isCritical) send(SystemMessageResponse.CriticalHit)
-        if (hit.isBlocked) sendTo(attacked.id, SystemMessageResponse.ShieldDefenceSuccessful)
-
-        send(SystemMessageResponse.YouHit(hit.damage))
-        sendTo(attacked.id, SystemMessageResponse.YouWereHitBy(attacker.name, hit.damage))
-
-        val updatedStatus = UpdateStatusResponse.hpMpCpOf(attacked)
-        sendTo(attacked.id, updatedStatus)
-        attacked.targetedBy.forEach { sendTo(it, updatedStatus) }
-
-        if (attacked.currentHp == 0) killActor(attacked, attacker)
-    }
-
-    /**
-     * Calculates Attack - is it successful, critical, blocked, and it's damage
-     *
-     * @param attacker Actor,who performs the attack
-     * @param attacked Actor, who is a target for this attack
-     * @param attackPowerDivider Value, on which resulting damage should be divided
-     * (for example dual weapon hit contains two attacks, each should deal 50% damage)
-     *
-     * @return attack data
-     */
-    private fun calculateAttack(attacker: Actor, attacked: Actor, attackPowerDivider: Int): Hit {
-        val isAvoided = calculateIsAvoided(attacker, attacked)
-        //TODO Calculate PerfectShieldBlock
-
-        return if (isAvoided) Hit(targetId = attacked.id, isAvoided = true) else {
-            val isCritical = calculateIsCritical(attacker, attacked)
-            val isBlocked = calculateIsBlocked(attacker.weaponType, attacked)
-
-            Hit(
-                targetId = attacked.id,
-                damage = calculateAutoAttackDamage(
-                    attacker, attacked, isCritical, isBlocked, false //TODO Manage using soulshots
-                ) / attackPowerDivider,
-                usedSoulshot = false, //TODO
-                isCritical = isCritical,
-                isBlocked = isBlocked,
-            )
-        }
-    }
-
-    private fun calculateAutoAttackDamage(
-        attacker: Actor, attacked: Actor, isCritical: Boolean, isBlocked: Boolean, usedSoulshot: Boolean
-    ): Int {
-        var damage = attacker.stats.pAtk
-        if (usedSoulshot) damage *= 2
-        if (isCritical) damage = damage * 2 /*TODO * Buffs multipliers*/ + attacker.stats.critDamage
-
-        var defence = attacked.stats.pDef
-        if (isBlocked) defence += attacked.stats.shieldDef
-
-        //TODO calculate vulnerabilities and resistances
-        damage = (PHYSICAL_ATTACK_BASE * damage) / defence
-
-        if (attacker.isOnSideOf(attacked))
-            damage = (damage * PHYSICAL_DMG_FROM_SIDE_MODIFIER).roundToInt()
-        if (attacker.isBehind(attacked))
-            damage = (damage * PHYSICAL_DMG_FROM_BACK_MODIFIER).roundToInt()
-
-        //TODO calculate PvP bonus
-        //TODO calculate PvP penalty
-
-        val randomModifier = attacker.weaponType?.randomCoefficient?.let { Random.nextInt(-it, it) } ?: 0
-        damage += (randomModifier * damage) / 100
-
-        return damage
-    }
-
-    private fun calculateIsCritical(attacker: Actor, attacked: Actor): Boolean {
-        var critRate = attacker.stats.critRate
-
-        if (attacker.isOnSideOf(attacked))
-            critRate = (critRate * CRIT_RATE_FROM_SIDE_MODIFIER).roundToInt()
-        if (attacker.isBehind(attacked))
-            critRate = (critRate * CRIT_RATE_FROM_BACK_MODIFIER).roundToInt()
-
-        return critRate > Random.nextInt(0, 1000)
-    }
-
-    private fun calculateIsAvoided(attacker: Actor, attacked: Actor): Boolean {
-        var hitChance = EVASION_CHANCE_BASE + 2 * (attacker.stats.accuracy - attacked.stats.evasion)
-
-        if (attacker.isOnSideOf(attacked))
-            hitChance = (hitChance * ACCURACY_FROM_SIDE_MODIFIER).roundToInt()
-        if (attacker.isBehind(attacked))
-            hitChance = (hitChance * ACCURACY_FROM_BACK_MODIFIER).roundToInt()
-
-        return hitChance < Random.nextInt(0, 100)
-    }
-
-    private fun calculateIsBlocked(attackerWeaponType: WeaponType?, attacked: Actor): Boolean {
-        val attackerWeaponBonus = if (!attacked.hasShield) 0 else when (attackerWeaponType) {
-            WeaponType.BOW -> BONUS_SHIELD_DEF_RATE_AGAINST_BOW
-            WeaponType.DAGGER -> BONUS_SHIELD_DEF_RATE_AGAINST_DAGGER
-            else -> 0
-        }
-
-        val blockChance = attacked.stats.shieldDefRate /* TODO * buff shield rate */ + attackerWeaponBonus
-        return blockChance > Random.nextInt(0, 100)
     }
 
     private fun calculateAttackTime(atkSpd: Int) = DELAY_BETWEEN_ATTACKS_BASE / atkSpd

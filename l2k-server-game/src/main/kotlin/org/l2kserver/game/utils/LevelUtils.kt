@@ -94,12 +94,14 @@ object LevelUtils {
 
     val MAX_EXP = levelArray.last()
 
-    fun getByExp(exp: Long): Int {
+    fun getLevelByExp(exp: Long): Int {
         for (i: Int in levelArray.indices) {
             if (exp < levelArray[i]) return i - 1
         }
 
         return MAX_LEVEL
     }
+
+    fun getRequiredExpForLevel(level: Int) = levelArray[level]
 
 }

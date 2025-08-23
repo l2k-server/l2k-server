@@ -3,7 +3,6 @@ package org.l2kserver.game.model.skill
 import org.l2kserver.game.domain.SkillEntity
 import org.l2kserver.game.model.item.ConsumableItem
 
-
 /**
  * Skill instance
  *
@@ -41,7 +40,7 @@ class Skill(
     val requires = template.requires
 
     val consumes: SkillConsumables? get() = template.consumes?.toSkillConsumables()
-    val effects: List<SkillEffect> get() = template.effects.map { it.toSkillEffect() }
+    val effects = template.effects
 
     var nextUsageTime by entity::nextUsageTime
 
@@ -56,15 +55,6 @@ class Skill(
             "No data about item consumption at skill level = '$skillLevel' found"
         }},
     )
-
-    private fun SkillEffectTemplate.toSkillEffect(): SkillEffect = when (this.effectType) {
-        SkillEffectType.PHYS_DAMAGE -> PhysicalDamageEffect(
-            targetType = this.targetType ?: this@Skill.targetType,
-            power = requireNotNull(this.power?.getOrNull(skillLevel - 1)) {
-                "No data about skill power on skill level = '$skillLevel' found"
-            }
-        )
-    }
 
     override fun toString() = "Skill(id=$skillId name=$skillName level=$skillLevel)"
 

@@ -19,10 +19,13 @@ import org.l2kserver.game.handler.dto.response.StatusAttribute
 import org.l2kserver.game.handler.dto.response.SystemMessageResponse
 import org.l2kserver.game.handler.dto.response.UpdateItemsResponse
 import org.l2kserver.game.handler.dto.response.UpdateStatusResponse
+import org.l2kserver.game.model.Hit
 import org.l2kserver.game.model.actor.Actor
 import org.l2kserver.game.model.actor.PlayerCharacter
 import org.l2kserver.game.model.item.ConsumableItem
+import org.l2kserver.game.model.skill.effect.DamageEffectEvent
 import org.l2kserver.game.model.skill.Skill
+import org.l2kserver.game.model.skill.effect.SingleTargetSkillEffect
 import org.l2kserver.game.network.session.send
 import org.l2kserver.game.network.session.sessionContext
 import org.l2kserver.game.repository.GameObjectRepository
@@ -36,6 +39,7 @@ private const val CAST_TIME_COEFFICIENT = 333
 /** Handles learning, enchanting, using skills, etc. */
 @Service
 class SkillService(
+    private val combatService: CombatService,
     private val moveService: MoveService,
     private val asyncTaskService: AsyncTaskService,
     override val gameObjectRepository: GameObjectRepository
@@ -91,13 +95,7 @@ class SkillService(
         // If skill must be used on target - move to target
         if (listOf(SkillTargetType.ENEMY, SkillTargetType.FRIEND).contains(skill.targetType)) {
             //Check that actor can use skill - before moving to it
-            if (!actor.canUseSkill(skill, target, forced)) {
-                send(SystemMessageResponse.TargetCannotBeFound,
-                    PlaySoundResponse(Sound.ITEMSOUND_SYS_IMPOSSIBLE),
-                    ActionFailedResponse)
-                actor.targetId = null
-                return@launchAction
-            }
+            if (!actor.canUseSkill(skill, target, forced)) return@launchAction
 
             //canUseSkill method also checks that target exists, so here we can use unsafe call
             val requiredDistance = skill.castRange + (actor.collisionBox.radius + target!!.collisionBox.radius).roundToInt()
@@ -119,9 +117,6 @@ class SkillService(
         // Casting animation
         // All skills that do not require a target are essentially cast on yourself
         actor.castSkillOn(skill, target ?: actor)
-
-        //TODO Perform skill effect
-        ///////////////////////////////////////////////////////////////////////////////
     }
 
     /** Subtract HP, MP or items, required to use [skill] */
@@ -149,7 +144,7 @@ class SkillService(
         }
     }
 
-    /** Cast [skill] (only animation, no effects will be applied) and apply cooldown */
+    /** Cast [skill] and apply cooldown */
     private suspend fun Actor.castSkillOn(skill: Skill, target: Actor) {
         val castingSpeed = if (skill.skillType == SkillType.MAGIC) this.stats.castingSpd else this.stats.atkSpd
 
@@ -172,8 +167,13 @@ class SkillService(
                 casterPosition = this@castSkillOn.position
             ))
 
-            //Time, needed to cast a skill and finish skill animation
-            delay((castTime + repriseTime).toLong())
+            //Time, needed to cast a skill
+            delay(castTime.toLong())
+
+            skill.applyEffects(this@castSkillOn, target)
+
+            //Time to finish cast animation
+            delay(repriseTime.toLong())
         }
     }
 
@@ -188,24 +188,30 @@ class SkillService(
      */
     private suspend fun Actor.canUseSkill(skill: Skill, target: Actor?, forced: Boolean): Boolean = when {
         this.isParalyzed -> false //TODO Physical/Magical silence
+        skill.requires?.weaponTypes?.contains(this.weaponType) == false -> {
+            send(PlaySoundResponse(Sound.ITEMSOUND_SYS_IMPOSSIBLE), ActionFailedResponse)
+            false
+        }
         Instant.now().isBefore(skill.nextUsageTime) -> {
             send(SystemMessageResponse.IsBeingPreparedForReuse(skill), ActionFailedResponse)
             false
         }
         (skill.consumes?.hp ?: 0) > this.currentHp -> {
-            send(SystemMessageResponse.NotEnoughHp, ActionFailedResponse)
+            send(PlaySoundResponse(Sound.ITEMSOUND_SYS_IMPOSSIBLE),
+                SystemMessageResponse.NotEnoughHp,
+                ActionFailedResponse)
             false
         }
         (skill.consumes?.mp ?: 0) > this.currentMp -> {
-            send(SystemMessageResponse.NotEnoughMp, ActionFailedResponse)
+            send(PlaySoundResponse(Sound.ITEMSOUND_SYS_IMPOSSIBLE),
+                SystemMessageResponse.NotEnoughMp,
+                ActionFailedResponse)
             false
         }
         this is PlayerCharacter && !this.hasEnoughConsumable(skill.consumes?.item) -> {
-            send(SystemMessageResponse.NotEnoughItems, ActionFailedResponse)
-            false
-        }
-        skill.requires?.weaponTypes?.contains(this.weaponType) == false -> {
-            send(PlaySoundResponse(Sound.ITEMSOUND_SYS_IMPOSSIBLE), ActionFailedResponse)
+            send(PlaySoundResponse(Sound.ITEMSOUND_SYS_IMPOSSIBLE),
+                SystemMessageResponse.NotEnoughItems,
+                ActionFailedResponse)
             false
         }
         skill.castsOnEnemy() && this.targetId == null -> {
@@ -224,7 +230,6 @@ class SkillService(
             send(SystemMessageResponse.TargetCannotBeFound)
             send(PlaySoundResponse(Sound.ITEMSOUND_SYS_IMPOSSIBLE))
             send(ActionFailedResponse)
-            this.targetId = null
             false
         }
         skill.castsOnEnemy() && target?.isEnemyOf(this) == false && !forced -> {
@@ -240,6 +245,20 @@ class SkillService(
     private fun PlayerCharacter.hasEnoughConsumable(consumable: ConsumableItem?): Boolean {
         return if (consumable == null) true
         else this.inventory.existsByIdAndAmount(consumable.id, consumable.amount)
+    }
+
+    /** Applies cast by [caster] skill effects on [target] */
+    private suspend fun Skill.applyEffects(caster: Actor, target: Actor) = this.effects.forEach { effect ->
+        val events = when(effect) {
+            is SingleTargetSkillEffect -> effect.apply(caster, target, this.skillLevel)
+            //TODO AOE skills
+        }
+
+        events.forEach { event -> when(event) {
+            is DamageEffectEvent -> {
+                combatService.performHit(Hit(targetId = target.id, damage = event.damage), caster)
+            }
+        }}
     }
 
 }
