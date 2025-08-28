@@ -9,7 +9,7 @@ data class SpawnPosition(
     val x: Int,
     val y: Int,
     val z: Int,
-    val heading: Int
+    val heading: Int = 0
 )
 
 fun SpawnPosition.toPositionAndHeading() = Position(this.x, this.y, this.z) to Heading(this.heading)
