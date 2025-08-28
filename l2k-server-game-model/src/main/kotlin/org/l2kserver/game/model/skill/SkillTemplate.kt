@@ -92,6 +92,16 @@ enum class SkillTargetType {
     FRIEND,
 
     /**
+     * Skill will be cast on actor's target enemy corpse (like Necromancer's Summon Zombie).
+     */
+    DEAD_ENEMY,
+
+    /**
+     * Skill will be cast on actor's target friend corpse (like Resurrection).
+     */
+    DEAD_FRIEND,
+
+    /**
      * Skill will be cast on the actor himself
      * These skills can be applied to friendly targets only with `forced` parameter
      */

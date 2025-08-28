@@ -51,13 +51,6 @@ class CombatServiceTest(
         }
 
         // Check attacker's responses
-        val startFightingResponse = assertIs<StartFightingResponse>(context.responseChannel.receive())
-        assertEquals(character.id, startFightingResponse.actorId)
-
-        val pvpStatusResponse = assertIs<PvPStatusResponse>(context.responseChannel.receive())
-        assertEquals(character.id, pvpStatusResponse.characterId)
-        assertEquals(PvpState.PVP, pvpStatusResponse.pvpState)
-
         val attackResponse = assertIs<AttackResponse>(context.responseChannel.receive())
         assertEquals(character.id, attackResponse.attackerId)
         assertEquals(1, attackResponse.hits.size)
@@ -65,8 +58,16 @@ class CombatServiceTest(
         val hit = attackResponse.hits[0]
         assertEquals(targetCharacter.id, hit.targetId)
 
+        val startFightingResponse = assertIs<StartFightingResponse>(context.responseChannel.receive())
+        assertEquals(character.id, startFightingResponse.actorId)
+
+
         val targetStartFightingResponse = assertIs<StartFightingResponse>(context.responseChannel.receive())
         assertEquals(targetCharacter.id, targetStartFightingResponse.actorId)
+
+        val pvpStatusResponse = assertIs<PvPStatusResponse>(context.responseChannel.receive())
+        assertEquals(character.id, pvpStatusResponse.characterId)
+        assertEquals(PvpState.PVP, pvpStatusResponse.pvpState)
 
         var systemMessageResponse = assertIs<SystemMessageResponse>(context.responseChannel.receive())
         if (systemMessageResponse is SystemMessageResponse.CriticalHit)
@@ -78,20 +79,20 @@ class CombatServiceTest(
         )
 
         //Check target's responses
-        val startFightingResponseForTarget = assertIs<StartFightingResponse>(targetContext.responseChannel.receive())
-        assertEquals(character.id, startFightingResponseForTarget.actorId)
-
-        val attackerPvPStatusResponse = assertIs<PvPStatusResponse>(targetContext.responseChannel.receive())
-        assertEquals(character.id, attackerPvPStatusResponse.characterId)
-
         val attackResponseForTarget = assertIs<AttackResponse>(targetContext.responseChannel.receive())
         assertEquals(character.id, attackResponseForTarget.attackerId)
         assertEquals(1, attackResponse.hits.size)
         assertEquals(hit, attackResponse.hits[0])
 
+        val startFightingResponseForTarget = assertIs<StartFightingResponse>(targetContext.responseChannel.receive())
+        assertEquals(character.id, startFightingResponseForTarget.actorId)
+
         val targetStartFightingResponseForTarget =
             assertIs<StartFightingResponse>(targetContext.responseChannel.receive())
         assertEquals(targetCharacter.id, targetStartFightingResponseForTarget.actorId)
+
+        val attackerPvPStatusResponse = assertIs<PvPStatusResponse>(targetContext.responseChannel.receive())
+        assertEquals(character.id, attackerPvPStatusResponse.characterId)
 
         val systemMessageResponseForTarget = assertIs<SystemMessageResponse>(
             targetContext.responseChannel.receiveIgnoring(SystemMessageResponse.CriticalHit::class)
@@ -135,13 +136,6 @@ class CombatServiceTest(
         }
 
         // Check attacker's responses
-        val startFightingResponse = assertIs<StartFightingResponse>(context.responseChannel.receive())
-        assertEquals(character.id, startFightingResponse.actorId)
-
-        val pvpStatusResponse = assertIs<PvPStatusResponse>(context.responseChannel.receive())
-        assertEquals(character.id, pvpStatusResponse.characterId)
-        assertEquals(PvpState.PVP, pvpStatusResponse.pvpState)
-
         val updateItemsResponse = assertIs<UpdateItemsResponse>(context.responseChannel.receive())
         assertEquals(UpdateItemOperationType.REMOVE, updateItemsResponse.operations.first().operationType)
         assertEquals(arrowsId, updateItemsResponse.operations.first().item.id)
@@ -159,8 +153,15 @@ class CombatServiceTest(
         val hit = attackResponse.hits[0]
         assertEquals(targetCharacter.id, hit.targetId)
 
+        val startFightingResponse = assertIs<StartFightingResponse>(context.responseChannel.receive())
+        assertEquals(character.id, startFightingResponse.actorId)
+
         val targetStartFightingResponse = assertIs<StartFightingResponse>(context.responseChannel.receive())
         assertEquals(targetCharacter.id, targetStartFightingResponse.actorId)
+
+        val pvpStatusResponse = assertIs<PvPStatusResponse>(context.responseChannel.receive())
+        assertEquals(character.id, pvpStatusResponse.characterId)
+        assertEquals(PvpState.PVP, pvpStatusResponse.pvpState)
 
         var systemMessageResponse = assertIs<SystemMessageResponse>(context.responseChannel.receive())
         if (systemMessageResponse is SystemMessageResponse.CriticalHit)

@@ -43,26 +43,18 @@ interface Actor: GameWorldObject {
     var isFighting: Boolean
     var isMoving: Boolean
     var targetId: Int?
-    val targetedBy: MutableSet<Int>
+    val targetedBy: MutableSet<Actor>
 
-    /**
-     * Checks if actor can be attacked by [other] without forcing
-     */
+    /** Checks if actor can be attacked by [other] without forcing */
     fun isEnemyOf(other: Actor): Boolean
 
-    /**
-     * Is actor running now
-     */
+    /** Is actor running now */
     val isRunning: Boolean get() = isMoving && moveType == MoveType.RUN
 
-    /**
-     * Actor's movement speed
-     */
+    /** Actor's movement speed */
     val moveSpeed: Int get() = if (moveType == MoveType.WALK) stats.walkSpeed else stats.speed
 
-    /**
-     * Check if actor is behind other actor
-     */
+    /** Check if actor is behind other actor */
     fun isBehind(other: Actor): Boolean {
         //If [this] is straight behind [other], delta will be equal to 0
         val delta = (other.heading - other.position.headingTo(this.position) + 32768).toShort()
@@ -71,9 +63,7 @@ interface Actor: GameWorldObject {
         return -tolerance < delta && delta < tolerance
     }
 
-    /**
-     * Check if actor is on side of other actor
-     */
+    /** Check if actor is on side of other actor */
     fun isOnSideOf(other: Actor): Boolean {
         //If [other] is headed directly to [this], delta will be equal to 0
         val delta = (other.heading - other.position.headingTo(this.position)).toShort()
@@ -85,8 +75,7 @@ interface Actor: GameWorldObject {
         return isOnLeft || isOnRight
     }
 
-    /**
-     * Is this actor dead
-     */
+    /** Is this actor dead */
     fun isDead() = this.currentHp <= 0
+
 }

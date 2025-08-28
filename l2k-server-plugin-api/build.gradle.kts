@@ -1,4 +1,5 @@
 plugins {
+    id("jvm-toolchains")
     kotlin("jvm")
     id("io.gitlab.arturbosch.detekt")
 }

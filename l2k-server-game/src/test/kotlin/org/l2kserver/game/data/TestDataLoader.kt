@@ -129,7 +129,7 @@ class TestDataLoader(
             faceType = 3
         )
 
-        character.exp = LevelUtils.getRequiredExpForLevel(15)
+        character.exp = LevelUtils.getRequiredExpForLevel(3)
         PlayerCharacterTable.update({ PlayerCharacterTable.id eq character.id }) {
             it[accessLevel] = AccessLevel.GAME_MASTER
         }

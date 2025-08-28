@@ -19,13 +19,12 @@ import org.l2kserver.game.handler.dto.response.StatusAttribute
 import org.l2kserver.game.handler.dto.response.SystemMessageResponse
 import org.l2kserver.game.handler.dto.response.UpdateItemsResponse
 import org.l2kserver.game.handler.dto.response.UpdateStatusResponse
-import org.l2kserver.game.model.Hit
 import org.l2kserver.game.model.actor.Actor
 import org.l2kserver.game.model.actor.PlayerCharacter
 import org.l2kserver.game.model.item.ConsumableItem
-import org.l2kserver.game.model.skill.effect.DamageEffectEvent
 import org.l2kserver.game.model.skill.Skill
 import org.l2kserver.game.model.skill.effect.SingleTargetSkillEffect
+import org.l2kserver.game.model.skill.effect.event.DamageEvent
 import org.l2kserver.game.network.session.send
 import org.l2kserver.game.network.session.sessionContext
 import org.l2kserver.game.repository.GameObjectRepository
@@ -93,12 +92,13 @@ class SkillService(
         // https://github.com/orgs/l2k-server/projects/1/views/3?pane=issue&itemId=124732573&issue=l2k-server%7Cl2k-server%7C47
 
         // If skill must be used on target - move to target
-        if (listOf(SkillTargetType.ENEMY, SkillTargetType.FRIEND).contains(skill.targetType)) {
+        if (skill.targetType != SkillTargetType.SELF) {
             //Check that actor can use skill - before moving to it
             if (!actor.canUseSkill(skill, target, forced)) return@launchAction
 
             //canUseSkill method also checks that target exists, so here we can use unsafe call
-            val requiredDistance = skill.castRange + (actor.collisionBox.radius + target!!.collisionBox.radius).roundToInt()
+            val requiredDistance =
+                skill.castRange + (actor.collisionBox.radius + target!!.collisionBox.radius).roundToInt()
             if (!holdPosition) moveService.move(actor, target, requiredDistance)
 
             //Check if movement was interrupted or stopped at some obstacle
@@ -133,15 +133,15 @@ class SkillService(
             else send(UpdateItemsResponse.operationModify(reducedItem))
         }
 
-        if (actor is PlayerCharacter && statusUpdated) {
-            send(UpdateStatusResponse(
+        if (actor is PlayerCharacter && statusUpdated) send(
+            UpdateStatusResponse(
                 objectId = actor.id,
                 StatusAttribute.CUR_HP to actor.currentHp,
                 StatusAttribute.CUR_MP to actor.currentMp,
                 StatusAttribute.CUR_CP to actor.currentCp,
                 StatusAttribute.MAX_CP to actor.stats.maxCp
-            ))
-        }
+            )
+        )
     }
 
     /** Cast [skill] and apply cooldown */
@@ -155,17 +155,18 @@ class SkillService(
         newSuspendedTransaction { skill.nextUsageTime = Instant.now().plusMillis(reuseDelay.toLong()) }
 
         withContext(kotlin.coroutines.coroutineContext + NonCancellable) {
-            send(SystemMessageResponse.YouUse(skill))
-            send(GaugeResponse(GaugeColor.BLUE, castTime))
-            broadcastPacket(SkillUsedResponse(
-                casterId = this@castSkillOn.id,
-                targetId = target.id,
-                skillId = skill.skillId,
-                skillLevel = skill.skillLevel,
-                castTime = castTime,
-                reuseDelay = reuseDelay,
-                casterPosition = this@castSkillOn.position
-            ))
+            send(SystemMessageResponse.YouUse(skill), GaugeResponse(GaugeColor.BLUE, castTime))
+            broadcastPacket(
+                SkillUsedResponse(
+                    casterId = this@castSkillOn.id,
+                    targetId = target.id,
+                    skillId = skill.skillId,
+                    skillLevel = skill.skillLevel,
+                    castTime = castTime,
+                    reuseDelay = reuseDelay,
+                    casterPosition = this@castSkillOn.position
+                )
+            )
 
             //Time, needed to cast a skill
             delay(castTime.toLong())
@@ -187,7 +188,7 @@ class SkillService(
      * @return true - if actor can use [skill], false if not
      */
     private suspend fun Actor.canUseSkill(skill: Skill, target: Actor?, forced: Boolean): Boolean = when {
-        this.isParalyzed -> false //TODO Physical/Magical silence
+        this.isParalyzed || this.isDead() -> false //TODO Physical/Magical silence
         skill.requires?.weaponTypes?.contains(this.weaponType) == false -> {
             send(PlaySoundResponse(Sound.ITEMSOUND_SYS_IMPOSSIBLE), ActionFailedResponse)
             false
@@ -197,43 +198,64 @@ class SkillService(
             false
         }
         (skill.consumes?.hp ?: 0) > this.currentHp -> {
-            send(PlaySoundResponse(Sound.ITEMSOUND_SYS_IMPOSSIBLE),
+            send(
+                PlaySoundResponse(Sound.ITEMSOUND_SYS_IMPOSSIBLE),
                 SystemMessageResponse.NotEnoughHp,
-                ActionFailedResponse)
+                ActionFailedResponse
+            )
             false
         }
         (skill.consumes?.mp ?: 0) > this.currentMp -> {
-            send(PlaySoundResponse(Sound.ITEMSOUND_SYS_IMPOSSIBLE),
+            send(
+                PlaySoundResponse(Sound.ITEMSOUND_SYS_IMPOSSIBLE),
                 SystemMessageResponse.NotEnoughMp,
-                ActionFailedResponse)
+                ActionFailedResponse
+            )
             false
         }
         this is PlayerCharacter && !this.hasEnoughConsumable(skill.consumes?.item) -> {
-            send(PlaySoundResponse(Sound.ITEMSOUND_SYS_IMPOSSIBLE),
+            send(
+                PlaySoundResponse(Sound.ITEMSOUND_SYS_IMPOSSIBLE),
                 SystemMessageResponse.NotEnoughItems,
-                ActionFailedResponse)
+                ActionFailedResponse
+            )
             false
         }
-        skill.castsOnEnemy() && this.targetId == null -> {
+        skill.targetType != SkillTargetType.SELF && this.targetId == null -> {
             send(SystemMessageResponse.YouMustSelectTarget)
             send(PlaySoundResponse(Sound.ITEMSOUND_SYS_IMPOSSIBLE))
             send(ActionFailedResponse)
             false
         }
-        skill.castsOnEnemy() && this.targetId == this.id -> {
-            send(SystemMessageResponse.CannotUseThisOnYourself)
-            send(PlaySoundResponse(Sound.ITEMSOUND_SYS_IMPOSSIBLE))
-            send(ActionFailedResponse)
-            false
-        }
-        skill.castsOnEnemy() && target == null -> {
+        skill.targetType != SkillTargetType.SELF && target == null -> {
             send(SystemMessageResponse.TargetCannotBeFound)
             send(PlaySoundResponse(Sound.ITEMSOUND_SYS_IMPOSSIBLE))
             send(ActionFailedResponse)
             false
         }
-        skill.castsOnEnemy() && target?.isEnemyOf(this) == false && !forced -> {
+        skill.targetType != SkillTargetType.FRIEND && this.targetId == this.id -> {
+            send(SystemMessageResponse.CannotUseThisOnYourself)
+            send(PlaySoundResponse(Sound.ITEMSOUND_SYS_IMPOSSIBLE))
             send(ActionFailedResponse)
+            false
+        }
+        skill.targetType == SkillTargetType.ENEMY && target?.isEnemyOf(this) == false && !forced -> {
+            send(ActionFailedResponse)
+            false
+        }
+
+        skill.castsOnCorpse() xor (target?.isDead() == true) -> {
+            send(SystemMessageResponse.IncorrectTarget, ActionFailedResponse)
+            false
+        }
+
+        skill.targetType == SkillTargetType.DEAD_ENEMY && (target?.isDead() == false || target?.isEnemyOf(this) == false) -> {
+            send(SystemMessageResponse.IncorrectTarget, ActionFailedResponse)
+            false
+        }
+
+        skill.targetType == SkillTargetType.DEAD_FRIEND && (target?.isDead() == false || target?.isEnemyOf(this) == true) -> {
+            send(SystemMessageResponse.IncorrectTarget, ActionFailedResponse)
             false
         }
         //TODO Check PeaceZone
@@ -249,16 +271,16 @@ class SkillService(
 
     /** Applies cast by [caster] skill effects on [target] */
     private suspend fun Skill.applyEffects(caster: Actor, target: Actor) = this.effects.forEach { effect ->
-        val events = when(effect) {
+        val events = when (effect) {
             is SingleTargetSkillEffect -> effect.apply(caster, target, this.skillLevel)
             //TODO AOE skills
         }
 
-        events.forEach { event -> when(event) {
-            is DamageEffectEvent -> {
-                combatService.performHit(Hit(targetId = target.id, damage = event.damage), caster)
+        events.forEach { event ->
+            when (event) {
+                is DamageEvent -> combatService.performDamage(event, caster)
             }
-        }}
+        }
     }
 
 }

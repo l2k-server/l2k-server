@@ -5,7 +5,7 @@ spring:
     - file:./config/characters.yml
     - file:./config/chat.yml
     - file:./config/database.yml
-    - file:./config/drop.yml
+    - file:./config/reward.yml
     - file:./config/pvp.yml
     - file:./config/server.yml
   datasource:

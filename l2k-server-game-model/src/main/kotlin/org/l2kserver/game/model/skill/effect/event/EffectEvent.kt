@@ -1,4 +1,6 @@
-package org.l2kserver.game.model
+package org.l2kserver.game.model.skill.effect.event
+
+sealed interface EffectEvent
 
 /**
  * Data class representing single target hit
@@ -10,12 +12,13 @@ package org.l2kserver.game.model
  * @param isBlocked is this attack blocked by shield
  * @param isAvoided is this attack missed
  */
-data class Hit(
+data class DamageEvent(
     val targetId: Int,
     val damage: Int = 0,
 
     val usedSoulshot: Boolean = false,
     val isCritical: Boolean = false,
     val isBlocked: Boolean = false,
-    val isAvoided: Boolean = false
-)
+    val isAvoided: Boolean = false,
+    val overhitPossible: Boolean = false
+): EffectEvent

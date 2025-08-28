@@ -58,7 +58,7 @@ class Skill(
 
     override fun toString() = "Skill(id=$skillId name=$skillName level=$skillLevel)"
 
-    fun castsOnEnemy(): Boolean = this.targetType == SkillTargetType.ENEMY
+    fun castsOnCorpse() = targetType == SkillTargetType.DEAD_ENEMY || targetType == SkillTargetType.DEAD_FRIEND
 }
 
 /**

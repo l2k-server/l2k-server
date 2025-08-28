@@ -1,4 +1,5 @@
 plugins {
+    id("jvm-toolchains")
     id("java")
 }
 

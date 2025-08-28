@@ -14,6 +14,8 @@ private const val MAX_CRIT_RATE = 500
 private const val MELEE_WEAPON_DEFAULT_ATTACK_RANGE = 40
 private const val BOW_DEFAULT_ATTACK_RANGE = 450
 
+private const val P_DEF_BASE = 4
+
 /**
  * Apply stats of the equipment
  *
@@ -68,7 +70,7 @@ fun Stats.applyModifiers(level: Int, characterClass: L2kCharacterClass, basicSta
         maxMp = (maxMpBase * basicStats.men.mpModifier).toInt(),
 
         pAtk = (this.pAtk * basicStats.str.pAtkModifier * levelModifier).toInt(),
-        pDef = (this.pDef * levelModifier).toInt(),
+        pDef = P_DEF_BASE + (this.pDef * levelModifier).toInt(),
         accuracy = this.accuracy + basicStats.dex.accuracyBonus + level,
         critRate = (this.critRate * basicStats.dex.critRateModifier).toInt(),
         atkSpd = (this.atkSpd * basicStats.dex.atkSpdModifier).toInt(),

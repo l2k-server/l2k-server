@@ -1,6 +1,7 @@
 import org.gradle.kotlin.dsl.invoke
 
 plugins {
+    id("jvm-toolchains")
     kotlin("jvm")
     kotlin("plugin.spring")
     id("io.gitlab.arturbosch.detekt")

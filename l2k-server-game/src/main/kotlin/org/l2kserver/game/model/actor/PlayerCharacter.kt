@@ -87,7 +87,7 @@ class PlayerCharacter(
     override var isMoving = false
 
     override var targetId: Int? = null
-    override val targetedBy: MutableSet<Int> = ConcurrentHashMap.newKeySet(0)
+    override val targetedBy: MutableSet<Actor> = ConcurrentHashMap.newKeySet(0)
 
     var pvpState = PvpState.NOT_IN_PVP
 
