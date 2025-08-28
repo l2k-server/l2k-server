@@ -32,7 +32,9 @@ val POWER_STRIKE = SkillTemplate(
     ),
     effects = listOf(
         SingleTargetPhysicalDamageSkillEffect(
-            power = listOf(25, 27, 30, 39, 42, 46, 60, 65, 70)
+            power = listOf(25, 27, 30, 39, 42, 46, 60, 65, 70),
+            ignoresShield = true,
+            overhitPossible = true
         )
     )
 )

@@ -237,7 +237,7 @@ class MoveService(
         sendTo(actor.id, TeleportResponse(actor.id, fixedPosition))
         broadcastPacket(DeleteObjectResponse(actor.id), actor)
 
-        actor.targetedBy.forEach { gameObjectRepository.findActorById(it).targetId = null }
+        actor.targetedBy.forEach { gameObjectRepository.findActorById(it.id).targetId = null }
         actor.targetedBy.clear()
         actor.targetId = null
 
@@ -319,7 +319,7 @@ class MoveService(
 
             if (actor is PlayerCharacter && actor.targetId == it.id) {
                 actor.targetId = null
-                if (it is Actor) it.targetedBy.remove(actor.id)
+                if (it is Actor) it.targetedBy.remove(actor)
                 send(SetTargetResponse(0, 0))
             }
 
@@ -328,7 +328,7 @@ class MoveService(
 
                 if (it.targetId == actor.id) {
                     it.targetId = null
-                    actor.targetedBy.remove(it.id)
+                    actor.targetedBy.remove(it)
                     sendTo(it.id, SetTargetResponse(0, 0))
                 }
             }

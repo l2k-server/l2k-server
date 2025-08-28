@@ -2,9 +2,9 @@ package org.l2kserver.game.handler.dto.response
 
 import org.l2kserver.game.extensions.littleEndianByteArray
 import org.l2kserver.game.extensions.putUByte
-import org.l2kserver.game.model.Hit
 import org.l2kserver.game.model.actor.position.Position
 import org.l2kserver.game.model.actor.Actor
+import org.l2kserver.game.model.skill.effect.event.DamageEvent
 
 private const val ATTACK_RESPONSE_PACKET_ID: UByte = 5u
 
@@ -18,10 +18,10 @@ private const val ATTACK_RESPONSE_PACKET_ID: UByte = 5u
 data class AttackResponse(
     val attackerId: Int,
     val attackerPosition: Position,
-    val hits: List<Hit>,
+    val hits: List<DamageEvent>,
 ): ResponsePacket {
 
-    constructor(attacker: Actor, hits: List<Hit>): this(
+    constructor(attacker: Actor, hits: List<DamageEvent>): this(
         attackerId = attacker.id,
         attackerPosition = attacker.position,
         hits = hits
@@ -47,7 +47,7 @@ data class AttackResponse(
 
 }
 
-private fun Hit.toByteArray() = littleEndianByteArray {
+private fun DamageEvent.toByteArray() = littleEndianByteArray {
     putInt(targetId)
     putInt(damage)
 

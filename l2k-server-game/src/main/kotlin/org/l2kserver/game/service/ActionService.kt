@@ -92,7 +92,7 @@ class ActionService(
         //TODO Cancel casting if character is casting
 
         character.targetId?.let {
-            gameObjectRepository.findActorByIdOrNull(it)?.targetedBy?.remove(character.id)
+            gameObjectRepository.findActorByIdOrNull(it)?.targetedBy?.remove(character)
         }
 
         character.targetId = null
@@ -170,7 +170,7 @@ class ActionService(
      */
     private suspend fun PlayerCharacter.setTarget(targeted: Actor) {
         this.targetId = targeted.id
-        targeted.targetedBy.add(this.id)
+        targeted.targetedBy.add(this)
 
         when (targeted) {
             is PlayerCharacter -> send(SetTargetResponse(targeted.id))

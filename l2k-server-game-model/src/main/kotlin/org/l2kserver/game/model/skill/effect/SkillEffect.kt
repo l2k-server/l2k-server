@@ -1,19 +1,32 @@
 package org.l2kserver.game.model.skill.effect
 
 import org.l2kserver.game.model.actor.Actor
+import org.l2kserver.game.model.skill.effect.event.DamageEvent
+import org.l2kserver.game.model.skill.effect.event.EffectEvent
 import java.util.LinkedList
-
-sealed interface SkillEffectEvent
-data class DamageEffectEvent(val damage: Int, val target: Actor): SkillEffectEvent
 
 @JvmInline
 value class SkillEffectEvents private constructor(
-    private val effects: MutableList<SkillEffectEvent>
-): Iterable<SkillEffectEvent> by effects {
-    constructor(): this(LinkedList<SkillEffectEvent>())
+    private val effects: MutableList<EffectEvent>
+): Iterable<EffectEvent> by effects {
+    constructor(): this(LinkedList<EffectEvent>())
 
-    fun dealDamage(damage: Int, target: Actor) {
-        effects.add(DamageEffectEvent(damage, target))
+    /** Applies the event of dealing damage to [target] */
+    fun dealDamage(
+        damage: Int,
+        target: Actor,
+        isCritical: Boolean = false,
+        isBlocked: Boolean = false,
+        overhitPossible: Boolean = false
+    ) {
+        effects.add(DamageEvent(
+            target.id, damage, isCritical = isCritical, isBlocked = isBlocked, overhitPossible = overhitPossible
+        ))
+    }
+
+    /** Applies the event of [target]'s evasion */
+    fun miss(target: Actor) {
+        effects.add(DamageEvent(target.id, 0, isAvoided = true))
     }
 
 }
@@ -21,7 +34,7 @@ value class SkillEffectEvents private constructor(
 sealed interface SkillEffect
 
 interface SingleTargetSkillEffect: SkillEffect {
-    fun apply(by: Actor, to: Actor, effectLevel: Int): SkillEffectEvents
+    fun apply(caster: Actor, target: Actor, effectLevel: Int): SkillEffectEvents
 }
 
 inline fun effects(builderFunction: SkillEffectEvents.() -> Unit): SkillEffectEvents {

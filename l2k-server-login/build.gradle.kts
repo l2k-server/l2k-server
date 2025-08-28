@@ -1,4 +1,5 @@
 plugins {
+    id("jvm-toolchains")
     kotlin("jvm")
     kotlin("plugin.spring")
     id("io.gitlab.arturbosch.detekt")

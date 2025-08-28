@@ -18,36 +18,22 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import kotlin.math.pow
 import kotlin.math.roundToInt
+import kotlin.math.roundToLong
 import kotlin.random.Random
 
-/**
- * Service for rewards calculation and management
- */
+/** Service for rewards calculation and management */
 @Service
 class RewardService(
     private val itemService: ItemService,
     override val gameObjectRepository: GameObjectRepository,
 
-    @Value("\${pvp.karmaBaseAmount}")
-    private val karmaBaseAmount: Int,
-
-    @Value("\${pvp.karmaMaxAmount}")
-    private val karmaMaxAmount: Int,
-
-    @Value("\${pvp.karmaExpDivider}")
-    private val karmaExpDivider: Int,
-
-    @Value("\${pvp.karmaLostMin}")
-    private val karmaLostMin: Int,
-
-    @Value("\${drop.minLevelDifferenceForPenalty}")
-    private val minLevelDifferenceForPenalty: Int,
-
-    @Value("\${drop.maxLevelDifferenceForPenalty}")
-    private val maxLevelDifferenceForPenalty: Int,
-
-    @Value("\${drop.levelPenaltyBaseValue}")
-    private val levelPenaltyBaseValue: Double
+    @Value("\${pvp.karmaBaseAmount}") private val karmaBaseAmount: Int,
+    @Value("\${pvp.karmaMaxAmount}") private val karmaMaxAmount: Int,
+    @Value("\${pvp.karmaExpDivider}") private val karmaExpDivider: Int,
+    @Value("\${pvp.karmaLostMin}") private val karmaLostMin: Int,
+    @Value("\${reward.minLevelDifferenceForPenalty}") private val minLevelDifferenceForPenalty: Int,
+    @Value("\${reward.maxLevelDifferenceForPenalty}") private val maxLevelDifferenceForPenalty: Int,
+    @Value("\${reward.levelPenaltyBaseValue}") private val levelPenaltyBaseValue: Double
 ) : AbstractService() {
 
     override val log = logger()
@@ -56,18 +42,16 @@ class RewardService(
      * Manages rewards for killing NPC.
      * Calculates exp, sp, item drops, distributes the reward among the players
      */
-    suspend fun manageRewardForKillingNpc(killed: Npc) {
+    suspend fun manageRewardForKillingNpc(killer: PlayerCharacter, killed: Npc, overhitDamage: Int) {
         manageItemRewards(killed)
-        manageExpAndSpGain(killed)
+        manageExpAndSpGain(killer, killed, overhitDamage)
     }
 
     /**
      * Manages rewards for killing PlayerCharacter.
      * Calculates pvp and pk scores, karma gain, item drops
      */
-    suspend fun manageRewardForKillingPlayer(killed: PlayerCharacter, killer: Actor) {
-        //Npc don't get rewards for killing players :(
-        if (killer !is PlayerCharacter) return
+    suspend fun manageRewardForKillingPlayer(killed: PlayerCharacter, killer: PlayerCharacter) {
 
         if (killed.pvpState != PvpState.NOT_IN_PVP || killed.karma > 0) {
             killer.pvpCount++
@@ -99,6 +83,7 @@ class RewardService(
      */
     private suspend fun manageItemRewards(killed: Npc) {
         val mostValuableDamager = killed.opponentsDamage.maxBy { (_, damage) -> damage }.key
+        if (mostValuableDamager is Npc) return
 
         for (itemGroup in killed.reward.itemGroups) {
             if (isLvlDifferenceDropPenaltyApplied(killed.level, mostValuableDamager.level)) continue
@@ -107,22 +92,21 @@ class RewardService(
     }
 
     /**
-     * Calculates exp and sp gain for all the killers by level difference and damage dealt, and applies it to killer
+     * Calculates exp and sp gain for all the attackers by level difference and damage dealt, and applies it to killer
      */
-    //TODO Calculate overhit
-    private suspend fun manageExpAndSpGain(killed: Npc) {
+    private suspend fun manageExpAndSpGain(killer: PlayerCharacter, killed: Npc, overhitDamage: Int) {
         val allTheDamageReceived = killed.opponentsDamage.values.reduce { acc, i -> acc + i }
 
-        for ((killer: Actor, damage: Int) in killed.opponentsDamage) {
+        for ((attacker: Actor, damage: Int) in killed.opponentsDamage) {
             //TODO Manage damage dealt by pets and summons
             //TODO Share reward between party members
             //TODO Manage sp share between parties and solo players, who hit this monster
 
             // Monsters do not get exp/sp for monster hunt
-            if (killer !is PlayerCharacter) continue
-            if (!killer.position.isCloseTo(killed.position, VISION_RANGE)) continue
+            if (attacker !is PlayerCharacter) continue
+            if (!attacker.position.isCloseTo(killed.position, VISION_RANGE)) continue
 
-            val killerLevel = killer.level
+            val killerLevel = attacker.level
 
             //TODO Manage exp gain of pets
             var expShare = ((killed.reward.exp.toDouble() * damage) / allTheDamageReceived)
@@ -135,19 +119,26 @@ class RewardService(
                 spShare = maxOf(0.0, spShare * levelDifferenceModifier)
             }
 
+            val overhitExp = if (attacker == killer && overhitDamage > 0)
+                calculateOverhitExp(expShare.roundToInt(), overhitDamage, killed.stats.maxHp)
+            else 0
+
             newSuspendedTransaction {
-                killer.exp += expShare.roundToInt()
-                killer.sp += spShare.roundToInt()
+                attacker.exp += (expShare.roundToLong() + overhitExp)
+                attacker.sp += spShare.roundToInt()
 
-                if (killer.karma > 0)
-                    killer.karma = maxOf(killer.karma - calculateKarmaGainForExp(expShare.roundToInt()), 0)
+                if (attacker.karma > 0)
+                    attacker.karma = maxOf(attacker.karma - calculateKarmaLossForExp(expShare.roundToInt()), 0)
 
-                sendTo(killer.id,
+                sendTo(attacker.id,
                     SystemMessageResponse.YouHaveEarnedExpAndSp(expShare.roundToInt(), spShare.roundToInt())
                 )
 
-                sendTo(killer.id, FullCharacterResponse(killer))
-                if (killer.level > killerLevel) manageLevelUp(killer)
+                if (overhitExp > 0) sendTo(attacker.id,
+                    SystemMessageResponse.YouHaveAcquiredExpForOverHit(overhitExp))
+
+                sendTo(attacker.id, FullCharacterResponse(attacker))
+                if (attacker.level > killerLevel) handleLevelUp(attacker)
             }
         }
     }
@@ -155,7 +146,7 @@ class RewardService(
     /**
      * Calculates how much karma points must be subtracted when player killer kills monster
      */
-    private fun calculateKarmaGainForExp(expGain: Int) = maxOf(expGain / karmaExpDivider, karmaLostMin)
+    private fun calculateKarmaLossForExp(expGain: Int) = maxOf(expGain / karmaExpDivider, karmaLostMin)
 
     /**
      * Calculate karma amount that player killer must get
@@ -194,7 +185,7 @@ class RewardService(
     }
 
 
-    private suspend fun manageLevelUp(character: PlayerCharacter) {
+    private suspend fun handleLevelUp(character: PlayerCharacter) {
         //Full heal on level up
         character.currentCp = character.stats.maxCp
         character.currentHp = character.stats.maxHp
@@ -206,6 +197,11 @@ class RewardService(
 
         //TODO Manage weight
         //TODO Manage grade penalty
+    }
+
+    /** Get the overhit exp bonus according to the above over-hit damage percentage */
+    fun calculateOverhitExp(expGain: Int, overhitDamage: Int, killedMaxHp: Int): Int {
+        return (minOf(overhitDamage.toDouble() / killedMaxHp, 0.25) * expGain).roundToInt()
     }
 
 }

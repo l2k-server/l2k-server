@@ -11,6 +11,7 @@ import org.l2kserver.game.data.npc.GREMLIN
 import org.l2kserver.game.data.skill.MORTAL_BLOW
 import org.l2kserver.game.data.skill.POWER_STRIKE
 import org.l2kserver.game.domain.SkillsTable
+import org.l2kserver.game.extensions.receiveIgnoring
 import org.l2kserver.game.handler.dto.request.UseSkillRequest
 import org.l2kserver.game.handler.dto.response.ActionFailedResponse
 import org.l2kserver.game.handler.dto.response.ChangeMoveTypeResponse
@@ -21,6 +22,7 @@ import org.l2kserver.game.handler.dto.response.SkillListResponse
 import org.l2kserver.game.handler.dto.response.SkillUsedResponse
 import org.l2kserver.game.handler.dto.response.Sound
 import org.l2kserver.game.handler.dto.response.StartFightingResponse
+import org.l2kserver.game.handler.dto.response.StatusAttribute
 import org.l2kserver.game.handler.dto.response.SystemMessageResponse
 import org.l2kserver.game.handler.dto.response.UpdateStatusResponse
 import org.l2kserver.game.model.actor.npc.NpcTemplate
@@ -92,7 +94,7 @@ class SkillServiceTest(
     }
 
     @Test
-    fun shouldSuccessfullyUseSkill(): Unit = runBlocking {
+    fun shouldSuccessfullyUseSingleTargetDamageSkill(): Unit = runBlocking {
         // Create our character
         val context = createTestSessionContext()
         val character = createTestCharacter()
@@ -113,10 +115,19 @@ class SkillServiceTest(
             template = NpcTemplate.Registry.register(GREMLIN),
             spawnPosition = character.position.toSpawnPosition()
         )
-        context.responseChannel.receive() //Skip NpcInfoResponse
-        character.targetId = target.id
 
-        withContext(context) { skillService.useSkill(UseSkillRequest(POWER_STRIKE.id, false, false)) }
+        context.responseChannel.receive() //Skip NpcInfoResponse
+
+        character.targetId = target.id
+        target.targetedBy.add(character)
+
+        withContext(context) {
+            skillService.useSkill(UseSkillRequest(
+                skillId = POWER_STRIKE.id,
+                forced = false,
+                holdPosition = false
+            ))
+        }
 
         // Check results
         val updateCharacterStatusResponse = assertIs<UpdateStatusResponse>(context.responseChannel.receive())
@@ -134,7 +145,22 @@ class SkillServiceTest(
         assertEquals(POWER_STRIKE.id, skillUsedResponse.skillId)
         assertEquals(calculatedReuseDelay, skillUsedResponse.reuseDelay)
 
-        //TODO Check damage
+        val characterFightingResponse = assertIs<StartFightingResponse>(context.responseChannel.receive())
+        assertEquals(character.id, characterFightingResponse.actorId)
+
+        assertIs<ChangeMoveTypeResponse>(context.responseChannel.receive())
+
+        val targetFightingResponse = assertIs<StartFightingResponse>(context.responseChannel.receive())
+        assertEquals(target.id, targetFightingResponse.actorId)
+
+        val damageResponse = assertIs<SystemMessageResponse.YouHit>(context.responseChannel.receiveIgnoring(
+            SystemMessageResponse.CriticalHit::class))
+        val updateStatusResponse = assertIs<UpdateStatusResponse>(context.responseChannel.receive())
+
+        assertEquals(
+            damageResponse.damage,
+            target.stats.maxHp - (updateStatusResponse.attributes[StatusAttribute.CUR_HP] ?: 0)
+        )
     }
 
     @Test
@@ -171,8 +197,9 @@ class SkillServiceTest(
         assertIs<SkillUsedResponse>(context.responseChannel.receive())
 
         //Consume target stance responses
-        assertIs<ChangeMoveTypeResponse>(context.responseChannel.receive())
         assertIs<StartFightingResponse>(context.responseChannel.receive())
+        assertIs<ChangeMoveTypeResponse>(context.responseChannel.receive())
+        assertIs<StartFightingResponse>(context.responseChannel.receive()) //attacker started fighting
         assertIs<SystemMessageResponse.YouHit>(context.responseChannel.receive())
 
         delay(1000)

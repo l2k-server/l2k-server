@@ -114,6 +114,12 @@ open class SystemMessageResponse private constructor(
         val earnedExp: Int, val earnedSp: Int
     ): SystemMessageResponse(systemMessageId = 95, earnedExp, earnedSp)
 
+    /** Message: "Over-hit!" */
+    data object OverHit: SystemMessageResponse(systemMessageId = 361)
+
+    /** Message: "You have acquired [bonusExp] bonus experience from a successful over-hit."*/
+    data class YouHaveAcquiredExpForOverHit(val bonusExp: Int): SystemMessageResponse(systemMessageId = 362, bonusExp)
+
     /** Message: "Your level has increased!" */
     data object YourLevelHasIncreased: SystemMessageResponse(systemMessageId = 96)
 

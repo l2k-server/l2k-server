@@ -21,11 +21,11 @@ import org.l2kserver.game.handler.dto.response.PlayerDiedResponse
 import org.l2kserver.game.handler.dto.response.SystemMessageResponse
 import org.l2kserver.game.handler.dto.response.UpdateItemsResponse
 import org.l2kserver.game.handler.dto.response.UpdateStatusResponse
-import org.l2kserver.game.model.Hit
 import org.l2kserver.game.model.actor.Actor
 import org.l2kserver.game.model.actor.Npc
 import org.l2kserver.game.model.actor.PlayerCharacter
 import org.l2kserver.game.model.item.template.WeaponType
+import org.l2kserver.game.model.skill.effect.event.DamageEvent
 import org.l2kserver.game.network.session.send
 import org.l2kserver.game.network.session.sendTo
 import org.l2kserver.game.repository.GameObjectRepository
@@ -99,11 +99,6 @@ class CombatService(
                         continue
                     }
 
-                    actorStateService.activateCombatState(attacker)
-                    if (attacker is PlayerCharacter && attacked is PlayerCharacter && attacked.karma == 0) {
-                        actorStateService.activatePvpState(attacker)
-                    }
-
                     newSuspendedTransaction {
                         //Already launched attack must not be cancelled
                         withContext(coroutineContext + NonCancellable) {
@@ -123,13 +118,19 @@ class CombatService(
         }
     }
 
-    suspend fun performHit(hit: Hit, attacker: Actor) {
-        val attacked = gameObjectRepository.findActorById(hit.targetId)
+    suspend fun performDamage(damageEvent: DamageEvent, attacker: Actor) {
+        val attacked = gameObjectRepository.findActorById(damageEvent.targetId)
         if (attacked.isDead()) return //Needed for double weapon, if target was killed by first hit
 
-        actorStateService.activateCombatState(attacked)
+        log.debug("{} has dealt {} damage to {}", attacker, damageEvent.damage, attacked)
 
-        if (hit.isAvoided) {
+        actorStateService.activateCombatState(attacker)
+        actorStateService.activateCombatState(attacked)
+        if (attacker is PlayerCharacter && attacked is PlayerCharacter && attacked.karma == 0) {
+            actorStateService.activatePvpState(attacker)
+        }
+
+        if (damageEvent.isAvoided) {
             send(SystemMessageResponse.YouMissed)
             sendTo(
                 attacked.id,
@@ -138,31 +139,39 @@ class CombatService(
             return
         }
 
-        //If fighters are players, subtract fom CP first
-        if (attacker is PlayerCharacter && attacked is PlayerCharacter) {
-            val hitOnHp = -minOf(attacked.currentCp - hit.damage, 0)
+        // Calculate overhit damage.
+        // "mob had 10 HP left, over-hit skill did 50 damage total, over-hit damage is 40" (c) l2jserver
+        val overhitDamage = if (damageEvent.overhitPossible && attacked is Npc)
+            maxOf(damageEvent.damage - attacked.currentHp, 0)
+        else 0
 
-            attacked.currentCp = maxOf(0, attacked.currentCp - hit.damage)
-            attacked.currentHp = maxOf(0, attacked.currentHp - hitOnHp)
-        }
-        else attacked.currentHp = maxOf(0, attacked.currentHp - hit.damage)
-
+        //Store damage for AI and reward ownership
         if (attacked is Npc) synchronized(attacked.opponentsDamage) {
             val damageDealt = attacked.opponentsDamage[attacker] ?: 0
-            attacked.opponentsDamage[attacker] = damageDealt + hit.damage
+            attacked.opponentsDamage[attacker] = damageDealt + minOf(damageEvent.damage, attacked.currentHp)
         }
 
-        if (hit.isCritical) send(SystemMessageResponse.CriticalHit)
-        if (hit.isBlocked) sendTo(attacked.id, SystemMessageResponse.ShieldDefenceSuccessful)
+        //If fighters are players, subtract fom CP first
+        if (attacker is PlayerCharacter && attacked is PlayerCharacter) {
+            val hitOnHp = -minOf(attacked.currentCp - damageEvent.damage, 0)
 
-        send(SystemMessageResponse.YouHit(hit.damage))
-        sendTo(attacked.id, SystemMessageResponse.YouWereHitBy(attacker.name, hit.damage))
+            attacked.currentCp = maxOf(0, attacked.currentCp - damageEvent.damage)
+            attacked.currentHp = maxOf(0, attacked.currentHp - hitOnHp)
+        } else attacked.currentHp = maxOf(0, attacked.currentHp - damageEvent.damage)
+
+        if (damageEvent.isCritical) send(SystemMessageResponse.CriticalHit)
+        if (damageEvent.isBlocked) sendTo(attacked.id, SystemMessageResponse.ShieldDefenceSuccessful)
+
+        send(SystemMessageResponse.YouHit(damageEvent.damage))
+        sendTo(attacked.id, SystemMessageResponse.YouWereHitBy(attacker.name, damageEvent.damage))
+
+        if (overhitDamage > 0) send(SystemMessageResponse.OverHit)
 
         val updatedStatus = UpdateStatusResponse.hpMpCpOf(attacked)
         sendTo(attacked.id, updatedStatus)
-        attacked.targetedBy.forEach { sendTo(it, updatedStatus) }
+        attacked.targetedBy.forEach { sendTo(it.id, updatedStatus) }
 
-        if (attacked.currentHp == 0) killActor(attacked, attacker)
+        if (attacked.currentHp == 0) killActor(attacked, attacker, overhitDamage)
     }
 
     /**
@@ -187,7 +196,7 @@ class CombatService(
         delay(delayBeforeHit)
 
         hits.forEach {
-            performHit(it, attacker)
+            performDamage(it, attacker)
             //Delay for the time between the hit and the end of the attack animation
             delay(delayBeforeHit)
         }
@@ -224,7 +233,7 @@ class CombatService(
                 }
 
                 //Subtract ammo
-                val updatedArrows = attacker.inventory.reduceAmount(arrows.id,consumable.amount)
+                val updatedArrows = attacker.inventory.reduceAmount(arrows.id, consumable.amount)
                 if (updatedArrows == null) send(UpdateItemsResponse.operationRemove(arrows))
                 else send(UpdateItemsResponse.operationModify(updatedArrows))
             }
@@ -252,7 +261,7 @@ class CombatService(
         CoroutineScope(coroutineContext + NonCancellable).launch {
             //Delay for time it takes for the arrow to reach the target
             delay((attacker.position.distanceTo(attacked.position) / ARROW_SPEED_PER_MS).toLong())
-            newSuspendedTransaction { performHit(hit, attacker) }
+            newSuspendedTransaction { performDamage(hit, attacker) }
         }
 
         //Delay for the time between the hit and the end of the attack animation
@@ -282,7 +291,7 @@ class CombatService(
      *
      * @param actor Actor, who was killed
      */
-    private suspend fun killActor(actor: Actor, killer: Actor) {
+    private suspend fun killActor(actor: Actor, killer: Actor, overhitDamage: Int) {
         asyncTaskService.cancelActionByActorId(actor.id)
         actorStateService.disableCombatState(actor)
 
@@ -290,11 +299,12 @@ class CombatService(
             is Npc -> {
                 broadcastPacket(NpcDiedResponse(actor), actor.position)
                 npcService.handleNpcDeath(actor)
-                rewardService.manageRewardForKillingNpc(actor)
+                if (killer is PlayerCharacter) rewardService.manageRewardForKillingNpc(killer, actor, overhitDamage)
             }
+
             is PlayerCharacter -> {
                 broadcastPacket(PlayerDiedResponse(actor), actor.position)
-                rewardService.manageRewardForKillingPlayer(actor, killer)
+                if (killer is PlayerCharacter) rewardService.manageRewardForKillingPlayer(actor, killer)
             }
         }
     }

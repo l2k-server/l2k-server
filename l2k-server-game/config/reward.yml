@@ -7,14 +7,14 @@
 # Level difference, on which level difference penalty will be enabled
 #
 # Default: 5
-drop.minLevelDifferenceForPenalty: 5
+reward.minLevelDifferenceForPenalty: 5
 
 # Chance of level penalty applied per level.
 # This means for every level of levelDifference greater
 # than minLevelDifferenceForPenalty there will be chance 0.18
 # that drop will not happen
 # Default: 0.18
-drop.levelPenaltyBaseValue: 0.18
+reward.levelPenaltyBaseValue: 0.18
 
 # Level difference, on which level difference penalty chance wil stop multiplying.
 # This means that level drop penalty will be
@@ -25,4 +25,4 @@ drop.levelPenaltyBaseValue: 0.18
 # penalty chance will be 0.90, even if levelDifference is greater than 10
 #
 # Default: 10
-drop.maxLevelDifferenceForPenalty: 10
+reward.maxLevelDifferenceForPenalty: 10

@@ -77,7 +77,7 @@ class Npc(
     override var isMoving = false
 
     override var targetId: Int? = null
-    override val targetedBy: MutableSet<Int> = ConcurrentHashMap.newKeySet<Int>(0)
+    override val targetedBy: MutableSet<Actor> = ConcurrentHashMap.newKeySet(0)
 
     override val weaponType = equippedWeaponTemplate?.type
     override val hasShield = equippedShieldTemplate != null

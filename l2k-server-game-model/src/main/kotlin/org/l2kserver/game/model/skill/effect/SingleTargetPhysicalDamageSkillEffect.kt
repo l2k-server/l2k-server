@@ -1,6 +1,10 @@
 package org.l2kserver.game.model.skill.effect
 
 import org.l2kserver.game.model.actor.Actor
+import org.l2kserver.game.model.utils.PHYSICAL_ATTACK_BASE
+import org.l2kserver.game.model.utils.calculateIsAvoided
+import org.l2kserver.game.model.utils.calculateIsBlocked
+import org.l2kserver.game.model.utils.calculateIsCritical
 
 class SingleTargetPhysicalDamageSkillEffect(
     val power: List<Int>,
@@ -8,14 +12,30 @@ class SingleTargetPhysicalDamageSkillEffect(
     val overhitPossible: Boolean = false
 ): SingleTargetSkillEffect {
 
-    override fun apply(by: Actor, to: Actor, effectLevel: Int) = effects {
-        //TODO Real damage calculation
-        val damage = power.getOrElse(effectLevel - 1) { by.stats.pAtk }
+    override fun apply(caster: Actor, target: Actor, effectLevel: Int) = effects {
+        if (!ignoresShield && calculateIsAvoided(caster, target)) {
+            miss(target)
+            return@effects
+        }
+        //TODO Excellent shield block
+        // https://github.com/orgs/l2k-server/projects/1?pane=issue&itemId=120794579&issue=l2k-server%7Cl2k-server%7C10
+        val isBlocked = !ignoresShield && calculateIsBlocked(caster, target)
+        val isCritical = !isBlocked && calculateIsCritical(caster, target)
 
-        if (ignoresShield) println("This skill ignores shield")
-        if (overhitPossible) println("This skill can make an overhit!")
+        var damage = (power.getOrNull(effectLevel - 1) ?: 0) + caster.stats.pAtk
+        //TODO if used soulshot damage *= 2
+        // https://github.com/orgs/l2k-server/projects/1?pane=issue&itemId=120797806&issue=l2k-server%7Cl2k-server%7C19
+        if (isCritical) damage = damage * 2 + caster.stats.critDamage
 
-        dealDamage(damage, to)
+        var defence = target.stats.pDef
+        if (isBlocked) defence += target.stats.shieldDef
+
+        damage = (PHYSICAL_ATTACK_BASE * damage) / defence
+
+        //TODO Buffs for weapon vulnerabilities/resistances, PVP bonus
+        // https://github.com/orgs/l2k-server/projects/1?pane=issue&itemId=124732573&issue=l2k-server%7Cl2k-server%7C47
+
+        dealDamage(damage, target, isCritical = isCritical, isBlocked = isBlocked, overhitPossible = overhitPossible)
     }
 
 }

@@ -1,25 +1,15 @@
 package org.l2kserver.game.extensions.model.actor
 
-import org.l2kserver.game.model.Hit
 import org.l2kserver.game.model.actor.Actor
-import org.l2kserver.game.model.item.template.WeaponType
+import org.l2kserver.game.model.skill.effect.event.DamageEvent
+import org.l2kserver.game.model.utils.PHYSICAL_ATTACK_BASE
+import org.l2kserver.game.model.utils.PHYSICAL_DMG_FROM_BACK_MODIFIER
+import org.l2kserver.game.model.utils.PHYSICAL_DMG_FROM_SIDE_MODIFIER
+import org.l2kserver.game.model.utils.calculateIsAvoided
+import org.l2kserver.game.model.utils.calculateIsBlocked
+import org.l2kserver.game.model.utils.calculateIsCritical
 import kotlin.math.roundToInt
 import kotlin.random.Random
-
-private const val ACCURACY_FROM_SIDE_MODIFIER = 1.1
-private const val ACCURACY_FROM_BACK_MODIFIER = 1.3
-
-private const val CRIT_RATE_FROM_SIDE_MODIFIER = 1.1
-private const val CRIT_RATE_FROM_BACK_MODIFIER = 1.2
-
-private const val PHYSICAL_ATTACK_BASE = 70
-private const val PHYSICAL_DMG_FROM_SIDE_MODIFIER = 1.1
-private const val PHYSICAL_DMG_FROM_BACK_MODIFIER = 1.2
-
-private const val EVASION_CHANCE_BASE = 88
-
-private const val BONUS_SHIELD_DEF_RATE_AGAINST_BOW = 30
-private const val BONUS_SHIELD_DEF_RATE_AGAINST_DAGGER = 12
 
 /**
  * Calculates hit dealt by `this` actor to [other]
@@ -28,16 +18,16 @@ private const val BONUS_SHIELD_DEF_RATE_AGAINST_DAGGER = 12
  * @param attackPowerDivider Value, on which resulting damage should be divided
  * (for example dual weapon attack contains two hits, each should deal 50% damage)
  */
-fun Actor.hit(other: Actor, attackPowerDivider: Int = 1): Hit {
+fun Actor.hit(other: Actor, attackPowerDivider: Int = 1): DamageEvent {
     val isAvoided = calculateIsAvoided(this, other)
     //TODO Calculate PerfectShieldBlock
 
-    if (isAvoided) return Hit(targetId = other.id, isAvoided = true)
+    if (isAvoided) return DamageEvent(targetId = other.id, isAvoided = true)
 
     val isCritical = calculateIsCritical(this, other)
     val isBlocked = calculateIsBlocked(this, other)
 
-    return Hit(
+    return DamageEvent(
         targetId = other.id,
         damage = calculateAutoAttackDamage(
             this, other, isCritical, isBlocked, usedSoulshot = false
@@ -46,42 +36,6 @@ fun Actor.hit(other: Actor, attackPowerDivider: Int = 1): Hit {
         isCritical = isCritical,
         isBlocked = isBlocked,
     )
-}
-
-/** Calculates if attack of [attacker] on [attacked] is critical */
-private fun calculateIsCritical(attacker: Actor, attacked: Actor): Boolean {
-    var critRate = attacker.stats.critRate
-
-    if (attacker.isOnSideOf(attacked))
-        critRate = (critRate * CRIT_RATE_FROM_SIDE_MODIFIER).roundToInt()
-    if (attacker.isBehind(attacked))
-        critRate = (critRate * CRIT_RATE_FROM_BACK_MODIFIER).roundToInt()
-
-    return critRate > Random.nextInt(0, 1000)
-}
-
-/** Calculates if [attacked] has avoided [attacker]'s attack */
-private fun calculateIsAvoided(attacker: Actor, attacked: Actor): Boolean {
-    var hitChance = EVASION_CHANCE_BASE + 2 * (attacker.stats.accuracy - attacked.stats.evasion)
-
-    if (attacker.isOnSideOf(attacked))
-        hitChance = (hitChance * ACCURACY_FROM_SIDE_MODIFIER).roundToInt()
-    if (attacker.isBehind(attacked))
-        hitChance = (hitChance * ACCURACY_FROM_BACK_MODIFIER).roundToInt()
-
-    return hitChance < Random.nextInt(0, 100)
-}
-
-/** Calculates if [attacked] has blocked [attacker]'s attack  */
-private fun calculateIsBlocked(attacker: Actor, attacked: Actor): Boolean {
-    val attackerWeaponBonus = if (!attacked.hasShield) 0 else when (attacker.weaponType) {
-        WeaponType.BOW -> BONUS_SHIELD_DEF_RATE_AGAINST_BOW
-        WeaponType.DAGGER -> BONUS_SHIELD_DEF_RATE_AGAINST_DAGGER
-        else -> 0
-    }
-
-    val blockChance = attacked.stats.shieldDefRate /* TODO * buff shield rate */ + attackerWeaponBonus
-    return blockChance > Random.nextInt(0, 100)
 }
 
 private fun calculateAutoAttackDamage(
