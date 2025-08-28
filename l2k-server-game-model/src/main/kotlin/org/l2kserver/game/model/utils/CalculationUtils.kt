@@ -22,26 +22,23 @@ const val BONUS_SHIELD_DEF_RATE_AGAINST_DAGGER = 12
 
 /** Calculates if attack of [attacker] on [attacked] is critical */
 fun calculateIsCritical(attacker: Actor, attacked: Actor): Boolean {
-    var critRate = attacker.stats.critRate
+    val elevationFactor = 0.008 * (attacker.position.z - attacked.position.z).coerceIn(-25..25) + 1.1
+    var critRate = attacker.stats.critRate * elevationFactor
 
-    if (attacker.isOnSideOf(attacked))
-        critRate = (critRate * CRIT_RATE_FROM_SIDE_MODIFIER).roundToInt()
-    if (attacker.isBehind(attacked))
-        critRate = (critRate * CRIT_RATE_FROM_BACK_MODIFIER).roundToInt()
+    if (attacker.isOnSideOf(attacked)) critRate *= CRIT_RATE_FROM_SIDE_MODIFIER
+    if (attacker.isBehind(attacked)) critRate *= CRIT_RATE_FROM_BACK_MODIFIER
 
-    return critRate > Random.nextInt(0, 1000)
+    return critRate.roundToInt() > Random.nextInt(0, 1000)
 }
 
 /** Calculates if [attacked] has avoided [attacker]'s attack */
 fun calculateIsAvoided(attacker: Actor, attacked: Actor): Boolean {
-    var hitChance = EVASION_CHANCE_BASE + 2 * (attacker.stats.accuracy - attacked.stats.evasion)
+    var hitChance = EVASION_CHANCE_BASE + 2.0 * (attacker.stats.accuracy - attacked.stats.evasion)
 
-    if (attacker.isOnSideOf(attacked))
-        hitChance = (hitChance * ACCURACY_FROM_SIDE_MODIFIER).roundToInt()
-    if (attacker.isBehind(attacked))
-        hitChance = (hitChance * ACCURACY_FROM_BACK_MODIFIER).roundToInt()
+    if (attacker.isOnSideOf(attacked)) hitChance *= ACCURACY_FROM_SIDE_MODIFIER
+    if (attacker.isBehind(attacked)) hitChance *= ACCURACY_FROM_BACK_MODIFIER
 
-    return hitChance < Random.nextInt(0, 100)
+    return hitChance.roundToInt() < Random.nextInt(0, 100)
 }
 
 /** Calculates if [attacked] has blocked [attacker]'s attack  */
@@ -53,5 +50,6 @@ fun calculateIsBlocked(attacker: Actor, attacked: Actor): Boolean {
     }
 
     val blockChance = attacked.stats.shieldDefRate /* TODO * buff shield rate */ + attackerWeaponBonus
+
     return blockChance > Random.nextInt(0, 100)
 }
