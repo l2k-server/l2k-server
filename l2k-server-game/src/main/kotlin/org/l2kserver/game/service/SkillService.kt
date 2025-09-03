@@ -271,9 +271,15 @@ class SkillService(
 
     /** Applies cast by [caster] skill effects on [target] */
     private suspend fun Skill.applyEffects(caster: Actor, target: Actor) = this.effects.forEach { effect ->
-        val events = when (effect) {
-            is SingleTargetSkillEffect -> effect.apply(caster, target, this.skillLevel)
-            //TODO AOE skills
+        val events = try {
+            when (effect) {
+                is SingleTargetSkillEffect -> effect.apply(caster, target, this.skillLevel)
+                //TODO AOE skills
+            }
+        }
+        catch (e: Exception) {
+            log.error("An error occurred while trying to apply effect {}", effect, e)
+            emptyList()
         }
 
         events.forEach { event ->

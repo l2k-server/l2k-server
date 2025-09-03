@@ -2,6 +2,7 @@ package org.l2kserver.game.model.item.template
 
 import org.l2kserver.game.model.item.ConsumableItem
 import org.l2kserver.game.model.stats.Stats
+import kotlin.random.Random
 
 data class WeaponTemplate(
     override val id: Int,
@@ -27,27 +28,39 @@ data class WeaponTemplate(
 }
 
 /**
- * @param availableSlots Slots, where item of this type will be placed when equipped
- * @param randomCoefficient How many percent will be added (or subtracted) to resulting damage
- *
- * @property DAGGER Dagger weapon type
- * @property SWORD_ONE_HANDED One-handed sword weapon type
- * @property SWORD_TWO_HANDED Two-handed sword weapon type
- * @property BLUNT_ONE_HANDED One-handed blunt weapon type
- * @property BLUNT_TWO_HANDED Two-handed blunt weapon type
- * @property DOUBLE_BLADES Double blades weapon type
- * @property BOW Bow weapon type
- * @property FIST Fist weapon type
- * @property POLE Pole weapon type
+ * @property availableSlots Slots, where item of this type will be placed when equipped
+ * @property damageSpread Damage spread of weapon type.
+ * If damageSpread = 0.01 and pAtk is equal 100, it means weapon can hit from 90 to 110 damage
  */
-enum class WeaponType(override val availableSlots: Set<Slot>, val randomCoefficient: Int): ItemType {
-    DAGGER(setOf(Slot.RIGHT_HAND), 5),
-    SWORD_ONE_HANDED(setOf(Slot.RIGHT_HAND), 10),
-    SWORD_TWO_HANDED(setOf(Slot.TWO_HANDS), 10),
-    BLUNT_ONE_HANDED(setOf(Slot.RIGHT_HAND), 20),
-    BLUNT_TWO_HANDED(setOf(Slot.TWO_HANDS), 20),
-    DOUBLE_BLADES(setOf(Slot.TWO_HANDS), 10),
-    BOW(setOf(Slot.TWO_HANDS), 5),
-    FIST(setOf(Slot.TWO_HANDS), 5),
-    POLE(setOf(Slot.TWO_HANDS), 10)
+enum class WeaponType(override val availableSlots: Set<Slot>, val damageSpread: Double): ItemType {
+    /** Dagger weapon type */
+    DAGGER(setOf(Slot.RIGHT_HAND), 0.05),
+
+    /** One-handed sword weapon type */
+    SWORD_ONE_HANDED(setOf(Slot.RIGHT_HAND), 0.1),
+
+    /** Two-handed sword weapon type */
+    SWORD_TWO_HANDED(setOf(Slot.TWO_HANDS), 0.1),
+
+    /** One-handed blunt weapon type */
+    BLUNT_ONE_HANDED(setOf(Slot.RIGHT_HAND), 0.2),
+
+    /** Two-handed blunt weapon type */
+    BLUNT_TWO_HANDED(setOf(Slot.TWO_HANDS), 0.2),
+
+    /** Double blades weapon type */
+    DOUBLE_BLADES(setOf(Slot.TWO_HANDS), 0.1),
+
+    /** Bow weapon type */
+    BOW(setOf(Slot.TWO_HANDS), 0.05),
+
+    /** Fist weapon type */
+    FIST(setOf(Slot.TWO_HANDS), 0.05),
+
+    /** Pole weapon type */
+    POLE(setOf(Slot.TWO_HANDS), 0.1);
+
+    fun calculateRandomDamageModifier() = 1.0 + this.damageSpread.let { Random.nextDouble(-it, it) }
 }
+
+fun WeaponType?.calculateRandomDamageModifier() = this?.calculateRandomDamageModifier() ?: 1.0

@@ -9,6 +9,7 @@ import org.l2kserver.game.model.actor.position.SpawnPosition
 import org.l2kserver.game.model.actor.npc.ai.Ai
 import org.l2kserver.game.model.item.template.WeaponType
 import org.l2kserver.game.model.reward.Reward
+import org.l2kserver.game.model.stats.BasicStats
 import org.l2kserver.game.model.stats.Stats
 import org.l2kserver.game.model.zone.SpawnZone
 
@@ -26,6 +27,7 @@ interface NpcInstance: Actor {
     override var heading: Heading
     override var position: Position
     override val stats: Stats
+    override val basicStats: BasicStats
     val reward: Reward
     val spawnedAt: SpawnedAt
     val replicas: List<String>

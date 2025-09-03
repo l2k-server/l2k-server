@@ -21,6 +21,7 @@ fun NpcTemplate.toNpc(id: Int, position: Position, heading: Heading, spawnedAt: 
     position = position,
     heading = heading,
     stats = this.stats,
+    basicStats = this.basicStats,
     reward = this.reward,
     spawnedAt = spawnedAt,
     replicas = this.replicas,

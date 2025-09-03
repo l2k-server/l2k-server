@@ -1,6 +1,7 @@
 package org.l2kserver.game.data.npc
 
 import org.l2kserver.game.data.ai.GENERAL_AI
+import org.l2kserver.game.data.character.classes.HUMAN_FIGHTER
 import org.l2kserver.game.model.actor.CollisionBox
 import org.l2kserver.game.model.actor.npc.NpcRace
 import org.l2kserver.game.model.actor.npc.NpcTemplate
@@ -38,6 +39,7 @@ val GREMLIN = NpcTemplate(
         mpRegen = 0.91,
         attackRange = 40
     ),
+    basicStats = HUMAN_FIGHTER.basicStats,
     reward = Reward(
         exp = 29,
         sp = 2,

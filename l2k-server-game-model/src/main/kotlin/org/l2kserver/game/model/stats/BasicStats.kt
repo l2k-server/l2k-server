@@ -8,12 +8,12 @@ import kotlin.math.sqrt
  * Character's basic stats
  */
 data class BasicStats(
-    val str: STR,
-    val dex: DEX,
-    val con: CON,
-    val int: INT,
-    val wit: WIT,
-    val men: MEN,
+    val str: STR = STR(0),
+    val dex: DEX = DEX(0),
+    val con: CON = CON(0),
+    val int: INT = INT(0),
+    val wit: WIT = WIT(0),
+    val men: MEN = MEN(0),
 ) {
 
     operator fun plus(other: BasicStats?) = if (other == null) this else BasicStats(
@@ -53,10 +53,7 @@ sealed class BaseStat(modifierBase: Double, modifierPowBase: Double) {
      * @param statValue Base stat value
      * @return the multiplier for the given base stat value
      */
-    protected fun getModifier(statValue: Int) =
-        if (statValue < 0) modifiers.first()
-        else if (statValue > modifiers.size) modifiers.last()
-        else modifiers[statValue]
+    protected fun getModifier(statValue: Int) = modifiers[statValue.coerceIn(modifiers.indices)]
 }
 
 private const val STR_MULTIPLIER_BASE = 1.036
