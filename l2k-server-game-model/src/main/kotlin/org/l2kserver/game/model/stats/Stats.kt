@@ -37,6 +37,8 @@ data class Stats(
 ) {
 
     val walkSpeed = (speed * 0.7).roundToInt()
+    //TODO Should be 0,5 fix in
+    // https://github.com/orgs/l2k-server/projects/1/views/3?pane=issue&itemId=120796094&issue=l2k-server%7Cl2k-server%7C15
 
     operator fun plus(other: Stats?) = if (other == null) this else Stats(
         maxCp = this.maxCp + other.maxCp,

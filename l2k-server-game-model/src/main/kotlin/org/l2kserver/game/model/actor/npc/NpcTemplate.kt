@@ -6,6 +6,7 @@ import org.l2kserver.game.model.GameDataRegistry
 import org.l2kserver.game.model.actor.npc.ai.Ai
 import org.l2kserver.game.model.actor.position.SpawnPosition
 import org.l2kserver.game.model.reward.Reward
+import org.l2kserver.game.model.stats.BasicStats
 import org.l2kserver.game.model.stats.Stats
 import org.l2kserver.game.model.zone.SpawnZone
 
@@ -19,7 +20,8 @@ data class NpcTemplate(
     val isInvulnerable: Boolean,
     val race: NpcRace,
     val collisionBox: CollisionBox,
-    val stats: Stats = Stats(),
+    val stats: Stats,
+    val basicStats: BasicStats,
     val reward: Reward = Reward(),
     val spawn: SpawnData,
     val replicas: List<String> = emptyList(),

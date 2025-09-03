@@ -10,6 +10,7 @@ import org.l2kserver.game.model.actor.npc.ai.Ai
 import org.l2kserver.game.model.item.template.ArmorTemplate
 import org.l2kserver.game.model.item.template.WeaponTemplate
 import org.l2kserver.game.model.reward.Reward
+import org.l2kserver.game.model.stats.BasicStats
 import org.l2kserver.game.model.stats.Stats
 
 /**
@@ -47,6 +48,7 @@ class Npc(
     override var heading: Heading,
     override var position: Position,
     override val stats: Stats,
+    override val basicStats: BasicStats,
     override val reward: Reward,
     override val spawnedAt: SpawnedAt,
     override val replicas: List<String>,

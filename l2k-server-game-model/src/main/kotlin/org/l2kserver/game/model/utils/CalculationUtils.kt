@@ -1,3 +1,4 @@
+@file:JvmName("CalculationUtils")
 package org.l2kserver.game.model.utils
 
 import org.l2kserver.game.model.actor.Actor
@@ -22,12 +23,7 @@ const val BONUS_SHIELD_DEF_RATE_AGAINST_DAGGER = 12
 
 /** Calculates if attack of [attacker] on [attacked] is critical */
 fun calculateIsCritical(attacker: Actor, attacked: Actor): Boolean {
-    val elevationFactor = 0.008 * (attacker.position.z - attacked.position.z).coerceIn(-25..25) + 1.1
-    var critRate = attacker.stats.critRate * elevationFactor
-
-    if (attacker.isOnSideOf(attacked)) critRate *= CRIT_RATE_FROM_SIDE_MODIFIER
-    if (attacker.isBehind(attacked)) critRate *= CRIT_RATE_FROM_BACK_MODIFIER
-
+    val critRate = attacker.stats.critRate * calculatePositionCritChanceMultiplier(attacker, attacked)
     return critRate.roundToInt() > Random.nextInt(0, 1000)
 }
 
@@ -52,4 +48,16 @@ fun calculateIsBlocked(attacker: Actor, attacked: Actor): Boolean {
     val blockChance = attacked.stats.shieldDefRate /* TODO * buff shield rate */ + attackerWeaponBonus
 
     return blockChance > Random.nextInt(0, 100)
+}
+
+/** Calculates critical hit chance multiplier, according to position and elevation factors*/
+fun calculatePositionCritChanceMultiplier(attacker: Actor, attacked: Actor): Double {
+    val elevationFactor = 0.008 * (attacker.position.z - attacked.position.z).coerceIn(-25..25) + 1.1
+    val positionBonus = when {
+        attacker.isBehind(attacked) -> CRIT_RATE_FROM_BACK_MODIFIER
+        attacker.isOnSideOf(attacked) ->  CRIT_RATE_FROM_SIDE_MODIFIER
+        else -> 1.0
+    }
+
+    return elevationFactor * positionBonus
 }

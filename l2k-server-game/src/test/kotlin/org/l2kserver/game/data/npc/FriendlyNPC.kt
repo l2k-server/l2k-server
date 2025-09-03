@@ -1,5 +1,6 @@
 package org.l2kserver.game.data.npc
 
+import org.l2kserver.game.data.character.classes.HUMAN_FIGHTER
 import org.l2kserver.game.model.actor.CollisionBox
 import org.l2kserver.game.model.actor.npc.NpcRace
 import org.l2kserver.game.model.actor.npc.NpcTemplate
@@ -23,6 +24,7 @@ val GRAND_MASTER_ROIEN = NpcTemplate(
         pDef = Int.MAX_VALUE,
         mDef = Int.MAX_VALUE
     ),
+    basicStats = HUMAN_FIGHTER.basicStats,
     spawn = SpawnData(
         positions = listOf(SpawnPosition(-71384, 258305, -3109, 42000))
     ),

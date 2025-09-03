@@ -1,6 +1,7 @@
 package org.l2kserver.game.extensions.model.actor
 
 import org.l2kserver.game.model.actor.Actor
+import org.l2kserver.game.model.item.template.calculateRandomDamageModifier
 import org.l2kserver.game.model.skill.effect.event.DamageEvent
 import org.l2kserver.game.model.utils.PHYSICAL_ATTACK_BASE
 import org.l2kserver.game.model.utils.PHYSICAL_DMG_FROM_BACK_MODIFIER
@@ -9,7 +10,6 @@ import org.l2kserver.game.model.utils.calculateIsAvoided
 import org.l2kserver.game.model.utils.calculateIsBlocked
 import org.l2kserver.game.model.utils.calculateIsCritical
 import kotlin.math.roundToInt
-import kotlin.random.Random
 
 /**
  * Calculates hit dealt by `this` actor to [other]
@@ -41,7 +41,7 @@ fun Actor.hit(other: Actor, attackPowerDivider: Int = 1): DamageEvent {
 private fun calculateAutoAttackDamage(
     attacker: Actor, attacked: Actor, isCritical: Boolean, isBlocked: Boolean, usedSoulshot: Boolean
 ): Int {
-    var damage = attacker.stats.pAtk
+    var damage = attacker.stats.pAtk.toDouble()
     if (usedSoulshot) damage *= 2
     if (isCritical) damage = damage * 2 /*TODO * Buffs multipliers*/ + attacker.stats.critDamage
 
@@ -51,16 +51,13 @@ private fun calculateAutoAttackDamage(
     //TODO calculate vulnerabilities and resistances
     damage = (PHYSICAL_ATTACK_BASE * damage) / defence
 
-    if (attacker.isOnSideOf(attacked))
-        damage = (damage * PHYSICAL_DMG_FROM_SIDE_MODIFIER).roundToInt()
-    if (attacker.isBehind(attacked))
-        damage = (damage * PHYSICAL_DMG_FROM_BACK_MODIFIER).roundToInt()
+    if (attacker.isOnSideOf(attacked)) damage *= PHYSICAL_DMG_FROM_SIDE_MODIFIER
+    if (attacker.isBehind(attacked)) damage *= PHYSICAL_DMG_FROM_BACK_MODIFIER
 
     //TODO calculate PvP bonus
     //TODO calculate PvP penalty
 
-    val randomModifier = attacker.weaponType?.randomCoefficient?.let { Random.nextInt(-it, it) } ?: 0
-    damage += (randomModifier * damage) / 100
+    damage *= attacker.weaponType.calculateRandomDamageModifier()
 
-    return damage
+    return damage.roundToInt()
 }

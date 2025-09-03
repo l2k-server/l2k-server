@@ -93,7 +93,7 @@ class PlayerCharacter(
 
     override val level: Int get() = LevelUtils.getLevelByExp(exp)
 
-    val basicStats: BasicStats get() = characterClass.basicStats
+    override val basicStats: BasicStats get() = characterClass.basicStats
 
     override val stats: Stats get() = characterClass.combatStats
         .applyEquipment(this)

@@ -3,6 +3,7 @@ package org.l2kserver.game.model.actor
 import org.l2kserver.game.model.actor.position.Heading
 import org.l2kserver.game.model.actor.position.Position
 import org.l2kserver.game.model.item.template.WeaponType
+import org.l2kserver.game.model.stats.BasicStats
 import org.l2kserver.game.model.stats.Stats
 
 /**
@@ -30,6 +31,7 @@ interface Actor: GameWorldObject {
     override var position: Position
     override val collisionBox: CollisionBox
     val stats: Stats
+    val basicStats: BasicStats
     val name: String
     val level: Int
     var heading: Heading
