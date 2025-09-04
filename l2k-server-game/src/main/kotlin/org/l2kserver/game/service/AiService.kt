@@ -4,6 +4,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import org.l2kserver.game.model.extensions.forEachInstance
 import org.l2kserver.game.extensions.logger
+import org.l2kserver.game.extensions.model.actor.asMutable
 import org.l2kserver.game.handler.dto.response.ChatMessageResponse
 import org.l2kserver.game.model.actor.Npc
 import org.l2kserver.game.model.actor.npc.ai.AiIntents
@@ -67,7 +68,7 @@ class AiService(
                 )
             )
             is MoveIntent -> moveService.move(npc, intent.position)
-            is AttackIntent -> combatService.launchAttack(npc, intent.target)
+            is AttackIntent -> combatService.launchAttack(npc, intent.target.asMutable())
 
         }
     }

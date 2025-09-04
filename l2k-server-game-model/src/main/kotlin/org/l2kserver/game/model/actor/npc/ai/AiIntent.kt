@@ -1,6 +1,6 @@
 package org.l2kserver.game.model.actor.npc.ai
 
-import org.l2kserver.game.model.actor.Actor
+import org.l2kserver.game.model.actor.ActorInstance
 import org.l2kserver.game.model.actor.position.Position
 
 sealed interface AiIntent
@@ -15,7 +15,7 @@ value class SayIntent(val message: String): AiIntent
 value class MoveIntent(val position: Position): AiIntent
 
 @JvmInline
-value class AttackIntent(val target: Actor): AiIntent
+value class AttackIntent(val target: ActorInstance): AiIntent
 
 @JvmInline
 value class AiIntents private constructor(
@@ -39,7 +39,7 @@ value class AiIntents private constructor(
     }
 
     @Suppress("unused")
-    fun attack(target: Actor) {
+    fun attack(target: ActorInstance) {
         actions.add(AttackIntent(target))
     }
 

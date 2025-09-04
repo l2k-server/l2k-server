@@ -2,7 +2,7 @@ package org.l2kserver.game.handler.dto.response
 
 import org.l2kserver.game.extensions.littleEndianByteArray
 import org.l2kserver.game.extensions.putUByte
-import org.l2kserver.game.model.actor.Actor
+import org.l2kserver.game.model.actor.ActorInstance
 import org.l2kserver.game.model.actor.PlayerCharacter
 
 private const val UPDATE_STATUS_RESPONSE_PACKET_ID: UByte = 14u
@@ -36,7 +36,7 @@ data class UpdateStatusResponse(
         /**
          * Create UpdateStatusResponse for updating actor's HP, MP and CP (if actor is PlayerCharacter) on client side
          */
-        fun hpMpCpOf(actor: Actor): UpdateStatusResponse {
+        fun hpMpCpOf(actor: ActorInstance): UpdateStatusResponse {
             val attributes = mutableMapOf(
                 StatusAttribute.CUR_HP to actor.currentHp,
                 StatusAttribute.CUR_MP to actor.currentMp

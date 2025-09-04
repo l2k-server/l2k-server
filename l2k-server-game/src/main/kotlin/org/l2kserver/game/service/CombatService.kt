@@ -21,7 +21,7 @@ import org.l2kserver.game.handler.dto.response.PlayerDiedResponse
 import org.l2kserver.game.handler.dto.response.SystemMessageResponse
 import org.l2kserver.game.handler.dto.response.UpdateItemsResponse
 import org.l2kserver.game.handler.dto.response.UpdateStatusResponse
-import org.l2kserver.game.model.actor.Actor
+import org.l2kserver.game.model.actor.MutableActorInstance
 import org.l2kserver.game.model.actor.Npc
 import org.l2kserver.game.model.actor.PlayerCharacter
 import org.l2kserver.game.model.item.template.WeaponType
@@ -63,7 +63,7 @@ class CombatService(
      * @param attacker Actor, who starts attacking
      * @param attacked Actor, who is the target of the attack
      */
-    suspend fun launchAttack(attacker: Actor, attacked: Actor) {
+    suspend fun launchAttack(attacker: MutableActorInstance, attacked: MutableActorInstance) {
         log.debug("Started attacking '{}' by '{}'", attacked, attacker)
 
         if (attacker.isParalyzed || attacker.isDead()) {
@@ -118,7 +118,7 @@ class CombatService(
         }
     }
 
-    suspend fun performDamage(damageEvent: DamageEvent, attacker: Actor) {
+    suspend fun performDamage(damageEvent: DamageEvent, attacker: MutableActorInstance) {
         val attacked = gameObjectRepository.findActorById(damageEvent.targetId)
         if (attacked.isDead()) return //Needed for double weapon, if target was killed by first hit
 
@@ -181,7 +181,7 @@ class CombatService(
      * @param attacked Actor, who is a target for this attack
      * @param hitAmount How many hits does the attack contain
      */
-    private suspend fun performSimpleAttacks(attacker: Actor, attacked: Actor, hitAmount: Int) {
+    private suspend fun performSimpleAttacks(attacker: MutableActorInstance, attacked: MutableActorInstance, hitAmount: Int) {
         log.debug("{} tries to perform {} attacks on {}", attacker, hitAmount, attacked)
 
         val attackDuration = calculateAttackTime(attacker.stats.atkSpd)
@@ -208,7 +208,7 @@ class CombatService(
      * @param attacker Actor,who performs the attack
      * @param attacked Actor, who is a target for this attack
      */
-    private suspend fun performBowAttack(attacker: Actor, attacked: Actor) {
+    private suspend fun performBowAttack(attacker: MutableActorInstance, attacked: MutableActorInstance) {
         log.debug("{} tries to hit {} by bow", attacker, attacked)
 
         // Consume mana and arrows for shot, if attacker is PlayerCharacter
@@ -274,7 +274,7 @@ class CombatService(
      * @param attacker Actor,who performs the attack
      * @param attacked Actor, who is a target for this attack
      */
-    private suspend fun performPoleAttack(attacker: Actor, attacked: Actor) {
+    private suspend fun performPoleAttack(attacker: MutableActorInstance, attacked: MutableActorInstance) {
         //TODO Pole attack
         log.debug("{} tries to hit {} by pole", attacker, attacked)
         send(SystemMessageResponse("Pole attack is not implemented yet"))
@@ -291,7 +291,7 @@ class CombatService(
      *
      * @param actor Actor, who was killed
      */
-    private suspend fun killActor(actor: Actor, killer: Actor, overhitDamage: Int) {
+    private suspend fun killActor(actor: MutableActorInstance, killer: MutableActorInstance, overhitDamage: Int) {
         asyncTaskService.cancelActionByActorId(actor.id)
         actorStateService.disableCombatState(actor)
 

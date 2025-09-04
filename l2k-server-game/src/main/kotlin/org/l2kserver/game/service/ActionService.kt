@@ -16,11 +16,12 @@ import org.l2kserver.game.handler.dto.response.ShowMapResponse
 import org.l2kserver.game.handler.dto.response.SocialActionResponse
 import org.l2kserver.game.handler.dto.response.StatusAttribute
 import org.l2kserver.game.handler.dto.response.UpdateStatusResponse
-import org.l2kserver.game.model.actor.Actor
+import org.l2kserver.game.model.actor.ActorInstance
 import org.l2kserver.game.model.actor.Npc
 import org.l2kserver.game.model.actor.PlayerCharacter
 import org.l2kserver.game.model.actor.ScatteredItem
 import org.l2kserver.game.model.actor.MoveType
+import org.l2kserver.game.model.actor.MutableActorInstance
 import org.l2kserver.game.model.actor.Posture
 import org.l2kserver.game.network.session.send
 import org.l2kserver.game.network.session.sessionContext
@@ -71,7 +72,7 @@ class ActionService(
         val target = gameObjectRepository.findByIdOrNull(request.targetId)
         when {
             target is ScatteredItem -> itemService.launchPickUp(character, target)
-            target is Actor && target.id != character.targetId -> character.setTarget(target)
+            target is MutableActorInstance && target.id != character.targetId -> character.setTarget(target)
             target is Npc && target.isEnemyOf(character) -> combatService.launchAttack(character, target)
             target is Npc || target is PlayerCharacter && target.privateStore != null -> character.interactWith(target)
             target is PlayerCharacter && target.isEnemyOf(character) -> combatService.launchAttack(character, target)
@@ -146,7 +147,7 @@ class ActionService(
     /**
      * Moves PlayerCharacter enough close to [target] and starts interaction with it
      */
-    private suspend fun PlayerCharacter.interactWith(target: Actor) = asyncTaskService.launchAction(this.id) {
+    private suspend fun PlayerCharacter.interactWith(target: ActorInstance) = asyncTaskService.launchAction(this.id) {
         val character = this@interactWith
         val requiredDistance = INTERACTION_DISTANCE +
                 (this@interactWith.collisionBox.radius + target.collisionBox.radius).roundToInt()
@@ -168,7 +169,7 @@ class ActionService(
     /**
      * Set character's target to [targeted] and sends information about it
      */
-    private suspend fun PlayerCharacter.setTarget(targeted: Actor) {
+    private suspend fun PlayerCharacter.setTarget(targeted: MutableActorInstance) {
         this.targetId = targeted.id
         targeted.targetedBy.add(this)
 

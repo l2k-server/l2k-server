@@ -25,7 +25,7 @@ import org.l2kserver.game.model.store.PrivateStore
 class PlayerCharacter(
     private val entity: PlayerCharacterEntity,
     val characterClass: L2kCharacterClass
-) : Actor {
+): MutableActorInstance {
 
     override val id: Int = entity.id.value
     val accountName by entity::accountName
@@ -87,7 +87,7 @@ class PlayerCharacter(
     override var isMoving = false
 
     override var targetId: Int? = null
-    override val targetedBy: MutableSet<Actor> = ConcurrentHashMap.newKeySet(0)
+    override val targetedBy: MutableSet<ActorInstance> = ConcurrentHashMap.newKeySet(0)
 
     var pvpState = PvpState.NOT_IN_PVP
 
@@ -116,7 +116,7 @@ class PlayerCharacter(
     override val hasShield: Boolean get() = inventory.shield != null
 
     //TODO Siege and clan relations
-    override fun isEnemyOf(other: Actor) = karma > 0 || pvpState != PvpState.NOT_IN_PVP
+    override fun isEnemyOf(other: ActorInstance) = karma > 0 || pvpState != PvpState.NOT_IN_PVP
 
     override fun toString() = "Character(name=$name id=$id gender=$gender race=$race)"
 

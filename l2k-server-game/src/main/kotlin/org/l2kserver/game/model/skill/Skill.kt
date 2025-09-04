@@ -8,15 +8,15 @@ import org.l2kserver.game.model.item.ConsumableItem
  *
  * @property skillId Skill identifier
  * @property skillName Skill name (eng)
- * @property skillType - Skill type - active, passive or toggle
- * @property reuseDelay - Base cooldown of this skill
- * @property castTime - Base casting time of this skill
- * @property repriseTime - Time to return to the starting position after skill casting
- * @property castRange - Range to target to cast this skill, or radius for mass skill
- * @property effectRange - TODO
- * @property requires - Requirements to use this skill
- * @property consumes - Skill consumables - mp, items, etc.
- * @property effects - Effects, dealt by this skill
+ * @property skillType Skill type - active, passive or toggle
+ * @property reuseDelay Base cooldown of this skill
+ * @property castTime Base casting time of this skill
+ * @property repriseTime Time to return to the starting position after skill casting
+ * @property castRange Range to target to cast this skill, or radius for mass skill
+ * @property effectRange TODO
+ * @property requires Requirements to use this skill
+ * @property consumes Skill consumables - mp, items, etc.
+ * @property effects Effects, dealt by this skill
  */
 class Skill(
     private val entity: SkillEntity,

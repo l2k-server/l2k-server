@@ -1,6 +1,6 @@
 package org.l2kserver.game.model.actor.npc
 
-import org.l2kserver.game.model.actor.Actor
+import org.l2kserver.game.model.actor.ActorInstance
 import org.l2kserver.game.model.actor.CollisionBox
 import org.l2kserver.game.model.actor.MoveType
 import org.l2kserver.game.model.actor.position.Heading
@@ -16,7 +16,7 @@ import org.l2kserver.game.model.zone.SpawnZone
 /**
  * Non-player character
  */
-interface NpcInstance: Actor {
+interface NpcInstance: ActorInstance {
     override val id: Int
     override val name: String
     val templateId: Int
@@ -24,17 +24,17 @@ interface NpcInstance: Actor {
     val title: String?
     val isEnemy: Boolean
     val race: NpcRace
-    override var heading: Heading
-    override var position: Position
+    override val heading: Heading
+    override val position: Position
     override val stats: Stats
     override val basicStats: BasicStats
     val reward: Reward
     val spawnedAt: SpawnedAt
     val replicas: List<String>
     override val collisionBox: CollisionBox
-    override var currentHp: Int
-    override var currentMp: Int
-    override var moveType: MoveType
+    override val currentHp: Int
+    override val currentMp: Int
+    override val moveType: MoveType
     override val weaponType: WeaponType?
     override val hasShield: Boolean
     val ai: Ai?

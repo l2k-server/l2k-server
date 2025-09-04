@@ -1,6 +1,6 @@
 package org.l2kserver.game.model.skill.effect
 
-import org.l2kserver.game.model.actor.Actor
+import org.l2kserver.game.model.actor.ActorInstance
 import org.l2kserver.game.model.item.template.calculateRandomDamageModifier
 import org.l2kserver.game.model.utils.PHYSICAL_ATTACK_BASE
 import org.l2kserver.game.model.utils.calculateIsAvoided
@@ -21,7 +21,7 @@ class SingleTargetPhysicalDamageSkillEffect(
     val overhitPossible: Boolean = false
 ): SingleTargetSkillEffect {
 
-    override fun apply(caster: Actor, target: Actor, effectLevel: Int) = effects {
+    override fun apply(caster: ActorInstance, target: ActorInstance, effectLevel: Int) = effects {
         if (!ignoresShield && calculateIsAvoided(caster, target)) {
             miss(target)
             return@effects

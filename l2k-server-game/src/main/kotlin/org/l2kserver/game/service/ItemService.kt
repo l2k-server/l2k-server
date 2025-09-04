@@ -21,7 +21,7 @@ import org.l2kserver.game.handler.dto.response.UpdateItemOperationType
 import org.l2kserver.game.handler.dto.response.UpdateItemsResponse
 import org.l2kserver.game.handler.dto.response.UpdateStatusResponse
 import org.l2kserver.game.model.actor.position.Position
-import org.l2kserver.game.model.actor.Actor
+import org.l2kserver.game.model.actor.ActorInstance
 import org.l2kserver.game.model.actor.PlayerCharacter
 import org.l2kserver.game.model.actor.ScatteredItem
 import org.l2kserver.game.model.item.instance.EquippableItemInstance
@@ -169,7 +169,7 @@ class ItemService(
      * Transforms [item] to ScatteredItem dropped in
      * random position in [DROP_REWARD_DISTANCE] radius and drops it by [dropper]
      */
-    suspend fun dropRewardItem(item: RewardItem, dropper: Actor) {
+    suspend fun dropRewardItem(item: RewardItem, dropper: ActorInstance) {
         val template = ItemTemplate.Registry.findById(item.id) ?: run {
             log.warn("No item template found by id {}", item.id)
             return
