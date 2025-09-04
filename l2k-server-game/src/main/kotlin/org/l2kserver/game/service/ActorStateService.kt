@@ -13,10 +13,11 @@ import org.l2kserver.game.handler.dto.response.StartFightingResponse
 import org.l2kserver.game.handler.dto.response.StatusAttribute
 import org.l2kserver.game.handler.dto.response.StopFightingResponse
 import org.l2kserver.game.handler.dto.response.UpdateStatusResponse
-import org.l2kserver.game.model.actor.Actor
+import org.l2kserver.game.model.actor.ActorInstance
 import org.l2kserver.game.model.actor.Npc
 import org.l2kserver.game.model.actor.PlayerCharacter
 import org.l2kserver.game.model.actor.MoveType
+import org.l2kserver.game.model.actor.MutableActorInstance
 import org.l2kserver.game.model.actor.Posture
 import org.l2kserver.game.model.actor.character.PvpState
 import org.l2kserver.game.repository.GameObjectRepository
@@ -52,7 +53,7 @@ class ActorStateService(
     /**
      * Key - actor, value - time when actor must stop standing in combat stance
      */
-    private val fightingActors = ConcurrentHashMap<Actor, Long>()
+    private val fightingActors = ConcurrentHashMap<MutableActorInstance, Long>()
 
     /**
      * Key - character, value - time when character's PVP state ends
@@ -102,7 +103,7 @@ class ActorStateService(
      * broadcasts to all surrounding characters that actor is fighting,
      * else - updates this actor combat time
      */
-    suspend fun activateCombatState(actor: Actor) {
+    suspend fun activateCombatState(actor: MutableActorInstance) {
         log.debug("Enabling (or updating) combat state of '{}'", actor)
         if (!actor.isFighting) {
             actor.isFighting = true
@@ -123,7 +124,7 @@ class ActorStateService(
      * Disables this actor's combat state.
      * Notifies surrounding characters about this and flushes combatState end time
      */
-    suspend fun disableCombatState(actor: Actor) {
+    suspend fun disableCombatState(actor: MutableActorInstance) {
         broadcastPacket(StopFightingResponse(actor.id), actor.position)
         actor.isFighting = false
         fightingActors.remove(actor)
@@ -132,7 +133,7 @@ class ActorStateService(
     /**
      * Stop updating actor's states, for example, if he dies or exits game
      */
-    fun stopUpdatingStates(actor: Actor) {
+    fun stopUpdatingStates(actor: ActorInstance) {
         fightingActors.remove(actor)
         charactersInPvpState.remove(actor)
         log.debug("Stopped updating state of '{}'", actor)
@@ -168,7 +169,7 @@ class ActorStateService(
         }
     }
 
-    private suspend fun regenerate() = gameObjectRepository.forEachInstance<Actor> { actor ->
+    private suspend fun regenerate() = gameObjectRepository.forEachInstance<MutableActorInstance> { actor ->
         newSuspendedTransaction {
             if (actor.isDead()) return@newSuspendedTransaction
 

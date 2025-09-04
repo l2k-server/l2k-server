@@ -8,7 +8,7 @@ import org.l2kserver.game.handler.dto.response.SocialActionResponse
 import org.l2kserver.game.handler.dto.response.SystemMessageResponse
 import org.l2kserver.game.handler.dto.response.UpdateStatusResponse
 import org.l2kserver.game.model.SocialAction
-import org.l2kserver.game.model.actor.Actor
+import org.l2kserver.game.model.actor.ActorInstance
 import org.l2kserver.game.model.actor.Npc
 import org.l2kserver.game.model.actor.PlayerCharacter
 import org.l2kserver.game.model.actor.character.PvpState
@@ -97,7 +97,7 @@ class RewardService(
     private suspend fun manageExpAndSpGain(killer: PlayerCharacter, killed: Npc, overhitDamage: Int) {
         val allTheDamageReceived = killed.opponentsDamage.values.reduce { acc, i -> acc + i }
 
-        for ((attacker: Actor, damage: Int) in killed.opponentsDamage) {
+        for ((attacker: ActorInstance, damage: Int) in killed.opponentsDamage) {
             //TODO Manage damage dealt by pets and summons
             //TODO Share reward between party members
             //TODO Manage sp share between parties and solo players, who hit this monster

@@ -5,7 +5,7 @@ import org.l2kserver.game.model.actor.PlayerCharacter
 import org.l2kserver.game.model.actor.GameWorldObject
 import org.springframework.stereotype.Component
 import java.util.concurrent.ConcurrentHashMap
-import org.l2kserver.game.model.actor.Actor
+import org.l2kserver.game.model.actor.MutableActorInstance
 import org.l2kserver.game.service.VISION_RANGE
 
 /**
@@ -36,9 +36,9 @@ class GameObjectRepository: Iterable<GameWorldObject> {
 
     fun findById(id: Int) = requireNotNull(objectMap[id]) { "No GameObject found by id=$id" }
 
-    fun findActorByIdOrNull(id: Int) = objectMap[id] as? Actor
+    fun findActorByIdOrNull(id: Int) = objectMap[id] as? MutableActorInstance
 
-    fun findActorById(id: Int) = requireNotNull(objectMap[id] as? Actor) {
+    fun findActorById(id: Int) = requireNotNull(objectMap[id] as? MutableActorInstance) {
         "No actor found by id = '$id'"
     }
 

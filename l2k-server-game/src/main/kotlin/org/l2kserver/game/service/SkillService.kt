@@ -19,7 +19,8 @@ import org.l2kserver.game.handler.dto.response.StatusAttribute
 import org.l2kserver.game.handler.dto.response.SystemMessageResponse
 import org.l2kserver.game.handler.dto.response.UpdateItemsResponse
 import org.l2kserver.game.handler.dto.response.UpdateStatusResponse
-import org.l2kserver.game.model.actor.Actor
+import org.l2kserver.game.model.actor.ActorInstance
+import org.l2kserver.game.model.actor.MutableActorInstance
 import org.l2kserver.game.model.actor.PlayerCharacter
 import org.l2kserver.game.model.item.ConsumableItem
 import org.l2kserver.game.model.skill.Skill
@@ -62,7 +63,7 @@ class SkillService(
     }
 
     /** Handles [actor]'s intent to use the [skill] */
-    suspend fun useSkill(actor: Actor, skill: Skill, forced: Boolean = false, holdPosition: Boolean = false) {
+    suspend fun useSkill(actor: MutableActorInstance, skill: Skill, forced: Boolean = false, holdPosition: Boolean = false) {
         log.debug("'{}' tries to use skill '{}'", actor, skill)
         when (skill.skillType) {
             SkillType.ACTIVE, SkillType.MAGIC -> useActiveSkill(actor, skill, forced, holdPosition)
@@ -83,7 +84,7 @@ class SkillService(
      * @param holdPosition actor won't move closer to use skill
      */
     suspend fun useActiveSkill(
-        actor: Actor, skill: Skill, forced: Boolean, holdPosition: Boolean
+        actor: MutableActorInstance, skill: Skill, forced: Boolean, holdPosition: Boolean
     ) = asyncTaskService.launchAction(actor.id) {
         //TODO Check if actor is already casting
         val target = actor.targetId?.let { gameObjectRepository.findActorByIdOrNull(it) }
@@ -120,7 +121,7 @@ class SkillService(
     }
 
     /** Subtract HP, MP or items, required to use [skill] */
-    private suspend fun Actor.spendResourcesFor(skill: Skill) = newSuspendedTransaction {
+    private suspend fun MutableActorInstance.spendResourcesFor(skill: Skill) = newSuspendedTransaction {
         val actor = this@spendResourcesFor
 
         var statusUpdated = false
@@ -145,7 +146,7 @@ class SkillService(
     }
 
     /** Cast [skill] and apply cooldown */
-    private suspend fun Actor.castSkillOn(skill: Skill, target: Actor) {
+    private suspend fun MutableActorInstance.castSkillOn(skill: Skill, target: MutableActorInstance) {
         val castingSpeed = if (skill.skillType == SkillType.MAGIC) this.stats.castingSpd else this.stats.atkSpd
 
         val castTime = skill.castTime * CAST_TIME_COEFFICIENT / castingSpeed
@@ -187,7 +188,7 @@ class SkillService(
      * @param forced Is this skill forced to use (ctrl pressed)
      * @return true - if actor can use [skill], false if not
      */
-    private suspend fun Actor.canUseSkill(skill: Skill, target: Actor?, forced: Boolean): Boolean = when {
+    private suspend fun ActorInstance.canUseSkill(skill: Skill, target: ActorInstance?, forced: Boolean): Boolean = when {
         this.isParalyzed || this.isDead() -> false //TODO Physical/Magical silence
         skill.requires?.weaponTypes?.contains(this.weaponType) == false -> {
             send(PlaySoundResponse(Sound.ITEMSOUND_SYS_IMPOSSIBLE), ActionFailedResponse)
@@ -270,7 +271,9 @@ class SkillService(
     }
 
     /** Applies cast by [caster] skill effects on [target] */
-    private suspend fun Skill.applyEffects(caster: Actor, target: Actor) = this.effects.forEach { effect ->
+    private suspend fun Skill.applyEffects(
+        caster: MutableActorInstance, target: MutableActorInstance
+    ) = this.effects.forEach { effect ->
         val events = try {
             when (effect) {
                 is SingleTargetSkillEffect -> effect.apply(caster, target, this.skillLevel)

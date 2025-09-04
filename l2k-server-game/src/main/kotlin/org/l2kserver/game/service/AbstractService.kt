@@ -6,7 +6,7 @@ import org.l2kserver.game.handler.dto.response.ChangePostureResponse
 import org.l2kserver.game.handler.dto.response.FullCharacterResponse
 import org.l2kserver.game.handler.dto.response.ResponsePacket
 import org.l2kserver.game.model.actor.position.Position
-import org.l2kserver.game.model.actor.Actor
+import org.l2kserver.game.model.actor.ActorInstance
 import org.l2kserver.game.model.actor.PlayerCharacter
 import org.l2kserver.game.model.actor.Posture
 import org.l2kserver.game.repository.GameObjectRepository
@@ -42,7 +42,7 @@ abstract class AbstractService {
      * Should be used only in SessionContext
      */
     protected suspend fun broadcastPacket(
-        responsePacket: ResponsePacket, actor: Actor, distance: Int = VISION_RANGE
+        responsePacket: ResponsePacket, actor: ActorInstance, distance: Int = VISION_RANGE
     ) {
         gameObjectRepository.findAllCharactersNear(actor, distance)
             .forEach { sendTo(it.id, responsePacket) }
@@ -53,7 +53,7 @@ abstract class AbstractService {
      *
      * Should be used only in SessionContext
      */
-    protected suspend fun broadcastActorInfo(actor: Actor) {
+    protected suspend fun broadcastActorInfo(actor: ActorInstance) {
         broadcastPacket(actor.toInfoResponse(), actor)
 
         if (actor is PlayerCharacter) {

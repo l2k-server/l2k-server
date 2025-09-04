@@ -1,6 +1,7 @@
 package org.l2kserver.game.extensions.model.actor
 
-import org.l2kserver.game.model.actor.Actor
+import org.l2kserver.game.model.actor.ActorInstance
+import org.l2kserver.game.model.actor.MutableActorInstance
 import org.l2kserver.game.model.item.template.calculateRandomDamageModifier
 import org.l2kserver.game.model.skill.effect.event.DamageEvent
 import org.l2kserver.game.model.utils.PHYSICAL_ATTACK_BASE
@@ -18,7 +19,7 @@ import kotlin.math.roundToInt
  * @param attackPowerDivider Value, on which resulting damage should be divided
  * (for example dual weapon attack contains two hits, each should deal 50% damage)
  */
-fun Actor.hit(other: Actor, attackPowerDivider: Int = 1): DamageEvent {
+fun ActorInstance.hit(other: ActorInstance, attackPowerDivider: Int = 1): DamageEvent {
     val isAvoided = calculateIsAvoided(this, other)
     //TODO Calculate PerfectShieldBlock
 
@@ -39,7 +40,7 @@ fun Actor.hit(other: Actor, attackPowerDivider: Int = 1): DamageEvent {
 }
 
 private fun calculateAutoAttackDamage(
-    attacker: Actor, attacked: Actor, isCritical: Boolean, isBlocked: Boolean, usedSoulshot: Boolean
+    attacker: ActorInstance, attacked: ActorInstance, isCritical: Boolean, isBlocked: Boolean, usedSoulshot: Boolean
 ): Int {
     var damage = attacker.stats.pAtk.toDouble()
     if (usedSoulshot) damage *= 2
@@ -60,4 +61,8 @@ private fun calculateAutoAttackDamage(
     damage *= attacker.weaponType.calculateRandomDamageModifier()
 
     return damage.roundToInt()
+}
+
+fun ActorInstance.asMutable() = requireNotNull(this as? MutableActorInstance) {
+    "$this cannot be mutable"
 }

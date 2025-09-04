@@ -1,6 +1,6 @@
 package org.l2kserver.game.model.skill.effect
 
-import org.l2kserver.game.model.actor.Actor
+import org.l2kserver.game.model.actor.ActorInstance
 import org.l2kserver.game.model.skill.effect.event.DamageEvent
 import org.l2kserver.game.model.skill.effect.event.EffectEvent
 import java.util.LinkedList
@@ -14,7 +14,7 @@ value class SkillEffectEvents private constructor(
     /** Applies the event of dealing damage to [target] */
     fun dealDamage(
         damage: Int,
-        target: Actor,
+        target: ActorInstance,
         isCritical: Boolean = false,
         isBlocked: Boolean = false,
         overhitPossible: Boolean = false
@@ -25,7 +25,7 @@ value class SkillEffectEvents private constructor(
     }
 
     /** Applies the event of [target]'s evasion */
-    fun miss(target: Actor) {
+    fun miss(target: ActorInstance) {
         effects.add(DamageEvent(target.id, 0, isAvoided = true))
     }
 
@@ -34,7 +34,7 @@ value class SkillEffectEvents private constructor(
 sealed interface SkillEffect
 
 interface SingleTargetSkillEffect: SkillEffect {
-    fun apply(caster: Actor, target: Actor, effectLevel: Int): SkillEffectEvents
+    fun apply(caster: ActorInstance, target: ActorInstance, effectLevel: Int): SkillEffectEvents
 }
 
 inline fun effects(builderFunction: SkillEffectEvents.() -> Unit): SkillEffectEvents {

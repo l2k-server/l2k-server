@@ -60,7 +60,7 @@ class Npc(
 
     var equippedWeaponTemplate: WeaponTemplate? = null,
     var equippedShieldTemplate: ArmorTemplate? = null
-): NpcInstance {
+): MutableActorInstance, NpcInstance {
 
     /**
      * How much damage had the opponents dealt to this NPC
@@ -68,18 +68,18 @@ class Npc(
      * Key - attackerId, Value - damage dealt
      */
     //TODO clean this map after fighting has ended
-    val opponentsDamage = ConcurrentHashMap<Actor, Int>(0)
+    val opponentsDamage = ConcurrentHashMap<ActorInstance, Int>(0)
 
     override val isImmobilized: Boolean get() = isParalyzed //TODO check if rooted, stunned, paralyzed, casting, etc...
     override val isParalyzed: Boolean get() = false
 
-    override fun isEnemyOf(other: Actor): Boolean = isEnemy
+    override fun isEnemyOf(other: ActorInstance): Boolean = isEnemy
 
     override var isFighting = false
     override var isMoving = false
 
     override var targetId: Int? = null
-    override val targetedBy: MutableSet<Actor> = ConcurrentHashMap.newKeySet(0)
+    override val targetedBy: MutableSet<ActorInstance> = ConcurrentHashMap.newKeySet(0)
 
     override val weaponType = equippedWeaponTemplate?.type
     override val hasShield = equippedShieldTemplate != null

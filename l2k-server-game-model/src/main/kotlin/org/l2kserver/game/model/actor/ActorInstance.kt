@@ -26,29 +26,29 @@ import org.l2kserver.game.model.stats.Stats
  * @property targetId This actor's target id
  * @property targetedBy IDs of actors, who target this actor
  */
-interface Actor: GameWorldObject {
+interface ActorInstance: GameWorldObject {
     override val id: Int
-    override var position: Position
+    override val position: Position
     override val collisionBox: CollisionBox
     val stats: Stats
     val basicStats: BasicStats
     val name: String
     val level: Int
-    var heading: Heading
-    var currentHp: Int
-    var currentMp: Int
-    var moveType: MoveType
+    val heading: Heading
+    val currentHp: Int
+    val currentMp: Int
+    val moveType: MoveType
     val isImmobilized: Boolean
     val isParalyzed: Boolean
     val weaponType: WeaponType?
     val hasShield: Boolean
-    var isFighting: Boolean
-    var isMoving: Boolean
-    var targetId: Int?
-    val targetedBy: MutableSet<Actor>
+    val isFighting: Boolean
+    val isMoving: Boolean
+    val targetId: Int?
+    val targetedBy: Set<ActorInstance>
 
     /** Checks if actor can be attacked by [other] without forcing */
-    fun isEnemyOf(other: Actor): Boolean
+    fun isEnemyOf(other: ActorInstance): Boolean
 
     /** Is actor running now */
     val isRunning: Boolean get() = isMoving && moveType == MoveType.RUN
@@ -57,7 +57,7 @@ interface Actor: GameWorldObject {
     val moveSpeed: Int get() = if (moveType == MoveType.WALK) stats.walkSpeed else stats.speed
 
     /** Check if actor is behind other actor */
-    fun isBehind(other: Actor): Boolean {
+    fun isBehind(other: ActorInstance): Boolean {
         //If [this] is straight behind [other], delta will be equal to 0
         val delta = (other.heading - other.position.headingTo(this.position) + 32768).toShort()
         val tolerance = 8192 //45 degrees
@@ -66,7 +66,7 @@ interface Actor: GameWorldObject {
     }
 
     /** Check if actor is on side of other actor */
-    fun isOnSideOf(other: Actor): Boolean {
+    fun isOnSideOf(other: ActorInstance): Boolean {
         //If [other] is headed directly to [this], delta will be equal to 0
         val delta = (other.heading - other.position.headingTo(this.position)).toShort()
         val tolerance = 8192 //45 degrees

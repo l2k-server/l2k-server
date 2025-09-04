@@ -21,8 +21,8 @@ import org.l2kserver.game.handler.dto.response.StartMovingToTargetResponse
 import org.l2kserver.game.handler.dto.response.TeleportResponse
 import org.l2kserver.game.handler.dto.response.ValidatePositionResponse
 import org.l2kserver.game.model.actor.position.Position
-import org.l2kserver.game.model.actor.Actor
 import org.l2kserver.game.model.actor.GameWorldObject
+import org.l2kserver.game.model.actor.MutableActorInstance
 import org.l2kserver.game.model.actor.PlayerCharacter
 import org.l2kserver.game.network.session.send
 import org.l2kserver.game.network.session.sendTo
@@ -89,7 +89,7 @@ class MoveService(
      *
      * This suspending function is `cancellable`
      */
-    suspend fun move(actor: Actor, position: Position) = newSuspendedTransaction {
+    suspend fun move(actor: MutableActorInstance, position: Position) = newSuspendedTransaction {
         if (actor.isImmobilized) {
             log.trace("Actor '{}' is immobilized and cannot move to position '{}'", actor, position)
             send(ActionFailedResponse)
@@ -131,7 +131,7 @@ class MoveService(
     /**
      * Moves [actor] to [target] by specified [requiredDistance]
      */
-    suspend fun move(actor: Actor, target: GameWorldObject, requiredDistance: Int = 0) = newSuspendedTransaction {
+    suspend fun move(actor: MutableActorInstance, target: GameWorldObject, requiredDistance: Int = 0) = newSuspendedTransaction {
         //Actor should turn to target anyway
         val turningJob = launchTurning(actor, target.position)
 
@@ -202,7 +202,7 @@ class MoveService(
      */
     // Turning must be async because character turns and moves/attacks simultaneously
     // Client shows turning by itself, so there is no need to send some responses here
-    suspend fun launchTurning(actor: Actor, targetPosition: Position) = CoroutineScope(coroutineContext).launch {
+    suspend fun launchTurning(actor: MutableActorInstance, targetPosition: Position) = CoroutineScope(coroutineContext).launch {
         log.trace("Started turning actor '{}' to target position '{}'", actor, targetPosition)
         val newHeading = actor.position.headingTo(targetPosition)
 
@@ -225,7 +225,7 @@ class MoveService(
     /**
      * Teleports [actor] to [targetPosition]
      */
-    suspend fun teleport(actor: Actor, targetPosition: Position) = newSuspendedTransaction {
+    suspend fun teleport(actor: MutableActorInstance, targetPosition: Position) = newSuspendedTransaction {
         log.debug("Teleporting '{}' to '{}'", actor, targetPosition)
         asyncTaskService.cancelAndJoinActionByActorId(actor.id)
 
@@ -259,7 +259,7 @@ class MoveService(
      *
      * @return True if actor arrived to position, false - if not
      */
-    private suspend fun updatePosition(actor: Actor, destination: Position, movingTimeMillis: Long): Boolean {
+    private suspend fun updatePosition(actor: MutableActorInstance, destination: Position, movingTimeMillis: Long): Boolean {
         val gameObjectsAround = gameObjectRepository.findAllNear(gameObjectRepository.findById(actor.id))
 
         //Checking this at the beginning of position updating gives one more tick to move to emulate moving properly
@@ -308,7 +308,7 @@ class MoveService(
      */
     private suspend fun updateObjectsAround(
         prevGameObjectsAround: List<GameWorldObject>,
-        actor: Actor,
+        actor: MutableActorInstance,
         destination: Position? = null
     ) {
         val newGameObjectsAround = gameObjectRepository.findAllNear(actor)
@@ -319,7 +319,7 @@ class MoveService(
 
             if (actor is PlayerCharacter && actor.targetId == it.id) {
                 actor.targetId = null
-                if (it is Actor) it.targetedBy.remove(actor)
+                if (it is MutableActorInstance) it.targetedBy.remove(actor)
                 send(SetTargetResponse(0, 0))
             }
 
