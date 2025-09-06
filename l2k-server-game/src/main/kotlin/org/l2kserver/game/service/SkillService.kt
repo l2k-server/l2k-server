@@ -24,8 +24,8 @@ import org.l2kserver.game.model.actor.MutableActorInstance
 import org.l2kserver.game.model.actor.PlayerCharacter
 import org.l2kserver.game.model.item.ConsumableItem
 import org.l2kserver.game.model.skill.Skill
-import org.l2kserver.game.model.skill.effect.SingleTargetSkillEffect
-import org.l2kserver.game.model.skill.effect.event.DamageEvent
+import org.l2kserver.game.model.skill.action.SingleTargetSkillAction
+import org.l2kserver.game.model.skill.action.effect.DamageEffect
 import org.l2kserver.game.network.session.send
 import org.l2kserver.game.network.session.sessionContext
 import org.l2kserver.game.repository.GameObjectRepository
@@ -41,7 +41,6 @@ private const val CAST_TIME_COEFFICIENT = 333
 class SkillService(
     private val combatService: CombatService,
     private val moveService: MoveService,
-    private val asyncTaskService: AsyncTaskService,
     override val gameObjectRepository: GameObjectRepository
 ) : AbstractService() {
 
@@ -85,7 +84,7 @@ class SkillService(
      */
     suspend fun useActiveSkill(
         actor: MutableActorInstance, skill: Skill, forced: Boolean, holdPosition: Boolean
-    ) = asyncTaskService.launchAction(actor.id) {
+    ) = actor.launchAction {
         //TODO Check if actor is already casting
         val target = actor.targetId?.let { gameObjectRepository.findActorByIdOrNull(it) }
 
@@ -273,21 +272,21 @@ class SkillService(
     /** Applies cast by [caster] skill effects on [target] */
     private suspend fun Skill.applyEffects(
         caster: MutableActorInstance, target: MutableActorInstance
-    ) = this.effects.forEach { effect ->
+    ) {
         val events = try {
-            when (effect) {
-                is SingleTargetSkillEffect -> effect.apply(caster, target, this.skillLevel)
+            when (this.skillAction) {
+                is SingleTargetSkillAction -> this.skillAction.applyTo(target, caster, this.skillLevel)
                 //TODO AOE skills
             }
         }
         catch (e: Exception) {
-            log.error("An error occurred while trying to apply effect {}", effect, e)
+            log.error("An error occurred while trying to apply effect {}", this.skillAction, e)
             emptyList()
         }
 
         events.forEach { event ->
             when (event) {
-                is DamageEvent -> combatService.performDamage(event, caster)
+                is DamageEffect -> combatService.performDamage(event, caster)
             }
         }
     }

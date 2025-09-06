@@ -25,7 +25,7 @@ import org.l2kserver.game.model.actor.MutableActorInstance
 import org.l2kserver.game.model.actor.Npc
 import org.l2kserver.game.model.actor.PlayerCharacter
 import org.l2kserver.game.model.item.template.WeaponType
-import org.l2kserver.game.model.skill.effect.event.DamageEvent
+import org.l2kserver.game.model.skill.action.effect.DamageEffect
 import org.l2kserver.game.network.session.send
 import org.l2kserver.game.network.session.sendTo
 import org.l2kserver.game.repository.GameObjectRepository
@@ -43,7 +43,6 @@ private const val ARROW_SPEED_PER_MS = 0.9
  */
 @Service
 class CombatService(
-    private val asyncTaskService: AsyncTaskService,
     private val moveService: MoveService,
     private val actorStateService: ActorStateService,
     private val npcService: NpcService,
@@ -79,11 +78,10 @@ class CombatService(
             return
         }
 
-        asyncTaskService.launchAction(attacker.id) {
+        attacker.launchAction {
             while (isActive && !attacker.isParalyzed && !attacked.isDead() && gameObjectRepository.existsById(attacked.id)) {
                 try {
-                    val requiredDistance = attacker.stats.attackRange +
-                            (attacker.collisionBox.radius + attacked.collisionBox.radius).roundToInt()
+                    val requiredDistance = (attacker.stats.attackRange + attacked.collisionBox.radius).roundToInt()
 
                     moveService.move(attacker, attacked, requiredDistance)
 
@@ -118,7 +116,7 @@ class CombatService(
         }
     }
 
-    suspend fun performDamage(damageEvent: DamageEvent, attacker: MutableActorInstance) {
+    suspend fun performDamage(damageEvent: DamageEffect, attacker: MutableActorInstance) {
         val attacked = gameObjectRepository.findActorById(damageEvent.targetId)
         if (attacked.isDead()) return //Needed for double weapon, if target was killed by first hit
 
@@ -292,7 +290,7 @@ class CombatService(
      * @param actor Actor, who was killed
      */
     private suspend fun killActor(actor: MutableActorInstance, killer: MutableActorInstance, overhitDamage: Int) {
-        asyncTaskService.cancelActionByActorId(actor.id)
+        actor.cancelAction()
         actorStateService.disableCombatState(actor)
 
         when (actor) {

@@ -50,7 +50,6 @@ private const val DROP_REWARD_DISTANCE = 25
 @Service
 class ItemService(
     private val geoDataService: GeoDataService,
-    private val asyncTaskService: AsyncTaskService,
     private val moveService: MoveService,
 
     override val gameObjectRepository: GameObjectRepository,
@@ -198,7 +197,7 @@ class ItemService(
      */
     suspend fun launchPickUp(
         character: PlayerCharacter, scatteredItem: ScatteredItem
-    ) = asyncTaskService.launchAction(character.id) {
+    ) = character.launchAction {
         moveService.move(character, scatteredItem)
 
         val enoughCloseToPickUp = character.position.isCloseTo(

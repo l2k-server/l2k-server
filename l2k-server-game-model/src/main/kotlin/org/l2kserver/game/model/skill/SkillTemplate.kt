@@ -4,7 +4,7 @@ import org.l2kserver.game.model.GameData
 import org.l2kserver.game.model.GameDataRegistry
 import org.l2kserver.game.model.item.ConsumableItem
 import org.l2kserver.game.model.item.template.WeaponType
-import org.l2kserver.game.model.skill.effect.SkillEffect
+import org.l2kserver.game.model.skill.action.SkillAction
 
 /**
  * Data class representing common skill data
@@ -20,7 +20,7 @@ import org.l2kserver.game.model.skill.effect.SkillEffect
  * @property requires - Requirements to use this skill
  * @property maxSkillLevel - Max level of this skill to be learnt
  * @property consumes - Skill consumables - mp, items, etc.
- * @property effects - Effects, dealt by this skill
+ * @property skillAction - Effects, dealt by this skill
  */
 data class SkillTemplate(
     override val id: Int,
@@ -35,20 +35,10 @@ data class SkillTemplate(
     val requires: SkillRequirements? = null,
     val maxSkillLevel: Int,
     val consumes: SkillConsumablesTemplate? = null,
-    val effects: List<SkillEffect>
+    val skillAction: SkillAction
 ): GameData {
 
     object Registry: GameDataRegistry<SkillTemplate>()
-}
-
-/**
- * Skill type - active, passive or toggle
- */
-enum class SkillType {
-    ACTIVE,
-    MAGIC,
-    PASSIVE,
-    TOGGLE
 }
 
 /**
@@ -73,37 +63,3 @@ data class SkillConsumablesTemplate(
     val item: List<ConsumableItem?>? = null
 )
 
-/**
- * Type of target, the skill can be used on.
- * This tells on which target type skill will be <strong>cast</strong>,
- * effects has their own target types
- */
-enum class SkillTargetType {
-    /**
-     * Skill will be cast on actor's target enemy.
-     * These skills can be applied to friendly targets only with `forced` parameter
-     */
-    ENEMY,
-
-    /**
-     * Skill will be cast on actor's target 'friend' - summon, other non-PK player, friendly NPC, etc.
-     * These skills can be applied to enemy targets only with `forced` parameter
-     */
-    FRIEND,
-
-    /**
-     * Skill will be cast on actor's target enemy corpse (like Necromancer's Summon Zombie).
-     */
-    DEAD_ENEMY,
-
-    /**
-     * Skill will be cast on actor's target friend corpse (like Resurrection).
-     */
-    DEAD_FRIEND,
-
-    /**
-     * Skill will be cast on the actor himself
-     * These skills can be applied to friendly targets only with `forced` parameter
-     */
-    SELF
-}

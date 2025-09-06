@@ -64,10 +64,7 @@ class AdminCommandService(
 
     /**
      * Handles teleport command. Teleports character with [charName] to requested [position].
-     *
-     * @param charName Name of character, that should be teleported.
-     * If null, character who called this command will be teleported
-     * @param position Destination position
+     * If [charName] is null, character who called this command will be teleported
      */
     private suspend fun handleTeleportCommand(charName: String?, position: Position) {
         val characterToTeleport = charName?.let { gameObjectRepository.findCharacterByName(it) }
@@ -81,11 +78,6 @@ class AdminCommandService(
      * Handles enchant command.
      * Enchants [itemToEnchant] equipped by player with [charName] or session owner,
      * if no [charName] was provided by [enchantLevel]
-     *
-     * @param charName Name of character, that should be teleported.
-     * If null, character who called this command will be teleported
-     * @param itemToEnchant Item to enchant, equipped by [charName] or session owner
-     * @param enchantLevel Requested enchant level
      */
     private suspend fun handleEnchantCommand(
         charName: String?, itemToEnchant: ItemToEnchant, enchantLevel: Int

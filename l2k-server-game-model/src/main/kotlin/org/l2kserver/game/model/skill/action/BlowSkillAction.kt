@@ -1,4 +1,4 @@
-package org.l2kserver.game.model.skill.effect
+package org.l2kserver.game.model.skill.action
 
 import org.l2kserver.game.model.actor.ActorInstance
 import org.l2kserver.game.model.item.template.calculateRandomDamageModifier
@@ -18,9 +18,9 @@ private const val BLOW_CHANCE_FROM_THE_FRONT = 0.5
  * @property power Array of effect power per effect level (0 based)
  * @property lethalStrikePossible Can this blow produce Lethal Strike
  */
-class BlowSkillEffect(val power: List<Int>, val lethalStrikePossible: Boolean = false): SingleTargetSkillEffect {
+class BlowSkillAction(val power: List<Int>, val lethalStrikePossible: Boolean = false): SingleTargetSkillAction {
 
-    override fun apply(caster: ActorInstance, target: ActorInstance, effectLevel: Int) = effects {
+    override fun applyTo(target: ActorInstance, caster: ActorInstance, effectLevel: Int) = effects {
         // Calculate blow chance
         val successChance = when {
             caster.isBehind(target) -> BLOW_CHANCE_FROM_BEHIND
@@ -48,7 +48,7 @@ class BlowSkillEffect(val power: List<Int>, val lethalStrikePossible: Boolean = 
 
         damage = (PHYSICAL_ATTACK_BASE * damage) / defence
 
-        dealDamage(damage.roundToInt(), target, isBlocked = isBlocked)
+        hit(damage.roundToInt(), target, isBlocked = isBlocked)
     }
 
 }

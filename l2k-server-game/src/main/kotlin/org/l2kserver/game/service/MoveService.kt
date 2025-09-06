@@ -2,6 +2,7 @@ package org.l2kserver.game.service
 
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -11,7 +12,6 @@ import org.l2kserver.game.extensions.logger
 import org.l2kserver.game.extensions.model.actor.toInfoResponse
 import org.l2kserver.game.handler.dto.request.MoveRequest
 import org.l2kserver.game.handler.dto.request.ValidatePositionRequest
-import org.l2kserver.game.handler.dto.response.ActionFailedResponse
 import org.l2kserver.game.handler.dto.response.ArrivedResponse
 import org.l2kserver.game.handler.dto.response.DeleteObjectResponse
 import org.l2kserver.game.handler.dto.response.PrivateStoreSellSetMessageResponse
@@ -20,6 +20,8 @@ import org.l2kserver.game.handler.dto.response.StartMovingResponse
 import org.l2kserver.game.handler.dto.response.StartMovingToTargetResponse
 import org.l2kserver.game.handler.dto.response.TeleportResponse
 import org.l2kserver.game.handler.dto.response.ValidatePositionResponse
+import org.l2kserver.game.model.actor.ActorInstance
+import org.l2kserver.game.model.actor.CollisionBox
 import org.l2kserver.game.model.actor.position.Position
 import org.l2kserver.game.model.actor.GameWorldObject
 import org.l2kserver.game.model.actor.MutableActorInstance
@@ -30,23 +32,31 @@ import org.l2kserver.game.network.session.sessionContext
 import org.l2kserver.game.repository.GameObjectRepository
 import org.l2kserver.game.model.time.GameTime
 import org.springframework.stereotype.Service
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.coroutines.coroutineContext
 import kotlin.math.hypot
 
 private const val ROTATE_SPEED_PER_SEC = 65536
 
-/**
- * Service to handle actors moving
- */
+/** Fake GameWorldObject, representing moving destination point */
+private data class DestinationPoint(
+    override var position: Position
+): GameWorldObject {
+    override val id = 0
+    override val collisionBox = CollisionBox()
+}
+
+/** Service to handle actors moving */
 @Service
 class MoveService(
-    private val asyncTaskService: AsyncTaskService,
     private val geoDataService: GeoDataService,
 
     override val gameObjectRepository: GameObjectRepository
 ) : AbstractService() {
 
     override val log = logger()
+
+    private val movingActors = ConcurrentHashMap<ActorInstance, DestinationPoint>()
 
     /**
      * Handle request to move character to some destination point
@@ -64,7 +74,7 @@ class MoveService(
             if (request.byMouse) "by mouse" else "by arrows"
         )
 
-        asyncTaskService.launchAction(character.id) { move(character, request.targetPosition) }
+        move(character, request.targetPosition)
     }
 
     /**
@@ -73,7 +83,12 @@ class MoveService(
      * modifies character position at server side, otherwise - sends ValidatePositionResponse with actual position
      */
     suspend fun validatePosition(request: ValidatePositionRequest) = newSuspendedTransaction {
-        val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
+        val characterId = sessionContext().getCharacterIdOrNull() ?: run {
+            log.warn("Player '{}' has not selected character", sessionContext().getAccountNameOrNull())
+            return@newSuspendedTransaction
+        }
+
+        val character = gameObjectRepository.findCharacterById(characterId)
 
         if (character.position.isCloseTo(request.position)) {
             log.trace("Difference is too small, modifying position at server side")
@@ -89,42 +104,13 @@ class MoveService(
      *
      * This suspending function is `cancellable`
      */
-    suspend fun move(actor: MutableActorInstance, position: Position) = newSuspendedTransaction {
-        if (actor.isImmobilized) {
-            log.trace("Actor '{}' is immobilized and cannot move to position '{}'", actor, position)
-            send(ActionFailedResponse)
-            return@newSuspendedTransaction
-        }
-        log.trace("Start moving actor '{}' to position '{}'", actor, position)
-
-        val destinationPosition = geoDataService.getAvailableTargetPosition(actor.position, position)
-        val turningJob = launchTurning(actor, destinationPosition)
-
-        try {
-            broadcastPacket(StartMovingResponse(actor.id, actor.position, position), actor.position)
-            actor.isMoving = true
-
-            var moveTimestamp = System.currentTimeMillis()
-            while (coroutineContext.isActive) {
-                val startUpdatingPositionTimestamp = System.currentTimeMillis()
-                if (actor.isImmobilized) return@newSuspendedTransaction
-
-                if (updatePosition(actor, destinationPosition, System.currentTimeMillis() - moveTimestamp)) break
-
-                moveTimestamp = System.currentTimeMillis()
-                //Sleep for 1 tick minus time of updating operation
-                delay(GameTime.MILLIS_IN_TICK - (System.currentTimeMillis() - startUpdatingPositionTimestamp))
-            }
-
-            log.trace("Actor '{}' has arrived to position '{}'", actor, actor.position)
-            turningJob.join()
-        } catch (e: CancellationException) {
-            log.trace("MoveToPosition job was cancelled for reason: {}", e.message)
-        } catch (e: Exception) {
-            log.error("An error occurred while trying to update position of actor '{}'", actor, e)
-        } finally {
-            actor.isMoving = false
-            broadcastPacket(ArrivedResponse(actor.id, actor.position, actor.position.headingTo(position)), actor.position)
+    suspend fun move(actor: MutableActorInstance, position: Position) {
+        var destination = movingActors[actor]
+        if (destination != null) destination.position = position
+        else {
+            destination = DestinationPoint(position)
+            movingActors[actor] = destination
+            actor.launchAction { move(actor, destination) }.invokeOnCompletion { movingActors.remove(actor) }
         }
     }
 
@@ -133,57 +119,45 @@ class MoveService(
      */
     suspend fun move(actor: MutableActorInstance, target: GameWorldObject, requiredDistance: Int = 0) = newSuspendedTransaction {
         //Actor should turn to target anyway
-        val turningJob = launchTurning(actor, target.position)
+        var turningJob = launchTurning(actor, target.position)
 
         //If actor is already at destination point - no need to do anything else
-        if (actor.position.isCloseTo(target.position, requiredDistance))
-            return@newSuspendedTransaction
+        if (actor.position.isCloseTo(target.position, requiredDistance)) return@newSuspendedTransaction
 
-        if (actor.isImmobilized) {
-            log.trace("Actor '{}' is immobilized and cannot move to target '{}'", actor, target)
-            send(ActionFailedResponse)
-            return@newSuspendedTransaction
-        }
         log.trace("Start moving actor '{}' to target '{}'", actor, target)
 
-        var destinationPosition = geoDataService.getAvailableTargetPosition(
-            startPosition = actor.position,
-            targetPosition = actor.position.positionBetween(target.position, requiredDistance)
-        )
-
         try {
-            broadcastPacket(
-                StartMovingResponse(actor.id, actor.position, destinationPosition),
-                actor.position
-            )
-            send(StartMovingToTargetResponse(actor.id, target.id, requiredDistance, actor.position))
-            actor.isMoving = true
-
             var moveTimestamp = System.currentTimeMillis()
-            var previousTargetPosition = target.position
+            var previousTargetPosition: Position? = null
+            lateinit var destination: Position
 
-            while (coroutineContext.isActive && gameObjectRepository.existsById(target.id)) {
-                if (actor.isImmobilized) return@newSuspendedTransaction
+            while (coroutineContext.isActive && target.exists()) {
                 val startUpdatingPositionTimestamp = System.currentTimeMillis()
 
-                if (previousTargetPosition != target.position) {
-                    broadcastPacket(StartMovingResponse(actor.id, actor.position, target.position), actor.position)
-                    send(StartMovingToTargetResponse(actor.id, target.id, requiredDistance, actor.position))
-
-                    previousTargetPosition = target.position
+                if (actor.isImmobilized) {
+                    log.trace("Actor '{}' is immobilized", actor)
+                    return@newSuspendedTransaction
                 }
 
-                destinationPosition = geoDataService.getAvailableTargetPosition(
-                    startPosition = actor.position,
-                    targetPosition = actor.position.positionBetween(target.position, requiredDistance)
-                )
+                //If target position changed, destination must be recalculated
+                if (previousTargetPosition != target.position) {
+                    previousTargetPosition = target.position
+                    destination = geoDataService.getAvailableTargetPosition(
+                        startPosition = actor.position,
+                        targetPosition = actor.position.positionBetween(target.position, requiredDistance)
+                    )
 
-                if (updatePosition(actor, destinationPosition, System.currentTimeMillis() - moveTimestamp)) break
+                    broadcastPacket(StartMovingResponse(actor.id, actor.position, target.position), actor.position)
+                    send(StartMovingToTargetResponse(actor.id, target.id, requiredDistance, actor.position))
+                    turningJob.cancelAndJoin()
+                    turningJob = launchTurning(actor, target.position)
+                }
 
+                if (updatePosition(actor, destination, System.currentTimeMillis() - moveTimestamp)) break
                 moveTimestamp = System.currentTimeMillis()
+
                 //Sleep for 1 tick minus time of updating operation
                 delay(GameTime.MILLIS_IN_TICK - (System.currentTimeMillis() - startUpdatingPositionTimestamp))
-                //TODO Commit?
             }
             turningJob.join()
             log.trace("Actor '{}' has arrived to target '{}' on distance '{}'", actor, target, requiredDistance)
@@ -227,7 +201,7 @@ class MoveService(
      */
     suspend fun teleport(actor: MutableActorInstance, targetPosition: Position) = newSuspendedTransaction {
         log.debug("Teleporting '{}' to '{}'", actor, targetPosition)
-        asyncTaskService.cancelAndJoinActionByActorId(actor.id)
+        actor.cancelAction()
 
         val fixedPosition = targetPosition.copy(
             z = geoDataService.getNearestZ(targetPosition.x, targetPosition.y, targetPosition.z)
@@ -349,5 +323,8 @@ class MoveService(
             }
         }
     }
+
+    private fun GameWorldObject.exists() = if (this is DestinationPoint) true
+        else (gameObjectRepository.existsById(this.id))
 
 }

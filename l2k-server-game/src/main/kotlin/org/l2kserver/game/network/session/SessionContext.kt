@@ -27,8 +27,7 @@ private val inGameSessionsMap = ConcurrentHashMap<Int, SessionContext>()
  */
 class SessionContext(val sessionId: Int) : CoroutineContext.Element, Closeable {
 
-    companion object Key : CoroutineContext.Key<SessionContext>, Iterable<SessionContext> {
-        override fun iterator() = sessionsMap.values.iterator()
+    companion object Key : CoroutineContext.Key<SessionContext>, Iterable<SessionContext> by sessionsMap.values {
 
         fun getById(sessionId: Int) = checkNotNull(sessionsMap[sessionId]) {
             "No session exist by id $sessionId"

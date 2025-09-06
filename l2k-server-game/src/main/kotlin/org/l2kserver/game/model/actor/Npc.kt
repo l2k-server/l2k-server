@@ -60,7 +60,7 @@ class Npc(
 
     var equippedWeaponTemplate: WeaponTemplate? = null,
     var equippedShieldTemplate: ArmorTemplate? = null
-): MutableActorInstance, NpcInstance {
+): MutableActorInstance(), NpcInstance {
 
     /**
      * How much damage had the opponents dealt to this NPC

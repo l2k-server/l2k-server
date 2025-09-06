@@ -49,7 +49,7 @@ class AiService(
     }
 
     private suspend fun launchOnIdleAction(npc: Npc, action: AiIntents.(it: Npc) -> Unit) {
-        if (!asyncTaskService.hasActionByActorId(npc.id)) asyncTaskService.launchAction(npc.id) {
+        if (!npc.hasAction()) npc.launchAction {
             val intents = AiIntents().apply { action(this, npc) }
             performIntendedActions(intents, npc)
         }

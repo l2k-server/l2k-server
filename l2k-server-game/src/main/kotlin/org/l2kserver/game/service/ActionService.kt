@@ -40,7 +40,6 @@ class ActionService(
     private val npcService: NpcService,
     private val itemService: ItemService,
     private val tradeService: TradeService,
-    private val asyncTaskService: AsyncTaskService,
     private val moveService: MoveService,
 
     override val gameObjectRepository: GameObjectRepository
@@ -76,7 +75,7 @@ class ActionService(
             target is Npc && target.isEnemyOf(character) -> combatService.launchAttack(character, target)
             target is Npc || target is PlayerCharacter && target.privateStore != null -> character.interactWith(target)
             target is PlayerCharacter && target.isEnemyOf(character) -> combatService.launchAttack(character, target)
-            target is PlayerCharacter -> { send(ActionFailedResponse) } //TODO https://github.com/l2kserver/l2kserver-game/issues/25
+            target is PlayerCharacter -> { send(ActionFailedResponse) } //TODO https://github.com/l2k-server/l2k-server/issues/21
             target == null -> {
                 log.warn("Character '{}' tries to set target to non-existent target with id = '{}'", character, request.targetId)
                 send(ActionFailedResponse)
@@ -147,7 +146,7 @@ class ActionService(
     /**
      * Moves PlayerCharacter enough close to [target] and starts interaction with it
      */
-    private suspend fun PlayerCharacter.interactWith(target: ActorInstance) = asyncTaskService.launchAction(this.id) {
+    private suspend fun PlayerCharacter.interactWith(target: ActorInstance) = this.launchAction {
         val character = this@interactWith
         val requiredDistance = INTERACTION_DISTANCE +
                 (this@interactWith.collisionBox.radius + target.collisionBox.radius).roundToInt()

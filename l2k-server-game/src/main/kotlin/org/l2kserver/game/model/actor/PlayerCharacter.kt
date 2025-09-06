@@ -25,7 +25,7 @@ import org.l2kserver.game.model.store.PrivateStore
 class PlayerCharacter(
     private val entity: PlayerCharacterEntity,
     val characterClass: L2kCharacterClass
-): MutableActorInstance {
+): MutableActorInstance() {
 
     override val id: Int = entity.id.value
     val accountName by entity::accountName
