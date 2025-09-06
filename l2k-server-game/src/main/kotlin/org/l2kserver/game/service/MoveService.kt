@@ -50,7 +50,7 @@ private data class DestinationPoint(
 @Service
 class MoveService(
     private val geoDataService: GeoDataService,
-
+    private val asyncTaskService: AsyncTaskService,
     override val gameObjectRepository: GameObjectRepository
 ) : AbstractService() {
 
@@ -58,10 +58,7 @@ class MoveService(
 
     private val movingActors = ConcurrentHashMap<ActorInstance, DestinationPoint>()
 
-    /**
-     * Handle request to move character to some destination point
-     */
-    //TODO Fix cancelling task on new MoveRequest https://github.com/l2kserver/l2kserver-game/issues/7
+    /** Handle request to move character to some destination point */
     suspend fun moveCharacter(request: MoveRequest) {
         val context = sessionContext()
         val character = gameObjectRepository.findCharacterById(context.getCharacterId())
@@ -110,14 +107,16 @@ class MoveService(
         else {
             destination = DestinationPoint(position)
             movingActors[actor] = destination
-            actor.launchAction { move(actor, destination) }.invokeOnCompletion { movingActors.remove(actor) }
+            asyncTaskService
+                .launchAction(actor.id)  { move(actor, destination) }
+                .invokeOnCompletion { movingActors.remove(actor) }
         }
     }
 
-    /**
-     * Moves [actor] to [target] by specified [requiredDistance]
-     */
-    suspend fun move(actor: MutableActorInstance, target: GameWorldObject, requiredDistance: Int = 0) = newSuspendedTransaction {
+    /** Moves [actor] to [target] by specified [requiredDistance] */
+    suspend fun move(
+        actor: MutableActorInstance, target: GameWorldObject, requiredDistance: Int = 0
+    ) = newSuspendedTransaction {
         //Actor should turn to target anyway
         var turningJob = launchTurning(actor, target.position)
 
@@ -201,7 +200,7 @@ class MoveService(
      */
     suspend fun teleport(actor: MutableActorInstance, targetPosition: Position) = newSuspendedTransaction {
         log.debug("Teleporting '{}' to '{}'", actor, targetPosition)
-        actor.cancelAction()
+        asyncTaskService.cancelActionByActorId(actor.id)
 
         val fixedPosition = targetPosition.copy(
             z = geoDataService.getNearestZ(targetPosition.x, targetPosition.y, targetPosition.z)

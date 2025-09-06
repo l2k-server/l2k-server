@@ -41,6 +41,8 @@ private const val CAST_TIME_COEFFICIENT = 333
 class SkillService(
     private val combatService: CombatService,
     private val moveService: MoveService,
+    private val asyncTaskService: AsyncTaskService,
+
     override val gameObjectRepository: GameObjectRepository
 ) : AbstractService() {
 
@@ -84,7 +86,7 @@ class SkillService(
      */
     suspend fun useActiveSkill(
         actor: MutableActorInstance, skill: Skill, forced: Boolean, holdPosition: Boolean
-    ) = actor.launchAction {
+    ) = asyncTaskService.launchAction(actor.id) {
         //TODO Check if actor is already casting
         val target = actor.targetId?.let { gameObjectRepository.findActorByIdOrNull(it) }
 

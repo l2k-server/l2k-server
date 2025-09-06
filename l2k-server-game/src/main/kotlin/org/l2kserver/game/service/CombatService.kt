@@ -47,6 +47,7 @@ class CombatService(
     private val actorStateService: ActorStateService,
     private val npcService: NpcService,
     private val rewardService: RewardService,
+    private val asyncTaskService: AsyncTaskService,
 
     override val gameObjectRepository: GameObjectRepository
 ) : AbstractService() {
@@ -78,7 +79,7 @@ class CombatService(
             return
         }
 
-        attacker.launchAction {
+        asyncTaskService.launchAction(attacker.id) {
             while (isActive && !attacker.isParalyzed && !attacked.isDead() && gameObjectRepository.existsById(attacked.id)) {
                 try {
                     val requiredDistance = (attacker.stats.attackRange + attacked.collisionBox.radius).roundToInt()
@@ -290,7 +291,7 @@ class CombatService(
      * @param actor Actor, who was killed
      */
     private suspend fun killActor(actor: MutableActorInstance, killer: MutableActorInstance, overhitDamage: Int) {
-        actor.cancelAction()
+        asyncTaskService.cancelActionByActorId(actor.id)
         actorStateService.disableCombatState(actor)
 
         when (actor) {

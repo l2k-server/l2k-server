@@ -31,9 +31,7 @@ import kotlin.math.roundToInt
 
 const val INTERACTION_DISTANCE = 40
 
-/**
- * Handles player's actions, like attacking, setting target, switching sit and stand...
- */
+/** Handles player's actions, like attacking, setting target, switching sit and stand... */
 @Service
 class ActionService(
     private val combatService: CombatService,
@@ -41,14 +39,13 @@ class ActionService(
     private val itemService: ItemService,
     private val tradeService: TradeService,
     private val moveService: MoveService,
+    private val asyncTaskService: AsyncTaskService,
 
     override val gameObjectRepository: GameObjectRepository
 ): AbstractService() {
     override val log = logger()
 
-    /**
-     * Handles request to attack
-     */
+    /** Handles request to attack */
     suspend fun attackTarget(attackRequest: AttackRequest) {
         val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
         val target = gameObjectRepository.findActorById(attackRequest.targetId)
@@ -57,9 +54,7 @@ class ActionService(
         else combatService.launchAttack(character, target)
     }
 
-    /**
-     * Handles left-click on some game object
-     */
+    /** Handles left-click on some game object */
     suspend fun performAction(request: ActionRequest) {
         val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
         log.debug("Player '{}' left-clicked target with id='{}'", character, request.targetId)
@@ -83,9 +78,7 @@ class ActionService(
         }
     }
 
-    /**
-     * Cancels casting if character is casting or cancels target if character targets something
-     */
+    /** Cancels casting if character is casting or cancels target if character targets something */
     suspend fun cancelAction() {
         val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
 
@@ -99,9 +92,7 @@ class ActionService(
         broadcastPacket(CancelActionResponse(character.id, character.position), character.position)
     }
 
-    /**
-     * Handles request to perform some basic action - switching sit/stand, walk/run, summon actions...
-     */
+    /** Handles request to perform some basic action - switching sit/stand, walk/run, summon actions... */
     suspend fun performBasicAction(request: BasicActionRequest) {
         val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
 
@@ -124,9 +115,7 @@ class ActionService(
         }
     }
 
-    /**
-     * Handles request to perform some social action - laugh, greetings, dancing, etc.
-     */
+    /** Handles request to perform some social action - laugh, greetings, dancing, etc. */
     suspend fun performSocialAction(request: SocialActionRequest) {
         val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
 
@@ -138,15 +127,13 @@ class ActionService(
         broadcastPacket(SocialActionResponse(character.id, request.socialAction), character.position)
     }
 
-    /**
-     * Handles request to show map
-     */
+    /** Handles request to show map */
     suspend fun showMap() = send(ShowMapResponse)
 
-    /**
-     * Moves PlayerCharacter enough close to [target] and starts interaction with it
-     */
-    private suspend fun PlayerCharacter.interactWith(target: ActorInstance) = this.launchAction {
+    /** Moves PlayerCharacter enough close to [target] and starts interaction with it */
+    private suspend fun PlayerCharacter.interactWith(
+        target: ActorInstance
+    ) = asyncTaskService.launchAction(this.id) {
         val character = this@interactWith
         val requiredDistance = INTERACTION_DISTANCE +
                 (this@interactWith.collisionBox.radius + target.collisionBox.radius).roundToInt()
@@ -157,7 +144,7 @@ class ActionService(
             other = target.position,
             distance = (character.collisionBox.radius + target.collisionBox.radius).roundToInt() + INTERACTION_DISTANCE
         )
-        if (!coroutineContext.isActive || !enoughCloseToInteract) return@launchAction
+        if (!isActive || !enoughCloseToInteract) return@launchAction
 
         when (target) {
             is Npc -> npcService.talkTo(target)
@@ -165,9 +152,7 @@ class ActionService(
         }
     }
 
-    /**
-     * Set character's target to [targeted] and sends information about it
-     */
+    /** Set character's target to [targeted] and sends information about it */
     private suspend fun PlayerCharacter.setTarget(targeted: MutableActorInstance) {
         this.targetId = targeted.id
         targeted.targetedBy.add(this)
