@@ -4,61 +4,30 @@ import jakarta.annotation.PreDestroy
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.launch
 import org.springframework.stereotype.Service
 import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.CoroutineName
+import kotlinx.coroutines.runBlocking
 import org.l2kserver.game.extensions.logger
-import kotlin.coroutines.coroutineContext
+import org.l2kserver.game.model.actor.MutableActorInstance
+import org.l2kserver.game.model.extensions.forEachInstance
+import org.l2kserver.game.repository.GameObjectRepository
 
 /**
  * This service handles async tasks, like moving, attacking, etc
  */
 @Service
-class AsyncTaskService {
+class AsyncTaskService(
+    private val gameObjectRepository: GameObjectRepository
+) {
 
     private val log = logger()
-
-    /** Storage for action jobs, performed by actors */
-    private val actionJobMap = ConcurrentHashMap<Int, Job>()
 
     /** Storage for global tasks */
     private val taskJobMap = ConcurrentHashMap<String, Job>()
 
-    /**
-     * Cancels action job of actor with provided [actorId]
-     */
-    fun cancelActionByActorId(actorId: Int) = actionJobMap.remove(actorId)
-        ?.cancel("Action job for actor '$actorId' was cancelled")
-
-    /**
-     * Cancels action job of actor with provided [actorId]
-     */
-    suspend fun cancelAndJoinActionByActorId(actorId: Int) = actionJobMap
-        .remove(actorId)?.cancelAndJoin()
-
-    fun hasActionByActorId(actorId: Int) = actionJobMap.containsKey(actorId)
-
-    /**
-     * Cancels previous action job of actor with provided [actorId], waits for its completion and launches new [action]
-     */
-    suspend fun launchAction(actorId: Int, action: suspend CoroutineScope.() -> Unit): Job {
-        actionJobMap[actorId]?.cancelAndJoin()
-        val job = CoroutineScope(Dispatchers.Default + coroutineContext).launch { action() }
-        job.invokeOnCompletion {
-            it?.let { log.warn("Job for actor '{}' completed with error", actorId, it) }
-            actionJobMap.remove(actorId)
-        }
-
-        actionJobMap[actorId] = job
-        return job
-    }
-
-    /**
-     * Launches a global task
-     */
+    /** Launches a global task */
     fun launchTask(taskName: String, action: suspend CoroutineScope.() -> Unit) {
         taskJobMap[taskName] = CoroutineScope(Dispatchers.Default + CoroutineName(taskName)).launch(block = action)
         log.info("Started $taskName")
@@ -68,12 +37,12 @@ class AsyncTaskService {
 
     @PreDestroy
     fun shutdown() {
-        actionJobMap.keys.forEach { cancelActionByActorId(it) }
-
         taskJobMap.forEach { name, task ->
             log.info("Cancelling $name}")
             task.cancel()
         }
+
+        runBlocking { gameObjectRepository.forEachInstance<MutableActorInstance> { it.cancelAction() }}
     }
 
 }

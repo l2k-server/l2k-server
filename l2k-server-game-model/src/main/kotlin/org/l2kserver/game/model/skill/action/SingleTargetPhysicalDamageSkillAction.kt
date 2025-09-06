@@ -1,4 +1,4 @@
-package org.l2kserver.game.model.skill.effect
+package org.l2kserver.game.model.skill.action
 
 import org.l2kserver.game.model.actor.ActorInstance
 import org.l2kserver.game.model.item.template.calculateRandomDamageModifier
@@ -15,13 +15,13 @@ import kotlin.math.roundToInt
  * @property ignoresShield Does this effect ignore shield or evasion
  * @property overhitPossible Can this effect produce an over-hit
  */
-class SingleTargetPhysicalDamageSkillEffect(
+class SingleTargetPhysicalDamageSkillAction(
     val power: List<Int>,
     val ignoresShield: Boolean = false,
     val overhitPossible: Boolean = false
-): SingleTargetSkillEffect {
+): SingleTargetSkillAction {
 
-    override fun apply(caster: ActorInstance, target: ActorInstance, effectLevel: Int) = effects {
+    override fun applyTo(target: ActorInstance, caster: ActorInstance, effectLevel: Int) = effects {
         if (!ignoresShield && calculateIsAvoided(caster, target)) {
             miss(target)
             return@effects
@@ -46,7 +46,7 @@ class SingleTargetPhysicalDamageSkillEffect(
 
         damage = (PHYSICAL_ATTACK_BASE * damage) / defence
 
-        dealDamage(damage.roundToInt(), target, isCritical, isBlocked, overhitPossible)
+        hit(damage.roundToInt(), target, isCritical, isBlocked, overhitPossible)
     }
 
 }

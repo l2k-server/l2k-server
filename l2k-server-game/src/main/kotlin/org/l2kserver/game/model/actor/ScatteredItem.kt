@@ -20,5 +20,5 @@ data class ScatteredItem(
     val amount: Int,
     val enchantLevel: Int
 ): GameWorldObject {
-    override val collisionBox = CollisionBox(0.0, 0.0)
+    override val collisionBox = CollisionBox()
 }

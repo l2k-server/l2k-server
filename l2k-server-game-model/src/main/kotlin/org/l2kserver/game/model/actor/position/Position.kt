@@ -13,9 +13,9 @@ import kotlin.math.roundToInt
  *
  */
 data class Position(
-    val x: Int,
-    val y: Int,
-    val z: Int
+    val x: Int = 0,
+    val y: Int = 0,
+    val z: Int = 0
 ) {
 
     companion object {
