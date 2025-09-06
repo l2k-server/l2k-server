@@ -621,9 +621,7 @@ class ItemServiceTests(
             character.position, ItemTemplate.Registry.findById(HEAVENS_DIVIDER.id)!!)
 
         //Pick up item!
-        withContext(context) {
-            itemService.launchPickUp(character, scatteredItem).join()
-        }
+        withContext(context) { itemService.launchPickUp(character, scatteredItem).join() }
 
         //Assert pick up animation
         val pickUpResponse = assertIs<PickUpItemResponse>(context.responseChannel.receive())
@@ -664,7 +662,7 @@ class ItemServiceTests(
 
         //Pick up item!
         withContext(context) {
-            itemService.launchPickUp(character, scatteredItem).join()
+            itemService.launchPickUp(character, scatteredItem)
         }
 
         //Assert pick up animation

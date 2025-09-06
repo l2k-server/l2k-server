@@ -384,7 +384,7 @@ class CharacterService(
      * Removes [character] from game world and stop all the related jobs
      */
     suspend fun removeFromGameWorld(character: PlayerCharacter) {
-        character.cancelAction()
+        asyncTaskService.cancelActionByActorId(character.id)
 
         broadcastPacket(DeleteObjectResponse(character.id), character)
         actorStateService.stopUpdatingStates(character)

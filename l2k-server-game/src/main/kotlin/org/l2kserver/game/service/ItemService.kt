@@ -1,6 +1,5 @@
 package org.l2kserver.game.service
 
-import kotlinx.coroutines.isActive
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.l2kserver.game.model.extensions.forEachInstanceMatching
 import org.l2kserver.game.extensions.logger
@@ -51,6 +50,7 @@ private const val DROP_REWARD_DISTANCE = 25
 class ItemService(
     private val geoDataService: GeoDataService,
     private val moveService: MoveService,
+    private val asyncTaskService: AsyncTaskService,
 
     override val gameObjectRepository: GameObjectRepository,
 ) : AbstractService() {
@@ -197,7 +197,7 @@ class ItemService(
      */
     suspend fun launchPickUp(
         character: PlayerCharacter, scatteredItem: ScatteredItem
-    ) = character.launchAction {
+    ) = asyncTaskService.launchAction(character.id) {
         moveService.move(character, scatteredItem)
 
         val enoughCloseToPickUp = character.position.isCloseTo(
@@ -205,7 +205,7 @@ class ItemService(
             distance = character.collisionBox.radius.roundToInt() + Position.ACCEPTABLE_DELTA
         )
 
-        if (!isActive || !enoughCloseToPickUp) return@launchAction
+        if (!enoughCloseToPickUp) return@launchAction
 
         log.debug("Start picking up item '{}' by '{}'", scatteredItem, character.name)
 
