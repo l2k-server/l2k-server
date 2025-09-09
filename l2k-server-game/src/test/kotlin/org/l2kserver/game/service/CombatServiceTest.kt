@@ -11,6 +11,7 @@ import org.jetbrains.exposed.sql.transactions.transaction
 import kotlin.test.Test
 import org.l2kserver.game.AbstractTests
 import org.l2kserver.game.data.item.arrows.WOODEN_ARROW
+import org.l2kserver.game.data.item.soulshot.SOULSHOT_NO_GRADE
 import org.l2kserver.game.data.item.weapons.BOW
 import org.l2kserver.game.extensions.receiveIgnoring
 import org.l2kserver.game.handler.dto.response.AttackResponse
@@ -19,10 +20,14 @@ import org.l2kserver.game.handler.dto.response.PvPStatusResponse
 import org.l2kserver.game.handler.dto.response.StartFightingResponse
 import org.l2kserver.game.handler.dto.response.StatusAttribute
 import org.l2kserver.game.handler.dto.response.SystemMessageResponse
-import org.l2kserver.game.handler.dto.response.UpdateItemOperationType
+import org.l2kserver.game.handler.dto.response.UpdateItemOperation
 import org.l2kserver.game.handler.dto.response.UpdateItemsResponse
 import org.l2kserver.game.handler.dto.response.UpdateStatusResponse
 import org.l2kserver.game.domain.ItemEntity
+import org.l2kserver.game.handler.dto.request.UseItemRequest
+import org.l2kserver.game.handler.dto.response.SkillUsedResponse
+import org.l2kserver.game.handler.dto.response.item
+import org.l2kserver.game.handler.dto.response.operation
 import org.l2kserver.game.model.actor.character.PvpState
 import org.l2kserver.game.model.item.Weapon
 import org.springframework.beans.factory.annotation.Autowired
@@ -32,7 +37,8 @@ import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 class CombatServiceTest(
-    @Autowired private val combatService: CombatService
+    @Autowired private val combatService: CombatService,
+    @Autowired private val itemService: ItemService
 ) : AbstractTests() {
 
     @Test
@@ -52,7 +58,7 @@ class CombatServiceTest(
 
         // Check attacker's responses
         val attackResponse = assertIs<AttackResponse>(context.responseChannel.receive())
-        assertEquals(character.id, attackResponse.attackerId)
+        assertEquals(character.id, attackResponse.attacker.id)
         assertEquals(1, attackResponse.hits.size)
 
         val hit = attackResponse.hits[0]
@@ -80,7 +86,95 @@ class CombatServiceTest(
 
         //Check target's responses
         val attackResponseForTarget = assertIs<AttackResponse>(targetContext.responseChannel.receive())
-        assertEquals(character.id, attackResponseForTarget.attackerId)
+        assertEquals(character.id, attackResponseForTarget.attacker.id)
+        assertEquals(1, attackResponse.hits.size)
+        assertEquals(hit, attackResponse.hits[0])
+
+        val startFightingResponseForTarget = assertIs<StartFightingResponse>(targetContext.responseChannel.receive())
+        assertEquals(character.id, startFightingResponseForTarget.actorId)
+
+        val targetStartFightingResponseForTarget =
+            assertIs<StartFightingResponse>(targetContext.responseChannel.receive())
+        assertEquals(targetCharacter.id, targetStartFightingResponseForTarget.actorId)
+
+        val attackerPvPStatusResponse = assertIs<PvPStatusResponse>(targetContext.responseChannel.receive())
+        assertEquals(character.id, attackerPvPStatusResponse.characterId)
+
+        val systemMessageResponseForTarget = assertIs<SystemMessageResponse>(
+            targetContext.responseChannel.receiveIgnoring(SystemMessageResponse.CriticalHit::class)
+        )
+
+        assertContains(
+            listOf(SystemMessageResponse.YouWereHitBy::class, SystemMessageResponse.YouHaveAvoidedAttackOf::class),
+            systemMessageResponseForTarget::class
+        )
+
+        if (systemMessageResponseForTarget is SystemMessageResponse.YouWereHitBy) {
+            val updateStatusResponse = assertIs<UpdateStatusResponse>(targetContext.responseChannel.receive())
+            assertEquals(targetCharacter.id, updateStatusResponse.objectId)
+            assertContains(updateStatusResponse.attributes.keys, StatusAttribute.CUR_CP)
+        }
+    }
+
+    @Test
+    fun shouldPerformAttackUsingSoulshot(): Unit = runBlocking {
+        val context = createTestSessionContext()
+        val character = createTestCharacter()
+        context.setCharacterId(character.id)
+
+        val soulshot = character.inventory.createItem(SOULSHOT_NO_GRADE.id, 10)
+
+        val targetContext = createTestSessionContext()
+        val targetCharacter = createTestCharacter(name = "PunchingBag")
+        targetContext.setCharacterId(targetCharacter.id)
+
+        withContext(context) { itemService.useItem(UseItemRequest(soulshot.id)) }
+
+        //Soulshot used response
+        val updateItemsResponse = assertIs<UpdateItemsResponse>(context.responseChannel.receive())
+        assertEquals(soulshot.id, updateItemsResponse.operations.first().item.id)
+        assertEquals(9, updateItemsResponse.operations.first().item.amount)
+        assertIs<SystemMessageResponse.SoulshotEnabled>(context.responseChannel.receive())
+        assertIs<SkillUsedResponse>(context.responseChannel.receive())
+
+        //Launch attacking in parallel
+        CoroutineScope(Dispatchers.Default).launch(context) {
+            combatService.launchAttack(character, targetCharacter)
+        }
+
+        // Check attacker's responses
+        val attackResponse = assertIs<AttackResponse>(context.responseChannel.receive())
+        assertEquals(character.id, attackResponse.attacker.id)
+        assertEquals(1, attackResponse.hits.size)
+
+        val hit = attackResponse.hits[0]
+        assertEquals(targetCharacter.id, hit.targetId)
+        assertEquals(true, hit.usedSoulshot)
+
+        val startFightingResponse = assertIs<StartFightingResponse>(context.responseChannel.receive())
+        assertEquals(character.id, startFightingResponse.actorId)
+
+
+        val targetStartFightingResponse = assertIs<StartFightingResponse>(context.responseChannel.receive())
+        assertEquals(targetCharacter.id, targetStartFightingResponse.actorId)
+
+        val pvpStatusResponse = assertIs<PvPStatusResponse>(context.responseChannel.receive())
+        assertEquals(character.id, pvpStatusResponse.characterId)
+        assertEquals(PvpState.PVP, pvpStatusResponse.pvpState)
+
+        var systemMessageResponse = assertIs<SystemMessageResponse>(context.responseChannel.receive())
+        if (systemMessageResponse is SystemMessageResponse.CriticalHit)
+            systemMessageResponse = assertIs<SystemMessageResponse>(context.responseChannel.receive())
+
+        assertContains(
+            listOf(SystemMessageResponse.YouMissed::class, SystemMessageResponse.YouHit::class),
+            systemMessageResponse::class
+        )
+
+        //Check target's responses
+        assertIs<SkillUsedResponse>(targetContext.responseChannel.receive()) //target sees using soulshot too
+        val attackResponseForTarget = assertIs<AttackResponse>(targetContext.responseChannel.receive())
+        assertEquals(character.id, attackResponseForTarget.attacker.id)
         assertEquals(1, attackResponse.hits.size)
         assertEquals(hit, attackResponse.hits[0])
 
@@ -137,7 +231,7 @@ class CombatServiceTest(
 
         // Check attacker's responses
         val updateItemsResponse = assertIs<UpdateItemsResponse>(context.responseChannel.receive())
-        assertEquals(UpdateItemOperationType.REMOVE, updateItemsResponse.operations.first().operationType)
+        assertEquals(UpdateItemOperation.REMOVE, updateItemsResponse.operations.first().operation)
         assertEquals(arrowsId, updateItemsResponse.operations.first().item.id)
 
         val updateStatusResponse = assertIs<UpdateStatusResponse>(context.responseChannel.receive())
@@ -147,7 +241,7 @@ class CombatServiceTest(
         assertIs<GaugeResponse>(context.responseChannel.receive())
 
         val attackResponse = assertIs<AttackResponse>(context.responseChannel.receive())
-        assertEquals(character.id, attackResponse.attackerId)
+        assertEquals(character.id, attackResponse.attacker.id)
         assertEquals(1, attackResponse.hits.size)
 
         val hit = attackResponse.hits[0]

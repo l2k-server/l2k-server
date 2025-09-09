@@ -80,7 +80,8 @@ fun RequestPacket(data: ByteArray): RequestPacket {
 private fun ExtendedRequestPacket(
     data: ByteBuffer
 ): ExtendedRequestPacket = when(val extendedPacketRequestId = data.getUShort()) {
-    MANOR_REQUEST_PACKET_ID -> ManorListRequest
+    AUTO_USE_SS_EXTENDED_REQUEST_PACKET_ID -> AutoUseSsRequest(data)
+    MANOR_EXTENDED_REQUEST_PACKET_ID -> ManorListRequest
     else -> {
         System.err.println("Unknown extended packet type $extendedPacketRequestId")
         throw IllegalArgumentException("Unknown extended packet type '$extendedPacketRequestId'")

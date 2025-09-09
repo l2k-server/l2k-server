@@ -186,6 +186,30 @@ open class SystemMessageResponse private constructor(
         systemMessageId = 48, skill
     )
 
+    /** Message: "The soulshot you are attempting to use does not match the grade of your equipped weapon." */
+    data object SoulshotGradeMismatch: SystemMessageResponse(systemMessageId = 337)
+
+    /** Message: "You do not have enough soulshots for that." */
+    data object NotEnoughSoulshots: SystemMessageResponse(systemMessageId = 338)
+
+    /** Message: "Cannot use soulshots." */
+    data object CannotUseSoulshot: SystemMessageResponse(systemMessageId = 339)
+
+    /** Message: "Power of the spirits enabled." */
+    data object SoulshotEnabled: SystemMessageResponse(systemMessageId = 342)
+
+    /** Message: "The Spiritshot does not match the weapon's grade." */
+    data object SpiritshotGradeMismatch: SystemMessageResponse(systemMessageId = 530)
+
+    /** Message: "You do not have enough Spiritshots for that." */
+    data object NotEnoughSpiritshots: SystemMessageResponse(systemMessageId = 531)
+
+    /** Message: "You may not use Spiritshots." */
+    data object CannotUseSpiritshot: SystemMessageResponse(systemMessageId = 532)
+
+    /** Message: "Power of Mana enabled." */
+    data object SpiritshotEnabled: SystemMessageResponse(systemMessageId = 533)
+
     override val data = littleEndianByteArray {
         putUByte(SYSTEM_MESSAGE_RESPONSE_PACKET_ID)
         putInt(systemMessageId)

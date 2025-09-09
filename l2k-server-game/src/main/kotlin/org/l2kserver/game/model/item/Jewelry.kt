@@ -1,7 +1,7 @@
 package org.l2kserver.game.model.item
 
 import org.l2kserver.game.domain.ItemEntity
-import org.l2kserver.game.model.item.instance.CrystallizableItemInstance
+import org.l2kserver.game.model.item.instance.EnchantableItemInstance
 import org.l2kserver.game.model.item.instance.EquippableItemInstance
 import org.l2kserver.game.model.item.template.Grade
 import org.l2kserver.game.model.item.template.ItemGroup
@@ -16,7 +16,7 @@ private const val JEWELRY_PER_SAFE_ENCHANT_P_DEF_BONUS = 1
 class Jewelry(
     private val itemEntity: ItemEntity,
     private val itemTemplate: JewelryTemplate,
-): EquippableItemInstance, CrystallizableItemInstance {
+): EquippableItemInstance, EnchantableItemInstance {
     override val id: Int = itemEntity.id.value
 
     override val templateId by itemEntity::templateId
@@ -24,7 +24,6 @@ class Jewelry(
     override var amount by itemEntity::amount
     override var equippedAt by itemEntity::equippedAt
     override var enchantLevel by itemEntity::enchantLevel
-    override var augmentationId by itemEntity::augmentationId
 
     override val name = itemTemplate.name
     override val grade = itemTemplate.grade

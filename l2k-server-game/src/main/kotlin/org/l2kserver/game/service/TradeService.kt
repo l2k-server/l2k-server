@@ -225,8 +225,8 @@ class TradeService(
                     operations
                 }.reduce { acc, pair -> (acc.first + pair.first) to (acc.second + pair.second) }
 
-                sendTo(customer.id, (adenaOperationsOfCustomer + itemOperationsOfCustomer).build())
-                sendTo(seller.id, (adenaOperationsOfSeller + itemOperationsOfSeller).build())
+                sendTo(customer.id, (adenaOperationsOfCustomer + itemOperationsOfCustomer))
+                sendTo(seller.id, (adenaOperationsOfSeller + itemOperationsOfSeller))
 
                 sendTo(customer.id, UpdateStatusResponse.weightOf(customer))
                 sendTo(seller.id, UpdateStatusResponse.weightOf(seller))
@@ -395,8 +395,8 @@ class TradeService(
                     operations
                 }.reduce { acc, pair -> (acc.first + pair.first) to (acc.second + pair.second) }
 
-                sendTo(storeOwner.id, (adenaOperationsOfStoreOwner + itemOperationsOfStoreOwner).build())
-                sendTo(seller.id, (adenaOperationsOfSeller + itemOperationsOfSeller).build())
+                sendTo(storeOwner.id, (adenaOperationsOfStoreOwner + itemOperationsOfStoreOwner))
+                sendTo(seller.id, (adenaOperationsOfSeller + itemOperationsOfSeller))
 
                 sendTo(storeOwner.id, UpdateStatusResponse.weightOf(storeOwner))
                 sendTo(seller.id, UpdateStatusResponse.weightOf(seller))
@@ -419,22 +419,22 @@ class TradeService(
     //All the responses should be sent only after all the item transferring is complete
     private suspend fun transferItem(
         item: ItemInstance, from: PlayerCharacter, to: PlayerCharacter, amount: Int
-    ): Pair<UpdateItemsResponse.Builder, UpdateItemsResponse.Builder> {
+    ): Pair<UpdateItemsResponse, UpdateItemsResponse> {
         require(amount <= item.amount) { "Not enough $item to transfer!" }
 
-        val updateItemOperationsFrom = UpdateItemsResponse.Builder()
-        val updateItemOperationsTo = UpdateItemsResponse.Builder()
+        val updateItemOperationsFrom = UpdateItemsResponse()
+        val updateItemOperationsTo = UpdateItemsResponse()
 
         val existingReceiversItem = to.inventory.findAllByTemplateId(item.templateId).firstOrNull()
 
         val itemFrom = from.inventory.reduceAmount(item.id, amount)
         val itemTo = to.inventory.createItem(item.templateId, amount, enchantLevel = item.enchantLevel)
 
-        if (!itemTo.isStackable || existingReceiversItem == null) updateItemOperationsTo.operationAdd(itemTo)
-        else updateItemOperationsTo.operationModify(itemTo)
+        if (!itemTo.isStackable || existingReceiversItem == null) updateItemOperationsTo.wasAdded(itemTo)
+        else updateItemOperationsTo.wasModified(itemTo)
 
-        if (itemFrom == null) updateItemOperationsFrom.operationDelete(item)
-        else updateItemOperationsFrom.operationModify(itemFrom)
+        if (itemFrom == null) updateItemOperationsFrom.wasDeleted(item)
+        else updateItemOperationsFrom.wasModified(itemFrom)
 
         return updateItemOperationsFrom to updateItemOperationsTo
     }

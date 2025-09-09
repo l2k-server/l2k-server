@@ -1,7 +1,7 @@
 package org.l2kserver.game.model.item
 
 import org.l2kserver.game.domain.ItemEntity
-import org.l2kserver.game.model.item.instance.CrystallizableItemInstance
+import org.l2kserver.game.model.item.instance.EnchantableItemInstance
 import org.l2kserver.game.model.item.instance.EquippableItemInstance
 import org.l2kserver.game.model.item.template.ArmorTemplate
 import org.l2kserver.game.model.item.template.ArmorType
@@ -18,15 +18,14 @@ private const val ARMOR_PER_SAFE_ENCHANT_P_DEF_BONUS = 1
 class Armor(
     private val itemEntity: ItemEntity,
     private val itemTemplate: ArmorTemplate,
-): EquippableItemInstance, CrystallizableItemInstance {
+): EquippableItemInstance, EnchantableItemInstance {
     override val id: Int = itemEntity.id.value
+    override val templateId = itemEntity.templateId
 
-    override val templateId by itemEntity::templateId
     override var ownerId by itemEntity::ownerId
     override var amount by itemEntity::amount
     override var equippedAt by itemEntity::equippedAt
     override var enchantLevel by itemEntity::enchantLevel
-    override var augmentationId by itemEntity::augmentationId
 
     override val name = itemTemplate.name
     override val grade = itemTemplate.grade

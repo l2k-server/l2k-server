@@ -14,10 +14,8 @@ import org.l2kserver.game.model.stats.Stats
  * @property templateId Item template id (for example Squire's Shirt's itemTemplateId is 1146)
  * @property ownerId Identifier of a character, that owns this item
  * @property amount Items amount (in stack)
- * @property isEquipped Is this item equipped
  * @property name Item name
  * @property type Item type - weapon or armor part, slots to equip, etc.
- * @property grade Item grade
  * @property weight Item weight
  * @property price Item price, when selling it to NPC. Don't forget about taxes!
  * @property isSellable If true, this item can be sold to NPC
@@ -32,12 +30,12 @@ interface ItemInstance {
      val templateId: Int
      var ownerId: Int
      var amount: Int
-     var equippedAt: Slot?
-     var enchantLevel: Int
-     var augmentationId: Int
+     val equippedAt: Slot? get() = null
+     val enchantLevel: Int get() = 0
+     val augmentationId: Int get() = 0
      val name: String
      val type: ItemType
-     val grade: Grade
+     val grade: Grade get() = Grade.NO_GRADE
      val weight: Int
      val price: Int
      val isSellable: Boolean
@@ -51,20 +49,23 @@ interface ItemInstance {
      val isEquipped: Boolean get() = equippedAt != null
 }
 
-/**
- * In-game item instance, that can be used
- */
+/** In-game item instance, that can be used */
 interface UsableItemInstance: ItemInstance
 
 /**
  * In-game item instance, that can be equipped
  *
+ * @property grade Grade of this equippable item
  * @property stats Stats that will be given to the character when equipping the item
+ * @property equippedAt Slot, at which this item is equipped
+ * @property isEquipped Is this item equipped
  */
 interface EquippableItemInstance : ItemInstance {
-    val stats: Stats
+     override val grade: Grade
+     val stats: Stats
+     override var equippedAt: Slot?
 
-    override val isStackable: Boolean get() = false
+     override val isStackable: Boolean get() = false
 }
 
 /**
@@ -74,4 +75,24 @@ interface EquippableItemInstance : ItemInstance {
  */
 interface CrystallizableItemInstance: ItemInstance {
     val crystalCount: Int
+}
+
+/**
+ * In-game item instance, that can be enchanted
+ *
+ * @property grade Grande of enchant scrolls, to enchant this item
+ * @property enchantLevel THis item enchant level
+ */
+interface EnchantableItemInstance: CrystallizableItemInstance {
+     override val grade: Grade
+     override var enchantLevel: Int
+}
+
+/**
+ * In-game item instance, that can be augmented
+ *
+ * @property augmentationId TODO Augmentation skill identifier?
+ */
+interface AugmentableItemInstance: ItemInstance {
+     override var augmentationId: Int
 }

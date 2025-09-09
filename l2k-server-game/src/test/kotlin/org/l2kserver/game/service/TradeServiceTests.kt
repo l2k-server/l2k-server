@@ -37,9 +37,11 @@ import org.l2kserver.game.handler.dto.response.ShowPrivateStoreSellResponse
 import org.l2kserver.game.handler.dto.response.Sound
 import org.l2kserver.game.handler.dto.response.StatusAttribute
 import org.l2kserver.game.handler.dto.response.SystemMessageResponse
-import org.l2kserver.game.handler.dto.response.UpdateItemOperationType
+import org.l2kserver.game.handler.dto.response.UpdateItemOperation
 import org.l2kserver.game.handler.dto.response.UpdateItemsResponse
 import org.l2kserver.game.handler.dto.response.UpdateStatusResponse
+import org.l2kserver.game.handler.dto.response.item
+import org.l2kserver.game.handler.dto.response.operation
 import org.l2kserver.game.model.actor.Posture
 import org.l2kserver.game.model.actor.position.Position
 import org.l2kserver.game.model.store.PrivateStore
@@ -463,7 +465,7 @@ class TradeServiceTests(
         val buyerAdenaOperation = buyerUpdateItemsResponse.operations
             .find { it.item.templateId == ADENA.id }
         assertNotNull(buyerAdenaOperation)
-        assertEquals(UpdateItemOperationType.MODIFY, buyerAdenaOperation.operationType)
+        assertEquals(UpdateItemOperation.MODIFY, buyerAdenaOperation.operation)
         assertEquals(initialBuyerAdena - totalPrice, buyerAdenaOperation.item.amount)
 
         // Check items update
@@ -471,13 +473,13 @@ class TradeServiceTests(
             .find { it.item.templateId == WOODEN_ARROW.id }
 
         assertNotNull(buyerArrowOperation)
-        assertEquals(UpdateItemOperationType.ADD, buyerArrowOperation.operationType)
+        assertEquals(UpdateItemOperation.ADD, buyerArrowOperation.operation)
         assertEquals(arrowsToBuyAmount, buyerArrowOperation.item.amount)
 
         val buyerSplinterOperation = buyerUpdateItemsResponse.operations
             .find { it.item.templateId == DEMON_SPLINTER.id }
         assertNotNull(buyerSplinterOperation)
-        assertEquals(UpdateItemOperationType.ADD, buyerSplinterOperation.operationType)
+        assertEquals(UpdateItemOperation.ADD, buyerSplinterOperation.operation)
         assertEquals(1, buyerSplinterOperation.item.amount)
 
         // Check buyer's weight change
@@ -503,20 +505,20 @@ class TradeServiceTests(
         // Check seller's adena update
         val sellerAdenaOperation = sellerUpdateItems.operations.find { it.item.templateId == ADENA.id }
         assertNotNull(sellerAdenaOperation)
-        assertEquals(UpdateItemOperationType.ADD, sellerAdenaOperation.operationType)
+        assertEquals(UpdateItemOperation.ADD, sellerAdenaOperation.operation)
         assertEquals(totalPrice, sellerAdenaOperation.item.amount)
 
         // Check seller's item updates
         val sellerArrowOperation = sellerUpdateItems.operations
             .find { it.item.templateId == WOODEN_ARROW.id }
         assertNotNull(sellerArrowOperation)
-        assertEquals(UpdateItemOperationType.MODIFY, sellerArrowOperation.operationType)
+        assertEquals(UpdateItemOperation.MODIFY, sellerArrowOperation.operation)
         assertEquals(arrowsAmount - arrowsToBuyAmount, sellerArrowOperation.item.amount)
 
         val sellerSplinterOperation = sellerUpdateItems.operations
             .find { it.item.templateId == DEMON_SPLINTER.id }
         assertNotNull(sellerSplinterOperation)
-        assertEquals(UpdateItemOperationType.REMOVE, sellerSplinterOperation.operationType)
+        assertEquals(UpdateItemOperation.REMOVE, sellerSplinterOperation.operation)
 
         val sellerUpdateStatus = assertIs<UpdateStatusResponse>(sellerContext.responseChannel.receive())
         assertContains(sellerUpdateStatus.attributes, StatusAttribute.CUR_LOAD)
@@ -986,17 +988,17 @@ class TradeServiceTests(
 
         val sellerAdenaOperation = sellerUpdateItems.operations.find { it.item.templateId == ADENA.id }
         assertNotNull(sellerAdenaOperation)
-        assertEquals(UpdateItemOperationType.ADD, sellerAdenaOperation.operationType)
+        assertEquals(UpdateItemOperation.ADD, sellerAdenaOperation.operation)
         assertEquals(totalPrice, sellerAdenaOperation.item.amount)
 
         val sellerArrowOperation = sellerUpdateItems.operations.find { it.item.templateId == WOODEN_ARROW.id }
         assertNotNull(sellerArrowOperation)
-        assertEquals(UpdateItemOperationType.MODIFY, sellerArrowOperation.operationType)
+        assertEquals(UpdateItemOperation.MODIFY, sellerArrowOperation.operation)
         assertEquals(arrowsAmount - arrowsToSellAmount, sellerArrowOperation.item.amount)
 
         val sellerSplinterOperation = sellerUpdateItems.operations.find { it.item.templateId == DEMON_SPLINTER.id }
         assertNotNull(sellerSplinterOperation)
-        assertEquals(UpdateItemOperationType.REMOVE, sellerSplinterOperation.operationType)
+        assertEquals(UpdateItemOperation.REMOVE, sellerSplinterOperation.operation)
 
         // Update cur load of seller
         val sellerUpdateStatus = assertIs<UpdateStatusResponse>(sellerContext.responseChannel.receive())
@@ -1022,17 +1024,17 @@ class TradeServiceTests(
 
         val storeOwnerAdenaOperation = storeOwnerUpdateItems.operations.find { it.item.templateId == ADENA.id }
         assertNotNull(storeOwnerAdenaOperation)
-        assertEquals(UpdateItemOperationType.MODIFY, storeOwnerAdenaOperation.operationType)
+        assertEquals(UpdateItemOperation.MODIFY, storeOwnerAdenaOperation.operation)
         assertEquals(storeOwnerAdenaAmount - totalPrice, storeOwnerAdenaOperation.item.amount)
 
         val storeOwnerArrowOperation = storeOwnerUpdateItems.operations.find { it.item.templateId == WOODEN_ARROW.id }
         assertNotNull(storeOwnerArrowOperation)
-        assertEquals(UpdateItemOperationType.ADD, storeOwnerArrowOperation.operationType)
+        assertEquals(UpdateItemOperation.ADD, storeOwnerArrowOperation.operation)
         assertEquals(arrowsToSellAmount, storeOwnerArrowOperation.item.amount)
 
         val storeOwnerSplinterOperation = storeOwnerUpdateItems.operations.find { it.item.templateId == DEMON_SPLINTER.id }
         assertNotNull(storeOwnerSplinterOperation)
-        assertEquals(UpdateItemOperationType.ADD, storeOwnerSplinterOperation.operationType)
+        assertEquals(UpdateItemOperation.ADD, storeOwnerSplinterOperation.operation)
         assertEquals(1, storeOwnerSplinterOperation.item.amount)
 
         val storeOwnerUpdateStatus = assertIs<UpdateStatusResponse>(storeOwnerContext.responseChannel.receive())

@@ -19,7 +19,7 @@ import kotlin.math.roundToInt
  * @param attackPowerDivider Value, on which resulting damage should be divided
  * (for example dual weapon attack contains two hits, each should deal 50% damage)
  */
-fun ActorInstance.hit(other: ActorInstance, attackPowerDivider: Int = 1): DamageEffect {
+fun ActorInstance.hit(other: ActorInstance, soulshotUsed: Boolean, attackPowerDivider: Int = 1): DamageEffect {
     val isAvoided = calculateIsAvoided(this, other)
     //TODO Calculate PerfectShieldBlock
 
@@ -31,9 +31,9 @@ fun ActorInstance.hit(other: ActorInstance, attackPowerDivider: Int = 1): Damage
     return DamageEffect(
         targetId = other.id,
         damage = calculateAutoAttackDamage(
-            this, other, isCritical, isBlocked, usedSoulshot = false
+            this, other, isCritical, isBlocked, soulshotUsed
         ) / attackPowerDivider,
-        usedSoulshot = false, //TODO
+        usedSoulshot = soulshotUsed,
         isCritical = isCritical,
         isBlocked = isBlocked,
     )

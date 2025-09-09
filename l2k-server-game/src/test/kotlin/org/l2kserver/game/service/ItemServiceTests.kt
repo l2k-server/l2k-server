@@ -24,7 +24,7 @@ import org.l2kserver.game.handler.dto.request.UseItemRequest
 import org.l2kserver.game.handler.dto.response.FullCharacterResponse
 import org.l2kserver.game.handler.dto.response.DroppedItemResponse
 import org.l2kserver.game.handler.dto.response.SystemMessageResponse
-import org.l2kserver.game.handler.dto.response.UpdateItemOperationType
+import org.l2kserver.game.handler.dto.response.UpdateItemOperation
 import org.l2kserver.game.handler.dto.response.UpdateItemsResponse
 import org.l2kserver.game.handler.dto.response.UpdateStatusResponse
 import org.l2kserver.game.model.actor.position.Position
@@ -34,6 +34,8 @@ import org.l2kserver.game.handler.dto.response.PickUpItemResponse
 import org.l2kserver.game.handler.dto.response.StatusAttribute
 import org.l2kserver.game.domain.ItemEntity
 import org.l2kserver.game.domain.ItemTable
+import org.l2kserver.game.handler.dto.response.item
+import org.l2kserver.game.handler.dto.response.operation
 import org.l2kserver.game.model.actor.Posture
 import org.l2kserver.game.model.item.template.ItemTemplate
 import org.l2kserver.game.model.item.template.Slot
@@ -65,7 +67,7 @@ class ItemServiceTests(
         val updateResponse = assertIs<UpdateItemsResponse>(context.responseChannel.receive())
         val (item, operation) = updateResponse.operations[0]
         assertEquals(itemId, item.id)
-        assertEquals(UpdateItemOperationType.REMOVE, operation)
+        assertEquals(UpdateItemOperation.REMOVE, operation)
 
         val updateStatusResponse = assertIs<UpdateStatusResponse>(context.responseChannel.receive())
         assertEquals(StatusAttribute.CUR_LOAD, updateStatusResponse.attributes.keys.first())
@@ -88,9 +90,9 @@ class ItemServiceTests(
 
             val updateResponse = assertIs<UpdateItemsResponse>(context.responseChannel.receive())
             assertEquals(itemId, updateResponse.operations[0].item.id)
-            assertEquals(UpdateItemOperationType.MODIFY, updateResponse.operations[0].operationType)
+            assertEquals(UpdateItemOperation.MODIFY, updateResponse.operations[0].operation)
             assertEquals(itemId, updateResponse.operations[1].item.id)
-            assertEquals(UpdateItemOperationType.REMOVE, updateResponse.operations[1].operationType)
+            assertEquals(UpdateItemOperation.REMOVE, updateResponse.operations[1].operation)
 
             val updateStatusResponse = assertIs<UpdateStatusResponse>(context.responseChannel.receive())
             assertEquals(character.id, updateStatusResponse.objectId)
@@ -114,7 +116,7 @@ class ItemServiceTests(
             val updatedItems = assertIs<UpdateItemsResponse>(context.responseChannel.receive())
             val (item, operation) = updatedItems.operations[0]
             assertEquals(itemId, item.id)
-            assertEquals(UpdateItemOperationType.MODIFY, operation)
+            assertEquals(UpdateItemOperation.MODIFY, operation)
         }
     }
 
@@ -155,7 +157,7 @@ class ItemServiceTests(
 
             val (item, operation) = updateItemsResponse.operations[0]
             assertEquals(itemId, item.id)
-            assertEquals(UpdateItemOperationType.MODIFY, operation)
+            assertEquals(UpdateItemOperation.MODIFY, operation)
 
 
             assertIs<FullCharacterResponse>(context.responseChannel.receive())
@@ -183,7 +185,7 @@ class ItemServiceTests(
 
             val (item, operation) = updateItemsResponse.operations[0]
             assertEquals(itemId, item.id)
-            assertEquals(UpdateItemOperationType.MODIFY, operation)
+            assertEquals(UpdateItemOperation.MODIFY, operation)
 
 
             assertIs<FullCharacterResponse>(context.responseChannel.receive())
@@ -217,11 +219,11 @@ class ItemServiceTests(
             val (takenOffItem, operation1) = updatedItemsResponse.operations[0]
             assertEquals(items[0].id, takenOffItem.id)
             assertFalse(takenOffItem.isEquipped)
-            assertEquals(UpdateItemOperationType.MODIFY, operation1)
+            assertEquals(UpdateItemOperation.MODIFY, operation1)
 
             val (usedItem, operation2) = updatedItemsResponse.operations[1]
             assertEquals(items[1].id, usedItem.id)
-            assertEquals(UpdateItemOperationType.MODIFY, operation2)
+            assertEquals(UpdateItemOperation.MODIFY, operation2)
 
             assertIs<FullCharacterResponse>(context.responseChannel.receive())
 
@@ -258,16 +260,16 @@ class ItemServiceTests(
             val (takenOffItem1, operation1) = updateItemsResponse.operations[0]
             assertEquals(items[0].id, takenOffItem1.id)
             assertFalse(takenOffItem1.isEquipped)
-            assertEquals(UpdateItemOperationType.MODIFY, operation1)
+            assertEquals(UpdateItemOperation.MODIFY, operation1)
 
             val (takenOffItem2, operation2) = updateItemsResponse.operations[1]
             assertEquals(items[1].id, takenOffItem2.id)
             assertFalse(takenOffItem2.isEquipped)
-            assertEquals(UpdateItemOperationType.MODIFY, operation2)
+            assertEquals(UpdateItemOperation.MODIFY, operation2)
 
             val (usedItem, operation3) = updateItemsResponse.operations[2]
             assertEquals(items[2].id, usedItem.id)
-            assertEquals(UpdateItemOperationType.MODIFY, operation3)
+            assertEquals(UpdateItemOperation.MODIFY, operation3)
 
             assertIs<FullCharacterResponse>(context.responseChannel.receive())
 
@@ -305,7 +307,7 @@ class ItemServiceTests(
             val updateItemResponse = assertIs<UpdateItemsResponse>(context.responseChannel.receive())
             val (updatedItem, operation) = updateItemResponse.operations[0]
             assertEquals(item.id, updatedItem.id)
-            assertEquals(UpdateItemOperationType.REMOVE, operation)
+            assertEquals(UpdateItemOperation.REMOVE, operation)
 
             val updateStatusResponse = assertIs<UpdateStatusResponse>(context.responseChannel.receive())
             assertEquals(character.id, updateStatusResponse.objectId)
@@ -348,9 +350,9 @@ class ItemServiceTests(
 
             val updateResponse = assertIs<UpdateItemsResponse>(context.responseChannel.receive())
             assertEquals(itemId, updateResponse.operations[0].item.id)
-            assertEquals(UpdateItemOperationType.MODIFY, updateResponse.operations[0].operationType)
+            assertEquals(UpdateItemOperation.MODIFY, updateResponse.operations[0].operation)
             assertEquals(itemId, updateResponse.operations[1].item.id)
-            assertEquals(UpdateItemOperationType.REMOVE, updateResponse.operations[1].operationType)
+            assertEquals(UpdateItemOperation.REMOVE, updateResponse.operations[1].operation)
 
             assertIs<UpdateStatusResponse>(context.responseChannel.receive())
         }
@@ -391,7 +393,7 @@ class ItemServiceTests(
             val updatedItems = assertIs<UpdateItemsResponse>(context.responseChannel.receive())
             val (item, operation) = updatedItems.operations[0]
             assertEquals(itemId, item.id)
-            assertEquals(UpdateItemOperationType.MODIFY, operation)
+            assertEquals(UpdateItemOperation.MODIFY, operation)
 
             assertIs<UpdateStatusResponse>(context.responseChannel.receive())
         }
@@ -633,8 +635,8 @@ class ItemServiceTests(
         assertEquals(scatteredItem.id, deleteObjectResponse.gameObjectId)
 
         val updateItemsResponse = assertIs<UpdateItemsResponse>(context.responseChannel.receive())
-        assertEquals(UpdateItemOperationType.ADD, updateItemsResponse.operations.first().operationType)
-        assertEquals(HEAVENS_DIVIDER.id, updateItemsResponse.operations.first().item.templateId)
+        assertEquals(UpdateItemOperation.ADD, updateItemsResponse.operations.first().operation)
+        assertEquals(HEAVENS_DIVIDER.id, updateItemsResponse.operations.first().first.templateId)
         assertNotEquals(existingItem.id, updateItemsResponse.operations.first().item.id)
 
         assertIs<UpdateStatusResponse>(context.responseChannel.receive())
@@ -675,8 +677,8 @@ class ItemServiceTests(
         assertEquals(scatteredItem.id, deleteObjectResponse.gameObjectId)
 
         val updateItemsResponse = assertIs<UpdateItemsResponse>(context.responseChannel.receive())
-        assertEquals(UpdateItemOperationType.MODIFY, updateItemsResponse.operations.first().operationType)
-        assertEquals(WOODEN_ARROW.id, updateItemsResponse.operations.first().item.templateId)
+        assertEquals(UpdateItemOperation.MODIFY, updateItemsResponse.operations.first().operation)
+        assertEquals(WOODEN_ARROW.id, updateItemsResponse.operations.first().first.templateId)
 
         assertIs<UpdateStatusResponse>(context.responseChannel.receive())
 

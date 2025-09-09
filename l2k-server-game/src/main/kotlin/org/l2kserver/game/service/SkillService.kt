@@ -22,9 +22,10 @@ import org.l2kserver.game.handler.dto.response.UpdateStatusResponse
 import org.l2kserver.game.model.actor.ActorInstance
 import org.l2kserver.game.model.actor.MutableActorInstance
 import org.l2kserver.game.model.actor.PlayerCharacter
+import org.l2kserver.game.model.actor.useSoulshot
 import org.l2kserver.game.model.item.ConsumableItem
 import org.l2kserver.game.model.skill.Skill
-import org.l2kserver.game.model.skill.action.SingleTargetSkillAction
+import org.l2kserver.game.model.skill.action.SingleTargetPhysicalDamageSkillAction
 import org.l2kserver.game.model.skill.action.effect.DamageEffect
 import org.l2kserver.game.network.session.send
 import org.l2kserver.game.network.session.sessionContext
@@ -131,8 +132,8 @@ class SkillService(
         if (actor is PlayerCharacter) skill.consumes?.item?.let {
             val resourceItem = actor.inventory.findById(it.id)
             val reducedItem = actor.inventory.reduceAmount(it.id, it.amount)
-            if (reducedItem == null) send(UpdateItemsResponse.operationRemove(resourceItem))
-            else send(UpdateItemsResponse.operationModify(reducedItem))
+            if (reducedItem == null) send(UpdateItemsResponse().wasDeleted(resourceItem))
+            else send(UpdateItemsResponse().wasModified(reducedItem))
         }
 
         if (actor is PlayerCharacter && statusUpdated) send(
@@ -276,9 +277,11 @@ class SkillService(
         caster: MutableActorInstance, target: MutableActorInstance
     ) {
         val events = try {
-            when (this.skillAction) {
-                is SingleTargetSkillAction -> this.skillAction.applyTo(target, caster, this.skillLevel)
-                //TODO AOE skills
+            when (val action = this.skillAction) {
+                is SingleTargetPhysicalDamageSkillAction -> action.applyTo(
+                    target, caster, this.skillLevel, caster.useSoulshot()
+                )
+                else -> emptyList()
             }
         }
         catch (e: Exception) {

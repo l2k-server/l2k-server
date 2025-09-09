@@ -20,6 +20,7 @@ import org.l2kserver.game.handler.dto.request.SelectCharacterRequest
 import org.l2kserver.game.handler.dto.request.ActionRequest
 import org.l2kserver.game.handler.dto.request.AdminCommandRequest
 import org.l2kserver.game.handler.dto.request.AttackRequest
+import org.l2kserver.game.handler.dto.request.AutoUseSsRequest
 import org.l2kserver.game.handler.dto.request.BasicActionRequest
 import org.l2kserver.game.handler.dto.request.ChatMessageRequest
 import org.l2kserver.game.handler.dto.request.DeleteShortcutRequest
@@ -100,6 +101,7 @@ class L2GameRequestHandler(
             is TakeOffItemRequest -> itemService.takeOffItem(request)
             is DeleteItemRequest -> itemService.deleteItem(request)
             is DropItemRequest -> itemService.dropItem(request)
+            is AutoUseSsRequest -> itemService.toggleAutoUseSs(request)
 
             is MoveRequest -> moveService.moveCharacter(request)
             is ValidatePositionRequest -> moveService.validatePosition(request)
@@ -136,7 +138,7 @@ class L2GameRequestHandler(
 
             is PrivateStoreSellStopRequest, is PrivateStoreBuyStopRequest -> tradeService.stopPrivateStore()
 
-            else -> send(ActionFailedResponse)
+            null -> send(ActionFailedResponse)
         }
     }
 

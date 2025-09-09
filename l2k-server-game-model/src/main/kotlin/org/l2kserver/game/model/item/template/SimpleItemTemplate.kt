@@ -1,8 +1,6 @@
 package org.l2kserver.game.model.item.template
 
-/**
- * Template of a simple item, that cannot be consumed of equipped (for example materials or adena)
- */
+/** Template of a simple item, that cannot be consumed of equipped (for example materials or adena) */
 data class SimpleItemTemplate(
     override val id: Int,
     override val name: String,
@@ -14,11 +12,4 @@ data class SimpleItemTemplate(
     override val isDestroyable: Boolean,
     override val isExchangeable: Boolean,
     override val isStackable: Boolean
-): ItemTemplate {
-    override val type = SimpleItemType
-    override val category = ItemCategory.OTHER //TODO Money??
-}
-
-object SimpleItemType : ItemType {
-    override val availableSlots: Set<Slot> = emptySet()
-}
+): ItemTemplate

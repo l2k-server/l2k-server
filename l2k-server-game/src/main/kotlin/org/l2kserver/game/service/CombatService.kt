@@ -24,6 +24,7 @@ import org.l2kserver.game.handler.dto.response.UpdateStatusResponse
 import org.l2kserver.game.model.actor.MutableActorInstance
 import org.l2kserver.game.model.actor.Npc
 import org.l2kserver.game.model.actor.PlayerCharacter
+import org.l2kserver.game.model.actor.useSoulshot
 import org.l2kserver.game.model.item.template.WeaponType
 import org.l2kserver.game.model.skill.action.effect.DamageEffect
 import org.l2kserver.game.network.session.send
@@ -186,7 +187,9 @@ class CombatService(
         val attackDuration = calculateAttackTime(attacker.stats.atkSpd)
         nextAttackAvailableTimeMap[attacker.id] = currentTimeMillis() + attackDuration
 
-        val hits = List(hitAmount) { attacker.hit(attacked, attackPowerDivider = hitAmount) }
+        val soulshotUsed = attacker.useSoulshot()
+
+        val hits = List(hitAmount) { attacker.hit(attacked, soulshotUsed, hitAmount) }
 
         val delayBeforeHit = attackDuration / (1 + hitAmount)
         broadcastPacket(AttackResponse(attacker, hits), attacker.position)
@@ -233,8 +236,8 @@ class CombatService(
 
                 //Subtract ammo
                 val updatedArrows = attacker.inventory.reduceAmount(arrows.id, consumable.amount)
-                if (updatedArrows == null) send(UpdateItemsResponse.operationRemove(arrows))
-                else send(UpdateItemsResponse.operationModify(updatedArrows))
+                if (updatedArrows == null) send(UpdateItemsResponse().wasDeleted(arrows))
+                else send(UpdateItemsResponse().wasModified(updatedArrows))
             }
 
             //Subtract mana
@@ -248,7 +251,7 @@ class CombatService(
         nextAttackAvailableTimeMap[attacker.id] = currentTimeMillis() + attackDuration + reuseDelay
 
         send(SystemMessageResponse.YouCarefullyNockAnArrow)
-        val hit = attacker.hit(attacked)
+        val hit = attacker.hit(attacked, attacker.useSoulshot())
 
         send(GaugeResponse(GaugeColor.RED, (attackDuration + reuseDelay).toInt()))
         broadcastPacket(AttackResponse(attacker, listOf(hit)), attacker.position)

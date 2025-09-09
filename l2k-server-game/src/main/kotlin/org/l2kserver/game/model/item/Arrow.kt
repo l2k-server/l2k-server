@@ -15,8 +15,6 @@ class Arrow(
     override var ownerId by itemEntity::ownerId
     override var amount by itemEntity::amount
     override var equippedAt by itemEntity::equippedAt
-    override var enchantLevel by itemEntity::enchantLevel
-    override var augmentationId by itemEntity::augmentationId
 
     override val name = itemTemplate.name
     override val type = itemTemplate.type

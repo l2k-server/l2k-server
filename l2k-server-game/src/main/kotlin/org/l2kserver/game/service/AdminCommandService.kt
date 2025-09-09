@@ -116,7 +116,7 @@ class AdminCommandService(
         newSuspendedTransaction {
             item.enchantLevel = enchantLevel
             send(SystemMessageResponse.YourItemHasBeenSuccessfullyEnchanted(item))
-            send(UpdateItemsResponse.operationModify(item))
+            send(UpdateItemsResponse().wasModified(item))
             broadcastActorInfo(characterToEnchant)
         }
     }
