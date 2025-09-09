@@ -1,7 +1,8 @@
 package org.l2kserver.game.model.item
 
 import org.l2kserver.game.domain.ItemEntity
-import org.l2kserver.game.model.item.instance.CrystallizableItemInstance
+import org.l2kserver.game.model.item.instance.AugmentableItemInstance
+import org.l2kserver.game.model.item.instance.EnchantableItemInstance
 import org.l2kserver.game.model.item.instance.EquippableItemInstance
 import org.l2kserver.game.model.item.template.Grade
 import org.l2kserver.game.model.item.template.ItemGroup
@@ -34,7 +35,7 @@ private const val WEAPON_S_GRADE_PER_ENCHANT_M_ATK_BONUS = 4
 class Weapon(
     private val itemEntity: ItemEntity,
     private val itemTemplate: WeaponTemplate
-) : EquippableItemInstance, CrystallizableItemInstance {
+) : EquippableItemInstance, EnchantableItemInstance, AugmentableItemInstance {
     override val id: Int = itemEntity.id.value
 
     override val templateId by itemEntity::templateId
@@ -57,6 +58,11 @@ class Weapon(
 
     val soulshotUsed = itemTemplate.soulshotUsed
     val spiritshotUsed = itemTemplate.spiritshotUsed
+
+    var soulshotCharged = false
+    var spiritshotCharged = false
+    var blessedSpiritshotCharged = false
+
     val manaCost = itemTemplate.manaCost
     val consumes = itemTemplate.consumes
 

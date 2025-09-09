@@ -15,6 +15,8 @@ import org.l2kserver.game.data.item.jewelry.EARRING_OF_WISDOM
 import org.l2kserver.game.data.item.jewelry.NECKLACE_OF_COURAGE
 import org.l2kserver.game.data.item.jewelry.RING_OF_ANGUISH
 import org.l2kserver.game.data.item.jewelry.RING_OF_KNOWLEDGE
+import org.l2kserver.game.data.item.soulshot.SOULSHOT_NO_GRADE
+import org.l2kserver.game.data.item.soulshot.SOULSHOT_S_GRADE
 import org.l2kserver.game.data.item.weapons.BOW
 import org.l2kserver.game.data.item.weapons.DAGGER
 import org.l2kserver.game.data.item.weapons.DEMON_SPLINTER
@@ -106,6 +108,10 @@ class TestDataLoader(
             // Arrows
             WOODEN_ARROW,
             BONE_ARROW,
+
+            //Soulshots
+            SOULSHOT_NO_GRADE,
+            SOULSHOT_S_GRADE
         )
 
         SkillTemplate.Registry.register(
@@ -225,6 +231,18 @@ class TestDataLoader(
             this.templateId = BONE_ARROW.id
             this.ownerId = character.id
             this.amount = 21
+        }
+
+        ItemEntity.new {
+            this.templateId = SOULSHOT_NO_GRADE.id
+            this.ownerId = character.id
+            this.amount = 100
+        }
+
+        ItemEntity.new {
+            this.templateId = SOULSHOT_S_GRADE.id
+            this.ownerId = character.id
+            this.amount = 100
         }
     }
 

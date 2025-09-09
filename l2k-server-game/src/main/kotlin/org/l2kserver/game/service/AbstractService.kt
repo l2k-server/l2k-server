@@ -17,7 +17,6 @@ const val VISION_RANGE = 2000
 
 abstract class AbstractService {
     protected abstract val gameObjectRepository: GameObjectRepository
-
     protected abstract val log: Logger
 
     /**

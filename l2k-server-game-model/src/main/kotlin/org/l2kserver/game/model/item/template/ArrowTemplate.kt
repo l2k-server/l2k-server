@@ -13,7 +13,6 @@ data class ArrowTemplate(
     override val isStackable: Boolean
 ): ItemTemplate {
     override val type = ArrowItemType
-    override val category = ItemCategory.OTHER
 }
 
 object ArrowItemType : ItemType {

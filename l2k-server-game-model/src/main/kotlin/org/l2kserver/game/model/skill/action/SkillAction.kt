@@ -14,12 +14,18 @@ value class SkillEffects private constructor(
     fun hit(
         damage: Int,
         target: ActorInstance,
+        usedSs: Boolean = false,
         isCritical: Boolean = false,
         isBlocked: Boolean = false,
         overhitPossible: Boolean = false
     ) {
         effects.add(DamageEffect(
-            target.id, damage, isCritical = isCritical, isBlocked = isBlocked, overhitPossible = overhitPossible
+            target.id,
+            damage,
+            usedSoulshot = usedSs,
+            isCritical = isCritical,
+            isBlocked = isBlocked,
+            overhitPossible = overhitPossible
         ))
     }
 
@@ -30,10 +36,10 @@ value class SkillEffects private constructor(
 
 }
 
-sealed interface SkillAction
+interface SkillAction
 
-interface SingleTargetSkillAction: SkillAction {
-    fun applyTo(target: ActorInstance, caster: ActorInstance, effectLevel: Int): SkillEffects
+interface SingleTargetPhysicalSkillAction: SkillAction {
+    fun applyTo(target: ActorInstance, caster: ActorInstance, effectLevel: Int, usedSoulshot: Boolean): SkillEffects
 }
 
 inline fun effects(builderFunction: SkillEffects.() -> Unit): SkillEffects {

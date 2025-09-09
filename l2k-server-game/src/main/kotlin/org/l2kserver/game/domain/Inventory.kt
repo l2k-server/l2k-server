@@ -97,6 +97,9 @@ class Inventory(val owner: PlayerCharacter): Collection<ItemInstance> {
         "$owner has no item with id=$itemId in inventory"
     }
 
+    /** Returns item in this inventory with [itemId], or null if no item was found */
+    fun findByIdOrNull(itemId: Int) = items[itemId]
+
     /** Returns item with [templateId] in this inventory or null, if there is no such item */
     fun findAllByTemplateId(templateId: Int) = items.values.filter { it.templateId == templateId }
 

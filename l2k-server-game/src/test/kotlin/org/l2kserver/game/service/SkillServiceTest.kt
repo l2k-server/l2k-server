@@ -94,7 +94,7 @@ class SkillServiceTest(
     }
 
     @Test
-    fun shouldSuccessfullyUseSingleTargetDamageSkill(): Unit = runBlocking {
+    fun shouldSuccessfullyUseSingleTargetPhysicalDamageSkill(): Unit = runBlocking {
         // Create our character
         val context = createTestSessionContext()
         val character = createTestCharacter()

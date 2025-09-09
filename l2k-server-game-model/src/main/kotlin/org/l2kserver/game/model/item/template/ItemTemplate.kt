@@ -21,8 +21,8 @@ import org.l2kserver.game.model.stats.Stats
 sealed interface ItemTemplate: GameData {
     override val id: Int
     val name: String
-    val type: ItemType
-    val category: ItemCategory
+    val type: ItemType get() = NonEquippableItemType
+    val category: ItemCategory get() = ItemCategory.OTHER
     val grade: Grade
     val weight: Int
     val price: Int
@@ -41,8 +41,10 @@ sealed interface ItemTemplate: GameData {
  * @property stats Stats that will be given to the character when equipping the item
  */
 sealed interface EquippableItemTemplate: ItemTemplate {
-    val stats: Stats
+    override val type: ItemType
     override val isStackable: Boolean get() = false
+
+    val stats: Stats
 }
 
 /**
@@ -61,6 +63,10 @@ sealed interface CrystallizableItemTemplate: ItemTemplate {
  */
 interface ItemType {
     val availableSlots: Set<Slot>
+}
+
+object NonEquippableItemType : ItemType {
+    override val availableSlots: Set<Slot> = emptySet()
 }
 
 enum class ItemGroup(val id: Int) {

@@ -18,9 +18,12 @@ private const val BLOW_CHANCE_FROM_THE_FRONT = 0.5
  * @property power Array of effect power per effect level (0 based)
  * @property lethalStrikePossible Can this blow produce Lethal Strike
  */
-class BlowSkillAction(val power: List<Int>, val lethalStrikePossible: Boolean = false): SingleTargetSkillAction {
+class BlowSkillAction(
+    val power: List<Int>,
+    val lethalStrikePossible: Boolean = false
+): SingleTargetPhysicalSkillAction {
 
-    override fun applyTo(target: ActorInstance, caster: ActorInstance, effectLevel: Int) = effects {
+    override fun applyTo(target: ActorInstance, caster: ActorInstance, effectLevel: Int, usedSoulshot: Boolean) = effects {
         // Calculate blow chance
         val successChance = when {
             caster.isBehind(target) -> BLOW_CHANCE_FROM_BEHIND
@@ -32,8 +35,9 @@ class BlowSkillAction(val power: List<Int>, val lethalStrikePossible: Boolean = 
         if (successChance * dexSuccessRateModifier < Random.nextDouble()) return@effects
 
         // Calculate damage
-        //TODO https://github.com/orgs/l2k-server/projects/1?pane=issue&itemId=120797806&issue=l2k-server%7Cl2k-server%7C19
-        var damage = caster.stats.pAtk /* if SS used x2 */ + power[effectLevel - 1].toDouble() /* if SS used x1,5*/
+        var damage = (caster.stats.pAtk * if (usedSoulshot) 2 else 1).toDouble()
+        damage += power[effectLevel - 1] * if (usedSoulshot) 1.5 else 1.0
+
         damage *= caster.weaponType.calculateRandomDamageModifier()
         damage *= calculatePositionCritChanceMultiplier(caster, target)
         //TODO * Critical chance percent bonus * 0.5
@@ -48,7 +52,7 @@ class BlowSkillAction(val power: List<Int>, val lethalStrikePossible: Boolean = 
 
         damage = (PHYSICAL_ATTACK_BASE * damage) / defence
 
-        hit(damage.roundToInt(), target, isBlocked = isBlocked)
+        hit(damage.roundToInt(), target, usedSoulshot, isBlocked = isBlocked)
     }
 
 }

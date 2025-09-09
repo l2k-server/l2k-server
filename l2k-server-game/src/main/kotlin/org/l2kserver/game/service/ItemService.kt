@@ -5,6 +5,7 @@ import org.l2kserver.game.model.extensions.forEachInstanceMatching
 import org.l2kserver.game.extensions.logger
 import org.l2kserver.game.extensions.model.item.toItemInstance
 import org.l2kserver.game.extensions.model.item.toScatteredItem
+import org.l2kserver.game.handler.dto.request.AutoUseSsRequest
 import org.l2kserver.game.handler.dto.request.DeleteItemRequest
 import org.l2kserver.game.handler.dto.request.DropItemRequest
 import org.l2kserver.game.handler.dto.request.TakeOffItemRequest
@@ -14,15 +15,17 @@ import org.l2kserver.game.handler.dto.response.DeleteObjectResponse
 import org.l2kserver.game.handler.dto.response.FullCharacterResponse
 import org.l2kserver.game.handler.dto.response.DroppedItemResponse
 import org.l2kserver.game.handler.dto.response.PickUpItemResponse
+import org.l2kserver.game.handler.dto.response.SsUsedResponse
 import org.l2kserver.game.handler.dto.response.SystemMessageResponse
-import org.l2kserver.game.handler.dto.response.UpdateItemOperation
-import org.l2kserver.game.handler.dto.response.UpdateItemOperationType
 import org.l2kserver.game.handler.dto.response.UpdateItemsResponse
 import org.l2kserver.game.handler.dto.response.UpdateStatusResponse
 import org.l2kserver.game.model.actor.position.Position
 import org.l2kserver.game.model.actor.ActorInstance
 import org.l2kserver.game.model.actor.PlayerCharacter
 import org.l2kserver.game.model.actor.ScatteredItem
+import org.l2kserver.game.model.item.Arrow
+import org.l2kserver.game.model.item.Soulshot
+import org.l2kserver.game.model.item.Spiritshot
 import org.l2kserver.game.model.item.instance.EquippableItemInstance
 import org.l2kserver.game.model.item.instance.ItemInstance
 import org.l2kserver.game.model.item.template.ItemTemplate
@@ -57,12 +60,19 @@ class ItemService(
 
     override val log = logger()
 
-    /**
-     * Handles request to use item
-     */
+    /** Handles request to toggle ss auto usage */
+    suspend fun toggleAutoUseSs(request: AutoUseSsRequest) {
+        val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
+        TODO("Toggle auto-use ss for $character by request $request")
+    }
+
+    /** Handles request to use item */
     suspend fun useItem(request: UseItemRequest) {
         val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
-        val item = character.inventory.findById(request.itemId)
+        val item = character.inventory.findByIdOrNull(request.itemId) ?: run {
+            log.warn("No item with id='{}' was found in {}'s inventory", character, request.itemId)
+            return
+        }
 
         log.info("Character '{}' tries to use item '{}'", character.name, item)
 
@@ -78,6 +88,8 @@ class ItemService(
                 return
             }
             item is EquippableItemInstance -> equipOrDisarmItem(character, item)
+            item is Soulshot -> useSoulshot(character, item)
+            item is Spiritshot-> useSpiritshot(character, item)
             item is UsableItemInstance -> {
                 //TODO https://github.com/l2kserver/l2kserver-game/issues/29
                 send(SystemMessageResponse("Using items is not implemented yet"), ActionFailedResponse)
@@ -86,9 +98,7 @@ class ItemService(
         }
     }
 
-    /**
-     * Handles request to take off item
-     */
+    /** Handles request to take off item */
     suspend fun takeOffItem(request: TakeOffItemRequest) {
         val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
         val item = character.inventory[request.slot] ?: run {
@@ -101,9 +111,7 @@ class ItemService(
         log.info("Player '{}' has successfully taken off item {}", character.name, item)
     }
 
-    /**
-     * Handles request to delete item
-     */
+    /** Handles request to delete item */
     suspend fun deleteItem(request: DeleteItemRequest) {
         val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
         val item = character.inventory.findById(request.itemId)
@@ -192,9 +200,7 @@ class ItemService(
         }
     }
 
-    /**
-     * Moves [character] closer to [scatteredItem] and picks it up
-     */
+    /** Moves [character] closer to [scatteredItem] and picks it up */
     suspend fun launchPickUp(
         character: PlayerCharacter, scatteredItem: ScatteredItem
     ) = asyncTaskService.launchAction(character.id) {
@@ -228,12 +234,12 @@ class ItemService(
                     character,
                     equippedAt = if (consumableId == deletedScatteredItem.templateId) Slot.LEFT_HAND else null
                 )
-                sendTo(character.id, UpdateItemsResponse.operationAdd(newItem))
+                sendTo(character.id, UpdateItemsResponse().wasAdded(newItem))
                 newItem
             }
             else {
                 existingItem.amount += deletedScatteredItem.amount
-                sendTo(character.id, UpdateItemsResponse.operationModify(existingItem))
+                sendTo(character.id, UpdateItemsResponse().wasModified(existingItem))
 
                 existingItem
             }
@@ -262,25 +268,25 @@ class ItemService(
 
         if (amount < item.amount) {
             item.amount -= amount
-            sendTo(owner.id, UpdateItemsResponse.operationModify(item))
+            sendTo(owner.id, UpdateItemsResponse().wasModified(item))
         } else {
-            val responseBuilder = UpdateItemsResponse.Builder()
-            if (item.isEquipped && item is EquippableItemInstance) {
+            val response = UpdateItemsResponse()
+            if (item is EquippableItemInstance && item.isEquipped) {
                 owner.inventory.disarmItem(item)
                 owner.inventory
-                responseBuilder.operationModify(item)
+                response.wasModified(item)
                 val consumableId = (item as? Weapon)?.consumes?.id
                 if (consumableId != null) {
-                    val arrow = owner.inventory.findAllByTemplateId(consumableId).firstOrNull()
+                    val arrow = owner.inventory.findAllByTemplateId(consumableId).firstOrNull() as? Arrow
                     arrow?.let {
                         it.equippedAt = null
-                        responseBuilder.operationModify(it)
+                        response.wasModified(it)
                     }
                 }
                 broadcastActorInfo(owner)
             }
-            responseBuilder.operationDelete(item)
-            sendTo(owner.id, responseBuilder.build())
+            response.wasDeleted(item)
+            sendTo(owner.id, response)
             owner.inventory.delete(item)
         }
 
@@ -288,16 +294,74 @@ class ItemService(
     }
 
     /**
+     * Charges [soulshot] to equipped weapon  of [character]
+     *
+     * @return `true` if soulshot was successfully charged, `false` if not
+     */
+    private suspend fun useSoulshot(character: PlayerCharacter, soulshot: Soulshot): Boolean {
+        val weapon = character.inventory.weapon ?: run {
+            send(SystemMessageResponse.CannotUseSoulshot)
+            return false
+        }
+
+        if (weapon.soulshotCharged) return false
+
+        if (weapon.grade != soulshot.grade) {
+            send(SystemMessageResponse.SoulshotGradeMismatch)
+            return false
+        }
+
+        if (weapon.soulshotUsed > soulshot.amount) {
+            send(SystemMessageResponse.NotEnoughSoulshots)
+            return false
+        }
+
+        character.inventory.reduceAmount(soulshot.id, weapon.soulshotUsed)
+        weapon.soulshotCharged = true
+        send(UpdateItemsResponse().wasModified(soulshot), SystemMessageResponse.SoulshotEnabled)
+        broadcastPacket(SsUsedResponse(character, soulshot), character.position)
+
+        return true
+    }
+
+    private suspend fun useSpiritshot(character: PlayerCharacter, spiritshot: Spiritshot) {
+        val weapon = character.inventory.weapon ?: run {
+            send(SystemMessageResponse.CannotUseSpiritshot)
+            return
+        }
+
+        if (weapon.spiritshotCharged || weapon.blessedSpiritshotCharged) return
+
+        if (weapon.grade != spiritshot.grade) {
+            send(SystemMessageResponse.SpiritshotGradeMismatch)
+            return
+        }
+
+        if (weapon.soulshotUsed > spiritshot.amount) {
+            send(SystemMessageResponse.NotEnoughSpiritshots)
+            return
+        }
+
+        character.inventory.reduceAmount(spiritshot.id, weapon.spiritshotUsed)
+
+        if (spiritshot.isBlessed) weapon.blessedSpiritshotCharged = true
+        else weapon.spiritshotCharged = true
+
+        send(UpdateItemsResponse().wasModified(spiritshot), SystemMessageResponse.SpiritshotEnabled)
+        broadcastPacket(SsUsedResponse(character, spiritshot), character.position)
+    }
+
+    /**
      * Equip (or take off) item
      *
-     * @param playerCharacter Character, that tries to equip/take off item
+     * @param character Character, that tries to equip/take off item
      * @param item Item, that will be equipped/taken off
      */
     @Suppress("NestedBlockDepth") //TODO Refactor?
-    private suspend fun equipOrDisarmItem(playerCharacter: PlayerCharacter, item: EquippableItemInstance) {
+    private suspend fun equipOrDisarmItem(character: PlayerCharacter, item: EquippableItemInstance) {
         val updatedItems = ArrayList<ItemInstance>(3)
         newSuspendedTransaction {
-            val paperDoll = playerCharacter.inventory
+            val paperDoll = character.inventory
 
             if (item.isEquipped) updatedItems.add(paperDoll.disarmItem(item))
             else when {
@@ -377,7 +441,7 @@ class ItemService(
                     }
                 }
             }
-            updatedItems += equipAndDisarmArrows(updatedItems, playerCharacter)
+            updatedItems += equipAndDisarmArrows(updatedItems, character)
         }
 
         newSuspendedTransaction {
@@ -386,13 +450,16 @@ class ItemService(
                     //CRUTCH: Server must send SystemMessage -> CharacterResponse -> UpdatedItemResponse -> CharacterResponse
                     //otherwise jewellery sucks
                     send(SystemMessageResponse.EquipItem(it))
-                    send(FullCharacterResponse(playerCharacter))
+                    send(FullCharacterResponse(character))
                 } else send(SystemMessageResponse.DisarmItem(it))
             }
 
-            send(UpdateItemsResponse(updatedItems.map { UpdateItemOperation(it, UpdateItemOperationType.MODIFY) }))
-            broadcastActorInfo(playerCharacter)
-            log.info("Character '{}' has equipped item '{}'", playerCharacter.name, item)
+            val response = UpdateItemsResponse()
+            updatedItems.forEach { response.wasModified(it) }
+            send(response)
+
+            broadcastActorInfo(character)
+            log.info("Character '{}' has equipped item '{}'", character.name, item)
             //TODO Recalculate skillList
         }
     }
@@ -403,16 +470,17 @@ class ItemService(
         updatedItems.forEachInstanceMatching<Weapon>({ it.type == WeaponType.BOW }) { bow ->
             if (bow.isEquipped) bow.consumes?.let {
                 character.inventory.findAllByTemplateId(it.id).firstOrNull()
-                    ?.let { consumable ->
+                    ?.let { consumable -> if (consumable is Arrow) {
                         consumable.equippedAt = Slot.LEFT_HAND
                         add(consumable)
-                    }
+                    }}
             }
             else bow.consumes?.let {
-                character.inventory.findAllByTemplateId(it.id).firstOrNull()?.let { consumable ->
-                    consumable.equippedAt = null
-                    add(consumable)
-                }
+                character.inventory.findAllByTemplateId(it.id).firstOrNull()
+                    ?.let { consumable -> if (consumable is Arrow) {
+                        consumable.equippedAt = null
+                        add(consumable)
+                    }}
             }
         }
     }

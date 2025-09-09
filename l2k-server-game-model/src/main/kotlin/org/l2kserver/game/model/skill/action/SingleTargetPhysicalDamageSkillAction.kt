@@ -19,9 +19,9 @@ class SingleTargetPhysicalDamageSkillAction(
     val power: List<Int>,
     val ignoresShield: Boolean = false,
     val overhitPossible: Boolean = false
-): SingleTargetSkillAction {
+): SingleTargetPhysicalSkillAction {
 
-    override fun applyTo(target: ActorInstance, caster: ActorInstance, effectLevel: Int) = effects {
+    override fun applyTo(target: ActorInstance, caster: ActorInstance, effectLevel: Int, usedSoulshot: Boolean) = effects {
         if (!ignoresShield && calculateIsAvoided(caster, target)) {
             miss(target)
             return@effects
@@ -34,8 +34,7 @@ class SingleTargetPhysicalDamageSkillAction(
         var damage = ((power.getOrNull(effectLevel - 1) ?: 0) + caster.stats.pAtk).toDouble()
         damage *= (caster.weaponType.calculateRandomDamageModifier())
 
-        //TODO if used soulshot damage *= 2
-        // https://github.com/orgs/l2k-server/projects/1?pane=issue&itemId=120797806&issue=l2k-server%7Cl2k-server%7C19
+        if (usedSoulshot) damage *= 2
         if (isCritical) damage = damage * 2 + caster.stats.critDamage
 
         var defence = target.stats.pDef

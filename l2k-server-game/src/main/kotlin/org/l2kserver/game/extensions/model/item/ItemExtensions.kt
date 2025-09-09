@@ -6,16 +6,18 @@ import org.l2kserver.game.model.item.Armor
 import org.l2kserver.game.model.item.Arrow
 import org.l2kserver.game.model.item.instance.ItemInstance
 import org.l2kserver.game.model.item.Jewelry
-import org.l2kserver.game.model.item.SimpleItemInstance
+import org.l2kserver.game.model.item.SimpleItem
 import org.l2kserver.game.model.item.Weapon
 import org.l2kserver.game.domain.ItemEntity
 import org.l2kserver.game.model.actor.PlayerCharacter
+import org.l2kserver.game.model.item.Soulshot
 import org.l2kserver.game.model.item.template.ArmorTemplate
 import org.l2kserver.game.model.item.template.ArrowTemplate
 import org.l2kserver.game.model.item.template.ItemTemplate
 import org.l2kserver.game.model.item.template.JewelryTemplate
 import org.l2kserver.game.model.item.template.SimpleItemTemplate
 import org.l2kserver.game.model.item.template.Slot
+import org.l2kserver.game.model.item.template.SoulshotTemplate
 import org.l2kserver.game.model.item.template.WeaponTemplate
 import org.l2kserver.game.utils.IdUtils
 import kotlin.Int
@@ -25,7 +27,8 @@ fun ItemEntity.toItemInstance(): ItemInstance? = when (val itemTemplate = ItemTe
     is ArmorTemplate -> Armor(this, itemTemplate)
     is ArrowTemplate -> Arrow(this, itemTemplate)
     is JewelryTemplate -> Jewelry(this, itemTemplate)
-    is SimpleItemTemplate -> SimpleItemInstance(this, itemTemplate)
+    is SimpleItemTemplate -> SimpleItem(this, itemTemplate)
+    is SoulshotTemplate -> Soulshot(this, itemTemplate)
     else -> null
 }
 
