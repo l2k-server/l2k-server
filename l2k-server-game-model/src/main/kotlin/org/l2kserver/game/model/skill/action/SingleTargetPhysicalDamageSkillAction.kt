@@ -50,7 +50,8 @@ class SingleTargetPhysicalDamageSkillAction(
             target = target,
             usedSs = usedSoulshot,
             isCritical = isCritical,
-            isBlocked = isBlocked
+            isBlocked = isBlocked,
+            overhitPossible = overhitPossible
         )
     }
 

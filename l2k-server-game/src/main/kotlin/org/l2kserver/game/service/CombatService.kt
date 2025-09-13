@@ -123,9 +123,7 @@ class CombatService(
         }
     }
 
-    suspend fun performDamage(
-        damageEffect: DamageEffect, attacker: MutableActorInstance, overhitPossible: Boolean = false
-    ) {
+    suspend fun performDamage(damageEffect: DamageEffect, attacker: MutableActorInstance) {
         val attacked = gameObjectRepository.findActorById(damageEffect.targetId)
         if (attacked.isDead()) return //Needed for double weapon, if target was killed by first hit
 
@@ -148,7 +146,7 @@ class CombatService(
 
         // Calculate overhit damage.
         // "mob had 10 HP left, over-hit skill did 50 damage total, over-hit damage is 40" (c) l2jserver
-        val overhitDamage = if (overhitPossible && attacked is Npc)
+        val overhitDamage = if (damageEffect.overhitPossible && attacked is Npc)
             maxOf(damageEffect.damage - attacked.currentHp, 0)
         else 0
 
@@ -194,8 +192,9 @@ class CombatService(
         val attackDuration = calculateAttackTime(attacker.stats.atkSpd)
         nextAttackAvailableTimeMap[attacker.id] = currentTimeMillis() + attackDuration
 
-        val soulshotUsed = (attacker as? PlayerCharacter)?.dischargeSoulshot() ?: false
+        val soulshotUsed = (attacker as? PlayerCharacter)?.inventory?.weapon?.soulshotCharged ?: false
         val hits = List(hitAmount) { attacker.hit(attacked, soulshotUsed, hitAmount) }
+        if (soulshotUsed && hits.any { !it.isAvoided }) attacker.inventory.weapon?.soulshotCharged = false
 
         val delayBeforeHit = attackDuration / (1 + hitAmount)
         broadcastPacket(AttackResponse(attacker, hits), attacker.position)
@@ -257,8 +256,10 @@ class CombatService(
         nextAttackAvailableTimeMap[attacker.id] = currentTimeMillis() + attackDuration + reuseDelay
 
         send(SystemMessageResponse.YouCarefullyNockAnArrow)
-        val usedSoulshot = (attacker as? PlayerCharacter)?.dischargeSoulshot() ?: false
-        val hit = attacker.hit(attacked, usedSoulshot)
+
+        val soulshotUsed = (attacker as? PlayerCharacter)?.inventory?.weapon?.soulshotCharged ?: false
+        val hit = attacker.hit(attacked, soulshotUsed)
+        if (soulshotUsed && !hit.isAvoided) attacker.inventory.weapon?.soulshotCharged = false
 
         send(GaugeResponse(GaugeColor.RED, (attackDuration + reuseDelay).toInt()))
         broadcastPacket(AttackResponse(attacker, listOf(hit)), attacker.position)
@@ -317,18 +318,5 @@ class CombatService(
             }
         }
     }
-
-    /**
-     * If soulshot charged - discharges soulshot from `this`' weapon,
-     * recharges it if soulshotAutoUsage is enabled and returns true.
-     * Else - returns false
-     */
-    suspend fun PlayerCharacter.dischargeSoulshot() = this.inventory.weapon?.let { weapon ->
-        if (weapon.soulshotCharged) {
-            weapon.soulshotCharged = false
-            true
-        }
-        else false
-    } ?: false
 
 }

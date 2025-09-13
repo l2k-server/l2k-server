@@ -24,7 +24,7 @@ import org.l2kserver.game.model.actor.MutableActorInstance
 import org.l2kserver.game.model.actor.PlayerCharacter
 import org.l2kserver.game.model.item.ConsumableItem
 import org.l2kserver.game.model.skill.Skill
-import org.l2kserver.game.model.skill.action.SingleTargetPhysicalDamageSkillAction
+import org.l2kserver.game.model.skill.action.SingleTargetPhysicalSkillAction
 import org.l2kserver.game.model.skill.action.effect.DamageEffect
 import org.l2kserver.game.network.session.send
 import org.l2kserver.game.network.session.sessionContext
@@ -41,6 +41,7 @@ private const val CAST_TIME_COEFFICIENT = 333
 class SkillService(
     private val combatService: CombatService,
     private val moveService: MoveService,
+    private val itemService: ItemService,
     private val asyncTaskService: AsyncTaskService,
 
     override val gameObjectRepository: GameObjectRepository
@@ -274,26 +275,32 @@ class SkillService(
     /** Applies cast by [caster] skill effects on [target] */
     private suspend fun Skill.applyEffects(
         caster: MutableActorInstance, target: MutableActorInstance
-    ) {
-        val usedSoulshot = false //TODO use method from combat service
-        var overhitPossible = false
+    ) = newSuspendedTransaction {
         val effects = try {
-            when (val action = this.skillAction) {
-                is SingleTargetPhysicalDamageSkillAction -> {
-                    overhitPossible = action.overhitPossible
-                    action.applyTo(target, caster, this.skillLevel, usedSoulshot)
+            when (val action = this@applyEffects.skillAction) {
+                is SingleTargetPhysicalSkillAction -> {
+                    val soulshotUsed = (caster as? PlayerCharacter)?.inventory?.weapon?.soulshotCharged ?: false
+                    action.applyTo(target, caster, this@applyEffects.skillLevel, soulshotUsed)
+                        .also {
+                            if (soulshotUsed) caster.inventory.weapon?.soulshotCharged = false
+
+                            //Enable SS if auto-use soulshot enabled
+                            (caster as? PlayerCharacter)?.autoUsesSoulshot?.let {
+                                itemService.useSoulshot(caster, it)
+                            }
+                        }
                 }
                 else -> emptyList()
             }
         }
         catch (e: Exception) {
-            log.error("An error occurred while trying to apply effect {}", this.skillAction, e)
+            log.error("An error occurred while trying to apply effect {}", this@applyEffects.skillAction, e)
             emptyList()
         }
 
         effects.forEach { effect ->
             when (effect) {
-                is DamageEffect -> combatService.performDamage(effect, caster, overhitPossible)
+                is DamageEffect -> combatService.performDamage(effect, caster)
             }
         }
     }
