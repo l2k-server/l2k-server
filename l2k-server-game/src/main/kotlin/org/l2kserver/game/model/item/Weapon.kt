@@ -59,6 +59,7 @@ class Weapon(
     val soulshotUsed = itemTemplate.soulshotUsed
     val spiritshotUsed = itemTemplate.spiritshotUsed
 
+    @Volatile
     var soulshotCharged = false
     var spiritshotCharged = false
     var blessedSpiritshotCharged = false

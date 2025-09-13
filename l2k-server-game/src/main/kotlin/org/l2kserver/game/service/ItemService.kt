@@ -11,6 +11,7 @@ import org.l2kserver.game.handler.dto.request.DropItemRequest
 import org.l2kserver.game.handler.dto.request.TakeOffItemRequest
 import org.l2kserver.game.handler.dto.request.UseItemRequest
 import org.l2kserver.game.handler.dto.response.ActionFailedResponse
+import org.l2kserver.game.handler.dto.response.AutoUseSsResponse
 import org.l2kserver.game.handler.dto.response.DeleteObjectResponse
 import org.l2kserver.game.handler.dto.response.FullCharacterResponse
 import org.l2kserver.game.handler.dto.response.DroppedItemResponse
@@ -26,6 +27,7 @@ import org.l2kserver.game.model.actor.ScatteredItem
 import org.l2kserver.game.model.item.Arrow
 import org.l2kserver.game.model.item.Soulshot
 import org.l2kserver.game.model.item.Spiritshot
+import org.l2kserver.game.model.item.Ss
 import org.l2kserver.game.model.item.instance.EquippableItemInstance
 import org.l2kserver.game.model.item.instance.ItemInstance
 import org.l2kserver.game.model.item.template.ItemTemplate
@@ -63,7 +65,17 @@ class ItemService(
     /** Handles request to toggle ss auto usage */
     suspend fun toggleAutoUseSs(request: AutoUseSsRequest) {
         val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
-        TODO("Toggle auto-use ss for $character by request $request")
+
+        val ss = character.inventory.findAllByTemplateId(request.ssTemplateId).firstOrNull() as? Ss ?: run {
+            log.warn("Character does not have item with template id='{}', or it is not a soul- or spiritshot",
+                request.ssTemplateId)
+            return
+        }
+
+        when(ss) {
+            is Soulshot -> toggleSoulshotAutoUsage(character, ss)
+            is Spiritshot -> toggleSpiritshotAutoUsage(character, ss)
+        }
     }
 
     /** Handles request to use item */
@@ -293,62 +305,75 @@ class ItemService(
         sendTo(owner.id, UpdateStatusResponse.weightOf(owner))
     }
 
+    private suspend fun toggleSoulshotAutoUsage(character: PlayerCharacter, soulshot: Soulshot) {
+        character.autoUsesSoulshot?.let {
+            send(SystemMessageResponse.AutomaticUseDeactivated(it))
+            send(AutoUseSsResponse(it.templateId, enabled = false))
+
+            character.autoUsesSoulshot = null
+            return
+        }
+
+        val weapon = character.inventory.weapon ?: run {
+            send(SystemMessageResponse.CannotUseSoulshot)
+            return
+        }
+
+        if (weapon.grade != soulshot.grade) {
+            send(SystemMessageResponse.SoulshotGradeMismatch)
+            return
+        }
+
+        useSoulshot(character, soulshot)
+        if (soulshot.amount >= (character.inventory.weapon?.soulshotUsed ?: Int.MAX_VALUE)) {
+            character.autoUsesSoulshot = soulshot
+            send(SystemMessageResponse.AutomaticUseActivated(soulshot))
+            send(AutoUseSsResponse(soulshot.templateId, enabled = true))
+        }
+    }
+
+    private suspend fun toggleSpiritshotAutoUsage(character: PlayerCharacter, spiritshot: Spiritshot) {
+        TODO("Using $spiritshot by $character https://github.com/l2k-server/l2k-server/issues/62")
+    }
+
     /**
      * Charges [soulshot] to equipped weapon  of [character]
      *
      * @return `true` if soulshot was successfully charged, `false` if not
      */
-    private suspend fun useSoulshot(character: PlayerCharacter, soulshot: Soulshot): Boolean {
-        val weapon = character.inventory.weapon ?: run {
-            send(SystemMessageResponse.CannotUseSoulshot)
-            return false
+    suspend fun useSoulshot(character: PlayerCharacter, soulshot: Soulshot) {
+        val weapon = character.inventory.weapon
+
+        when {
+            weapon == null -> send(SystemMessageResponse.CannotUseSoulshot)
+            weapon.soulshotCharged -> {}
+            weapon.soulshotUsed > soulshot.amount -> {
+                send(SystemMessageResponse.NotEnoughSoulshots)
+                character.autoUsesSoulshot = null
+            }
+            weapon.grade != soulshot.grade -> send(SystemMessageResponse.SoulshotGradeMismatch)
+            else -> {
+                val reducedSoulshot = character.inventory.reduceAmount(soulshot.id, weapon.soulshotUsed)
+
+                weapon.soulshotCharged = true
+                send(SystemMessageResponse.SoulshotEnabled)
+
+                if (reducedSoulshot == null) {
+                    character.autoUsesSoulshot?.let {
+                        send(SystemMessageResponse.AutomaticUseDeactivated(it))
+                        character.autoUsesSoulshot = null
+                    }
+                    send(UpdateItemsResponse().wasDeleted(soulshot))
+                }
+                else send(UpdateItemsResponse().wasModified(soulshot))
+
+                broadcastPacket(SsUsedResponse(character, soulshot), character.position)
+            }
         }
-
-        if (weapon.soulshotCharged) return false
-
-        if (weapon.grade != soulshot.grade) {
-            send(SystemMessageResponse.SoulshotGradeMismatch)
-            return false
-        }
-
-        if (weapon.soulshotUsed > soulshot.amount) {
-            send(SystemMessageResponse.NotEnoughSoulshots)
-            return false
-        }
-
-        character.inventory.reduceAmount(soulshot.id, weapon.soulshotUsed)
-        weapon.soulshotCharged = true
-        send(UpdateItemsResponse().wasModified(soulshot), SystemMessageResponse.SoulshotEnabled)
-        broadcastPacket(SsUsedResponse(character, soulshot), character.position)
-
-        return true
     }
 
-    private suspend fun useSpiritshot(character: PlayerCharacter, spiritshot: Spiritshot) {
-        val weapon = character.inventory.weapon ?: run {
-            send(SystemMessageResponse.CannotUseSpiritshot)
-            return
-        }
-
-        if (weapon.spiritshotCharged || weapon.blessedSpiritshotCharged) return
-
-        if (weapon.grade != spiritshot.grade) {
-            send(SystemMessageResponse.SpiritshotGradeMismatch)
-            return
-        }
-
-        if (weapon.soulshotUsed > spiritshot.amount) {
-            send(SystemMessageResponse.NotEnoughSpiritshots)
-            return
-        }
-
-        character.inventory.reduceAmount(spiritshot.id, weapon.spiritshotUsed)
-
-        if (spiritshot.isBlessed) weapon.blessedSpiritshotCharged = true
-        else weapon.spiritshotCharged = true
-
-        send(UpdateItemsResponse().wasModified(spiritshot), SystemMessageResponse.SpiritshotEnabled)
-        broadcastPacket(SsUsedResponse(character, spiritshot), character.position)
+    suspend fun useSpiritshot(character: PlayerCharacter, spiritshot: Spiritshot): Boolean {
+        TODO("Using $spiritshot by $character https://github.com/l2k-server/l2k-server/issues/62")
     }
 
     /**

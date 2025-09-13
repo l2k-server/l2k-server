@@ -22,7 +22,6 @@ import org.l2kserver.game.handler.dto.response.UpdateStatusResponse
 import org.l2kserver.game.model.actor.ActorInstance
 import org.l2kserver.game.model.actor.MutableActorInstance
 import org.l2kserver.game.model.actor.PlayerCharacter
-import org.l2kserver.game.model.actor.useSoulshot
 import org.l2kserver.game.model.item.ConsumableItem
 import org.l2kserver.game.model.skill.Skill
 import org.l2kserver.game.model.skill.action.SingleTargetPhysicalDamageSkillAction
@@ -276,11 +275,14 @@ class SkillService(
     private suspend fun Skill.applyEffects(
         caster: MutableActorInstance, target: MutableActorInstance
     ) {
-        val events = try {
+        val usedSoulshot = false //TODO use method from combat service
+        var overhitPossible = false
+        val effects = try {
             when (val action = this.skillAction) {
-                is SingleTargetPhysicalDamageSkillAction -> action.applyTo(
-                    target, caster, this.skillLevel, caster.useSoulshot()
-                )
+                is SingleTargetPhysicalDamageSkillAction -> {
+                    overhitPossible = action.overhitPossible
+                    action.applyTo(target, caster, this.skillLevel, usedSoulshot)
+                }
                 else -> emptyList()
             }
         }
@@ -289,9 +291,9 @@ class SkillService(
             emptyList()
         }
 
-        events.forEach { event ->
-            when (event) {
-                is DamageEffect -> combatService.performDamage(event, caster)
+        effects.forEach { effect ->
+            when (effect) {
+                is DamageEffect -> combatService.performDamage(effect, caster, overhitPossible)
             }
         }
     }

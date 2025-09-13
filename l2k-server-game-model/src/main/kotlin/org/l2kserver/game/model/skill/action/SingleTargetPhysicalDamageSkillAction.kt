@@ -45,7 +45,13 @@ class SingleTargetPhysicalDamageSkillAction(
 
         damage = (PHYSICAL_ATTACK_BASE * damage) / defence
 
-        hit(damage.roundToInt(), target, isCritical, isBlocked, overhitPossible)
+        hit(
+            damage = damage.roundToInt(),
+            target = target,
+            usedSs = usedSoulshot,
+            isCritical = isCritical,
+            isBlocked = isBlocked
+        )
     }
 
 }

@@ -16,16 +16,14 @@ value class SkillEffects private constructor(
         target: ActorInstance,
         usedSs: Boolean = false,
         isCritical: Boolean = false,
-        isBlocked: Boolean = false,
-        overhitPossible: Boolean = false
+        isBlocked: Boolean = false
     ) {
         effects.add(DamageEffect(
             target.id,
             damage,
             usedSoulshot = usedSs,
             isCritical = isCritical,
-            isBlocked = isBlocked,
-            overhitPossible = overhitPossible
+            isBlocked = isBlocked
         ))
     }
 
