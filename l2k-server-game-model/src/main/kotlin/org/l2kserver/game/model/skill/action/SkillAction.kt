@@ -6,8 +6,8 @@ import org.l2kserver.game.model.skill.action.effect.Effect
 
 @JvmInline
 value class SkillEffects private constructor(
-    private val effects: MutableList<Effect>
-): Iterable<Effect> by effects {
+    private val effectList: MutableList<Effect>
+): Iterable<Effect> by effectList {
     constructor(): this(ArrayList<Effect>())
 
     /** Applies the event of dealing damage to [target] */
@@ -16,20 +16,22 @@ value class SkillEffects private constructor(
         target: ActorInstance,
         usedSs: Boolean = false,
         isCritical: Boolean = false,
-        isBlocked: Boolean = false
+        isBlocked: Boolean = false,
+        overhitPossible: Boolean = false
     ) {
-        effects.add(DamageEffect(
+        effectList.add(DamageEffect(
             target.id,
             damage,
             usedSoulshot = usedSs,
             isCritical = isCritical,
-            isBlocked = isBlocked
+            isBlocked = isBlocked,
+            overhitPossible = overhitPossible
         ))
     }
 
     /** Applies the event of [target]'s evasion */
     fun miss(target: ActorInstance) {
-        effects.add(DamageEffect(target.id, 0, isAvoided = true))
+        effectList.add(DamageEffect(target.id, 0, isAvoided = true))
     }
 
 }

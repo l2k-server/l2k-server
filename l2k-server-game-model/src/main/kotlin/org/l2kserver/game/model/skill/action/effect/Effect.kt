@@ -11,6 +11,7 @@ sealed interface Effect
  * @param isCritical is this attack critical
  * @param isBlocked is this attack blocked by shield
  * @param isAvoided is this attack avoided
+ * @param overhitPossible Can this damage event be an overhit
  */
 data class DamageEffect(
     val targetId: Int,
@@ -19,5 +20,6 @@ data class DamageEffect(
     val usedSoulshot: Boolean = false,
     val isCritical: Boolean = false,
     val isBlocked: Boolean = false,
-    val isAvoided: Boolean = false
+    val isAvoided: Boolean = false,
+    val overhitPossible: Boolean = false
 ): Effect

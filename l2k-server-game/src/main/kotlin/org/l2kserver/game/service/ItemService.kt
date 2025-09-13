@@ -319,13 +319,9 @@ class ItemService(
             return
         }
 
-        if (weapon.grade != soulshot.grade) {
-            send(SystemMessageResponse.SoulshotGradeMismatch)
-            return
-        }
-
         useSoulshot(character, soulshot)
-        if (soulshot.amount >= (character.inventory.weapon?.soulshotUsed ?: Int.MAX_VALUE)) {
+
+        if (weapon.canUseSoulshot(soulshot)) {
             character.autoUsesSoulshot = soulshot
             send(SystemMessageResponse.AutomaticUseActivated(soulshot))
             send(AutoUseSsResponse(soulshot.templateId, enabled = true))
@@ -342,34 +338,27 @@ class ItemService(
      * @return `true` if soulshot was successfully charged, `false` if not
      */
     suspend fun useSoulshot(character: PlayerCharacter, soulshot: Soulshot) {
-        val weapon = character.inventory.weapon
-
-        when {
-            weapon == null -> send(SystemMessageResponse.CannotUseSoulshot)
-            weapon.soulshotCharged -> {}
-            weapon.soulshotUsed > soulshot.amount -> {
-                send(SystemMessageResponse.NotEnoughSoulshots)
-                character.autoUsesSoulshot = null
-            }
-            weapon.grade != soulshot.grade -> send(SystemMessageResponse.SoulshotGradeMismatch)
-            else -> {
-                val reducedSoulshot = character.inventory.reduceAmount(soulshot.id, weapon.soulshotUsed)
-
-                weapon.soulshotCharged = true
-                send(SystemMessageResponse.SoulshotEnabled)
-
-                if (reducedSoulshot == null) {
-                    character.autoUsesSoulshot?.let {
-                        send(SystemMessageResponse.AutomaticUseDeactivated(it))
-                        character.autoUsesSoulshot = null
-                    }
-                    send(UpdateItemsResponse().wasDeleted(soulshot))
-                }
-                else send(UpdateItemsResponse().wasModified(soulshot))
-
-                broadcastPacket(SsUsedResponse(character, soulshot), character.position)
-            }
+        val weapon = character.inventory.weapon ?: run {
+            send(SystemMessageResponse.CannotUseSoulshot)
+            return
         }
+
+        if (!weapon.canUseSoulshot(soulshot) || weapon.soulshotCharged) return
+
+        val reducedSoulshot = character.inventory.reduceAmount(soulshot.id, weapon.soulshotUsed)
+
+        weapon.soulshotCharged = true
+        send(SystemMessageResponse.SoulshotEnabled)
+
+        if (weapon.soulshotUsed > (reducedSoulshot?.amount ?: 0)) character.autoUsesSoulshot?.let {
+            send(SystemMessageResponse.AutomaticUseDeactivated(it))
+            character.autoUsesSoulshot = null
+        }
+
+        if (reducedSoulshot == null ) send(UpdateItemsResponse().wasDeleted(soulshot))
+        else send(UpdateItemsResponse().wasModified(soulshot))
+
+        broadcastPacket(SsUsedResponse(character, soulshot), character.position)
     }
 
     suspend fun useSpiritshot(character: PlayerCharacter, spiritshot: Spiritshot): Boolean {
@@ -466,6 +455,13 @@ class ItemService(
                     }
                 }
             }
+
+            character.autoUsesSoulshot?.let {
+                if (item is Weapon && !item.canUseSoulshot(character.autoUsesSoulshot)) {
+                    send(AutoUseSsResponse(it.templateId, false))
+                    character.autoUsesSoulshot = null
+                }
+            }
             updatedItems += equipAndDisarmArrows(updatedItems, character)
         }
 
@@ -508,6 +504,19 @@ class ItemService(
                     }}
             }
         }
+    }
+
+    private suspend fun Weapon.canUseSoulshot(soulshot: Soulshot?) = when {
+        this.soulshotUsed > (soulshot?.amount ?: 0) -> {
+            send(SystemMessageResponse.NotEnoughSoulshots)
+            //character.autoUsesSoulshot = null
+            false
+        }
+        this.grade != soulshot?.grade -> {
+            send(SystemMessageResponse.SoulshotGradeMismatch)
+            false
+        }
+        else -> true
     }
 
 }
