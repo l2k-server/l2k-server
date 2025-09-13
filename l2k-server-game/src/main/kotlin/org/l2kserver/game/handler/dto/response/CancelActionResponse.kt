@@ -6,9 +6,7 @@ import org.l2kserver.game.model.actor.position.Position
 
 private const val CANCEL_TARGET_RESPONSE_PACKET_ID: UByte = 42u
 
-/**
- * Cancels player's casting or target, if player is not casting.
- */
+/** Cancels player's casting or target, if player is not casting. */
 data class CancelActionResponse(
     val characterId: Int,
     val characterPosition: Position

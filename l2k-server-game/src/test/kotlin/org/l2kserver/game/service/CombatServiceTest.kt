@@ -131,10 +131,10 @@ class CombatServiceTest(
         withContext(context) { itemService.useItem(UseItemRequest(soulshot.id)) }
 
         //Soulshot used response
+        assertIs<SystemMessageResponse.SoulshotEnabled>(context.responseChannel.receive())
         val updateItemsResponse = assertIs<UpdateItemsResponse>(context.responseChannel.receive())
         assertEquals(soulshot.id, updateItemsResponse.operations.first().item.id)
         assertEquals(9, updateItemsResponse.operations.first().item.amount)
-        assertIs<SystemMessageResponse.SoulshotEnabled>(context.responseChannel.receive())
         assertIs<SkillUsedResponse>(context.responseChannel.receive())
 
         //Launch attacking in parallel

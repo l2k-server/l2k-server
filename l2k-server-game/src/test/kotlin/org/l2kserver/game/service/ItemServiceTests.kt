@@ -17,6 +17,8 @@ import org.l2kserver.game.data.item.weapons.DAGGER
 import org.l2kserver.game.data.item.weapons.HEAVENS_DIVIDER
 import org.l2kserver.game.data.item.weapons.SQUIRES_SWORD
 import org.l2kserver.game.data.item.weapons.WILLOW_STAFF
+import org.l2kserver.game.data.item.soulshot.SOULSHOT_NO_GRADE
+import org.l2kserver.game.data.item.soulshot.SOULSHOT_S_GRADE
 import org.l2kserver.game.handler.dto.request.DeleteItemRequest
 import org.l2kserver.game.handler.dto.request.DropItemRequest
 import org.l2kserver.game.handler.dto.request.TakeOffItemRequest
@@ -47,6 +49,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 
 class ItemServiceTests(
     @Autowired private val itemService: ItemService
@@ -690,6 +693,133 @@ class ItemServiceTests(
         }
         assertEquals(1, arrows.size, "Should add new item to existing item stack")
         assertEquals(200, arrows.first().amount)
+    }
+
+    @Test
+    fun shouldSuccessfullyUseSoulshot(): Unit = runBlocking {
+        val context = createTestSessionContext()
+        val character = createTestCharacter()
+        character.inventory
+        context.setCharacterId(character.id)
+
+        //Create soulshot (weapon is created with character)
+        val soulshotAmount = 10
+        val soulshot = createTestItem(SOULSHOT_NO_GRADE.id, character, soulshotAmount)
+
+        withContext(context) { itemService.useItem(UseItemRequest(soulshot.id)) }
+
+        newSuspendedTransaction {
+            //Check soulshot is consumed
+            assertEquals(soulshotAmount - 1, ItemEntity.findById(soulshot.id)!!.amount)
+
+            //Check weapon is charged
+            val weapon = character.inventory.weapon!!
+            assertTrue(weapon.soulshotCharged, "Weapon should be charged with soulshot")
+
+            //Check responses
+            assertIs<SystemMessageResponse.SoulshotEnabled>(context.responseChannel.receive())
+            val updateItemsResponse = assertIs<UpdateItemsResponse>(context.responseChannel.receive())
+            assertEquals(soulshot.id, updateItemsResponse.operations[0].item.id)
+            assertEquals(UpdateItemOperation.MODIFY, updateItemsResponse.operations[0].operation)
+        }
+    }
+
+    @Test
+    fun shouldFailUsingSoulshotWithoutWeapon(): Unit = runBlocking {
+        val context = createTestSessionContext()
+        val character = createTestCharacter()
+        context.setCharacterId(character.id)
+
+        //Delete weapon
+        character.inventory.delete(character.inventory.weapon!!)
+
+        //Create soulshot
+        val testSoulshotAmount = 10
+        val soulshot = createTestItem(SOULSHOT_NO_GRADE.id, character, testSoulshotAmount)
+
+        withContext(context) { itemService.useItem(UseItemRequest(soulshot.id)) }
+
+        newSuspendedTransaction {
+            //Check soulshot amount was not changed
+            assertEquals(testSoulshotAmount, ItemEntity.findById(soulshot.id)!!.amount)
+        }
+
+        //Check response
+        assertIs<SystemMessageResponse.CannotUseSoulshot>(context.responseChannel.receive())
+    }
+
+    @Test
+    fun shouldFailUsingSoulshotWithWrongGrade(): Unit = runBlocking {
+        val context = createTestSessionContext()
+        val character = createTestCharacter()
+        context.setCharacterId(character.id)
+
+        val soulshot = createTestItem(SOULSHOT_S_GRADE.id, character, 10)
+
+        withContext(context) { itemService.useItem(UseItemRequest(soulshot.id)) }
+
+        newSuspendedTransaction {
+            // Check soulshot was not used
+            assertEquals(10, ItemEntity.findById(soulshot.id)!!.amount)
+            
+            // Check that weapon is not charged
+            val weapon = character.inventory.weapon!!
+            assertFalse(weapon.soulshotCharged, "Weapon should not be charged with wrong grade soulshot")
+            
+            // Check response
+            assertIs<SystemMessageResponse.SoulshotGradeMismatch>(context.responseChannel.receive())
+        }
+    }
+
+
+    @Test
+    fun shouldNotUseSoulshotWhenWeaponAlreadyCharged(): Unit = runBlocking {
+        val context = createTestSessionContext()
+        val character = createTestCharacter()
+        context.setCharacterId(character.id)
+
+        // Create weapon and soulshot
+        val soulshot = createTestItem(SOULSHOT_NO_GRADE.id, character, 10)
+
+        // Charge weapon
+        character.inventory.weapon!!.soulshotCharged = true
+
+        withContext(context) { itemService.useItem(UseItemRequest(soulshot.id)) }
+
+        newSuspendedTransaction {
+            // Check soulshot was not used
+            assertEquals(10, ItemEntity.findById(soulshot.id)!!.amount)
+            
+            // Check weapon is still charged
+            val weaponInstance = character.inventory.weapon!!
+            assertTrue(weaponInstance.soulshotCharged, "Weapon should remain charged")
+        }
+    }
+
+    @Test
+    fun shouldConsumeAllSoulshotWhenUsingLastOne(): Unit = runBlocking {
+        val context = createTestSessionContext()
+        val character = createTestCharacter()
+        context.setCharacterId(character.id)
+
+        val soulshot = createTestItem(SOULSHOT_NO_GRADE.id, character, 1)
+
+        withContext(context) { itemService.useItem(UseItemRequest(soulshot.id)) }
+
+        newSuspendedTransaction {
+            // Check soulshot was consumed
+            assertFalse(ItemEntity.existsById(soulshot.id), "Soulshot should be completely consumed")
+
+            // Check that weapon is charged
+            val weaponInstance = character.inventory.weapon!!
+            assertTrue(weaponInstance.soulshotCharged, "Weapon should be charged with soulshot")
+
+            // Check responses
+            assertIs<SystemMessageResponse.SoulshotEnabled>(context.responseChannel.receive())
+            val updateItemsResponse = assertIs<UpdateItemsResponse>(context.responseChannel.receive())
+            assertEquals(soulshot.id, updateItemsResponse.operations[0].item.id)
+            assertEquals(UpdateItemOperation.REMOVE, updateItemsResponse.operations[0].operation)
+        }
     }
 
 }

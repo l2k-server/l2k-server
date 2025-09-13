@@ -10,7 +10,7 @@ sealed interface Effect
  * @param usedSoulshot is soulshot used during this attack
  * @param isCritical is this attack critical
  * @param isBlocked is this attack blocked by shield
- * @param isAvoided is this attack missed
+ * @param isAvoided is this attack avoided
  */
 data class DamageEffect(
     val targetId: Int,
@@ -19,6 +19,5 @@ data class DamageEffect(
     val usedSoulshot: Boolean = false,
     val isCritical: Boolean = false,
     val isBlocked: Boolean = false,
-    val isAvoided: Boolean = false,
-    val overhitPossible: Boolean = false
+    val isAvoided: Boolean = false
 ): Effect

@@ -4,6 +4,7 @@ import org.l2kserver.game.model.extensions.forEachNotNull
 import org.l2kserver.game.extensions.littleEndianByteArray
 import org.l2kserver.game.extensions.putUTF16String
 import org.l2kserver.game.extensions.putUByte
+import org.l2kserver.game.model.item.Ss
 import org.l2kserver.game.model.item.instance.ItemInstance
 import org.l2kserver.game.model.skill.Skill
 
@@ -209,6 +210,12 @@ open class SystemMessageResponse private constructor(
 
     /** Message: "Power of Mana enabled." */
     data object SpiritshotEnabled: SystemMessageResponse(systemMessageId = 533)
+
+    /** Message: "The automatic use of [ss] has been activated" */
+    data class AutomaticUseActivated(val ss: Ss): SystemMessageResponse(systemMessageId = 1433, ss)
+
+    /** Message: "The automatic use of [ss] has been deactivated" */
+    data class AutomaticUseDeactivated(val ss: Ss): SystemMessageResponse(systemMessageId = 1434, ss)
 
     override val data = littleEndianByteArray {
         putUByte(SYSTEM_MESSAGE_RESPONSE_PACKET_ID)

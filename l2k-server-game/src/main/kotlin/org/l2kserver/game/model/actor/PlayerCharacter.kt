@@ -13,6 +13,8 @@ import org.l2kserver.game.extensions.model.stats.applyModifiers
 import org.l2kserver.game.model.actor.character.L2kCharacterClass
 import org.l2kserver.game.model.actor.character.PvpState
 import org.l2kserver.game.model.actor.position.Heading
+import org.l2kserver.game.model.item.Soulshot
+import org.l2kserver.game.model.item.Spiritshot
 import org.l2kserver.game.model.skill.Skill
 import org.l2kserver.game.model.stats.BasicStats
 import org.l2kserver.game.model.stats.Stats
@@ -20,7 +22,75 @@ import org.l2kserver.game.model.stats.TradeAndInventoryStats
 import org.l2kserver.game.model.store.PrivateStore
 
 /**
- * Character data
+ * Player-controlled character in the game world.
+ *
+ * This class encapsulates all data and behavior for a player character, providing:
+ * - Access to core identifiers and attributes (name, gender, race, clan, title);
+ * - Current resource stats (CP/HP/MP), experience/level, and reputation (karma, PK/PvP);
+ * - World position and heading, movement/combat states, and targeting information;
+ * - Inventory and equipment that influence calculated combat statistics;
+ * - Character skills (considering active subclass) and utilities for skill management;
+ * - Trading parameters and private store functionality.
+ *
+ * The persistent data source is [entity]; changes to public properties are synchronized
+ * with entity fields. Combat statistics are calculated based on character class template
+ * ([characterClass]) and modified by equipment and limitations.
+ *
+ * The class also maintains auxiliary states (PvP, paralysis/posture, auto soulshot/spiritshot)
+ * and provides relationship logic (e.g., [isEnemyOf]). The [targetedBy] collection is thread-safe.
+ *
+ * Notes on computed properties:
+ * - [level] is determined based on [exp];
+ * - [stats] are assembled from class base parameters, equipment, and modifiers;
+ *
+ * @property characterClass The character class providing base/combat/trade stats and template
+ * @property id Unique character identifier
+ * @property accountName Name of the account that owns this character
+ * @property name Character's display name
+ * @property title Character's title
+ * @property clanId ID of the clan this character belongs to
+ * @property gender Character's gender
+ * @property race Character's race
+ * @property currentCp Current Combat Points
+ * @property currentHp Current Health Points
+ * @property currentMp Current Mana Points
+ * @property sp Skill Points
+ * @property exp Experience points
+ * @property karma Karma value
+ * @property pvpCount Number of PvP kills
+ * @property pkCount Number of Player Kills
+ * @property hairStyle Character's hair style
+ * @property hairColor Character's hair color
+ * @property faceType Character's face type
+ * @property lastAccess Timestamp of last character access
+ * @property deletionDate Timestamp when character will be deleted
+ * @property moveType Current movement type (walk/run)
+ * @property posture Current character posture (standing/sitting/etc)
+ * @property nameColor Color of the character's name
+ * @property titleColor Color of the character's title
+ * @property activeSubclass Currently active subclass index
+ * @property accessLevel Character's access level (GM permissions)
+ * @property position Character's world position
+ * @property heading Character's facing direction
+ * @property inventory Character's inventory
+ * @property collisionBox Character's collision box
+ * @property isFighting Whether character is currently in combat
+ * @property isMoving Whether character is currently moving
+ * @property targetId ID of current target
+ * @property targetedBy Set of actors currently targeting this character
+ * @property pvpState Current PvP state
+ * @property level Character's current level (computed from exp)
+ * @property basicStats Basic stats
+ * @property stats Final combat stats (base + equipment + modifiers)
+ * @property tradeAndInventoryStats Stats for trading and inventory operations
+ * @property skills Skill that are available for character
+ * @property privateStore Character's private store (if any)
+ * @property isImmobilized Whether character is immobilized
+ * @property isParalyzed Whether character is paralyzed
+ * @property weaponType Type of currently equipped weapon
+ * @property hasShield Whether character has a shield equipped
+ * @property autoUsesSoulshot Automatically used soulshot item. Null if disabled
+ * @property autoUsesSpiritshot Automatically used spiritshot item. Null if disabled
  */
 class PlayerCharacter(
     private val entity: PlayerCharacterEntity,
@@ -114,6 +184,9 @@ class PlayerCharacter(
 
     override val weaponType get() = inventory.weapon?.type
     override val hasShield: Boolean get() = inventory.shield != null
+
+    var autoUsesSoulshot: Soulshot? = null
+    var autoUsesSpiritshot: Spiritshot? = null
 
     //TODO Siege and clan relations
     override fun isEnemyOf(other: ActorInstance) = karma > 0 || pvpState != PvpState.NOT_IN_PVP

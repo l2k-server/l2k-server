@@ -12,6 +12,7 @@ import org.l2kserver.game.extensions.logger
 import org.l2kserver.game.extensions.model.actor.toInfoResponse
 import org.l2kserver.game.handler.dto.request.MoveRequest
 import org.l2kserver.game.handler.dto.request.ValidatePositionRequest
+import org.l2kserver.game.handler.dto.response.ActionFailedResponse
 import org.l2kserver.game.handler.dto.response.ArrivedResponse
 import org.l2kserver.game.handler.dto.response.DeleteObjectResponse
 import org.l2kserver.game.handler.dto.response.PrivateStoreSellSetMessageResponse
@@ -90,6 +91,9 @@ class MoveService(
         if (character.position.isCloseTo(request.position)) {
             log.trace("Difference is too small, modifying position at server side")
             character.position = request.position
+
+            //CRUTCH If this response is not sent - character becomes stuck
+            send(ActionFailedResponse)
         } else {
             log.trace("Difference is too big, modifying position at client side")
             send(ValidatePositionResponse(character.id, character.position, character.heading))

@@ -15,10 +15,3 @@ sealed class MutableActorInstance: ActorInstance {
     abstract override var targetId: Int?
     abstract override val targetedBy: MutableSet<ActorInstance>
 }
-
-fun MutableActorInstance.useSoulshot() = (this as? PlayerCharacter)?.inventory?.weapon?.let {
-    if (it.soulshotCharged) {
-        it.soulshotCharged = false
-        true
-    } else false
-} ?: false
