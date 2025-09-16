@@ -1,6 +1,5 @@
 package org.l2kserver.login.handler.dto.request
 
-import org.l2kserver.login.exception.L2LoginException
 import org.l2kserver.login.security.CryptUtils
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -29,8 +28,7 @@ fun RequestPacket(bytes: ByteArray, blowfishKey: ByteArray, rsaPrivateKey: RSAPr
             val rsaCipher = Cipher.getInstance("RSA/ECB/nopadding")
             rsaCipher.init(Cipher.DECRYPT_MODE, rsaPrivateKey)
 
-            if (byteBuffer.remaining() < 128)
-                throw L2LoginException("Too small AuthLoginRequestPacket data")
+            require(byteBuffer.remaining() > 127) { "Too small AuthLoginRequestPacket data" }
 
             val packetData = ByteArray(128)
             byteBuffer.get(packetData)
@@ -55,6 +53,6 @@ fun RequestPacket(bytes: ByteArray, blowfishKey: ByteArray, rsaPrivateKey: RSAPr
 
             SelectGameserverRequest(loginSessionKey1, loginSessionKey2, selectedGameserverId)
         }
-        else -> throw L2LoginException("Failed decoding packet ${bytes.contentToString()}")
+        else -> throw IllegalArgumentException("Unrecognized request packet id '${bytes.contentToString()}'")
     }
 }

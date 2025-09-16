@@ -2,14 +2,14 @@ package org.l2kserver.login.repository
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.hazelcast.core.HazelcastInstance
-import org.l2kserver.login.configuration.GameserverSettings
+import org.l2kserver.login.configuration.RegisteredGameserver
 import org.l2kserver.login.repository.domain.LoggedInUserData
 import org.springframework.stereotype.Component
 
 @Component
 class LoggedInUsersRepository (
     hazelcast: HazelcastInstance,
-    gameserverSettings: List<GameserverSettings>
+    gameserverSettings: List<RegisteredGameserver>
 ) {
     private val loggedInUsersMap = gameserverSettings
         .associate { it.name to hazelcast.getMap<String, String>("${it.name}-loggedInUsers") }
@@ -25,6 +25,8 @@ class LoggedInUsersRepository (
         ?.let {
         objectMapper.readValue(it, LoggedInUserData::class.java)
     }
+
+    fun countPlayersByServerName(serverName: String) = loggedInUsersMap[serverName]?.size ?: 0
 
     fun deleteByLogin(login: String, gameserverName: String) = loggedInUsersMap[gameserverName]?.remove(login)
 }

@@ -10,17 +10,17 @@ import org.springframework.context.annotation.Configuration
 @ConfigurationProperties(prefix = "server")
 @Configuration
 class GameserversConfiguration @Autowired constructor(
-    val gameservers: List<GameserverSettings>
+    val gameservers: List<RegisteredGameserver>
 ) {
 
     private val log = logger()
 
     @PostConstruct
-    fun init() = gameservers.forEach { gameserverSettings ->
-        require(gameserverSettings.ip.split('.').map { it.toByte() }.toByteArray().size == 4) {
-            "Wrong ip address ${gameserverSettings.ip}"
+    fun init() = gameservers.forEach { gameserver ->
+        require(gameserver.ip.split('.').map { it.toByte() }.toByteArray().size == 4) {
+            "Wrong ip address ${gameserver.ip}"
         }
-        log.info("Registered gameserver: {}", gameserverSettings)
+        log.info("Registered gameserver: {}", gameserver)
     }
 
     @Bean(name = ["gameserverSettings"])
@@ -41,7 +41,7 @@ class GameserversConfiguration @Autowired constructor(
  * @param maxPlayers How many players are allowed to play simultaneously on your server. Default - 100
  * @param accessLevel Required minimum access level to join server. Default - 0
  */
-data class GameserverSettings(
+data class RegisteredGameserver(
     val name: String,
     val id: Byte,
     val ip: String,
