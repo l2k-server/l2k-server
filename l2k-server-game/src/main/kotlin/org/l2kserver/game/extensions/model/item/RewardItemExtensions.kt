@@ -12,7 +12,7 @@ import org.l2kserver.game.utils.IdUtils
  * @param position ScatteredItem's position in game world
  */
 fun RewardItem.toScatteredItem(position: Position, amount: Int): ScatteredItem? {
-    val itemTemplate = ItemTemplate.Registry.findById(this.id) ?: run {
+    val itemTemplate = ItemTemplate.Registry.findByIdOrNull(this.id) ?: run {
         System.err.println("No item template found by id ${this.id}")
         return null
     }

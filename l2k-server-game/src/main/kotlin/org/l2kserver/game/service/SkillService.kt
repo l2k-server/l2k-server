@@ -262,7 +262,7 @@ class SkillService(
             false
         }
         //TODO Check PeaceZone
-        //TODO Check geodata
+        //TODO Check geodata (can see target)
         else -> true
     }
 
@@ -300,7 +300,7 @@ class SkillService(
 
         effects.forEach { effect ->
             when (effect) {
-                is DamageEffect -> combatService.performDamage(effect, caster)
+                is DamageEffect -> combatService.applyDamageEffect(effect, caster)
             }
         }
     }

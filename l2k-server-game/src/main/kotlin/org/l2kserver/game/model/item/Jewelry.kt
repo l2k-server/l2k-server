@@ -6,7 +6,7 @@ import org.l2kserver.game.model.item.instance.EquippableItemInstance
 import org.l2kserver.game.model.item.template.Grade
 import org.l2kserver.game.model.item.template.ItemGroup
 import org.l2kserver.game.model.item.template.JewelryTemplate
-import org.l2kserver.game.model.stats.Stats
+import org.l2kserver.game.model.stats.CombatStats
 
 private const val JEWELRY_SAFE_ENCHANT_LEVEL = 3
 
@@ -41,7 +41,7 @@ class Jewelry(
 
     override fun toString() = "Jewelry(name=$name id=$id enchantLevel=$enchantLevel)"
 
-    override val stats: Stats get() {
+    override val stats: CombatStats get() {
         if (grade == Grade.NO_GRADE) return itemTemplate.stats
 
         val initialStats = itemTemplate.stats

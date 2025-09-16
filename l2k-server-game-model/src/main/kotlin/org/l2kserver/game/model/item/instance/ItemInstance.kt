@@ -5,7 +5,7 @@ import org.l2kserver.game.model.item.template.ItemCategory
 import org.l2kserver.game.model.item.template.ItemGroup
 import org.l2kserver.game.model.item.template.ItemType
 import org.l2kserver.game.model.item.template.Slot
-import org.l2kserver.game.model.stats.Stats
+import org.l2kserver.game.model.stats.CombatStats
 
 /**
  * In-game item instance
@@ -62,7 +62,7 @@ interface UsableItemInstance: ItemInstance
  */
 interface EquippableItemInstance : ItemInstance {
      override val grade: Grade
-     val stats: Stats
+     val stats: CombatStats
      override var equippedAt: Slot?
 
      override val isStackable: Boolean get() = false

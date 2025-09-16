@@ -10,14 +10,14 @@ import org.l2kserver.game.extensions.model.stats.applyBasicStats
 import org.l2kserver.game.extensions.model.stats.applyEquipment
 import org.l2kserver.game.extensions.model.stats.applyLimitations
 import org.l2kserver.game.extensions.model.stats.applyModifiers
-import org.l2kserver.game.model.actor.character.L2kCharacterClass
+import org.l2kserver.game.model.actor.character.CharacterClass
 import org.l2kserver.game.model.actor.character.PvpState
 import org.l2kserver.game.model.actor.position.Heading
 import org.l2kserver.game.model.item.Soulshot
 import org.l2kserver.game.model.item.Spiritshot
 import org.l2kserver.game.model.skill.Skill
 import org.l2kserver.game.model.stats.BasicStats
-import org.l2kserver.game.model.stats.Stats
+import org.l2kserver.game.model.stats.CombatStats
 import org.l2kserver.game.model.stats.TradeAndInventoryStats
 import org.l2kserver.game.model.store.PrivateStore
 
@@ -94,7 +94,7 @@ import org.l2kserver.game.model.store.PrivateStore
  */
 class PlayerCharacter(
     private val entity: PlayerCharacterEntity,
-    val characterClass: L2kCharacterClass
+    val characterClass: CharacterClass
 ): MutableActorInstance() {
 
     override val id: Int = entity.id.value
@@ -147,7 +147,7 @@ class PlayerCharacter(
 
     override val collisionBox: CollisionBox get() {
         //Scan character class and its parent classes for character template, to get its collision box
-        fun L2kCharacterClass.getCollisionBox(): CollisionBox = this.characterTemplate?.collisionBox ?: run {
+        fun CharacterClass.getCollisionBox(): CollisionBox = this.characterTemplate?.collisionBox ?: run {
             parentClass?.getCollisionBox() ?: CollisionBox(0.0, 0.0)
         }
         return characterClass.getCollisionBox()
@@ -165,7 +165,7 @@ class PlayerCharacter(
 
     override val basicStats: BasicStats get() = characterClass.basicStats
 
-    override val stats: Stats get() = characterClass.combatStats
+    override val stats: CombatStats get() = characterClass.combatStats
         .applyEquipment(this)
         .applyModifiers(level, characterClass, basicStats)
         .applyLimitations() //TODO apply skills

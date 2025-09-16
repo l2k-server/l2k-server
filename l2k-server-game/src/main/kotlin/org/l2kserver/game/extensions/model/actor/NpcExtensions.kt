@@ -29,7 +29,7 @@ fun NpcTemplate.toNpc(id: Int, position: Position, heading: Heading, spawnedAt: 
     currentHp = this.stats.maxHp,
     currentMp = this.stats.maxMp,
     moveType = MoveType.WALK,
-    equippedWeaponTemplate = this.equippedWeaponTemplateId?.let { ItemTemplate.Registry.findById(it) as? WeaponTemplate },
-    equippedShieldTemplate = this.equippedShieldTemplateId?.let { ItemTemplate.Registry.findById(it) as? ArmorTemplate },
+    equippedWeaponTemplate = this.equippedWeaponTemplateId?.let { ItemTemplate.Registry.findByIdOrNull(it) as? WeaponTemplate },
+    equippedShieldTemplate = this.equippedShieldTemplateId?.let { ItemTemplate.Registry.findByIdOrNull(it) as? ArmorTemplate },
     ai = this.ai
 )

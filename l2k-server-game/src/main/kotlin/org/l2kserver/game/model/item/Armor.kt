@@ -7,7 +7,7 @@ import org.l2kserver.game.model.item.template.ArmorTemplate
 import org.l2kserver.game.model.item.template.ArmorType
 import org.l2kserver.game.model.item.template.Grade
 import org.l2kserver.game.model.item.template.ItemGroup
-import org.l2kserver.game.model.stats.Stats
+import org.l2kserver.game.model.stats.CombatStats
 
 // For full body armor safe enchant level is 4, but stats are calculated as it is 3
 private const val ARMOR_SAFE_ENCHANT_LEVEL = 3
@@ -43,7 +43,7 @@ class Armor(
 
     override fun toString() = "Armor(name=$name id=$id enchantLevel=$enchantLevel)"
 
-    override val stats: Stats get() {
+    override val stats: CombatStats get() {
         if (grade == Grade.NO_GRADE) return itemTemplate.stats
 
         val initialStats = this.itemTemplate.stats

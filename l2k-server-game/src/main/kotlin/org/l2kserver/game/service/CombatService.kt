@@ -21,6 +21,7 @@ import org.l2kserver.game.handler.dto.response.PlayerDiedResponse
 import org.l2kserver.game.handler.dto.response.SystemMessageResponse
 import org.l2kserver.game.handler.dto.response.UpdateItemsResponse
 import org.l2kserver.game.handler.dto.response.UpdateStatusResponse
+import org.l2kserver.game.model.actor.ActorInstance
 import org.l2kserver.game.model.actor.MutableActorInstance
 import org.l2kserver.game.model.actor.Npc
 import org.l2kserver.game.model.actor.PlayerCharacter
@@ -58,72 +59,59 @@ class CombatService(
     /** Key - actor ID, value - time when actor can hit again */
     private val nextAttackAvailableTimeMap = ConcurrentHashMap<Int, Long>()
 
-    /**
-     * Start fighting with [attacked] - move enough close to hit and attack
-     *
-     * @param attacker Actor, who starts attacking
-     * @param attacked Actor, who is the target of the attack
-     */
-    suspend fun launchAttack(attacker: MutableActorInstance, attacked: MutableActorInstance) {
+
+    /** Launches attacking job for player */
+    suspend fun launchAttack(
+        character: PlayerCharacter, target: MutableActorInstance
+    ) = asyncTaskService.launchAction(character.id) {
+        attack(character, target)
+    }
+
+    /** Move [attacker] enough close to hit and attack [attacked] */
+    suspend fun attack(attacker: MutableActorInstance, attacked: MutableActorInstance) {
         log.debug("Started attacking '{}' by '{}'", attacked, attacker)
+        while (coroutineContext.isActive && attacker.canAttack(attacked)) {
+            try {
+                val requiredDistance = (attacker.stats.attackRange + attacked.collisionBox.radius).roundToInt()
 
-        if (attacker.isParalyzed || attacker.isDead()) {
-            log.debug("'{}' is paralyzed or dead and cannot attack", attacker)
-            send(ActionFailedResponse)
-            return
-        }
+                moveService.move(attacker, attacked, requiredDistance)
 
-        if (attacked.isDead()) {
-            log.debug("'{}' is dead and cannot be attacked", attacked)
-            send(SystemMessageResponse.IncorrectTarget)
-            send(ActionFailedResponse)
-            return
-        }
+                //Check if movement was interrupted or stopped at some obstacle
+                if (!attacker.position.isCloseTo(attacked.position, requiredDistance)) {
+                    send(SystemMessageResponse.TargetOutOfRange)
+                    break
+                }
 
-        asyncTaskService.launchAction(attacker.id) {
-            while (isActive && !attacker.isParalyzed && !attacked.isDead() && gameObjectRepository.existsById(attacked.id)) {
-                try {
-                    val requiredDistance = (attacker.stats.attackRange + attacked.collisionBox.radius).roundToInt()
+                // If next attack is not available, wait for a while and try again
+                if ((nextAttackAvailableTimeMap[attacker.id] ?: 0) > currentTimeMillis()) {
+                    delay(50L)
+                    continue
+                }
 
-                    moveService.move(attacker, attacked, requiredDistance)
+                newSuspendedTransaction {
+                    //Already launched attack must not be cancelled TODO STUN??
+                    withContext(coroutineContext + NonCancellable) {
+                        when (attacker.weaponType) {
+                            WeaponType.BOW -> performBowAttack(attacker, attacked)
+                            WeaponType.POLE -> performPoleAttack(attacker, attacked)
+                            WeaponType.FIST, WeaponType.DOUBLE_BLADES -> performSimpleAttacks(attacker, attacked, 2)
+                            else -> performSimpleAttacks(attacker, attacked, 1)
+                        }
 
-                    //Check if movement was interrupted or stopped at some obstacle
-                    if (!attacker.position.isCloseTo(attacked.position, requiredDistance)) {
-                        send(SystemMessageResponse.TargetOutOfRange)
-                        break
-                    }
-
-                    // If next attack is not available, wait for a while and try again
-                    if ((nextAttackAvailableTimeMap[attacker.id] ?: 0) > currentTimeMillis()) {
-                        delay(50L)
-                        continue
-                    }
-
-                    newSuspendedTransaction {
-                        //Already launched attack must not be cancelled TODO STUN??
-                        withContext(coroutineContext + NonCancellable) {
-                            when (attacker.weaponType) {
-                                WeaponType.BOW -> performBowAttack(attacker, attacked)
-                                WeaponType.POLE -> performPoleAttack(attacker, attacked)
-                                WeaponType.FIST, WeaponType.DOUBLE_BLADES -> performSimpleAttacks(attacker, attacked, 2)
-                                else -> performSimpleAttacks(attacker, attacked, 1)
-                            }
-
-                            //Enable SS if auto-use soulshot enabled
-                            (attacker as? PlayerCharacter)?.autoUsesSoulshot?.let {
-                                itemService.useSoulshot(attacker, it)
-                            }
+                        //Enable SS if auto-use soulshot enabled
+                        (attacker as? PlayerCharacter)?.autoUsesSoulshot?.let {
+                            itemService.useSoulshot(attacker, it)
                         }
                     }
-                } catch (e: Exception) {
-                    log.error("An error occurred while attacking target {} by {}", attacked, attacker, e)
-                    coroutineContext.cancel()
                 }
+            } catch (e: Exception) {
+                log.error("An error occurred while attacking target {} by {}", attacked, attacker, e)
+                coroutineContext.cancel()
             }
         }
     }
 
-    suspend fun performDamage(damageEffect: DamageEffect, attacker: MutableActorInstance) {
+    suspend fun applyDamageEffect(damageEffect: DamageEffect, attacker: MutableActorInstance) {
         val attacked = gameObjectRepository.findActorById(damageEffect.targetId)
         if (attacked.isDead()) return //Needed for double weapon, if target was killed by first hit
 
@@ -151,9 +139,9 @@ class CombatService(
         else 0
 
         //Store damage for AI and reward ownership
-        if (attacked is Npc) synchronized(attacked.opponentsDamage) {
-            val damageDealt = attacked.opponentsDamage[attacker] ?: 0
-            attacked.opponentsDamage[attacker] = damageDealt + minOf(damageEffect.damage, attacked.currentHp)
+        if (attacked is Npc) synchronized(attacked.opponents) {
+            val damageDealt = attacked.opponents[attacker] ?: 0
+            attacked.opponents[attacker] = damageDealt + minOf(damageEffect.damage, attacked.currentHp)
         }
 
         //If fighters are players, subtract fom CP first
@@ -186,7 +174,11 @@ class CombatService(
      * @param attacked Actor, who is a target for this attack
      * @param hitAmount How many hits does the attack contain
      */
-    private suspend fun performSimpleAttacks(attacker: MutableActorInstance, attacked: MutableActorInstance, hitAmount: Int) {
+    private suspend fun performSimpleAttacks(
+        attacker: MutableActorInstance,
+        attacked: MutableActorInstance,
+        hitAmount: Int
+    ) {
         log.debug("{} tries to perform {} attacks on {}", attacker, hitAmount, attacked)
 
         val attackDuration = calculateAttackTime(attacker.stats.atkSpd)
@@ -203,7 +195,7 @@ class CombatService(
         delay(delayBeforeHit)
 
         hits.forEach {
-            performDamage(it, attacker)
+            applyDamageEffect(it, attacker)
             //Delay for the time between the hit and the end of the attack animation
             delay(delayBeforeHit)
         }
@@ -225,7 +217,7 @@ class CombatService(
             //Check if player has enough mana
             if (attacker.currentMp < weapon.manaCost) {
                 send(SystemMessageResponse.NotEnoughMp)
-                coroutineContext.cancel()
+                coroutineContext.cancel() //TODO cancelling whole process seems to be not very good idea...
                 return
             }
 
@@ -271,7 +263,7 @@ class CombatService(
         CoroutineScope(coroutineContext + NonCancellable).launch {
             //Delay for time it takes for the arrow to reach the target
             delay((attacker.position.distanceTo(attacked.position) / ARROW_SPEED_PER_MS).toLong())
-            newSuspendedTransaction { performDamage(hit, attacker) }
+            newSuspendedTransaction { applyDamageEffect(hit, attacker) }
         }
 
         //Delay for the time between the hit and the end of the attack animation
@@ -317,6 +309,29 @@ class CombatService(
                 if (killer is PlayerCharacter) rewardService.manageRewardForKillingPlayer(actor, killer)
             }
         }
+    }
+
+    /** Checks if `this` can attack [target] and sends system messages */
+    private suspend fun ActorInstance.canAttack(target: ActorInstance) = when {
+        this.isParalyzed || this.isDead() -> {
+            log.debug("'{}' is paralyzed or dead and cannot attack '{}'", this, target)
+            send(ActionFailedResponse)
+            false
+        }
+
+        target.isDead() -> {
+            log.debug("'{}' is dead and cannot be attacked", target)
+            send(SystemMessageResponse.IncorrectTarget)
+            send(ActionFailedResponse)
+            false
+        }
+
+        !gameObjectRepository.existsById(target.id)
+                || !this.position.isCloseTo(target.position, VISION_RANGE) -> {
+            false
+        }
+
+        else -> true
     }
 
 }

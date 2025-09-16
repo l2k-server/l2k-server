@@ -10,11 +10,13 @@ import org.l2kserver.game.model.actor.npc.ai.Ai
 import org.l2kserver.game.model.item.template.WeaponType
 import org.l2kserver.game.model.reward.Reward
 import org.l2kserver.game.model.stats.BasicStats
-import org.l2kserver.game.model.stats.Stats
+import org.l2kserver.game.model.stats.CombatStats
 import org.l2kserver.game.model.zone.SpawnZone
 
 /**
  * Non-player character
+ *
+ * @property opponents Map of characters, who fights with his NPC to their damage dealt to this NPC
  */
 interface NpcInstance: ActorInstance {
     override val id: Int
@@ -26,7 +28,7 @@ interface NpcInstance: ActorInstance {
     val race: NpcRace
     override val heading: Heading
     override val position: Position
-    override val stats: Stats
+    override val stats: CombatStats
     override val basicStats: BasicStats
     val reward: Reward
     val spawnedAt: SpawnedAt
@@ -38,6 +40,7 @@ interface NpcInstance: ActorInstance {
     override val weaponType: WeaponType?
     override val hasShield: Boolean
     val ai: Ai?
+    val opponents: Map<ActorInstance, Int> //TODO State Machine
 }
 
 /**

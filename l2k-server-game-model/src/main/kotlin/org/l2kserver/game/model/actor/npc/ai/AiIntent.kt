@@ -20,7 +20,7 @@ value class AttackIntent(val target: ActorInstance): AiIntent
 @JvmInline
 value class AiIntents private constructor(
     private val actions: MutableList<AiIntent>
-): Iterable<AiIntent> by actions {
+): Collection<AiIntent> {
     constructor(): this(ArrayList<AiIntent>())
 
     @Suppress("unused")
@@ -43,4 +43,9 @@ value class AiIntents private constructor(
         actions.add(AttackIntent(target))
     }
 
+    override val size: Int get() = actions.size
+    override fun contains(element: AiIntent) = actions.contains(element)
+    override fun containsAll(elements: Collection<AiIntent>) = actions.containsAll(elements)
+    override fun isEmpty() = actions.isEmpty()
+    override fun iterator() = actions.iterator()
 }

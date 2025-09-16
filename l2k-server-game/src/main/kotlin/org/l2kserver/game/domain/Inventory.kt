@@ -63,7 +63,7 @@ class Inventory(val owner: PlayerCharacter): Collection<ItemInstance> {
 
     /** Creates new item at the inventory */
     fun createItem(templateId: Int, amount: Int = 1, equippedAt: Slot? = null, enchantLevel: Int = 0) = transaction {
-        val itemTemplate = requireNotNull(ItemTemplate.Registry.findById(templateId)) {
+        val itemTemplate = requireNotNull(ItemTemplate.Registry.findByIdOrNull(templateId)) {
             "Cannot add new item to the database - no template found by id=$templateId"
         }
 

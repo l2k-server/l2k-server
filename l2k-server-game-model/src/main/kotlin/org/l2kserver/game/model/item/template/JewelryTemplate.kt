@@ -1,6 +1,6 @@
 package org.l2kserver.game.model.item.template
 
-import org.l2kserver.game.model.stats.Stats
+import org.l2kserver.game.model.stats.CombatStats
 
 data class JewelryTemplate(
     override val id: Int,
@@ -13,7 +13,7 @@ data class JewelryTemplate(
     override val isDestroyable: Boolean,
     override val isExchangeable: Boolean,
     override val type: JewelryType,
-    override val stats: Stats = Stats(),
+    override val stats: CombatStats = CombatStats(),
     override val crystalCount: Int
 ): EquippableItemTemplate, CrystallizableItemTemplate {
     override val category = ItemCategory.JEWELRY

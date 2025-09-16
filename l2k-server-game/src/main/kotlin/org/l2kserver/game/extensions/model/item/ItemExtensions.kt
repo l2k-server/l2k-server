@@ -22,7 +22,7 @@ import org.l2kserver.game.model.item.template.WeaponTemplate
 import org.l2kserver.game.utils.IdUtils
 import kotlin.Int
 
-fun ItemEntity.toItemInstance(): ItemInstance? = when (val itemTemplate = ItemTemplate.Registry.findById(this.templateId)) {
+fun ItemEntity.toItemInstance(): ItemInstance? = when (val itemTemplate = ItemTemplate.Registry.findByIdOrNull(this.templateId)) {
     is WeaponTemplate -> Weapon(this, itemTemplate)
     is ArmorTemplate -> Armor(this, itemTemplate)
     is ArrowTemplate -> Arrow(this, itemTemplate)

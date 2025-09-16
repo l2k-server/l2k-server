@@ -3,7 +3,7 @@ package org.l2kserver.game.data.item.armor
 import org.l2kserver.game.model.item.template.ArmorTemplate
 import org.l2kserver.game.model.item.template.ArmorType
 import org.l2kserver.game.model.item.template.Grade
-import org.l2kserver.game.model.stats.Stats
+import org.l2kserver.game.model.stats.CombatStats
 
 val LEATHER_SHIELD = ArmorTemplate(
     id = 18,
@@ -16,7 +16,7 @@ val LEATHER_SHIELD = ArmorTemplate(
     isDestroyable = true,
     isExchangeable = true,
     type = ArmorType.SHIELD,
-    stats = Stats(
+    stats = CombatStats(
         shieldDef = 47,
         shieldDefRate = 20,
         evasion = -8
@@ -35,7 +35,7 @@ val SQUIRES_SHIRT = ArmorTemplate(
     isDestroyable = true,
     isExchangeable = false,
     type = ArmorType.UPPER_BODY_LIGHT,
-    stats = Stats(
+    stats = CombatStats(
         pDef = 33
     ),
     crystalCount = 0
@@ -52,7 +52,7 @@ val SQUIRES_PANTS = ArmorTemplate(
     isDestroyable = true,
     isExchangeable = false,
     type = ArmorType.LOWER_BODY_LIGHT,
-    stats = Stats(
+    stats = CombatStats(
         pDef = 20
     ),
     crystalCount = 0

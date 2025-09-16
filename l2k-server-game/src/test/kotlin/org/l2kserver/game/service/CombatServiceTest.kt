@@ -53,7 +53,7 @@ class CombatServiceTest(
 
         //Launch attacking in parallel
         CoroutineScope(Dispatchers.Default).launch(context) {
-            combatService.launchAttack(character, targetCharacter)
+            combatService.attack(character, targetCharacter)
         }
 
         // Check attacker's responses
@@ -139,7 +139,7 @@ class CombatServiceTest(
 
         //Launch attacking in parallel
         CoroutineScope(Dispatchers.Default).launch(context) {
-            combatService.launchAttack(character, targetCharacter)
+            combatService.attack(character, targetCharacter)
         }
 
         // Check attacker's responses

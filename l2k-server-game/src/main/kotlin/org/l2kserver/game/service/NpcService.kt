@@ -16,7 +16,6 @@ import org.l2kserver.game.handler.dto.response.DeleteObjectResponse
 import org.l2kserver.game.model.actor.npc.SpawnedAt
 import org.l2kserver.game.model.actor.position.Heading
 import org.l2kserver.game.model.actor.position.SpawnPosition
-import org.l2kserver.game.model.actor.position.toPositionAndHeading
 import org.l2kserver.game.model.zone.SpawnZone
 import org.l2kserver.game.network.session.send
 import org.l2kserver.game.utils.IdUtils
@@ -69,7 +68,7 @@ class NpcService(
         gameObjectRepository.delete(npc)
 
         //Respawn this NPC after delay
-        val template = NpcTemplate.Registry.findById(npc.templateId)!!
+        val template = NpcTemplate.Registry.findByIdOrNull(npc.templateId)!!
         delay(template.spawn.respawnDelay)
 
         //Spawn NPC at position or zone, depending on what is present

@@ -6,7 +6,7 @@ import org.l2kserver.game.model.actor.npc.NpcRace
 import org.l2kserver.game.model.actor.npc.NpcTemplate
 import org.l2kserver.game.model.actor.npc.SpawnData
 import org.l2kserver.game.model.actor.position.SpawnPosition
-import org.l2kserver.game.model.stats.Stats
+import org.l2kserver.game.model.stats.CombatStats
 
 val GRAND_MASTER_ROIEN = NpcTemplate(
     id = 1_030_008,
@@ -18,7 +18,7 @@ val GRAND_MASTER_ROIEN = NpcTemplate(
     isInvulnerable = true,
     race = NpcRace.HUMANS,
     collisionBox = CollisionBox(8.0, 23.5),
-    stats = Stats(
+    stats = CombatStats(
         maxHp = Int.MAX_VALUE,
         maxMp = Int.MAX_VALUE,
         pDef = Int.MAX_VALUE,
