@@ -4,6 +4,7 @@ import org.l2kserver.login.handler.dto.response.enums.FailReason
 import org.l2kserver.login.security.CryptUtils
 
 private const val AUTH_FAILED_RESPONSE_PACKET_ID: Byte = 0x01
+
 data class AuthFailedResponse(
     val reason: FailReason
 ) : ResponsePacket {

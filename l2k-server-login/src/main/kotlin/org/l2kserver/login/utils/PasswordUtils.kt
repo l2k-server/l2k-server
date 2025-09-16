@@ -1,18 +1,16 @@
 package org.l2kserver.login.utils
 
 import java.security.MessageDigest
-import java.util.*
+import kotlin.io.encoding.Base64
+import kotlin.io.encoding.ExperimentalEncodingApi
 
 object PasswordUtils {
 
     private const val ALGORITHM = "SHA"
 
-    fun encode(password: String): String = Base64
-        .getEncoder()
-        .encodeToString(
-            MessageDigest
-                .getInstance(ALGORITHM)
-                .digest(password.toByteArray(Charsets.UTF_8))
-        )
+    @OptIn(ExperimentalEncodingApi::class)
+    fun encode(password: String): String = Base64.encode(
+        MessageDigest.getInstance(ALGORITHM).digest(password.toByteArray())
+    )
 
 }

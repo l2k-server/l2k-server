@@ -4,8 +4,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import org.l2kserver.login.configuration.GameserverSettings
-import org.l2kserver.login.exception.L2LoginException
+import org.l2kserver.login.configuration.RegisteredGameserver
 import org.l2kserver.login.extensions.domain.create
 import org.l2kserver.login.extensions.domain.findByLogin
 import org.l2kserver.login.extensions.domain.updateLastActive
@@ -38,7 +37,7 @@ import org.springframework.stereotype.Service
 class LoginService(
     private val sessionRepository: SessionRepository,
     private val loggedInUsersRepository: LoggedInUsersRepository,
-    private val gameserverSettings: List<GameserverSettings>,
+    private val registeredGameservers: List<RegisteredGameserver>,
 
     @Value("\${server.automaticRegistrationEnabled}")
     private val autoRegistrationEnabled: Boolean,
@@ -73,6 +72,7 @@ class LoginService(
 
         if (account == null && autoRegistrationEnabled) {
             account = Account.create(request.login, request.password)
+            log.info("Automatically registered new account '{}'", request.login)
         }
 
         return if (PasswordUtils.encode(request.password) == account?.password) {
@@ -101,26 +101,27 @@ class LoginService(
      * @param sessionId Id of user session
      * @param request ServerListRequest with session keys
      * @return ServerListResponse with game servers info
-     * @throws L2LoginException if user was not correctly authorized
      */
     suspend fun getGameServers(sessionId: Int, request: ServerListRequest): ServerListResponse {
         val session = sessionRepository.findById(sessionId)
         checkSessionKey(request.loginSessionKey1, request.loginSessionKey2, session.sessionKey)
 
-        val account = Account.findByLogin(session.login!!) ?: throw L2LoginException(
+        val account = requireNotNull(Account.findByLogin(session.login!!)) {
             "Account '$session.login' was not found in db ¯\\_(ツ)_/¯"
-        )
+        }
 
         return ServerListResponse(
             lastServerId = (account.lastServer ?: 1).toByte(),
-            servers = gameserverSettings.map { gameserverInfo ->
+            servers = registeredGameservers.map { gameserverInfo ->
                 GameServerInfo(
                     id = gameserverInfo.id,
                     serverIp = gameserverInfo.ip.split('.').map { it.toByte() }.toByteArray(),
                     port = gameserverInfo.port,
                     ageLimit = gameserverInfo.ageLimit,
                     isPvp = gameserverInfo.isPvp,
-                    currentPlayers = 0, //TODO find in hazelcast
+                    currentPlayers = loggedInUsersRepository
+                        .countPlayersByServerName(gameserverInfo.name)
+                        .toShort(),
                     maxPlayers = gameserverInfo.maxPlayers,
                     isOnline = account.accessLevel >= gameserverInfo.accessLevel
                             && ServerUtils.checkOnline(gameserverInfo.ip, gameserverInfo.port),
@@ -135,13 +136,12 @@ class LoginService(
      *
      * @param request SelectedGameserverRequest
      * @return SelectGameserversSuccessResponse with game session keys
-     * @throws L2LoginException if user was not correctly authorized
      */
     suspend fun selectGameserver(sessionId: Int, request: SelectGameserverRequest): ResponsePacket {
-        val currentOnline = 0 //TODO find in redis
-        val gameserverInfo = gameserverSettings.find { it.id == request.selectedGameserverId }
-            ?: throw L2LoginException("Selected gameserver is not registered")
-
+        val gameserverInfo = requireNotNull(registeredGameservers.find { it.id == request.selectedGameserverId }) {
+            "Selected gameserver is not registered"
+        }
+        val currentOnline = loggedInUsersRepository.countPlayersByServerName(gameserverInfo.name)
         val maxPlayers = gameserverInfo.maxPlayers
 
         if (currentOnline >= maxPlayers) {
@@ -152,8 +152,9 @@ class LoginService(
         val session = sessionRepository.findById(sessionId)
         checkSessionKey(request.loginSessionKey1, request.loginSessionKey2, session.sessionKey)
 
-        val account = Account.findByLogin(session.login!!)
-            ?: throw L2LoginException("Account '${session.login}' was not found in db ¯\\_(ツ)_/¯")
+        val account = requireNotNull(Account.findByLogin(session.login!!)) {
+            "Account '${session.login}' was not found in db ¯\\_(ツ)_/¯"
+        }
 
         if (account.accessLevel < gameserverInfo.accessLevel) {
             log.debug("User '{}' is not allowed to join gameserver '{}'", account.login, gameserverInfo.id)
@@ -187,9 +188,10 @@ class LoginService(
         }
     }
 
-    private fun checkSessionKey(loginSessionKey1: Int, loginSessionKey2: Int, sessionKey: AuthorizationKey?) {
-        if (loginSessionKey1 != sessionKey?.loginSessionKey1 || loginSessionKey2 != sessionKey.loginSessionKey2)
-            throw L2LoginException("Wrong session key '${loginSessionKey1}:${loginSessionKey2}'")
+    private fun checkSessionKey(
+        loginSessionKey1: Int, loginSessionKey2: Int, sessionKey: AuthorizationKey?
+    ) = require(loginSessionKey1 == sessionKey?.loginSessionKey1 && loginSessionKey2 == sessionKey.loginSessionKey2) {
+        "Wrong session key '${loginSessionKey1}:${loginSessionKey2}'"
     }
 
 }

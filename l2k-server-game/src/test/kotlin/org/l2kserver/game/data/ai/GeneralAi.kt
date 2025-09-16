@@ -9,7 +9,7 @@ import kotlin.math.roundToInt
 import kotlin.math.sin
 import kotlin.random.Random
 
-private const val WANDERING_DISTANCE = 50
+private const val WANDERING_DISTANCE = 75
 private const val MAX_DISTANCE_FROM_SPAWN = 150
 
 object GeneralAi: Ai {
