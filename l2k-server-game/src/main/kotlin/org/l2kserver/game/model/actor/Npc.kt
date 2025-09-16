@@ -11,7 +11,7 @@ import org.l2kserver.game.model.item.template.ArmorTemplate
 import org.l2kserver.game.model.item.template.WeaponTemplate
 import org.l2kserver.game.model.reward.Reward
 import org.l2kserver.game.model.stats.BasicStats
-import org.l2kserver.game.model.stats.Stats
+import org.l2kserver.game.model.stats.CombatStats
 
 /**
  * NPC data
@@ -47,7 +47,7 @@ class Npc(
     override val race: NpcRace,
     override var heading: Heading,
     override var position: Position,
-    override val stats: Stats,
+    override val stats: CombatStats,
     override val basicStats: BasicStats,
     override val reward: Reward,
     override val spawnedAt: SpawnedAt,
@@ -68,7 +68,7 @@ class Npc(
      * Key - attackerId, Value - damage dealt
      */
     //TODO clean this map after fighting has ended
-    val opponentsDamage = ConcurrentHashMap<ActorInstance, Int>(0)
+    override val opponents = ConcurrentHashMap<ActorInstance, Int>(0)
 
     override val isImmobilized: Boolean get() = isParalyzed //TODO check if rooted, stunned, paralyzed, casting, etc...
     override val isParalyzed: Boolean get() = false

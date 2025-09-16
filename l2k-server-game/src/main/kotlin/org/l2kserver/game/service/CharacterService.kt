@@ -314,7 +314,6 @@ class CharacterService(
 
         log.debug("Start respawning '{}'", character)
 
-        //TODO If no town found, teleport to 147451, 27014, -2205 (Center of Aden)
         val respawnPosition = when (request.respawnAt) {
             //TODO During a siege, character should be teleported to other town... or not?
             RespawnAt.VILLAGE -> Town.Registry.getRandomSpawnPointByPosition(
@@ -367,8 +366,6 @@ class CharacterService(
 
         if (character.canExitWorld()) {
             send(ExitGameResponse)
-            //TODO On windows coroutine is cancelled too quickly and ExitGameResponse isn't sent
-            // https://github.com/orgs/l2kserver/projects/1/views/3?pane=issue&itemId=98027933
             coroutineContext.cancel()
             log.info("Player {} has quit game", context.getAccountName())
         }

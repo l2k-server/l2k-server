@@ -623,7 +623,7 @@ class ItemServiceTests(
 
         //Create scattered item
         val scatteredItem = createTestScatteredItem(
-            character.position, ItemTemplate.Registry.findById(HEAVENS_DIVIDER.id)!!)
+            character.position, ItemTemplate.Registry.findByIdOrNull(HEAVENS_DIVIDER.id)!!)
 
         //Pick up item!
         withContext(context) { itemService.launchPickUp(character, scatteredItem).join() }
@@ -663,7 +663,7 @@ class ItemServiceTests(
 
         //Create scattered item
         val scatteredItem = createTestScatteredItem(
-            character.position, ItemTemplate.Registry.findById(WOODEN_ARROW.id)!!, 100)
+            character.position, ItemTemplate.Registry.findByIdOrNull(WOODEN_ARROW.id)!!, 100)
 
         //Pick up item!
         withContext(context) {

@@ -7,7 +7,7 @@ import org.l2kserver.game.data.item.weapons.SQUIRES_SWORD
 import org.l2kserver.game.model.actor.CollisionBox
 import org.l2kserver.game.model.actor.character.InitialItem
 import org.l2kserver.game.model.actor.character.InitialShortcut
-import org.l2kserver.game.model.actor.character.L2kCharacterClass
+import org.l2kserver.game.model.actor.character.CharacterClass
 import org.l2kserver.game.model.actor.character.CharacterTemplate
 import org.l2kserver.game.model.actor.character.PerLevelGain
 import org.l2kserver.game.model.actor.character.ShortcutType
@@ -18,14 +18,14 @@ import org.l2kserver.game.model.stats.DEX
 import org.l2kserver.game.model.stats.INT
 import org.l2kserver.game.model.stats.MEN
 import org.l2kserver.game.model.stats.STR
-import org.l2kserver.game.model.stats.Stats
+import org.l2kserver.game.model.stats.CombatStats
 import org.l2kserver.game.model.stats.TradeAndInventoryStats
 import org.l2kserver.game.model.stats.WIT
 
-val HUMAN_FIGHTER = L2kCharacterClass(
+val HUMAN_FIGHTER = CharacterClass(
     id = 0,
     requiredLevel = 1,
-    combatStats = Stats(
+    combatStats = CombatStats(
         maxCp = 32,
         maxHp = 80,
         maxMp = 30,
@@ -35,7 +35,7 @@ val HUMAN_FIGHTER = L2kCharacterClass(
 
         hpRegen = 1.5,
         mpRegen = 0.9,
-        cpRegen = 1.5,
+        cpRegen = 1.5
     ),
     basicStats = BasicStats(
         STR(40),
@@ -48,7 +48,7 @@ val HUMAN_FIGHTER = L2kCharacterClass(
     tradeAndInventoryStats = TradeAndInventoryStats(
         privateStoreSize = 4
     ),
-    emptySlotStats = FIGHTER_EMPTY_SLOT_STATS,
+    emptySlotStats = CharacterClass.DEFAULT_FIGHTER_EMPTY_SLOT_STATS,
     perLevelGain = PerLevelGain(
         cpAdd = 4.73,
         cpMod = 0.22,

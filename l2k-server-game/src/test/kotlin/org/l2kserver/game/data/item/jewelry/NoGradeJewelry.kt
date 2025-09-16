@@ -3,7 +3,7 @@ package org.l2kserver.game.data.item.jewelry
 import org.l2kserver.game.model.item.template.Grade
 import org.l2kserver.game.model.item.template.JewelryTemplate
 import org.l2kserver.game.model.item.template.JewelryType
-import org.l2kserver.game.model.stats.Stats
+import org.l2kserver.game.model.stats.CombatStats
 
 val EARRING_OF_STRENGTH = JewelryTemplate(
     id = 114,
@@ -16,7 +16,7 @@ val EARRING_OF_STRENGTH = JewelryTemplate(
     isDestroyable = true,
     isExchangeable = true,
     type = JewelryType.EARRING,
-    stats = Stats(
+    stats = CombatStats(
         mDef = 16
     ),
     crystalCount = 0
@@ -33,7 +33,7 @@ val EARRING_OF_WISDOM = JewelryTemplate(
     isDestroyable = true,
     isExchangeable = true,
     type = JewelryType.EARRING,
-    stats = Stats(
+    stats = CombatStats(
         mDef = 16
     ),
     crystalCount = 0
@@ -50,7 +50,7 @@ val RING_OF_KNOWLEDGE = JewelryTemplate(
     isDestroyable = true,
     isExchangeable = true,
     type = JewelryType.RING,
-    stats = Stats(
+    stats = CombatStats(
         mDef = 9
     ),
     crystalCount = 0
@@ -67,7 +67,7 @@ val RING_OF_ANGUISH = JewelryTemplate(
     isDestroyable = true,
     isExchangeable = true,
     type = JewelryType.RING,
-    stats = Stats(
+    stats = CombatStats(
         mDef = 11
     ),
     crystalCount = 0
@@ -84,7 +84,7 @@ val NECKLACE_OF_COURAGE = JewelryTemplate(
     isDestroyable = true,
     isExchangeable = true,
     type = JewelryType.NECKLACE,
-    stats = Stats(
+    stats = CombatStats(
         mDef = 15
     ),
     crystalCount = 0

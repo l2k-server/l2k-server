@@ -10,10 +10,6 @@ data class SpawnPosition(
     val y: Int,
     val z: Int,
     val heading: Int = 0
-)
-
-fun SpawnPosition.toPositionAndHeading() = Position(this.x, this.y, this.z) to Heading(this.heading)
-
-fun Position.toSpawnPosition(heading: Heading = Heading(0)) = SpawnPosition(
-    this.x, this.y, this.z, heading.value.toInt()
-) //TODO Перенести в TEST
+) {
+    fun toPositionAndHeading() = Position(this.x, this.y, this.z) to Heading(this.heading)
+}

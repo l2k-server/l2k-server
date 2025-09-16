@@ -4,7 +4,7 @@ import org.l2kserver.game.model.actor.position.Heading
 import org.l2kserver.game.model.actor.position.Position
 import org.l2kserver.game.model.item.template.WeaponType
 import org.l2kserver.game.model.stats.BasicStats
-import org.l2kserver.game.model.stats.Stats
+import org.l2kserver.game.model.stats.CombatStats
 
 /**
  * Game actor (npc, monster, player character, etc.)
@@ -30,7 +30,7 @@ interface ActorInstance: GameWorldObject {
     override val id: Int
     override val position: Position
     override val collisionBox: CollisionBox
-    val stats: Stats
+    val stats: CombatStats
     val basicStats: BasicStats
     val name: String
     val level: Int

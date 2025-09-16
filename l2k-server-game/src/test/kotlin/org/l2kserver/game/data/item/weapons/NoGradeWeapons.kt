@@ -5,7 +5,7 @@ import org.l2kserver.game.model.item.template.Grade
 import org.l2kserver.game.model.item.template.WeaponTemplate
 import org.l2kserver.game.model.item.template.WeaponType
 import org.l2kserver.game.model.item.of
-import org.l2kserver.game.model.stats.Stats
+import org.l2kserver.game.model.stats.CombatStats
 
 val WILLOW_STAFF = WeaponTemplate(
     id = 8,
@@ -18,11 +18,9 @@ val WILLOW_STAFF = WeaponTemplate(
     isDestroyable = true,
     isExchangeable = true,
     type = WeaponType.BLUNT_TWO_HANDED,
-    stats = Stats(
+    stats = CombatStats.ofTwoHandedBlunt(
         pAtk = 11,
-        mAtk = 12,
-        atkSpd = 325,
-        critRate = 40
+        mAtk = 12
     ),
     crystalCount = 0,
     soulshotUsed = 1,
@@ -40,11 +38,9 @@ val DAGGER = WeaponTemplate(
     isDestroyable = true,
     isExchangeable = false,
     type = WeaponType.DAGGER,
-    stats = Stats(
+    stats = CombatStats.ofDagger(
         pAtk = 5,
-        mAtk = 5,
-        atkSpd = 433,
-        critRate = 120
+        mAtk = 5
     ),
     crystalCount = 0,
     soulshotUsed = 1,
@@ -62,11 +58,9 @@ val BOW = WeaponTemplate(
     isDestroyable = true,
     isExchangeable = true,
     type = WeaponType.BOW,
-    stats = Stats(
+    stats = CombatStats.ofBow(
         pAtk = 23,
-        mAtk = 9,
-        atkSpd = 293,
-        critRate = 120
+        mAtk = 9
     ),
     crystalCount = 0,
     soulshotUsed = 1,
@@ -86,11 +80,9 @@ val SQUIRES_SWORD = WeaponTemplate(
     isDestroyable = true,
     isExchangeable = false,
     type = WeaponType.SWORD_ONE_HANDED,
-    stats = Stats(
+    stats = CombatStats.ofOneHandedSword(
         pAtk = 6,
-        mAtk = 5,
-        atkSpd = 379,
-        critRate = 80
+        mAtk = 5
     ),
     crystalCount = 0,
     soulshotUsed = 1,

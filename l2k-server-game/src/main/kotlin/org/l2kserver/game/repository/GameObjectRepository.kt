@@ -53,6 +53,7 @@ class GameObjectRepository: Iterable<GameWorldObject> {
             "No character found by name '$characterName'"
         }
 
+    //TODO This REALLY needs optimisation
     fun findAllNear(gameObject: GameWorldObject) = objectMap.values.filter {
         it.position.isCloseTo(gameObject.position, VISION_RANGE) && it.id != gameObject.id
     }
@@ -61,6 +62,7 @@ class GameObjectRepository: Iterable<GameWorldObject> {
      * Finds all characters near GameObject.
      * @return all the characters near provided GameObject except provided GameObject
      */
+    //TODO This REALLY needs optimisation
     fun findAllCharactersNear(gameObject: GameWorldObject, distance: Int = VISION_RANGE) = objectMap.values.filter {
         it.position.isCloseTo(gameObject.position, distance) && it.id != gameObject.id && it is PlayerCharacter
     }
@@ -69,6 +71,7 @@ class GameObjectRepository: Iterable<GameWorldObject> {
      * Finds all characters near given Position.
      * @return all the characters near provided position
      */
+    //TODO This REALLY needs optimisation
     @Suppress("UNCHECKED_CAST")
     fun findAllCharactersNear(position: Position, distance: Int = VISION_RANGE) = objectMap.values.filter {
         it.position.isCloseTo(position, distance) && it is PlayerCharacter

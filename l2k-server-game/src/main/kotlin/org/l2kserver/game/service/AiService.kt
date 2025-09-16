@@ -42,16 +42,16 @@ class AiService(
 
     private suspend fun performAiAction(npc: Npc) = try {
         npc.ai?.let { ai ->
-            ai.onIdleAction?.let { action -> launchOnIdleAction(npc, action) }
+             launchOnIdleAction(npc, ai::onIdle)
         }
     } catch (e: Throwable) {
         log.error("An error occurred when handling {}'s ai", npc, e)
     }
 
-    private suspend fun launchOnIdleAction(npc: Npc, action: AiIntents.(it: Npc) -> Unit) {
-        if (!asyncTaskService.hasActionByActorId(npc.id)) asyncTaskService.launchAction(npc.id) {
-            val intents = AiIntents().apply { action(this, npc) }
-            performIntendedActions(intents, npc)
+    private suspend fun launchOnIdleAction(npc: Npc, action: (it: Npc) -> AiIntents) {
+        val intents = action(npc)
+        if (!asyncTaskService.hasActionByActorId(npc.id) && intents.isNotEmpty()) {
+            asyncTaskService.launchAction(npc.id) { performIntendedActions(intents, npc) }
         }
     }
 
@@ -68,8 +68,7 @@ class AiService(
                 )
             )
             is MoveIntent -> moveService.move(npc, intent.position)
-            is AttackIntent -> combatService.launchAttack(npc, intent.target.asMutable())
-
+            is AttackIntent -> combatService.attack(npc, intent.target.asMutable())
         }
     }
 

@@ -36,7 +36,7 @@ class ItemEntity(id: EntityID<Int>): IntEntity(id) {
 
         /** Creates new items from provided [initialItems] and assigns it to owner with given [ownerId]. Saves new items to DB */
         fun createAllFrom(ownerId: Int, initialItems: List<InitialItem>) = initialItems.mapNotNull {
-            val itemTemplate = ItemTemplate.Registry.findById(it.id)
+            val itemTemplate = ItemTemplate.Registry.findByIdOrNull(it.id)
 
             if (itemTemplate == null) null
             else new {

@@ -19,7 +19,7 @@ data class Position(
 ) {
 
     companion object {
-        const val ACCEPTABLE_DELTA = 15
+        const val ACCEPTABLE_DELTA = 16 //Equal to geodata cell size
     }
 
     fun deltaX(other: Position) = other.x - this.x
@@ -34,8 +34,9 @@ data class Position(
     fun distanceTo(other: Position): Int {
         val deltaX = deltaX(other).toDouble()
         val deltaY = deltaY(other).toDouble()
+        val deltaZ = deltaZ(other).toDouble()
 
-        return hypot(hypot(deltaX, deltaY), deltaZ(other).toDouble()).roundToInt()
+        return hypot(hypot(deltaX, deltaY), deltaZ).roundToInt()
     }
 
     fun headingTo(other: Position): Heading {
@@ -52,7 +53,9 @@ data class Position(
     /**
      * Returns true if the distance between positions is lesser than provided
      */
-    fun isCloseTo(other: Position, distance: Int = 0) = this.distanceTo(other) <= distance + ACCEPTABLE_DELTA
+    fun isCloseTo(other: Position?, distance: Int = 0) = other?.let {
+        this.distanceTo(it) <= distance + ACCEPTABLE_DELTA
+    } ?: false
 
     /**
      * Calculates position between `this` and [other], which is [distanceToTarget] away from `other`

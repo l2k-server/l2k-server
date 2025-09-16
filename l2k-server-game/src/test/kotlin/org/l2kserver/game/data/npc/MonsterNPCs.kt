@@ -1,6 +1,6 @@
 package org.l2kserver.game.data.npc
 
-import org.l2kserver.game.data.ai.GENERAL_AI
+import org.l2kserver.game.data.ai.GeneralAi
 import org.l2kserver.game.data.character.classes.HUMAN_FIGHTER
 import org.l2kserver.game.model.actor.CollisionBox
 import org.l2kserver.game.model.actor.npc.NpcRace
@@ -9,7 +9,7 @@ import org.l2kserver.game.model.actor.npc.SpawnData
 import org.l2kserver.game.model.reward.Reward
 import org.l2kserver.game.model.reward.RewardItem
 import org.l2kserver.game.model.reward.RewardItemGroup
-import org.l2kserver.game.model.stats.Stats
+import org.l2kserver.game.model.stats.CombatStats
 import org.l2kserver.game.model.zone.Point
 import org.l2kserver.game.model.zone.SpawnZone
 
@@ -22,7 +22,7 @@ val GREMLIN = NpcTemplate(
     isInvulnerable = false,
     race = NpcRace.FAIRIES,
     collisionBox = CollisionBox(10.0, 15.0),
-    stats = Stats(
+    stats = CombatStats(
         maxHp = 62,
         maxMp = 44,
         pAtk = 9,
@@ -60,7 +60,7 @@ val GREMLIN = NpcTemplate(
         respawnDelay = 15_000,
         zones = listOf(SpawnZone(
             name = "Cedric's Training Hall",
-            npcAmount = 10,
+            npcAmount = 15,
             zMin = -3109,
             zMax = -3102,
             vertices = listOf(
@@ -71,5 +71,5 @@ val GREMLIN = NpcTemplate(
             )
         ))
     ),
-    ai = GENERAL_AI
+    ai = GeneralAi
 )

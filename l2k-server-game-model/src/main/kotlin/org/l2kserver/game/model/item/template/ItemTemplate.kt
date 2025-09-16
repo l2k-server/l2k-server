@@ -2,7 +2,7 @@ package org.l2kserver.game.model.item.template
 
 import org.l2kserver.game.model.GameData
 import org.l2kserver.game.model.GameDataRegistry
-import org.l2kserver.game.model.stats.Stats
+import org.l2kserver.game.model.stats.CombatStats
 
 /**
  * Data, common to all items of this type
@@ -44,7 +44,7 @@ sealed interface EquippableItemTemplate: ItemTemplate {
     override val type: ItemType
     override val isStackable: Boolean get() = false
 
-    val stats: Stats
+    val stats: CombatStats
 }
 
 /**

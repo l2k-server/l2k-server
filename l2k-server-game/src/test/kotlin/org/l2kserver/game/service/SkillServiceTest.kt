@@ -12,6 +12,7 @@ import org.l2kserver.game.data.skill.MORTAL_BLOW
 import org.l2kserver.game.data.skill.POWER_STRIKE
 import org.l2kserver.game.domain.SkillsTable
 import org.l2kserver.game.extensions.receiveIgnoring
+import org.l2kserver.game.extensions.toSpawnPosition
 import org.l2kserver.game.handler.dto.request.UseSkillRequest
 import org.l2kserver.game.handler.dto.response.ActionFailedResponse
 import org.l2kserver.game.handler.dto.response.ChangeMoveTypeResponse
@@ -26,7 +27,6 @@ import org.l2kserver.game.handler.dto.response.StatusAttribute
 import org.l2kserver.game.handler.dto.response.SystemMessageResponse
 import org.l2kserver.game.handler.dto.response.UpdateStatusResponse
 import org.l2kserver.game.model.actor.npc.NpcTemplate
-import org.l2kserver.game.model.actor.position.toSpawnPosition
 import org.springframework.beans.factory.annotation.Autowired
 import kotlin.random.Random
 import kotlin.test.Test
@@ -81,7 +81,7 @@ class SkillServiceTest(
 
         // Create our target
         val target = npcService.spawnAtPosition(
-            template = NpcTemplate.Registry.register(GREMLIN),
+            template = NpcTemplate.Registry.register(GREMLIN.copy(ai = null)),
             spawnPosition = character.position.toSpawnPosition()
         )
         context.responseChannel.receive() //Skip NpcInfoResponse
@@ -112,7 +112,7 @@ class SkillServiceTest(
 
         // Create our target
         val target = npcService.spawnAtPosition(
-            template = NpcTemplate.Registry.register(GREMLIN),
+            template = NpcTemplate.Registry.register(GREMLIN.copy(ai = null)),
             spawnPosition = character.position.toSpawnPosition()
         )
 
@@ -182,7 +182,7 @@ class SkillServiceTest(
 
         // Create our target
         val target = npcService.spawnAtPosition(
-            template = NpcTemplate.Registry.register(GREMLIN),
+            template = NpcTemplate.Registry.register(GREMLIN.copy(ai = null)),
             spawnPosition = character.position.toSpawnPosition()
         )
         context.responseChannel.receive() //Skip NpcInfoResponse
@@ -199,8 +199,11 @@ class SkillServiceTest(
         //Consume target stance responses
         assertIs<StartFightingResponse>(context.responseChannel.receive())
         assertIs<ChangeMoveTypeResponse>(context.responseChannel.receive())
+
         assertIs<StartFightingResponse>(context.responseChannel.receive()) //attacker started fighting
-        assertIs<SystemMessageResponse.YouHit>(context.responseChannel.receive())
+        assertIs<SystemMessageResponse.YouHit>(context.responseChannel.receiveIgnoring(
+            SystemMessageResponse.CriticalHit::class))
+
 
         delay(1000)
         // Second skill usage

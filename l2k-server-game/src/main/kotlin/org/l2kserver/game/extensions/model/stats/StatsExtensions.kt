@@ -1,19 +1,14 @@
 package org.l2kserver.game.extensions.model.stats
 
 import org.l2kserver.game.model.actor.PlayerCharacter
-import org.l2kserver.game.model.actor.character.L2kCharacterClass
+import org.l2kserver.game.model.actor.character.CharacterClass
 import org.l2kserver.game.model.item.template.Slot
-import org.l2kserver.game.model.item.template.WeaponType
 import org.l2kserver.game.model.stats.BasicStats
-import org.l2kserver.game.model.stats.Stats
+import org.l2kserver.game.model.stats.CombatStats
 import kotlin.math.pow
 import kotlin.math.roundToInt
 
 private const val MAX_CRIT_RATE = 500
-
-private const val MELEE_WEAPON_DEFAULT_ATTACK_RANGE = 40
-private const val BOW_DEFAULT_ATTACK_RANGE = 450
-
 private const val P_DEF_BASE = 4
 
 /**
@@ -21,12 +16,8 @@ private const val P_DEF_BASE = 4
  *
  * @param character Equipment owner
  */
-fun Stats.applyEquipment(character: PlayerCharacter): Stats {
-    var result = this
-
-    val weaponStats = character.inventory.weapon?.stats ?: character.characterClass.emptySlotStats[Slot.RIGHT_HAND]
-
-    result += weaponStats?.applyDefaultRange(character.inventory.weapon?.type ?: WeaponType.FIST)
+fun CombatStats.applyEquipment(character: PlayerCharacter): CombatStats {
+    var result = this + (character.inventory.weapon?.stats ?: character.characterClass.emptySlotStats[Slot.RIGHT_HAND])
 
     val upperBodyStats = character.inventory[Slot.UPPER_BODY]?.stats ?: character.characterClass.emptySlotStats[Slot.UPPER_BODY]
     val lowerBodyStats = character.inventory[Slot.LOWER_BODY]?.stats ?: character.characterClass.emptySlotStats[Slot.LOWER_BODY]
@@ -50,7 +41,7 @@ fun Stats.applyEquipment(character: PlayerCharacter): Stats {
 /**
  * Calculate stats after applying base stats and level modifiers
  */
-fun Stats.applyModifiers(level: Int, characterClass: L2kCharacterClass, basicStats: BasicStats): Stats {
+fun CombatStats.applyModifiers(level: Int, characterClass: CharacterClass, basicStats: BasicStats): CombatStats {
     val levelModifier = (level + 89) / 100.0
 
     val levelResourceMultiplier = level - characterClass.requiredLevel
@@ -82,22 +73,22 @@ fun Stats.applyModifiers(level: Int, characterClass: L2kCharacterClass, basicSta
         shieldDef = this.shieldDef,
         shieldDefRate = (this.shieldDefRate * basicStats.dex.shieldBlockRateModifier).toInt(),
 
-        hpRegen = (this.hpRegen + hpRegenLevelModifier(level)) * basicStats.con.hpRegenModifier,
-        mpRegen = (this.mpRegen + mpRegenLevelModifier(level)) * basicStats.men.mpRegenModifier,
-        cpRegen = (this.cpRegen + cpRegenLevelModifier(level)) * basicStats.con.cpRegenModifier
+        hpRegen = (this.hpRegen + hpRegenLevelModifier(characterClass, level)) * basicStats.con.hpRegenModifier,
+        mpRegen = (this.mpRegen + mpRegenLevelModifier(characterClass, level)) * basicStats.men.mpRegenModifier,
+        cpRegen = (this.cpRegen + cpRegenLevelModifier(characterClass, level)) * basicStats.con.cpRegenModifier
     )
 }
 
 /**
  * Calculate stats after applying limitations
  */
-fun Stats.applyLimitations(): Stats = this.copy(
+fun CombatStats.applyLimitations(): CombatStats = this.copy(
     critRate = minOf(this.critRate, MAX_CRIT_RATE)
 )
 
-private fun hpRegenLevelModifier(level: Int) = if (level > 10) (level - 1).toDouble() / 10 else 0.5
-private fun mpRegenLevelModifier(level: Int) = 0.3 * ((level - 1).toDouble() / 10)
-private fun cpRegenLevelModifier(level: Int) = hpRegenLevelModifier(level)
+private fun hpRegenLevelModifier(characterClass: CharacterClass, level: Int) = characterClass.hpRegenPer10Levels[level/10]
+private fun mpRegenLevelModifier(characterClass: CharacterClass, level: Int) = characterClass.mpRegenPer10Levels[level/10]
+private fun cpRegenLevelModifier(characterClass: CharacterClass, level: Int) = hpRegenLevelModifier(characterClass, level)
 
 /**
  * Calculate CP, HP pr MP level bonus
@@ -115,14 +106,3 @@ private fun calculateResourceStatLevelBonus(levelMultiplier: Int, addition: Doub
 
     return ((bonusMax + bonusMin) / 2).roundToInt()
 }
-
-/**
- * Applies default attack range for weapon, if it was not provided in template.
- * For melee weapon - 40, for bow - 450.
- */
-private fun Stats.applyDefaultRange(weaponType: WeaponType) = if (this.attackRange == 0) {
-    when (weaponType) {
-        WeaponType.BOW -> this + Stats(attackRange = BOW_DEFAULT_ATTACK_RANGE)
-        else -> this + Stats(attackRange = MELEE_WEAPON_DEFAULT_ATTACK_RANGE)
-    }
-} else this

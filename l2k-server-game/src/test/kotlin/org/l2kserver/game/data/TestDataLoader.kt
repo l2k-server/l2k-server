@@ -35,7 +35,7 @@ import org.l2kserver.game.domain.Shortcut
 import org.l2kserver.game.domain.SkillsTable
 import org.l2kserver.game.extensions.model.shortcut.create
 import org.l2kserver.game.model.actor.character.Gender
-import org.l2kserver.game.model.actor.character.L2kCharacterClass
+import org.l2kserver.game.model.actor.character.CharacterClass
 import org.l2kserver.game.model.actor.character.CharacterRace
 import org.l2kserver.game.model.actor.character.ShortcutType
 import org.l2kserver.game.model.actor.npc.NpcTemplate
@@ -69,7 +69,7 @@ class TestDataLoader(
      * Registers some items for testing
      */
     private fun registerTestData() {
-        L2kCharacterClass.Registry.register(
+        CharacterClass.Registry.register(
             HUMAN_FIGHTER
         )
 

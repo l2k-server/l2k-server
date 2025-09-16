@@ -13,7 +13,7 @@ import org.l2kserver.game.extensions.model.shortcut.createAllFrom
 import org.l2kserver.game.model.actor.PlayerCharacter
 import org.l2kserver.game.model.actor.character.CharacterRace
 import org.l2kserver.game.model.actor.character.Gender
-import org.l2kserver.game.model.actor.character.L2kCharacterClass
+import org.l2kserver.game.model.actor.character.CharacterClass
 import org.springframework.stereotype.Component
 import java.time.LocalDateTime
 
@@ -30,7 +30,7 @@ class PlayerCharacterRepository {
         accountName: String, characterName: String, race: CharacterRace, gender: Gender,
         classId: Int, hairColor: Int, hairStyle: Int, faceType: Int
     ): PlayerCharacter = transaction {
-        val characterClass = requireNotNull(L2kCharacterClass.Registry.findById(classId)) {
+        val characterClass = requireNotNull(CharacterClass.Registry.findByIdOrNull(classId)) {
             "No class with id $classId exists!"
         }
 
@@ -113,7 +113,7 @@ class PlayerCharacterRepository {
     }
 
     private fun PlayerCharacterEntity.toPlayerCharacter(): PlayerCharacter? {
-        val characterClass = L2kCharacterClass.Registry.findById(this.classId)
+        val characterClass = CharacterClass.Registry.findByIdOrNull(this.classId)
         return if (characterClass != null)
             PlayerCharacter(this, characterClass)
         else {

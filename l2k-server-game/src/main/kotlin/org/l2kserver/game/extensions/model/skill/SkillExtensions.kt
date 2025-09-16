@@ -7,7 +7,7 @@ import org.l2kserver.game.domain.SkillsTable
 import org.l2kserver.game.model.skill.SkillTemplate
 import org.l2kserver.game.model.skill.Skill
 
-fun SkillEntity.toSkill() = Skill(this, SkillTemplate.Registry.findById(this.skillId)!!) //TODO in not found?
+fun SkillEntity.toSkill() = Skill(this, SkillTemplate.Registry.findByIdOrNull(this.skillId)!!) //TODO in not found?
 
 fun Skill.Companion.findAllByCharacterIdAndSubclassIndex(characterId: Int, vararg subclassIndices: Int?) = SkillEntity
     .find { (SkillsTable.characterId eq characterId) and (SkillsTable.subclassIndex inList subclassIndices.asList()) }

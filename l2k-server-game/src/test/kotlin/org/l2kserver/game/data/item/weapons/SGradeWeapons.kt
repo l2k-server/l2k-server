@@ -3,7 +3,7 @@ package org.l2kserver.game.data.item.weapons
 import org.l2kserver.game.model.item.template.Grade
 import org.l2kserver.game.model.item.template.WeaponTemplate
 import org.l2kserver.game.model.item.template.WeaponType
-import org.l2kserver.game.model.stats.Stats
+import org.l2kserver.game.model.stats.CombatStats
 
 val DEMON_SPLINTER = WeaponTemplate(
     id = 6371,
@@ -16,11 +16,9 @@ val DEMON_SPLINTER = WeaponTemplate(
     isDestroyable = true,
     isExchangeable = true,
     type = WeaponType.FIST,
-    stats = Stats(
+    stats = CombatStats.ofFist(
         pAtk = 342,
-        mAtk = 132,
-        atkSpd = 325,
-        critRate = 40
+        mAtk = 132
     ),
     crystalCount = 2_440,
     soulshotUsed = 1,
@@ -38,11 +36,9 @@ val HEAVENS_DIVIDER = WeaponTemplate(
     isDestroyable = true,
     isExchangeable = true,
     type = WeaponType.SWORD_TWO_HANDED,
-    stats = Stats(
+    stats = CombatStats.ofTwoHandedSword(
         pAtk = 342,
-        mAtk = 132,
-        atkSpd = 325,
-        critRate = 80
+        mAtk = 132
     ),
     crystalCount = 2_440,
     soulshotUsed = 1,
@@ -60,11 +56,9 @@ val TALLUM_BLADE_DARK_LEGIONS_EDGE = WeaponTemplate(
     isDestroyable = true,
     isExchangeable = true,
     type = WeaponType.DOUBLE_BLADES,
-    stats = Stats(
+    stats = CombatStats.ofDoubleBlades(
         pAtk = 342,
-        mAtk = 132,
-        atkSpd = 325,
-        critRate = 80
+        mAtk = 132
     ),
     crystalCount = 2_440,
     soulshotUsed = 1,

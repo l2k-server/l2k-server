@@ -25,6 +25,7 @@ import org.l2kserver.game.model.actor.ActorInstance
 import org.l2kserver.game.model.actor.CollisionBox
 import org.l2kserver.game.model.actor.position.Position
 import org.l2kserver.game.model.actor.GameWorldObject
+import org.l2kserver.game.model.actor.MoveType
 import org.l2kserver.game.model.actor.MutableActorInstance
 import org.l2kserver.game.model.actor.PlayerCharacter
 import org.l2kserver.game.network.session.send
@@ -36,6 +37,7 @@ import org.springframework.stereotype.Service
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.coroutines.coroutineContext
 import kotlin.math.hypot
+import kotlin.math.roundToInt
 
 private const val ROTATE_SPEED_PER_SEC = 65536
 
@@ -57,7 +59,7 @@ class MoveService(
 
     override val log = logger()
 
-    private val movingActors = ConcurrentHashMap<ActorInstance, DestinationPoint>()
+    private val movingCharacters = ConcurrentHashMap<ActorInstance, DestinationPoint>()
 
     /** Handle request to move character to some destination point */
     suspend fun moveCharacter(request: MoveRequest) {
@@ -72,7 +74,15 @@ class MoveService(
             if (request.byMouse) "by mouse" else "by arrows"
         )
 
-        move(character, request.targetPosition)
+        var destination = movingCharacters[character]
+        if (destination != null) destination.position = request.targetPosition
+        else {
+            destination = DestinationPoint(request.targetPosition)
+            movingCharacters[character] = destination
+            asyncTaskService
+                .launchAction(character.id)  { move(character, destination) }
+                .invokeOnCompletion { movingCharacters.remove(character) }
+        }
     }
 
     /**
@@ -106,15 +116,7 @@ class MoveService(
      * This suspending function is `cancellable`
      */
     suspend fun move(actor: MutableActorInstance, position: Position) {
-        var destination = movingActors[actor]
-        if (destination != null) destination.position = position
-        else {
-            destination = DestinationPoint(position)
-            movingActors[actor] = destination
-            asyncTaskService
-                .launchAction(actor.id)  { move(actor, destination) }
-                .invokeOnCompletion { movingActors.remove(actor) }
-        }
+        move(actor, DestinationPoint(position))
     }
 
     /** Moves [actor] to [target] by specified [requiredDistance] */
@@ -132,9 +134,10 @@ class MoveService(
         try {
             var moveTimestamp = System.currentTimeMillis()
             var previousTargetPosition: Position? = null
-            lateinit var destination: Position
+            var destination: Position? = null
 
-            while (coroutineContext.isActive && target.exists()) {
+            var moveIterations = 0
+            while (coroutineContext.isActive && target.exists() && !actor.position.isCloseTo(destination)) {
                 val startUpdatingPositionTimestamp = System.currentTimeMillis()
 
                 if (actor.isImmobilized) {
@@ -156,11 +159,22 @@ class MoveService(
                     turningJob = launchTurning(actor, target.position)
                 }
 
-                if (updatePosition(actor, destination, System.currentTimeMillis() - moveTimestamp)) break
+                //Time since last position update
+                val moveTime = System.currentTimeMillis() - moveTimestamp
+
+                //Moving must be walking at first 0.5 second (5 move iterations)
+                val moveSpeed = if ( moveIterations++ < 10 || actor.moveType == MoveType.WALK)
+                    actor.stats.walkSpeed
+                else actor.stats.speed
+
+                //The path traveled since the last update
+                val moveDistance = moveSpeed.toDouble() / 1000 * moveTime
+
+                updatePosition(actor, destination!!, moveDistance)
                 moveTimestamp = System.currentTimeMillis()
 
                 //Sleep for 1 tick minus time of updating operation
-                delay(GameTime.MILLIS_IN_TICK - (System.currentTimeMillis() - startUpdatingPositionTimestamp))
+                delay(GameTime.MILLIS_IN_TICK/2 - (System.currentTimeMillis() - startUpdatingPositionTimestamp))
             }
             turningJob.join()
             log.trace("Actor '{}' has arrived to target '{}' on distance '{}'", actor, target, requiredDistance)
@@ -228,19 +242,18 @@ class MoveService(
     }
 
     /**
-     * Updates [actor]'s position after [movingTimeMillis] time moving
+     * Updates [actor]'s position after moving for [moving]
      *
      * @param actor Character, that moves
      * @param destination Destination position
-     * @param movingTimeMillis How much time character was moving (in millis)
+     * @param moving Path traveled since last update
      *
      * @return True if actor arrived to position, false - if not
      */
-    private suspend fun updatePosition(actor: MutableActorInstance, destination: Position, movingTimeMillis: Long): Boolean {
+    private suspend fun updatePosition(
+        actor: MutableActorInstance, destination: Position, moving: Double
+    ) {
         val gameObjectsAround = gameObjectRepository.findAllNear(gameObjectRepository.findById(actor.id))
-
-        //Checking this at the beginning of position updating gives one more tick to move to emulate moving properly
-        if (actor.position.isCloseTo(destination)) return true
 
         val deltaX = actor.position.deltaX(destination).toDouble()
         val deltaY = actor.position.deltaY(destination).toDouble()
@@ -249,13 +262,10 @@ class MoveService(
         val sin = deltaY / distanceXY
         val cos = deltaX / distanceXY
 
-        //The path traveled since the last update
-        val moving = actor.moveSpeed.toDouble() / 1000 * movingTimeMillis
-
         // minOf prevents jumping around destination point if speed is too big
         // and moving is greater than way to go
-        val newX = (minOf(moving, distanceXY) * cos).toInt() + actor.position.x
-        val newY = (minOf(moving, distanceXY) * sin).toInt() + actor.position.y
+        val newX = (minOf(moving, distanceXY) * cos).roundToInt() + actor.position.x
+        val newY = (minOf(moving, distanceXY) * sin).roundToInt() + actor.position.y
         val newZ = geoDataService.getNearestZ(newX, newY, actor.position.z)
 
         val newPosition = actor.position.copy(x = newX, y = newY, z = newZ)
@@ -271,8 +281,6 @@ class MoveService(
         if (actor is PlayerCharacter && actor.position.deltaZ(newPosition) < -Position.ACCEPTABLE_DELTA) {
             send(ValidatePositionResponse(actor.id, newPosition, actor.heading))
         }
-
-        return false
     }
 
     /**
@@ -283,6 +291,7 @@ class MoveService(
      * @param destination Destination position of actor's moving.
      * If null, no StartMovingResponse will be sent to new players, who see this actor
      */
+    //TODO This REALLY needs optimisation
     private suspend fun updateObjectsAround(
         prevGameObjectsAround: List<GameWorldObject>,
         actor: MutableActorInstance,

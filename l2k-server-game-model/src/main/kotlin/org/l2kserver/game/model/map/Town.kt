@@ -34,7 +34,7 @@ data class Town(
          * or [defaultSpawnPosition] if no town was found by the territory or [teleportCriminalsTo] id
          */
         fun getRandomSpawnPointByPosition(position: Position, isOutlaw: Boolean = false) =
-            (if (isOutlaw) findById(teleportCriminalsTo)
+            (if (isOutlaw) findByIdOrNull(teleportCriminalsTo)
             else findClosestByPosition(position))
             ?.spawnPositions?.random() ?: defaultSpawnPosition
 

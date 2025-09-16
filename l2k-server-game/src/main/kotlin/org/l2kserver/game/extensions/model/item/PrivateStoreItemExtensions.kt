@@ -50,8 +50,8 @@ fun RequestedToSellItem.toItemOnSale(owner: PlayerCharacter): ItemOnSale = trans
 
 fun RequestedToBuyItem.toItemInWishList(ownerId: Int): ItemInWishList = transaction {
     val requestedItem = this@toItemInWishList
-    val itemTemplate = requireNotNull(ItemTemplate.Registry.findById(requestedItem.templateId)) {
-        "No item template found by id ${requestedItem.templateId}" //TODO Nullable
+    val itemTemplate = requireNotNull(ItemTemplate.Registry.findByIdOrNull(requestedItem.templateId)) {
+        "No item template found by id ${requestedItem.templateId}"
     }
     require(itemTemplate.isSellable) { "Player '$ownerId' is trying to buy non-sellable item in private store (buy)!" }
 

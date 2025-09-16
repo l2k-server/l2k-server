@@ -8,7 +8,7 @@ import org.l2kserver.game.model.item.template.Grade
 import org.l2kserver.game.model.item.template.ItemGroup
 import org.l2kserver.game.model.item.template.WeaponTemplate
 import org.l2kserver.game.model.item.template.WeaponType
-import org.l2kserver.game.model.stats.Stats
+import org.l2kserver.game.model.stats.CombatStats
 
 private const val WEAPON_SAFE_ENCHANT_LEVEL = 3
 private const val WEAPON_UNSAFE_ENCHANT_BONUS_MULTIPLIER = 2
@@ -72,7 +72,7 @@ class Weapon(
 
     override fun toString() = "Weapon(name=$name id=$id enchantLevel=$enchantLevel)"
 
-    override val stats: Stats get() {
+    override val stats: CombatStats get() {
         val (pAtkPerEnchantBonus, mAtkPerEnchantBonus) = when (grade) {
             Grade.NO_GRADE -> 0 to 0
             Grade.D -> when (type) {
@@ -80,7 +80,7 @@ class Weapon(
                 else -> WEAPON_D_GRADE_PER_ENCHANT_P_ATK_BONUS to WEAPON_D_GRADE_PER_ENCHANT_M_ATK_BONUS
             }
             Grade.C, Grade.B -> when (type) {
-                WeaponType.DAGGER, WeaponType.SWORD_ONE_HANDED, WeaponType.BLUNT_ONE_HANDED, WeaponType.POLE ->
+                WeaponType.DAGGER, WeaponType.SWORD_ONE_HANDED, WeaponType.BLUNT_ONE_HANDED, WeaponType.POLE, WeaponType.ETC ->
                     ONE_HANDED_WEAPON_C_B_GRADE_PER_ENCHANT_P_ATK_BONUS to WEAPON_C_B_GRADE_PER_ENCHANT_M_ATK_BONUS
                 WeaponType.SWORD_TWO_HANDED, WeaponType.BLUNT_TWO_HANDED, WeaponType.DOUBLE_BLADES, WeaponType.FIST ->
                     TWO_HANDED_WEAPON_C_B_GRADE_PER_ENCHANT_P_ATK_BONUS to WEAPON_C_B_GRADE_PER_ENCHANT_M_ATK_BONUS
@@ -88,7 +88,7 @@ class Weapon(
                     BOW_C_B_GRADE_PER_ENCHANT_P_ATK_BONUS to WEAPON_C_B_GRADE_PER_ENCHANT_M_ATK_BONUS
             }
             Grade.A -> when (type) {
-                WeaponType.DAGGER, WeaponType.SWORD_ONE_HANDED, WeaponType.BLUNT_ONE_HANDED, WeaponType.POLE ->
+                WeaponType.DAGGER, WeaponType.SWORD_ONE_HANDED, WeaponType.BLUNT_ONE_HANDED, WeaponType.POLE, WeaponType.ETC ->
                     ONE_HANDED_WEAPON_A_GRADE_PER_ENCHANT_P_ATK_BONUS to WEAPON_A_GRADE_PER_ENCHANT_M_ATK_BONUS
                 WeaponType.SWORD_TWO_HANDED, WeaponType.BLUNT_TWO_HANDED, WeaponType.DOUBLE_BLADES, WeaponType.FIST ->
                     TWO_HANDED_WEAPON_A_GRADE_PER_ENCHANT_P_ATK_BONUS to WEAPON_A_GRADE_PER_ENCHANT_M_ATK_BONUS
@@ -96,7 +96,7 @@ class Weapon(
                     BOW_A_GRADE_PER_ENCHANT_P_ATK_BONUS to WEAPON_A_GRADE_PER_ENCHANT_M_ATK_BONUS
             }
             Grade.S -> when (type) {
-                WeaponType.DAGGER, WeaponType.SWORD_ONE_HANDED, WeaponType.BLUNT_ONE_HANDED, WeaponType.POLE ->
+                WeaponType.DAGGER, WeaponType.SWORD_ONE_HANDED, WeaponType.BLUNT_ONE_HANDED, WeaponType.POLE, WeaponType.ETC ->
                     ONE_HANDED_WEAPON_S_GRADE_PER_ENCHANT_P_ATK_BONUS to WEAPON_S_GRADE_PER_ENCHANT_M_ATK_BONUS
                 WeaponType.SWORD_TWO_HANDED, WeaponType.BLUNT_TWO_HANDED, WeaponType.DOUBLE_BLADES, WeaponType.FIST ->
                     TWO_HANDED_WEAPON_S_GRADE_PER_ENCHANT_P_ATK_BONUS to WEAPON_S_GRADE_PER_ENCHANT_M_ATK_BONUS

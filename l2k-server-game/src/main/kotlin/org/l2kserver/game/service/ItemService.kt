@@ -189,7 +189,7 @@ class ItemService(
      * random position in [DROP_REWARD_DISTANCE] radius and drops it by [dropper]
      */
     suspend fun dropRewardItem(item: RewardItem, dropper: ActorInstance) {
-        val template = ItemTemplate.Registry.findById(item.id) ?: run {
+        val template = ItemTemplate.Registry.findByIdOrNull(item.id) ?: run {
             log.warn("No item template found by id {}", item.id)
             return
         }
@@ -306,17 +306,19 @@ class ItemService(
     }
 
     private suspend fun toggleSoulshotAutoUsage(character: PlayerCharacter, soulshot: Soulshot) {
+        val weapon = character.inventory.weapon ?: run {
+            send(SystemMessageResponse.CannotUseSoulshot)
+            return
+        }
+
+        if (!weapon.canUseSoulshot(soulshot)) return
+
         character.autoUsesSoulshot?.let {
             send(SystemMessageResponse.AutomaticUseDeactivated(it))
             send(AutoUseSsResponse(it.templateId, enabled = false))
 
             character.autoUsesSoulshot = null
-            return
-        }
-
-        val weapon = character.inventory.weapon ?: run {
-            send(SystemMessageResponse.CannotUseSoulshot)
-            return
+            if (it == soulshot) return
         }
 
         useSoulshot(character, soulshot)

@@ -1,7 +1,7 @@
 package org.l2kserver.game.model.item.template
 
 import org.l2kserver.game.model.item.ConsumableItem
-import org.l2kserver.game.model.stats.Stats
+import org.l2kserver.game.model.stats.CombatStats
 import kotlin.random.Random
 
 data class WeaponTemplate(
@@ -15,7 +15,7 @@ data class WeaponTemplate(
     override val isDestroyable: Boolean,
     override val isExchangeable: Boolean,
     override val type: WeaponType,
-    override val stats: Stats,
+    override val stats: CombatStats,
     override val crystalCount: Int,
 
     val soulshotUsed: Int,
@@ -58,7 +58,10 @@ enum class WeaponType(override val availableSlots: Set<Slot>, val damageSpread: 
     FIST(setOf(Slot.TWO_HANDS), 0.05),
 
     /** Pole weapon type */
-    POLE(setOf(Slot.TWO_HANDS), 0.1);
+    POLE(setOf(Slot.TWO_HANDS), 0.1),
+
+    /** Etc weapon type (magic books, etc.) */
+    ETC(setOf(Slot.TWO_HANDS), 0.1);
 
     fun calculateRandomDamageModifier() = 1.0 + this.damageSpread.let { Random.nextDouble(-it, it) }
 }

@@ -82,7 +82,7 @@ class RewardService(
      * Calculates item drops
      */
     private suspend fun manageItemRewards(killed: Npc) {
-        val mostValuableDamager = killed.opponentsDamage.maxBy { (_, damage) -> damage }.key
+        val mostValuableDamager = killed.opponents.maxBy { (_, damage) -> damage }.key
         if (mostValuableDamager is Npc) return
 
         for (itemGroup in killed.reward.itemGroups) {
@@ -95,9 +95,9 @@ class RewardService(
      * Calculates exp and sp gain for all the attackers by level difference and damage dealt, and applies it to killer
      */
     private suspend fun manageExpAndSpGain(killer: PlayerCharacter, killed: Npc, overhitDamage: Int) {
-        val allTheDamageReceived = killed.opponentsDamage.values.reduce { acc, i -> acc + i }
+        val allTheDamageReceived = killed.opponents.values.reduce { acc, i -> acc + i }
 
-        for ((attacker: ActorInstance, damage: Int) in killed.opponentsDamage) {
+        for ((attacker: ActorInstance, damage: Int) in killed.opponents) {
             //TODO Manage damage dealt by pets and summons
             //TODO Share reward between party members
             //TODO Manage sp share between parties and solo players, who hit this monster
