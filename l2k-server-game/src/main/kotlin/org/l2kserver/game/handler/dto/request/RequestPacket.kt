@@ -44,6 +44,8 @@ fun RequestPacket(data: ByteArray): RequestPacket {
 
         MOVE_REQUEST_PACKET_ID -> MoveRequest(buffer)
         VALIDATE_POSITION_REQUEST_PACKET_ID -> ValidatePositionRequest(buffer)
+        START_ROTATION_REQUEST_PACKET_ID -> StartRotationRequest(buffer)
+        STOP_ROTATION_REQUEST_PACKET_ID -> StopRotationRequest(buffer)
 
         ATTACK_REQUEST_PACKET_ID -> AttackRequest(buffer)
         ACTION_REQUEST_PACKET_ID -> ActionRequest(buffer)

@@ -41,7 +41,7 @@ val DAGGER = WeaponTemplate(
     stats = CombatStats.ofDagger(
         pAtk = 5,
         mAtk = 5
-    ),
+    ).copy(speed = 600),
     crystalCount = 0,
     soulshotUsed = 1,
     spiritshotUsed = 1

@@ -15,7 +15,7 @@ private const val MAX_DISTANCE_FROM_SPAWN = 150
 object GeneralAi: Ai {
 
     override fun onIdle(npc: NpcInstance) = aiIntents {
-        if (Random.nextInt(1_000) < 10) {
+        if (Random.nextInt(100) < 5) {
             //Move to random point at the WANDERING_DISTANCE distance
             val degree = Math.toRadians(Random.nextDouble(0.0, 360.0))
             val sin = sin(degree)

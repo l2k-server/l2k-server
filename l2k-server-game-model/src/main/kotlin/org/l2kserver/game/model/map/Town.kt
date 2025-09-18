@@ -39,12 +39,10 @@ data class Town(
             ?.spawnPositions?.random() ?: defaultSpawnPosition
 
         /** Finds town, which is closest to the [position] */
-        fun findClosestByPosition(position: Position): Town? {
-            val tileX = (position.x shr 0xF) + 20
-            val tileY = (position.y shr 0xF) + 18
-
-            return this.find { it.territories.contains("${tileX}_${tileY}") }
+        fun findClosestByPosition(position: Position) = this.find {
+            it.territories.contains("${position.getTileX()}_${position.getTileY()}")
         }
+
     }
 
 }

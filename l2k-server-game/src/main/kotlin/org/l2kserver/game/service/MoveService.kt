@@ -7,18 +7,17 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
-import org.l2kserver.game.model.extensions.forEachMatching
 import org.l2kserver.game.extensions.logger
-import org.l2kserver.game.extensions.model.actor.toInfoResponse
 import org.l2kserver.game.handler.dto.request.MoveRequest
+import org.l2kserver.game.handler.dto.request.StartRotationRequest
+import org.l2kserver.game.handler.dto.request.StopRotationRequest
 import org.l2kserver.game.handler.dto.request.ValidatePositionRequest
 import org.l2kserver.game.handler.dto.response.ActionFailedResponse
 import org.l2kserver.game.handler.dto.response.ArrivedResponse
-import org.l2kserver.game.handler.dto.response.DeleteObjectResponse
-import org.l2kserver.game.handler.dto.response.PrivateStoreSellSetMessageResponse
-import org.l2kserver.game.handler.dto.response.SetTargetResponse
 import org.l2kserver.game.handler.dto.response.StartMovingResponse
 import org.l2kserver.game.handler.dto.response.StartMovingToTargetResponse
+import org.l2kserver.game.handler.dto.response.StartRotationResponse
+import org.l2kserver.game.handler.dto.response.StopRotationResponse
 import org.l2kserver.game.handler.dto.response.TeleportResponse
 import org.l2kserver.game.handler.dto.response.ValidatePositionResponse
 import org.l2kserver.game.model.actor.ActorInstance
@@ -37,14 +36,13 @@ import org.springframework.stereotype.Service
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.coroutines.coroutineContext
 import kotlin.math.hypot
-import kotlin.math.roundToInt
 
 private const val ROTATE_SPEED_PER_SEC = 65536
 
 /** Fake GameWorldObject, representing moving destination point */
 private data class DestinationPoint(
     override var position: Position
-): GameWorldObject {
+) : GameWorldObject {
     override val id = 0
     override val collisionBox = CollisionBox()
 }
@@ -59,6 +57,7 @@ class MoveService(
 
     override val log = logger()
 
+    //Key - moving actor, value - move target
     private val movingCharacters = ConcurrentHashMap<ActorInstance, DestinationPoint>()
 
     /** Handle request to move character to some destination point */
@@ -71,7 +70,7 @@ class MoveService(
             context.getAccountName(),
             character.name,
             request.targetPosition,
-            if (request.byMouse) "by mouse" else "by arrows"
+            if (request.byMouse) "by mouse" else "by arrow keys"
         )
 
         var destination = movingCharacters[character]
@@ -80,7 +79,7 @@ class MoveService(
             destination = DestinationPoint(request.targetPosition)
             movingCharacters[character] = destination
             asyncTaskService
-                .launchAction(character.id)  { move(character, destination) }
+                .launchAction(character.id) { move(character, destination) }
                 .invokeOnCompletion { movingCharacters.remove(character) }
         }
     }
@@ -108,6 +107,20 @@ class MoveService(
             log.trace("Difference is too big, modifying position at client side")
             send(ValidatePositionResponse(character.id, character.position, character.heading))
         }
+    }
+
+    suspend fun startRotation(request: StartRotationRequest) {
+        val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
+        broadcastPacket(
+            StartRotationResponse(character.id, request.currentHeading, request.rotationDirection),
+            character.position
+        )
+    }
+
+    suspend fun stopRotation(request: StopRotationRequest) {
+        val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
+        character.heading = request.heading
+        broadcastPacket(StopRotationResponse(character.id, character.heading), character.position)
     }
 
     /**
@@ -162,19 +175,22 @@ class MoveService(
                 //Time since last position update
                 val moveTime = System.currentTimeMillis() - moveTimestamp
 
-                //Moving must be walking at first 0.5 second (5 move iterations)
-                val moveSpeed = if ( moveIterations++ < 10 || actor.moveType == MoveType.WALK)
+                //Moving must be walking for the first 0.5 second (5 move iterations)
+                val moveSpeed = if (moveIterations++ < 5 || actor.moveType == MoveType.WALK)
                     actor.stats.walkSpeed
                 else actor.stats.speed
 
                 //The path traveled since the last update
                 val moveDistance = moveSpeed.toDouble() / 1000 * moveTime
 
-                updatePosition(actor, destination!!, moveDistance)
+                //Update objects only each 10 move iterations (~1 second) - it is very heavy operation
+                val updateObjects = (moveIterations % 10) == 0
+
+                updatePosition(actor,destination!!, moveDistance, updateObjects)
                 moveTimestamp = System.currentTimeMillis()
 
                 //Sleep for 1 tick minus time of updating operation
-                delay(GameTime.MILLIS_IN_TICK/2 - (System.currentTimeMillis() - startUpdatingPositionTimestamp))
+                delay(GameTime.MILLIS_IN_TICK - (System.currentTimeMillis() - startUpdatingPositionTimestamp))
             }
             turningJob.join()
             log.trace("Actor '{}' has arrived to target '{}' on distance '{}'", actor, target, requiredDistance)
@@ -184,6 +200,7 @@ class MoveService(
             log.error("An error occurred while trying to update position of character '{}'", actor, e)
         } finally {
             actor.isMoving = false
+            updateObjectsAround(actor)
             broadcastPacket(ArrivedResponse(actor.id, actor.position, actor.heading), actor.position)
         }
     }
@@ -193,25 +210,26 @@ class MoveService(
      */
     // Turning must be async because character turns and moves/attacks simultaneously
     // Client shows turning by itself, so there is no need to send some responses here
-    suspend fun launchTurning(actor: MutableActorInstance, targetPosition: Position) = CoroutineScope(coroutineContext).launch {
-        log.trace("Started turning actor '{}' to target position '{}'", actor, targetPosition)
-        val newHeading = actor.position.headingTo(targetPosition)
+    suspend fun launchTurning(actor: MutableActorInstance, targetPosition: Position) =
+        CoroutineScope(coroutineContext).launch {
+            log.trace("Started turning actor '{}' to target position '{}'", actor, targetPosition)
+            val newHeading = actor.position.headingTo(targetPosition)
 
-        while (isActive && actor.heading != newHeading) {
-            newSuspendedTransaction {
-                val deltaHeading = (newHeading - actor.heading).toShort().toInt()
+            while (isActive && actor.heading != newHeading) {
+                newSuspendedTransaction {
+                    val deltaHeading = (newHeading - actor.heading).toShort().toInt()
 
-                val rotation = if (deltaHeading > 0)
-                    minOf((ROTATE_SPEED_PER_SEC / 1000 * GameTime.MILLIS_IN_TICK).toInt(), deltaHeading)
-                else maxOf((-ROTATE_SPEED_PER_SEC / 1000 * GameTime.MILLIS_IN_TICK).toInt(), deltaHeading)
+                    val rotation = if (deltaHeading > 0)
+                        minOf((ROTATE_SPEED_PER_SEC / 1000 * GameTime.MILLIS_IN_TICK).toInt(), deltaHeading)
+                    else maxOf((-ROTATE_SPEED_PER_SEC / 1000 * GameTime.MILLIS_IN_TICK).toInt(), deltaHeading)
 
-                actor.heading += rotation
+                    actor.heading += rotation
+                }
+
+                delay(GameTime.MILLIS_IN_TICK)
             }
-
-            delay(GameTime.MILLIS_IN_TICK)
+            log.trace("Successfully turned actor '{}' to target position '{}'", actor, targetPosition)
         }
-        log.trace("Successfully turned actor '{}' to target position '{}'", actor, targetPosition)
-    }
 
     /**
      * Teleports [actor] to [targetPosition]
@@ -226,35 +244,27 @@ class MoveService(
 
         //TODO Checks if player can teleport ???
         sendTo(actor.id, TeleportResponse(actor.id, fixedPosition))
-        broadcastPacket(DeleteObjectResponse(actor.id), actor)
-
-        actor.targetedBy.forEach { gameObjectRepository.findActorById(it.id).targetId = null }
-        actor.targetedBy.clear()
-        actor.targetId = null
 
         // Imitate teleporting process. Client validates position after disappearance animation ends,
         // so it will break if position will change immediately
         delay(1000)
 
         newSuspendedTransaction { actor.position = fixedPosition }
-        broadcastActorInfo(actor)
-        gameObjectRepository.findAllNear(actor).forEach { sendTo(actor.id, it.toInfoResponse()) }
+        updateObjectsAround(actor)
     }
 
     /**
-     * Updates [actor]'s position after moving for [moving]
+     * Updates [actor]'s position after moving for [moveDistance]
      *
      * @param actor Character, that moves
      * @param destination Destination position
-     * @param moving Path traveled since last update
+     * @param moveDistance Path traveled since last update
      *
      * @return True if actor arrived to position, false - if not
      */
     private suspend fun updatePosition(
-        actor: MutableActorInstance, destination: Position, moving: Double
+        actor: MutableActorInstance, destination: Position, moveDistance: Double, updateObjects: Boolean
     ) {
-        val gameObjectsAround = gameObjectRepository.findAllNear(gameObjectRepository.findById(actor.id))
-
         val deltaX = actor.position.deltaX(destination).toDouble()
         val deltaY = actor.position.deltaY(destination).toDouble()
 
@@ -264,8 +274,8 @@ class MoveService(
 
         // minOf prevents jumping around destination point if speed is too big
         // and moving is greater than way to go
-        val newX = (minOf(moving, distanceXY) * cos).roundToInt() + actor.position.x
-        val newY = (minOf(moving, distanceXY) * sin).roundToInt() + actor.position.y
+        val newX = (minOf(moveDistance, distanceXY) * cos).toInt() + actor.position.x
+        val newY = (minOf(moveDistance, distanceXY) * sin).toInt() + actor.position.y
         val newZ = geoDataService.getNearestZ(newX, newY, actor.position.z)
 
         val newPosition = actor.position.copy(x = newX, y = newY, z = newZ)
@@ -273,7 +283,7 @@ class MoveService(
         actor.position = newPosition
         log.trace("Updated position of actor '{}' to '{}'", actor, newPosition)
 
-        updateObjectsAround(gameObjectsAround, actor, destination)
+        if (updateObjects) updateObjectsAround(actor, destination)
 
         //CRUTCH
         // If Z becomes lower too fast, send ValidatePositionResponse with actual position,
@@ -283,60 +293,7 @@ class MoveService(
         }
     }
 
-    /**
-     * Sends information about new appeared objects and notifies characters about moving
-     *
-     * @param prevGameObjectsAround List of previously noticed objects
-     * @param actor Moving actor
-     * @param destination Destination position of actor's moving.
-     * If null, no StartMovingResponse will be sent to new players, who see this actor
-     */
-    //TODO This REALLY needs optimisation
-    private suspend fun updateObjectsAround(
-        prevGameObjectsAround: List<GameWorldObject>,
-        actor: MutableActorInstance,
-        destination: Position? = null
-    ) {
-        val newGameObjectsAround = gameObjectRepository.findAllNear(actor)
-
-        // For all game objects that are now too far to see them
-        prevGameObjectsAround.forEachMatching({ !newGameObjectsAround.contains(it) }) {
-            send(DeleteObjectResponse(it.id))
-
-            if (actor is PlayerCharacter && actor.targetId == it.id) {
-                actor.targetId = null
-                if (it is MutableActorInstance) it.targetedBy.remove(actor)
-                send(SetTargetResponse(0, 0))
-            }
-
-            if (it is PlayerCharacter) {
-                sendTo(it.id, DeleteObjectResponse(actor.id))
-
-                if (it.targetId == actor.id) {
-                    it.targetId = null
-                    actor.targetedBy.remove(it)
-                    sendTo(it.id, SetTargetResponse(0, 0))
-                }
-            }
-        }
-
-        // For all game objects that are now enough close to see them
-        newGameObjectsAround.forEachMatching({ !prevGameObjectsAround.contains(it) }) {
-            send(it.toInfoResponse())
-
-            if (it is PlayerCharacter) {
-                sendTo(it.id, actor.toInfoResponse())
-                destination?.let { destination ->
-                    sendTo(it.id, StartMovingResponse(actor.id, actor.position, destination))
-                }
-                it.privateStore?.let { store ->
-                    broadcastPacket(PrivateStoreSellSetMessageResponse(it.id, store.title), it.position)
-                }
-            }
-        }
-    }
-
     private fun GameWorldObject.exists() = if (this is DestinationPoint) true
-        else (gameObjectRepository.existsById(this.id))
+    else (gameObjectRepository.existsById(this.id))
 
 }

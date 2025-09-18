@@ -27,19 +27,15 @@ import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransacti
 import org.l2kserver.game.domain.AccessLevel
 import org.l2kserver.game.model.map.Town
 import org.l2kserver.game.domain.Shortcut
-import org.l2kserver.game.extensions.model.actor.toInfoResponse
 import org.l2kserver.game.extensions.model.shortcut.findAllBy
-import org.l2kserver.game.extensions.model.store.toMessageResponse
 import org.l2kserver.game.handler.dto.request.RespawnAt
 import org.l2kserver.game.handler.dto.request.RespawnRequest
 import org.l2kserver.game.handler.dto.response.ChangePostureResponse
-import org.l2kserver.game.handler.dto.response.CharacterInfoResponse
 import org.l2kserver.game.handler.dto.response.DeleteObjectResponse
 import org.l2kserver.game.handler.dto.response.ExitGameResponse
 import org.l2kserver.game.handler.dto.response.FullCharacterResponse
 import org.l2kserver.game.handler.dto.response.InventoryResponse
 import org.l2kserver.game.handler.dto.response.PlayerDiedResponse
-import org.l2kserver.game.handler.dto.response.PvPStatusResponse
 import org.l2kserver.game.handler.dto.response.RestartResponse
 import org.l2kserver.game.handler.dto.response.ReviveResponse
 import org.l2kserver.game.handler.dto.response.ShortcutPanelResponse
@@ -51,7 +47,6 @@ import org.l2kserver.game.model.actor.character.CharacterRace
 import org.l2kserver.game.model.actor.character.Gender
 import org.l2kserver.game.network.session.SessionContext
 import org.l2kserver.game.network.session.send
-import org.l2kserver.game.network.session.sendTo
 import org.l2kserver.game.network.session.sessionContext
 import org.l2kserver.game.repository.GameObjectRepository
 import org.l2kserver.game.repository.PlayerCharacterRepository
@@ -291,19 +286,8 @@ class CharacterService(
 
         if (character.isDead()) send(PlayerDiedResponse(character))
 
-        gameObjectRepository.findAllNear(character).forEach {
-            send(it.toInfoResponse())
-
-            if (it is PlayerCharacter) {
-                sendTo(it.id, CharacterInfoResponse(character))
-                it.privateStore?.let { store -> send(store.toMessageResponse(it.id)) }
-
-                if (it.isEnemyOf(character)) {
-                    sendTo(it.id, PvPStatusResponse(character))
-                    send(PvPStatusResponse(it))
-                }
-            }
-        }
+        updateObjectsAround(character)
+        send(SystemMessageResponse("${character.position.getTileX()}_${character.position.getTileY()}"))
 
         log.info("Player {} has entered world with character {}", accountName, character.name)
     }
