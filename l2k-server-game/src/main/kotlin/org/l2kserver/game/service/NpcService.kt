@@ -7,11 +7,9 @@ import kotlinx.coroutines.launch
 import org.l2kserver.game.extensions.logger
 import org.l2kserver.game.extensions.model.actor.toNpc
 import org.l2kserver.game.handler.dto.response.NpcChatWindowResponse
-import org.l2kserver.game.model.actor.position.Position
 import org.l2kserver.game.model.actor.Npc
 import org.l2kserver.game.repository.GameObjectRepository
 import org.l2kserver.game.model.actor.npc.NpcTemplate
-import org.l2kserver.game.extensions.model.actor.toInfoResponse
 import org.l2kserver.game.handler.dto.response.DeleteObjectResponse
 import org.l2kserver.game.model.actor.npc.SpawnedAt
 import org.l2kserver.game.model.actor.position.Heading
@@ -64,6 +62,7 @@ class NpcService(
     suspend fun handleNpcDeath(npc: Npc) = CoroutineScope(Dispatchers.Default).launch {
         //Delete corpse from game world after delay
         delay(CORPSE_DISAPPEARANCE_DELAY_MS)
+
         broadcastPacket(DeleteObjectResponse(npc.id), npc)
         gameObjectRepository.delete(npc)
 
@@ -103,17 +102,7 @@ class NpcService(
      * @return Spawned NPC
      */
     suspend fun spawnAtZone(template: NpcTemplate, zone: SpawnZone): Npc {
-        lateinit var position: Position
-        do {
-            position = geoDataService.getRandomSpawnPosition(template.collisionBox, zone)
-
-            val positionIsFree = gameObjectRepository.none {
-                it.position.isCloseTo(
-                    position,
-                    (template.collisionBox.radius + it.collisionBox.radius).toInt()
-                )
-            }
-        } while (!positionIsFree)
+        val position = geoDataService.getRandomSpawnPosition(template.collisionBox, zone)
 
         val npc = template.toNpc(
             IdUtils.getNextNpcId(),
@@ -132,7 +121,7 @@ class NpcService(
      */
     private suspend fun spawnNpc(npc: Npc) {
         gameObjectRepository.save(npc)
-        broadcastPacket(npc.toInfoResponse(), npc)
+        updateObjectsAround(npc)
     }
 
 }

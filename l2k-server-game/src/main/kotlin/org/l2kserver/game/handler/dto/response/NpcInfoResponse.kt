@@ -5,8 +5,8 @@ import org.l2kserver.game.extensions.putUTF16String
 import org.l2kserver.game.extensions.putUByte
 import org.l2kserver.game.model.extensions.toByte
 import org.l2kserver.game.model.extensions.toInt
-import org.l2kserver.game.model.actor.Npc
 import org.l2kserver.game.model.actor.MoveType
+import org.l2kserver.game.model.actor.npc.NpcInstance
 
 private const val NPC_INFO_RESPONSE_PACKET_ID: UByte = 22u
 
@@ -14,7 +14,7 @@ private const val NPC_INFO_RESPONSE_PACKET_ID: UByte = 22u
  * Info about NPC that should be sent to all players who see it
  */
 data class NpcInfoResponse(
-    val npc: Npc
+    val npc: NpcInstance
 ): ResponsePacket {
 
     override val data = littleEndianByteArray {

@@ -188,6 +188,8 @@ class PlayerCharacter(
     var autoUsesSoulshot: Soulshot? = null
     var autoUsesSpiritshot: Spiritshot? = null
 
+    val knownGameWorldObjects: MutableSet<GameWorldObject> = ConcurrentHashMap.newKeySet()
+
     //TODO Siege and clan relations
     override fun isEnemyOf(other: ActorInstance) = karma > 0 || pvpState != PvpState.NOT_IN_PVP
 
