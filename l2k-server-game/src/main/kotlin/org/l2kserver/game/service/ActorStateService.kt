@@ -5,7 +5,6 @@ import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
-import org.l2kserver.game.model.extensions.forEachInstance
 import org.l2kserver.game.extensions.logger
 import org.l2kserver.game.handler.dto.response.ChangeMoveTypeResponse
 import org.l2kserver.game.handler.dto.response.PvPStatusResponse
@@ -169,7 +168,7 @@ class ActorStateService(
         }
     }
 
-    private suspend fun regenerate() = gameObjectRepository.forEachInstance<MutableActorInstance> { actor ->
+    private suspend fun regenerate() = gameObjectRepository.findAllActors().forEach { actor ->
         newSuspendedTransaction {
             if (actor.isDead()) return@newSuspendedTransaction
 

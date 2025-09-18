@@ -40,7 +40,9 @@ import org.l2kserver.game.handler.dto.request.SkillListRequest
 import org.l2kserver.game.handler.dto.request.SocialActionRequest
 import org.l2kserver.game.handler.dto.request.PrivateStoreSellStartRequest
 import org.l2kserver.game.handler.dto.request.PrivateStoreSellStopRequest
+import org.l2kserver.game.handler.dto.request.StartRotationRequest
 import org.l2kserver.game.handler.dto.request.SellToPrivateStoreRequest
+import org.l2kserver.game.handler.dto.request.StopRotationRequest
 import org.l2kserver.game.handler.dto.request.UseItemRequest
 import org.l2kserver.game.handler.dto.request.UseSkillRequest
 import org.l2kserver.game.handler.dto.request.UserCommandRequest
@@ -105,6 +107,8 @@ class L2GameRequestHandler(
 
             is MoveRequest -> moveService.moveCharacter(request)
             is ValidatePositionRequest -> moveService.validatePosition(request)
+            is StartRotationRequest -> moveService.startRotation(request)
+            is StopRotationRequest -> moveService.stopRotation(request)
 
             is ActionRequest -> actionService.performAction(request)
             is CancelActionRequest -> actionService.cancelAction()

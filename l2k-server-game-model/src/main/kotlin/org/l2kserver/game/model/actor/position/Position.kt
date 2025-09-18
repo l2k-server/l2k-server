@@ -20,6 +20,11 @@ data class Position(
 
     companion object {
         const val ACCEPTABLE_DELTA = 16 //Equal to geodata cell size
+        const val TILE_SIZE = 32768 // Side length of one geodata tile
+        const val MAP_MIN_X = -131072
+        const val MAP_MIN_Y = -262144
+        const val MAP_MAX_X = 229376
+        const val MAP_MAX_Y = 262144
     }
 
     fun deltaX(other: Position) = other.x - this.x
@@ -80,5 +85,11 @@ data class Position(
 
         return Position(this.x + deltaXD, this.y + deltaYD, this.z)
     }
+
+    /** Returns the X index of the geodata tile where this position is located */
+    fun getTileX() = (x shr 0xF) + 20
+
+    /** Returns the Y index of the geodata tile where this position is located */
+    fun getTileY() = (y shr 0xF) + 18
 
 }

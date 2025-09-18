@@ -7,6 +7,8 @@ import org.l2kserver.game.model.actor.position.Heading
 import org.l2kserver.game.model.actor.position.Position
 import org.l2kserver.game.model.actor.position.SpawnPosition
 import org.l2kserver.game.model.actor.npc.ai.Ai
+import org.l2kserver.game.model.item.template.ArmorTemplate
+import org.l2kserver.game.model.item.template.WeaponTemplate
 import org.l2kserver.game.model.item.template.WeaponType
 import org.l2kserver.game.model.reward.Reward
 import org.l2kserver.game.model.stats.BasicStats
@@ -37,10 +39,13 @@ interface NpcInstance: ActorInstance {
     override val currentHp: Int
     override val currentMp: Int
     override val moveType: MoveType
-    override val weaponType: WeaponType?
-    override val hasShield: Boolean
+    val equippedWeaponTemplate: WeaponTemplate? get() = null
+    val equippedShieldTemplate: ArmorTemplate? get() = null
     val ai: Ai?
     val opponents: Map<ActorInstance, Int> //TODO State Machine
+
+    override val weaponType: WeaponType? get() = equippedWeaponTemplate?.type
+    override val hasShield: Boolean get() = equippedShieldTemplate != null
 }
 
 /**

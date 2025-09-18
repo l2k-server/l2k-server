@@ -33,7 +33,6 @@ import org.l2kserver.game.model.stats.CombatStats
  * @property currentHp NPC's current HP
  * @property currentMp NPC's current mana
  * @property moveType NPC's current move type
- * @property weaponType NPC's weapon type
  * @property hasShield Can this NPC block attacks by shield
  * @property ai AI script for this NPC
  */
@@ -58,8 +57,8 @@ class Npc(
     override var moveType: MoveType,
     override val ai: Ai?,
 
-    var equippedWeaponTemplate: WeaponTemplate? = null,
-    var equippedShieldTemplate: ArmorTemplate? = null
+    override var equippedWeaponTemplate: WeaponTemplate? = null,
+    override var equippedShieldTemplate: ArmorTemplate? = null
 ): MutableActorInstance(), NpcInstance {
 
     /**

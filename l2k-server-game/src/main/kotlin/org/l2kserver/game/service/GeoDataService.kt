@@ -28,11 +28,7 @@ class GeoDataService(
             )
 
             if (collisionRect.all { (zone.zMin..zone.zMax).contains(getNearestZ(it.first, it.second, z)) })
-                return Position(
-                    x = x,
-                    y = y,
-                    z = getNearestZ(x, y, z)
-                )
+                return Position(x = x, y = y, z = getNearestZ(x, y, z))
         }
     }
 

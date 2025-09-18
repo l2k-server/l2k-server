@@ -209,7 +209,12 @@ class SkillServiceTest(
         // Second skill usage
         withContext(context) { skillService.useSkill(UseSkillRequest(POWER_STRIKE.id, false, false)) }
 
-        val cooldownResponse = assertIs<SystemMessageResponse.IsBeingPreparedForReuse>(context.responseChannel.receive())
+        val cooldownResponse = assertIs<SystemMessageResponse.IsBeingPreparedForReuse>(
+            context.responseChannel.receiveIgnoring(
+                SystemMessageResponse.OverHit::class,
+                SystemMessageResponse.YouHaveAcquiredExpForOverHit::class
+            )
+        )
         assertEquals(POWER_STRIKE.id, cooldownResponse.skill.skillId)
         assertIs<ActionFailedResponse>(context.responseChannel.receive())
     }

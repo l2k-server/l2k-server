@@ -1,13 +1,12 @@
 package org.l2kserver.game.service
 
-import org.l2kserver.game.model.extensions.forEachInstanceMatching
 import org.l2kserver.game.extensions.logger
 import org.l2kserver.game.handler.dto.request.ChatMessageRequest
 import org.l2kserver.game.handler.dto.response.ChatMessageResponse
 import org.l2kserver.game.handler.dto.response.SystemMessageResponse
 import org.l2kserver.game.model.map.Town
 import org.l2kserver.game.handler.dto.ChatTab
-import org.l2kserver.game.model.actor.PlayerCharacter
+import org.l2kserver.game.model.extensions.forEachMatching
 import org.l2kserver.game.network.session.send
 import org.l2kserver.game.network.session.sendTo
 import org.l2kserver.game.network.session.sessionContext
@@ -51,7 +50,7 @@ class SocialService(
             }
             ChatTab.SHOUT, ChatTab.TRADE -> {
                 val closestTown = Town.Registry.findClosestByPosition(speaker.position)
-                gameObjectRepository.forEachInstanceMatching<PlayerCharacter>(
+                gameObjectRepository.findAllCharacters().forEachMatching(
                     predicate = { Town.Registry.findClosestByPosition(it.position) == closestTown },
                     action = { sendTo(it.id, response) }
                 )

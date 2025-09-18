@@ -2,7 +2,6 @@ package org.l2kserver.game.service
 
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
-import org.l2kserver.game.model.extensions.forEachInstance
 import org.l2kserver.game.extensions.logger
 import org.l2kserver.game.extensions.model.actor.asMutable
 import org.l2kserver.game.handler.dto.response.ChatMessageResponse
@@ -32,11 +31,12 @@ class AiService(
     @EventListener(ApplicationReadyEvent::class)
     fun init() = asyncTaskService.launchTask("AI_JOB") {
         while (isActive) {
-            gameObjectRepository.forEachInstance<Npc> { npc ->
+            gameObjectRepository.findAllNpc().forEach { npc ->
                 if (!npc.isDead()) performAiAction(npc)
             }
 
-            delay(GameTime.MILLIS_IN_TICK)
+            //TODO Idle actions should be performed less frequently, but what if the npc is fighting?
+            delay(GameTime.MILLIS_IN_TICK * 10)
         }
     }
 
