@@ -8,13 +8,13 @@ import org.l2kserver.game.handler.dto.response.PlaySoundResponse
 import org.l2kserver.game.handler.dto.response.Sound
 import org.l2kserver.game.handler.dto.response.SystemMessageResponse
 import org.l2kserver.game.handler.dto.response.UpdateItemsResponse
-import org.l2kserver.game.model.actor.position.Position
 import org.l2kserver.game.network.session.send
 import org.l2kserver.game.network.session.sessionContext
 import org.l2kserver.game.repository.GameObjectRepository
 import org.l2kserver.game.model.command.Command
 import org.l2kserver.game.model.command.CommandDescription
 import org.l2kserver.game.model.command.EnchantCommand
+import org.l2kserver.game.model.command.GiveCommand
 import org.l2kserver.game.model.command.HelpCommand
 import org.l2kserver.game.model.command.ItemToEnchant
 import org.l2kserver.game.model.command.TeleportCommand
@@ -26,7 +26,8 @@ import org.springframework.stereotype.Service
 @Service
 class AdminCommandService(
     override val gameObjectRepository: GameObjectRepository,
-    private val moveService: MoveService
+    private val moveService: MoveService,
+    private val itemService: ItemService
 ): AbstractService() {
 
     override val log = logger()
@@ -38,17 +39,20 @@ class AdminCommandService(
             return
         }
 
-        val command = Command.parse(commandRequest.commandString).getOrElse { e ->
-            log.error("Failed executing command '{}'", commandRequest.commandString, e)
-            send(SystemMessageResponse("Failed executing command '${commandRequest.commandString}' - ${e.message}"))
-
-            return
+        try {
+            val command = Command.parse(commandRequest.commandString)
+            when (command) {
+                is HelpCommand -> handleHelpCommand()
+                is TeleportCommand -> handleTeleportCommand(command)
+                is EnchantCommand -> handleEnchantCommand(command)
+                is GiveCommand ->  handleGiveCommand(command)
+            }
         }
-
-        when (command) {
-            is HelpCommand -> handleHelpCommand()
-            is TeleportCommand -> handleTeleportCommand(command.name, command.position)
-            is EnchantCommand -> handleEnchantCommand(command.characterName, command.itemToEnchant, command.enchantLevel)
+        catch (e: Exception) {
+            log.error("Failed executing command '{}'", commandRequest.commandString, e)
+            send(SystemMessageResponse(
+                "Failed executing command '${commandRequest.commandString}' - ${e.message}")
+            )
         }
     }
 
@@ -63,31 +67,29 @@ class AdminCommandService(
     }
 
     /**
-     * Handles teleport command. Teleports character with [charName] to requested [position].
-     * If [charName] is null, character who called this command will be teleported
+     * Handles teleport command. Teleports character with [TeleportCommand.name] to requested [TeleportCommand.position].
+     * If [TeleportCommand.name] is null, character who called this command will be teleported
      */
-    private suspend fun handleTeleportCommand(charName: String?, position: Position) {
-        val characterToTeleport = charName?.let { gameObjectRepository.findCharacterByName(it) }
+    private suspend fun handleTeleportCommand(command: TeleportCommand) {
+        val characterToTeleport = command.name?.let { gameObjectRepository.findCharacterByName(it) }
             ?: gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
 
-        send(SystemMessageResponse("'${characterToTeleport.name}' was teleported to '$position'"))
-        moveService.teleport(characterToTeleport, position)
+        send(SystemMessageResponse("'${characterToTeleport.name}' was teleported to '${command.position}'"))
+        moveService.teleport(characterToTeleport, command.position)
     }
 
     /**
      * Handles enchant command.
-     * Enchants [itemToEnchant] equipped by player with [charName] or session owner,
-     * if no [charName] was provided by [enchantLevel]
+     * Enchants [EnchantCommand.itemToEnchant] equipped by player with [EnchantCommand.characterName] or session owner,
+     * if no [EnchantCommand.characterName] was provided, by [EnchantCommand.enchantLevel]
      */
-    private suspend fun handleEnchantCommand(
-        charName: String?, itemToEnchant: ItemToEnchant, enchantLevel: Int
-    ) {
-        val characterToEnchant = charName?.let { gameObjectRepository.findCharacterByName(it) }
+    private suspend fun handleEnchantCommand(command: EnchantCommand) {
+        val characterToEnchant = command.characterName?.let { gameObjectRepository.findCharacterByName(it) }
             ?: gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
 
-        log.debug("Got command to enchant '{}' of '{}' by '{}'", itemToEnchant, characterToEnchant, enchantLevel)
+        log.debug("Got command to enchant '{}' of '{}' by '{}'", command.itemToEnchant, characterToEnchant, command.enchantLevel)
 
-        val item = when(itemToEnchant) {
+        val item = when(command.itemToEnchant) {
             ItemToEnchant.UNDERWEAR -> characterToEnchant.inventory.underwear
             ItemToEnchant.RIGHT_EARRING -> characterToEnchant.inventory.rightEarring
             ItemToEnchant.LEFT_EARRING -> characterToEnchant.inventory.leftEarring
@@ -106,7 +108,8 @@ class AdminCommandService(
         if (item == null) {
             send(
                 SystemMessageResponse(
-                    "Player ${characterToEnchant.name} has no equipped ${itemToEnchant.name.lowercase().replace('_', ' ')}"
+                    "Player ${characterToEnchant.name} has " +
+                            "no equipped ${command.itemToEnchant.name.lowercase().replace('_', ' ')}"
                 ),
                 PlaySoundResponse(Sound.ITEMSOUND_SYS_IMPOSSIBLE)
             )
@@ -114,11 +117,23 @@ class AdminCommandService(
         }
 
         newSuspendedTransaction {
-            item.enchantLevel = enchantLevel
+            item.enchantLevel = command.enchantLevel
             send(SystemMessageResponse.YourItemHasBeenSuccessfullyEnchanted(item))
             send(UpdateItemsResponse().wasModified(item))
             broadcastActorInfo(characterToEnchant)
         }
+    }
+
+    private suspend fun handleGiveCommand(command: GiveCommand) {
+        val character = command.name?.let { gameObjectRepository.findCharacterByName(it) }
+            ?: gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
+
+        itemService.giveItem(
+            character,
+            command.templateId,
+            command.amount,
+            enchantLevel = command.enchantLevel,
+        )
     }
 
 }
