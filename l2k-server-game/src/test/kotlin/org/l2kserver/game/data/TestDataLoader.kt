@@ -27,6 +27,7 @@ import org.l2kserver.game.data.item.weapons.WILLOW_STAFF
 import org.l2kserver.game.data.npc.GRAND_MASTER_ROIEN
 import org.l2kserver.game.data.npc.GREMLIN
 import org.l2kserver.game.data.skill.MORTAL_BLOW
+import org.l2kserver.game.data.skill.POWER_SHOT
 import org.l2kserver.game.data.skill.POWER_STRIKE
 import org.l2kserver.game.domain.AccessLevel
 import org.l2kserver.game.domain.ItemEntity
@@ -116,7 +117,8 @@ class TestDataLoader(
 
         SkillTemplate.Registry.register(
             POWER_STRIKE,
-            MORTAL_BLOW
+            MORTAL_BLOW,
+            POWER_SHOT
         )
     }
 
@@ -151,6 +153,13 @@ class TestDataLoader(
             it[characterId] = character.id
             it[subclassIndex] = 0
             it[skillId] = POWER_STRIKE.id
+            it[skillLevel] = 1
+        }
+
+        SkillsTable.insert {
+            it[characterId] = character.id
+            it[subclassIndex] = 0
+            it[skillId] = POWER_SHOT.id
             it[skillLevel] = 1
         }
 

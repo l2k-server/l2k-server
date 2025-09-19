@@ -60,3 +60,27 @@ val MORTAL_BLOW = SkillTemplate(
         //TODO Lethal effect?
     )
 )
+
+val POWER_SHOT = SkillTemplate(
+    id = 56,
+    skillName = "Power Shot",
+    skillType = SkillType.ACTIVE,
+    targetType = SkillTargetType.ENEMY,
+    reuseDelay = 25_000,
+    castTime = 3_200,
+    repriseTime = 800,
+    castRange = 700,
+    effectRange = 1200,
+    requires = SkillRequirements(
+        weaponTypes = listOf(WeaponType.BOW)
+    ),
+    maxSkillLevel = 24,
+    consumes = SkillConsumablesTemplate(
+        mp = listOf(17, 18, 19, 22, 23, 25, 31, 32, 34, 38, 39, 40, 42, 43, 45, 49, 51, 53, 56, 56, 58, 63, 65, 67)
+    ),
+    skillAction = SingleTargetPhysicalDamageSkillAction(
+        power = listOf(
+            65, 71, 78, 102, 112, 122, 158, 172, 187, 239, 258, 279, 326, 352, 379, 440, 472, 507, 584, 625, 669, 763, 814, 865
+        )
+    )
+)

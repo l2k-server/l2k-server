@@ -38,8 +38,8 @@ dependencies {
     implementation("org.jetbrains.exposed:exposed-java-time:0.61.0")
     implementation("org.postgresql:postgresql")
 
-    implementation("org.flywaydb:flyway-core:11.11.1")
-    runtimeOnly("org.flywaydb:flyway-database-postgresql:11.11.1")
+    implementation("org.flywaydb:flyway-core:11.13.1")
+    runtimeOnly("org.flywaydb:flyway-database-postgresql:11.13.1")
 
     // Hazelcast (for sharing data with LoginServer)
     implementation("com.hazelcast:hazelcast:5.5.0")

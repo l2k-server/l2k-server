@@ -7,9 +7,7 @@ import com.github.ajalt.clikt.parameters.options.required
 import com.github.ajalt.clikt.parameters.types.enum
 import com.github.ajalt.clikt.parameters.types.int
 
-/**
- * Command to enchant [itemToEnchant] of [characterName] by requested [enchantLevel]
- */
+/** Command to enchant [itemToEnchant] of [characterName] by requested [enchantLevel] */
 class EnchantCommand: Command() {
     val itemToEnchant by argument("item to enchant").enum<ItemToEnchant>()
     val characterName by option("-of")

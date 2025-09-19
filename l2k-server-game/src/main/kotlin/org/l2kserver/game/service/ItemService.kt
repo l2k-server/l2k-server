@@ -3,7 +3,6 @@ package org.l2kserver.game.service
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.l2kserver.game.model.extensions.forEachInstanceMatching
 import org.l2kserver.game.extensions.logger
-import org.l2kserver.game.extensions.model.item.toItemInstance
 import org.l2kserver.game.extensions.model.item.toScatteredItem
 import org.l2kserver.game.handler.dto.request.AutoUseSsRequest
 import org.l2kserver.game.handler.dto.request.DeleteItemRequest
@@ -57,7 +56,7 @@ class ItemService(
     private val moveService: MoveService,
     private val asyncTaskService: AsyncTaskService,
 
-    override val gameObjectRepository: GameObjectRepository,
+    override val gameObjectRepository: GameObjectRepository
 ) : AbstractService() {
 
     override val log = logger()
@@ -237,30 +236,55 @@ class ItemService(
         broadcastPacket(PickUpItemResponse(character.id, deletedScatteredItem), character.position)
         broadcastPacket(DeleteObjectResponse(deletedScatteredItem.id), character.position)
 
-        newSuspendedTransaction {
-            val existingItem = character.inventory.findAllByTemplateId(deletedScatteredItem.templateId).firstOrNull()
-            val consumableId = character.inventory.weapon?.consumes?.id
+        val consumableId = character.inventory.weapon?.consumes?.id
 
-            val item = if (existingItem == null || !existingItem.isStackable) {
-                val newItem = deletedScatteredItem.toItemInstance(
-                    character,
-                    equippedAt = if (consumableId == deletedScatteredItem.templateId) Slot.LEFT_HAND else null
-                )
-                sendTo(character.id, UpdateItemsResponse().wasAdded(newItem))
-                newItem
+        giveItem(
+            itemReceiver = character,
+            itemTemplateId = deletedScatteredItem.templateId,
+            amount = deletedScatteredItem.amount,
+            enchantLevel = deletedScatteredItem.enchantLevel,
+            equippedAt = if (consumableId == deletedScatteredItem.templateId) Slot.LEFT_HAND else null
+        ).forEach { item ->
+            broadcastPacket(
+                SystemMessageResponse.AttentionPlayerPickedUp(character.name, item),
+                character
+            )
+        }
+    }
+
+    /** Creates new item(s) in [itemReceiver]'s inventory */
+    suspend fun giveItem(
+        itemReceiver: PlayerCharacter, itemTemplateId: Int, amount: Int, enchantLevel: Int, equippedAt: Slot? = null
+    ) = newSuspendedTransaction {
+        val existingItem = itemReceiver.inventory.findAllByTemplateId(itemTemplateId).firstOrNull()
+        val itemTemplate = ItemTemplate.Registry.findById(itemTemplateId)
+
+        val items = if (itemTemplate.isStackable) {
+            if (existingItem == null) {
+                val newItem = itemReceiver.inventory.createItem(itemTemplateId, amount, equippedAt, enchantLevel)
+                sendTo(itemReceiver.id, UpdateItemsResponse().wasAdded(newItem))
+                listOf(newItem)
             }
             else {
-                existingItem.amount += deletedScatteredItem.amount
-                sendTo(character.id, UpdateItemsResponse().wasModified(existingItem))
+                existingItem.amount += amount
+                sendTo(itemReceiver.id, UpdateItemsResponse().wasModified(existingItem))
 
-                existingItem
+                listOf(existingItem)
             }
-            send(UpdateStatusResponse.weightOf(character))
-            broadcastPacket(SystemMessageResponse.AttentionPlayerPickedUp(character.name, item), character)
-            send(SystemMessageResponse.YouHaveObtained(item))
-
-            log.info("Character '{}' has picked up item '{}'", character.name, item)
         }
+        else List(amount) {
+            val newItem = itemReceiver.inventory.createItem(itemTemplateId, 1, equippedAt, enchantLevel)
+            sendTo(itemReceiver.id, UpdateItemsResponse().wasAdded(newItem))
+
+            newItem
+        }
+
+        send(UpdateStatusResponse.weightOf(itemReceiver))
+        items.forEach { send(SystemMessageResponse.YouHaveObtained(it)) }
+
+        log.info("Character '{}' has received item '{}'", itemReceiver.name, items)
+
+        return@newSuspendedTransaction items
     }
 
     /**
@@ -459,6 +483,7 @@ class ItemService(
             }
 
             character.autoUsesSoulshot?.let {
+                //if (character.inventory.weapon?.canUseSoulshot(character.autoUsesSoulshot) ?: false) {
                 if (item is Weapon && !item.canUseSoulshot(character.autoUsesSoulshot)) {
                     send(AutoUseSsResponse(it.templateId, false))
                     character.autoUsesSoulshot = null
