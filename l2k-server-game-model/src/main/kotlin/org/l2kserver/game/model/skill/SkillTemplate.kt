@@ -52,14 +52,23 @@ data class SkillRequirements(
 
 /**
  * Skill consumables
- *
- * @property hp - How much HP is spent to cast skill on each level (Note: skill level starts with 1)
- * @property mp - How much mana is spent to cast skill on each level (Note: skill level starts with 1)
- * @property item - Which item is spent to cast skill on each level (Note: skill level starts with 1)
+ * @property hpToStart How much HP is spent to START casting skill on each skill level
+ * (Note: skill level starts with 1)
+ * @property hp - How much HP is spent to cast skill on each skill level. Consumed AFTER skill casting
+ * (Note: skill level starts with 1)
+ * @property mpToStart How much mana is spent to START casting skill on each skill level
+ * @property mp - How much mana is spent to cast skill on each skill level. Consumed AFTER skill casting
+ * (Note: skill level starts with 1)
+ * @property item - Which item is spent to cast skill on each skill level
+ * (Note: skill level starts with 1)
  */
 data class SkillConsumablesTemplate(
+    val hpToStart: List<Int>? = null,
     val hp: List<Int>? = null,
+
+    val mpToStart: List<Int>? = null,
     val mp: List<Int>? = null,
+
     val item: List<ConsumableItem?>? = null
 )
 

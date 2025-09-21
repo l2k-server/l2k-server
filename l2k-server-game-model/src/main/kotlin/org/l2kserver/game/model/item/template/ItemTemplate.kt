@@ -45,6 +45,7 @@ sealed interface EquippableItemTemplate: ItemTemplate {
     override val isStackable: Boolean get() = false
 
     val stats: CombatStats
+    val fixedBonusStats: CombatStats
 }
 
 /**

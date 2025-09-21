@@ -1,72 +1,75 @@
 package org.l2kserver.game.data.character.classes
 
-import org.l2kserver.game.data.item.armor.SQUIRES_PANTS
-import org.l2kserver.game.data.item.armor.SQUIRES_SHIRT
-import org.l2kserver.game.data.item.weapons.DAGGER
-import org.l2kserver.game.data.item.weapons.SQUIRES_SWORD
+import org.l2kserver.game.data.item.armor.APPRENTICE_STOCKINGS
+import org.l2kserver.game.data.item.armor.APPRENTICE_TUNIC
+import org.l2kserver.game.data.item.weapons.APPRENTICE_WAND
+import org.l2kserver.game.data.skill.WIND_STRIKE
 import org.l2kserver.game.model.actor.CollisionBox
-import org.l2kserver.game.model.actor.character.InitialItem
-import org.l2kserver.game.model.actor.character.InitialShortcut
 import org.l2kserver.game.model.actor.character.CharacterClass
 import org.l2kserver.game.model.actor.character.CharacterTemplate
+import org.l2kserver.game.model.actor.character.InitialItem
+import org.l2kserver.game.model.actor.character.InitialShortcut
 import org.l2kserver.game.model.actor.character.PerLevelGain
 import org.l2kserver.game.model.actor.character.ShortcutType
+import org.l2kserver.game.model.actor.character.SkillToLearn
 import org.l2kserver.game.model.actor.position.Position
 import org.l2kserver.game.model.stats.BasicStats
 import org.l2kserver.game.model.stats.CON
+import org.l2kserver.game.model.stats.CombatStats
 import org.l2kserver.game.model.stats.DEX
 import org.l2kserver.game.model.stats.INT
 import org.l2kserver.game.model.stats.MEN
 import org.l2kserver.game.model.stats.STR
-import org.l2kserver.game.model.stats.CombatStats
 import org.l2kserver.game.model.stats.TradeAndInventoryStats
 import org.l2kserver.game.model.stats.WIT
 
-val HUMAN_FIGHTER = CharacterClass(
-    id = 0,
+val HUMAN_MYSTIC = CharacterClass(
+    id = 10,
     requiredLevel = 1,
     combatStats = CombatStats(
-        maxCp = 32,
-        maxHp = 80,
-        maxMp = 30,
+        maxCp = 50,
+        maxHp = 101,
+        maxMp = 40,
 
-        speed = 115,
+        speed = 120,
         castingSpd = 333,
     ),
     basicStats = BasicStats(
-        STR(40),
-        DEX(30),
-        CON(43),
-        INT(21),
-        WIT(11),
-        MEN(25),
+        STR(22),
+        DEX(21),
+        CON(27),
+        INT(41),
+        WIT(20),
+        MEN(39),
     ),
     tradeAndInventoryStats = TradeAndInventoryStats(
         privateStoreSize = 4
     ),
-    emptySlotStats = CharacterClass.DefaultEmptySlotStats.FIGHTER,
+    emptySlotStats = CharacterClass.DefaultEmptySlotStats.MYSTIC,
     perLevelGain = PerLevelGain(
-        cpAdd = 4.73,
+        cpAdd = 7.84,
         cpMod = 0.22,
-        hpAdd = 11.83,
+        hpAdd = 15.57,
         hpMod = 0.37,
-        mpAdd = 5.46,
+        mpAdd = 7.38,
         mpMod = 0.14,
     ),
     characterTemplate = CharacterTemplate(
-        position = Position(-71338, 258271, -3104),
+        position = Position(-90890, 248027, -3570),
         items = listOf(
-            InitialItem(SQUIRES_SHIRT.id, isEquipped = true),
-            InitialItem(SQUIRES_PANTS.id, isEquipped = true),
-            InitialItem(SQUIRES_SWORD.id, isEquipped = true),
-            InitialItem(DAGGER.id, isEquipped = false),
+            InitialItem(APPRENTICE_TUNIC.id, isEquipped = true),
+            InitialItem(APPRENTICE_STOCKINGS.id, isEquipped = true),
+            InitialItem(APPRENTICE_WAND.id, isEquipped = true),
         ),
         shortcuts = listOf(
             InitialShortcut(0, ShortcutType.ACTION, 2),
+            InitialShortcut(1, ShortcutType.SKILL, WIND_STRIKE.id),
             InitialShortcut(3, ShortcutType.ACTION, 5),
             InitialShortcut(10, ShortcutType.ACTION, 0)
         ),
-        collisionBox = CollisionBox(9.0, 23.0)
+        collisionBox = CollisionBox(7.5, 22.8)
     ),
-    skillTree = emptyMap()
+    skillTree = mapOf(
+        1 to listOf(SkillToLearn(WIND_STRIKE.id, 1, autoLearn = true))
+    )
 )

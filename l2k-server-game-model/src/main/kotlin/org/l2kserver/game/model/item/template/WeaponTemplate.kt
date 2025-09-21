@@ -16,6 +16,7 @@ data class WeaponTemplate(
     override val isExchangeable: Boolean,
     override val type: WeaponType,
     override val stats: CombatStats,
+    override val fixedBonusStats: CombatStats = CombatStats(),
     override val crystalCount: Int,
 
     val soulshotUsed: Int,

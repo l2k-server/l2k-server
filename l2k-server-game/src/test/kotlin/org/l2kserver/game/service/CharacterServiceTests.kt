@@ -25,9 +25,6 @@ import org.junit.jupiter.api.assertThrows
 import org.l2kserver.game.data.character.classes.HUMAN_FIGHTER
 import org.l2kserver.game.domain.ItemEntity
 import org.l2kserver.game.domain.PlayerCharacterEntity
-import org.l2kserver.game.domain.Shortcut
-import org.l2kserver.game.domain.SkillEntity
-import org.l2kserver.game.extensions.findAllByCharacterId
 import org.l2kserver.game.handler.dto.response.ExitGameResponse
 import org.l2kserver.game.handler.dto.response.FullCharacterResponse
 import org.l2kserver.game.handler.dto.response.InventoryResponse
@@ -36,6 +33,7 @@ import org.l2kserver.game.handler.dto.response.ShortcutPanelResponse
 import org.l2kserver.game.handler.dto.response.SystemMessageResponse
 import org.l2kserver.game.model.actor.character.CharacterRace
 import org.l2kserver.game.model.actor.character.Gender
+import org.l2kserver.game.repository.SkillRepository
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
@@ -43,7 +41,8 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class CharacterServiceTests(
-    @Autowired private val characterService: CharacterService
+    @Autowired private val characterService: CharacterService,
+    @Autowired private val skillRepository: SkillRepository
 ) : AbstractTests() {
 
     @Test
@@ -194,9 +193,9 @@ class CharacterServiceTests(
                     "PlayerCharacter must be deleted")
                 assertTrue(ItemEntity.findAllByOwnerId(character.id).toList().isEmpty(),
                     "Items of deleted character must be deleted too")
-                assertTrue(Shortcut.findAllByCharacterId(character.id).isEmpty(),
+                assertTrue(skillRepository.findAllByCharacterId(character.id).isEmpty(),
                     "Shortcuts of deleted character must be deleted too")
-                assertTrue(SkillEntity.findAllByCharacterId(character.id).isEmpty(),
+                assertTrue(skillRepository.findAllByCharacterId(character.id).isEmpty(),
                     "Learned skills of deleted character must be deleted too")
             }
         }

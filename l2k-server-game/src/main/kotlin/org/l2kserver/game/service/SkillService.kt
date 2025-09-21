@@ -29,6 +29,7 @@ import org.l2kserver.game.model.skill.action.effect.DamageEffect
 import org.l2kserver.game.network.session.send
 import org.l2kserver.game.network.session.sessionContext
 import org.l2kserver.game.repository.GameObjectRepository
+import org.l2kserver.game.repository.SkillRepository
 import org.springframework.stereotype.Service
 import java.time.Instant
 import kotlin.collections.contains
@@ -44,6 +45,7 @@ class SkillService(
     private val itemService: ItemService,
     private val asyncTaskService: AsyncTaskService,
 
+    private val skillRepository: SkillRepository,
     override val gameObjectRepository: GameObjectRepository
 ) : AbstractService() {
 
@@ -52,14 +54,19 @@ class SkillService(
     /** Sends a full list of skills to the player in the current session */
     suspend fun getSkillList() = newSuspendedTransaction {
         val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
-        send(SkillListResponse(character.skills.values))
+        val skills = skillRepository.findAllByCharacterIdAndSubclassIndex(
+            character.id, character.activeSubclass
+        )
+        send(SkillListResponse(skills))
         log.info("Successfully sent skill list to character {}", character)
     }
 
     /** Handles request to use skill */
     suspend fun useSkill(request: UseSkillRequest): Unit = newSuspendedTransaction {
         val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
-        val skill = character.getSkillById(request.skillId)
+        val skill = skillRepository.findBy(
+            request.skillId, character.id, character.activeSubclass
+        )
 
         useSkill(character, skill, request.forced, request.holdPosition)
     }
@@ -87,39 +94,38 @@ class SkillService(
      */
     suspend fun useActiveSkill(
         actor: MutableActorInstance, skill: Skill, forced: Boolean, holdPosition: Boolean
-    ) = asyncTaskService.launchAction(actor.id) {
+    ) {
         //TODO Check if actor is already casting
         val target = actor.targetId?.let { gameObjectRepository.findActorByIdOrNull(it) }
 
         //TODO Introduce parameter - if target is enemy, but "friendly" skill used - fail using or use it on yourself
         // https://github.com/orgs/l2k-server/projects/1/views/3?pane=issue&itemId=124732573&issue=l2k-server%7Cl2k-server%7C47
 
-        // If skill must be used on target - move to target
-        if (skill.targetType != SkillTargetType.SELF) {
-            //Check that actor can use skill - before moving to it
+        if (actor.canUseSkill(skill, target, forced)) asyncTaskService.launchAction(actor.id) {
+            // If skill must be used on target - move to target
+            if (skill.targetType != SkillTargetType.SELF) {
+                //canUseSkill method also checks that target exists, so here we can use unsafe call
+                val requiredDistance =
+                    skill.castRange + (actor.collisionBox.radius + target!!.collisionBox.radius).roundToInt()
+                if (!holdPosition) moveService.move(actor, target, requiredDistance)
+
+                //Check if movement was interrupted or stopped at some obstacle
+                if (!actor.position.isCloseTo(target.position, requiredDistance)) {
+                    send(SystemMessageResponse.TargetOutOfRange)
+                    return@launchAction
+                }
+            }
+
+            // Check if actor can use skill - before casting skill
             if (!actor.canUseSkill(skill, target, forced)) return@launchAction
 
-            //canUseSkill method also checks that target exists, so here we can use unsafe call
-            val requiredDistance =
-                skill.castRange + (actor.collisionBox.radius + target!!.collisionBox.radius).roundToInt()
-            if (!holdPosition) moveService.move(actor, target, requiredDistance)
+            // Consume resources
+            actor.spendResourcesFor(skill)
 
-            //Check if movement was interrupted or stopped at some obstacle
-            if (!actor.position.isCloseTo(target.position, requiredDistance)) {
-                send(SystemMessageResponse.TargetOutOfRange)
-                return@launchAction
-            }
+            // Casting animation
+            // All skills that do not require a target are essentially cast on yourself
+            actor.castSkillOn(skill, target ?: actor)
         }
-
-        // Check if actor can use skill - before casting skill
-        if (!actor.canUseSkill(skill, target, forced)) return@launchAction
-
-        // Consume resources
-        actor.spendResourcesFor(skill)
-
-        // Casting animation
-        // All skills that do not require a target are essentially cast on yourself
-        actor.castSkillOn(skill, target ?: actor)
     }
 
     /** Subtract HP, MP or items, required to use [skill] */
@@ -155,9 +161,10 @@ class SkillService(
         val repriseTime = skill.repriseTime * CAST_TIME_COEFFICIENT / castingSpeed
         val reuseDelay = skill.reuseDelay * CAST_TIME_COEFFICIENT / castingSpeed
 
-        newSuspendedTransaction { skill.nextUsageTime = Instant.now().plusMillis(reuseDelay.toLong()) }
-
+        skill.nextUsageTime = Instant.now().plusMillis(reuseDelay.toLong())
+        //TODO Here spend resources for casting start
         withContext(kotlin.coroutines.coroutineContext + NonCancellable) {
+
             send(SystemMessageResponse.YouUse(skill), GaugeResponse(GaugeColor.BLUE, castTime))
             broadcastPacket(
                 SkillUsedResponse(
@@ -175,7 +182,7 @@ class SkillService(
             delay(castTime.toLong())
 
             skill.applyEffects(this@castSkillOn, target)
-
+            //TODO Here spend for casting skill
             //Time to finish cast animation
             delay(repriseTime.toLong())
         }

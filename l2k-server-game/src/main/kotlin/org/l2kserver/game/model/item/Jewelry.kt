@@ -51,4 +51,5 @@ class Jewelry(
         return initialStats.copy(mDef = initialStats.mDef + safeEnchantBonus + unsafeEnchantBonus)
     }
 
+    override val fixedBonusStats = itemTemplate.fixedBonusStats
 }

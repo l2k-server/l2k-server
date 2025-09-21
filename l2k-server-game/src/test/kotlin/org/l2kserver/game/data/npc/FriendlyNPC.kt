@@ -28,7 +28,8 @@ val GRAND_MASTER_ROIEN = NpcTemplate(
     spawn = SpawnData(
         positions = listOf(SpawnPosition(-71384, 258305, -3109, 42000))
     ),
-    replicas = listOf("""
+    replicas = listOf(
+        """
         <html>
             <body>
                 Grand Master Roien:<br>
@@ -40,5 +41,42 @@ val GRAND_MASTER_ROIEN = NpcTemplate(
                 <a action=\"bypass -h npc_%objectId%_Quest\">Quest</a>
             </body>
         </html>
-    """.trimIndent())
+        """.trimIndent().replace("\\s+".toRegex(), " ")
+    )
+)
+
+val GRAND_MAGISTER_GALLINT = NpcTemplate(
+    id = 1_030_017,
+    name = "Gallint",
+    title = "Grand Magister",
+    level = 70,
+    isAggressive = false,
+    isEnemy = false,
+    isInvulnerable = true,
+    race = NpcRace.HUMANS,
+    collisionBox = CollisionBox(8.0, 24.0),
+    stats = CombatStats(
+        maxHp = Int.MAX_VALUE,
+        maxMp = Int.MAX_VALUE,
+        pDef = Int.MAX_VALUE,
+        mDef = Int.MAX_VALUE
+    ),
+    basicStats = HUMAN_FIGHTER.basicStats,
+    spawn = SpawnData(
+        positions = listOf(SpawnPosition(-91008, 248016, -3568, 6000))
+    ),
+    replicas = listOf(
+        """
+        <html>
+            <body>
+                Grand Sorcerer Gallint:<br>
+                Welcome. I am Grand Sorcerer Gallint of Einhovant's School of Wizardry. 
+                This is a school for Mystics, established by the famed alchemist Einhovant.<br>
+                I was once an apprentice of his but he vanished soon after establishing this school, 
+                and I have not heard from him since. I wonder if he still lives...<br>
+                <a action="bypass -h npc_%objectId%_Quest">Quest</a>
+            </body>
+        </html>
+        """.trimIndent().replace("\\s+".toRegex(), " ")
+    )
 )

@@ -31,7 +31,6 @@ import org.l2kserver.game.model.item.instance.EquippableItemInstance
 import org.l2kserver.game.model.item.instance.ItemInstance
 import org.l2kserver.game.model.item.template.ItemTemplate
 import org.l2kserver.game.model.item.template.Slot
-import org.l2kserver.game.model.item.instance.UsableItemInstance
 import org.l2kserver.game.model.item.Weapon
 import org.l2kserver.game.model.item.template.WeaponType
 import org.l2kserver.game.model.reward.RewardItem
@@ -101,11 +100,6 @@ class ItemService(
             item is EquippableItemInstance -> equipOrDisarmItem(character, item)
             item is Soulshot -> useSoulshot(character, item)
             item is Spiritshot-> useSpiritshot(character, item)
-            item is UsableItemInstance -> {
-                //TODO https://github.com/l2kserver/l2kserver-game/issues/29
-                send(SystemMessageResponse("Using items is not implemented yet"), ActionFailedResponse)
-                return
-            }
         }
     }
 
@@ -236,14 +230,11 @@ class ItemService(
         broadcastPacket(PickUpItemResponse(character.id, deletedScatteredItem), character.position)
         broadcastPacket(DeleteObjectResponse(deletedScatteredItem.id), character.position)
 
-        val consumableId = character.inventory.weapon?.consumes?.id
-
         giveItem(
             itemReceiver = character,
             itemTemplateId = deletedScatteredItem.templateId,
             amount = deletedScatteredItem.amount,
             enchantLevel = deletedScatteredItem.enchantLevel,
-            equippedAt = if (consumableId == deletedScatteredItem.templateId) Slot.LEFT_HAND else null
         ).forEach { item ->
             broadcastPacket(
                 SystemMessageResponse.AttentionPlayerPickedUp(character.name, item),
@@ -254,10 +245,13 @@ class ItemService(
 
     /** Creates new item(s) in [itemReceiver]'s inventory */
     suspend fun giveItem(
-        itemReceiver: PlayerCharacter, itemTemplateId: Int, amount: Int, enchantLevel: Int, equippedAt: Slot? = null
+        itemReceiver: PlayerCharacter, itemTemplateId: Int, amount: Int, enchantLevel: Int
     ) = newSuspendedTransaction {
         val existingItem = itemReceiver.inventory.findAllByTemplateId(itemTemplateId).firstOrNull()
         val itemTemplate = ItemTemplate.Registry.findById(itemTemplateId)
+
+        val consumableId = itemReceiver.inventory.weapon?.consumes?.id
+        val equippedAt = if (consumableId == itemTemplate.id) Slot.LEFT_HAND else null
 
         val items = if (itemTemplate.isStackable) {
             if (existingItem == null) {

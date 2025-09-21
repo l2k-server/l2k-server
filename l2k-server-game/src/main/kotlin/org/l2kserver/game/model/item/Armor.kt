@@ -55,4 +55,5 @@ class Armor(
         else initialStats.copy(pDef = initialStats.pDef + safeEnchantBonus + unsafeEnchantBonus)
     }
 
+    override val fixedBonusStats = itemTemplate.fixedBonusStats
 }

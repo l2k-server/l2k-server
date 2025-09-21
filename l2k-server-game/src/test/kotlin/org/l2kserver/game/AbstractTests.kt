@@ -12,7 +12,7 @@ import org.l2kserver.game.repository.GameObjectRepository
 import org.l2kserver.game.domain.PlayerCharacterTable
 import org.l2kserver.game.domain.ItemTable
 import org.l2kserver.game.domain.ShortcutTable
-import org.l2kserver.game.domain.SkillsTable
+import org.l2kserver.game.domain.SkillTable
 import org.l2kserver.game.extensions.model.item.toItemInstance
 import org.l2kserver.game.model.GameData
 import org.l2kserver.game.model.GameDataRegistry
@@ -62,7 +62,7 @@ abstract class AbstractTests {
         transaction {
             ShortcutTable.deleteAll()
             ItemTable.deleteAll()
-            SkillsTable.deleteAll()
+            SkillTable.deleteAll()
             PlayerCharacterTable.deleteAll()
         }
         SessionContext.clear()

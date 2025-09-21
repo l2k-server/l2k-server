@@ -1,6 +1,11 @@
 package org.l2kserver.game.model.skill
 
 import org.l2kserver.game.domain.SkillEntity
+import java.time.Instant
+import java.util.concurrent.ConcurrentHashMap
+
+/** Contains skill cooldowns. Key - skill entity ID, value - next usage available time millis */
+private val cooldowns = ConcurrentHashMap<Int, Instant>()
 
 /**
  * Skill instance
@@ -21,8 +26,10 @@ import org.l2kserver.game.domain.SkillEntity
 class Skill(
     private val entity: SkillEntity,
     private val template: SkillTemplate
-): SkillInstance {
+) : SkillInstance {
     companion object;
+
+    private val skillEntityId = entity.id.value
 
     override val skillId = entity.skillId
     override val skillName = template.skillName
@@ -39,18 +46,28 @@ class Skill(
     override val consumes: SkillConsumables? get() = template.consumes?.toSkillConsumables()
     override val skillAction = template.skillAction
 
-    var nextUsageTime by entity::nextUsageTime
+    var nextUsageTime: Instant
+        get() = cooldowns[skillEntityId] ?: Instant.MIN
+        set(value) {
+            cooldowns[skillEntityId] = value
+        }
 
     private fun SkillConsumablesTemplate.toSkillConsumables() = SkillConsumables(
-        hp  = this.hp?.let { requireNotNull(it.getOrNull(skillLevel - 1)) {
-            "No data about hp consumption at skill level = '$skillLevel' found"
-        }} ?: 0,
-        mp = this.mp?.let { requireNotNull(it.getOrNull(skillLevel - 1)) {
-            "No data about mp consumption at skill level = '$skillLevel' found"
-        }} ?: 0,
-        item = this.item?.let { requireNotNull(it.getOrNull(skillLevel - 1)) {
-            "No data about item consumption at skill level = '$skillLevel' found"
-        }},
+        hp = this.hp?.let {
+            requireNotNull(it.getOrNull(skillLevel - 1)) {
+                "No data about hp consumption at skill level = '$skillLevel' found"
+            }
+        } ?: 0,
+        mp = this.mp?.let {
+            requireNotNull(it.getOrNull(skillLevel - 1)) {
+                "No data about mp consumption at skill level = '$skillLevel' found"
+            }
+        } ?: 0,
+        item = this.item?.let {
+            requireNotNull(it.getOrNull(skillLevel - 1)) {
+                "No data about item consumption at skill level = '$skillLevel' found"
+            }
+        },
     )
 
     override fun toString() = "Skill(id=$skillId name=$skillName level=$skillLevel)"

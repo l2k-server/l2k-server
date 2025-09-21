@@ -57,3 +57,43 @@ val SQUIRES_PANTS = ArmorTemplate(
     ),
     crystalCount = 0
 )
+
+val APPRENTICE_TUNIC = ArmorTemplate(
+    id = 425,
+    name = "Apprentice's Tunic",
+    grade = Grade.NO_GRADE,
+    weight = 2150,
+    price = 26,
+    isSellable = false,
+    isDroppable = false,
+    isDestroyable = true,
+    isExchangeable = false,
+    type = ArmorType.UPPER_BODY_ROBE,
+    stats = CombatStats(
+        pDef = 17
+    ),
+    fixedBonusStats = CombatStats(
+        maxMp = 19
+    ),
+    crystalCount = 0
+)
+
+val APPRENTICE_STOCKINGS = ArmorTemplate(
+    id = 461,
+    name = "Apprentice's Tunic",
+    grade = Grade.NO_GRADE,
+    weight = 1100,
+    price = 6,
+    isSellable = false,
+    isDroppable = false,
+    isDestroyable = true,
+    isExchangeable = false,
+    type = ArmorType.LOWER_BODY_ROBE,
+    stats = CombatStats(
+        pDef = 10
+    ),
+    fixedBonusStats = CombatStats(
+        maxMp = 10
+    ),
+    crystalCount = 0
+)

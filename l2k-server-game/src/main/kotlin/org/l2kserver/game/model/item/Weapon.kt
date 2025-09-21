@@ -117,4 +117,6 @@ class Weapon(
         )
     }
 
+    override val fixedBonusStats = itemTemplate.fixedBonusStats
+
 }

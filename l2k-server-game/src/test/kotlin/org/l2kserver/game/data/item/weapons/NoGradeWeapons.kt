@@ -7,6 +7,26 @@ import org.l2kserver.game.model.item.template.WeaponType
 import org.l2kserver.game.model.item.of
 import org.l2kserver.game.model.stats.CombatStats
 
+val APPRENTICE_WAND = WeaponTemplate(
+    id = 6,
+    name = "Apprentice's Wand",
+    grade = Grade.NO_GRADE,
+    weight = 1350,
+    price = 138,
+    isSellable = true,
+    isDroppable = true,
+    isDestroyable = true,
+    isExchangeable = true,
+    type = WeaponType.BLUNT_ONE_HANDED,
+    stats = CombatStats.ofOneHandedBlunt(
+        pAtk = 5,
+        mAtk = 7
+    ),
+    crystalCount = 0,
+    soulshotUsed = 1,
+    spiritshotUsed = 1
+)
+
 val WILLOW_STAFF = WeaponTemplate(
     id = 8,
     name = "Willow Staff",
@@ -41,7 +61,8 @@ val DAGGER = WeaponTemplate(
     stats = CombatStats.ofDagger(
         pAtk = 5,
         mAtk = 5
-    ).copy(speed = 600),
+    ),
+    fixedBonusStats = CombatStats(speed = 225),
     crystalCount = 0,
     soulshotUsed = 1,
     spiritshotUsed = 1
