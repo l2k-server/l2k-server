@@ -16,6 +16,9 @@ import org.l2kserver.game.network.session.sendTo
 import org.l2kserver.game.repository.GameObjectRepository
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
+import kotlin.collections.component1
+import kotlin.collections.component2
+import kotlin.collections.iterator
 import kotlin.math.pow
 import kotlin.math.roundToInt
 import kotlin.math.roundToLong
@@ -195,6 +198,7 @@ class RewardService(
         sendTo(character.id, SystemMessageResponse.YourLevelHasIncreased)
         broadcastPacket(SocialActionResponse(character.id, SocialAction.LEVEL_UP), character.position)
 
+        //TODO Manage new skills
         //TODO Manage weight
         //TODO Manage grade penalty
     }

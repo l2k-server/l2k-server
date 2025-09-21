@@ -81,6 +81,7 @@ val POWER_SHOT = SkillTemplate(
     skillAction = SingleTargetPhysicalDamageSkillAction(
         power = listOf(
             65, 71, 78, 102, 112, 122, 158, 172, 187, 239, 258, 279, 326, 352, 379, 440, 472, 507, 584, 625, 669, 763, 814, 865
-        )
+        ),
+        ignoresShield = true
     )
 )

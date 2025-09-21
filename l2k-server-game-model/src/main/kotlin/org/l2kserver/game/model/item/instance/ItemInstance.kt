@@ -49,20 +49,21 @@ interface ItemInstance {
      val isEquipped: Boolean get() = equippedAt != null
 }
 
-/** In-game item instance, that can be used */
-interface UsableItemInstance: ItemInstance
-
 /**
  * In-game item instance, that can be equipped
  *
  * @property grade Grade of this equippable item
  * @property stats Stats that will be given to the character when equipping the item
+ * @property fixedBonusStats stats that will be applied to the character at the very end after recalculating
+ * all stat bonuses and multipliers, in the form of fixed values
+ * (no percentage bonuses, basic stats modifiers etc. will be applied to these stats)
  * @property equippedAt Slot, at which this item is equipped
  * @property isEquipped Is this item equipped
  */
 interface EquippableItemInstance : ItemInstance {
      override val grade: Grade
      val stats: CombatStats
+     val fixedBonusStats: CombatStats
      override var equippedAt: Slot?
 
      override val isStackable: Boolean get() = false

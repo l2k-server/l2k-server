@@ -5,17 +5,16 @@ import org.l2kserver.game.domain.Inventory
 import org.l2kserver.game.model.actor.position.Position
 import org.l2kserver.game.utils.LevelUtils
 import org.l2kserver.game.domain.PlayerCharacterEntity
-import org.l2kserver.game.extensions.model.skill.findAllByCharacterIdAndSubclassIndex
 import org.l2kserver.game.extensions.model.stats.applyBasicStats
 import org.l2kserver.game.extensions.model.stats.applyEquipment
 import org.l2kserver.game.extensions.model.stats.applyLimitations
 import org.l2kserver.game.extensions.model.stats.applyModifiers
+import org.l2kserver.game.extensions.model.stats.applyFixedBonusStats
 import org.l2kserver.game.model.actor.character.CharacterClass
 import org.l2kserver.game.model.actor.character.PvpState
 import org.l2kserver.game.model.actor.position.Heading
 import org.l2kserver.game.model.item.Soulshot
 import org.l2kserver.game.model.item.Spiritshot
-import org.l2kserver.game.model.skill.Skill
 import org.l2kserver.game.model.stats.BasicStats
 import org.l2kserver.game.model.stats.CombatStats
 import org.l2kserver.game.model.stats.TradeAndInventoryStats
@@ -83,7 +82,6 @@ import org.l2kserver.game.model.store.PrivateStore
  * @property basicStats Basic stats
  * @property stats Final combat stats (base + equipment + modifiers)
  * @property tradeAndInventoryStats Stats for trading and inventory operations
- * @property skills Skill that are available for character
  * @property privateStore Character's private store (if any)
  * @property isImmobilized Whether character is immobilized
  * @property isParalyzed Whether character is paralyzed
@@ -168,14 +166,11 @@ class PlayerCharacter(
     override val stats: CombatStats get() = characterClass.combatStats
         .applyEquipment(this)
         .applyModifiers(level, characterClass, basicStats)
+        .applyFixedBonusStats(this.inventory.findAllEquipped())
         .applyLimitations() //TODO apply skills
 
     val tradeAndInventoryStats: TradeAndInventoryStats get() = characterClass.tradeAndInventoryStats
         .applyBasicStats(basicStats)//TODO apply skills
-
-    val skills: Map<Int, Skill> get() = Skill.findAllByCharacterIdAndSubclassIndex(
-        characterId = this.id, subclassIndices = arrayOf(null, this.activeSubclass)
-    ).associateBy { it.skillId }
 
     var privateStore: PrivateStore? = null
 
@@ -194,13 +189,4 @@ class PlayerCharacter(
     override fun isEnemyOf(other: ActorInstance) = karma > 0 || pvpState != PvpState.NOT_IN_PVP
 
     override fun toString() = "Character(name=$name id=$id gender=$gender race=$race)"
-
-    /**
-     * Finds skill by [skillId] in this character's skill list
-     *
-     * @throws IllegalStateException if no skill was found
-     */
-    fun getSkillById(skillId: Int) = requireNotNull(this.skills[skillId]) {
-        "$this has no skill with id = $skillId"
-    }
 }

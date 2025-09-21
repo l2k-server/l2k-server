@@ -3,7 +3,6 @@ CREATE TABLE skills(
     subclass_index             INT NOT NULL,
     skill_id                   INT NOT NULL,
     skill_level                INT NOT NULL,
-    next_usage_time            TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     id                         SERIAL PRIMARY KEY,
     -- TODO skill enchantment
 

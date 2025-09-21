@@ -10,7 +10,7 @@ import org.l2kserver.game.AbstractTests
 import org.l2kserver.game.data.npc.GREMLIN
 import org.l2kserver.game.data.skill.MORTAL_BLOW
 import org.l2kserver.game.data.skill.POWER_STRIKE
-import org.l2kserver.game.domain.SkillsTable
+import org.l2kserver.game.domain.SkillTable
 import org.l2kserver.game.extensions.receiveIgnoring
 import org.l2kserver.game.extensions.toSpawnPosition
 import org.l2kserver.game.handler.dto.request.UseSkillRequest
@@ -71,7 +71,7 @@ class SkillServiceTest(
 
         //Learn skill
         newSuspendedTransaction {
-            SkillsTable.insert {
+            SkillTable.insert {
                 it[characterId] = character.id
                 it[subclassIndex] = 0
                 it[skillId] = MORTAL_BLOW.id
@@ -102,7 +102,7 @@ class SkillServiceTest(
 
         //Learn skill
         newSuspendedTransaction {
-            SkillsTable.insert {
+            SkillTable.insert {
                 it[characterId] = character.id
                 it[subclassIndex] = 0
                 it[skillId] = POWER_STRIKE.id
@@ -172,7 +172,7 @@ class SkillServiceTest(
 
         //Learn skill
         newSuspendedTransaction {
-            SkillsTable.insert {
+            SkillTable.insert {
                 it[characterId] = character.id
                 it[subclassIndex] = 0
                 it[skillId] = POWER_STRIKE.id
@@ -228,7 +228,7 @@ class SkillServiceTest(
 
         //Learn skill
         newSuspendedTransaction {
-            SkillsTable.insert {
+            SkillTable.insert {
                 it[characterId] = character.id
                 it[subclassIndex] = 1
                 it[skillId] = MORTAL_BLOW.id
@@ -250,7 +250,7 @@ class SkillServiceTest(
 
         //Learn skill
         newSuspendedTransaction {
-            SkillsTable.insert {
+            SkillTable.insert {
                 it[characterId] = character.id
                 it[subclassIndex] = 0
                 it[skillId] = POWER_STRIKE.id
@@ -279,7 +279,7 @@ class SkillServiceTest(
 
         //Learn skill
         newSuspendedTransaction {
-            SkillsTable.insert {
+            SkillTable.insert {
                 it[characterId] = character.id
                 it[subclassIndex] = 0
                 it[skillId] = POWER_STRIKE.id
@@ -302,7 +302,7 @@ class SkillServiceTest(
 
         //Learn skill
         newSuspendedTransaction {
-            SkillsTable.insert {
+            SkillTable.insert {
                 it[characterId] = character.id
                 it[subclassIndex] = 0
                 it[skillId] = POWER_STRIKE.id

@@ -26,8 +26,6 @@ import kotlinx.coroutines.cancel
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.l2kserver.game.domain.AccessLevel
 import org.l2kserver.game.model.map.Town
-import org.l2kserver.game.domain.Shortcut
-import org.l2kserver.game.extensions.model.shortcut.findAllBy
 import org.l2kserver.game.handler.dto.request.RespawnAt
 import org.l2kserver.game.handler.dto.request.RespawnRequest
 import org.l2kserver.game.handler.dto.response.ChangePostureResponse
@@ -50,6 +48,7 @@ import org.l2kserver.game.network.session.send
 import org.l2kserver.game.network.session.sessionContext
 import org.l2kserver.game.repository.GameObjectRepository
 import org.l2kserver.game.repository.PlayerCharacterRepository
+import org.l2kserver.game.repository.ShortcutRepository
 import kotlin.coroutines.coroutineContext
 import kotlin.math.roundToInt
 
@@ -63,6 +62,7 @@ class CharacterService(
     private val moveService: MoveService,
 
     private val playerCharacterRepository: PlayerCharacterRepository,
+    private val shortcutRepository: ShortcutRepository,
     override val gameObjectRepository: GameObjectRepository,
 
     @Value("\${characters.newCharacterNameRegexp}") private val newCharacterNameRegexp: String,
@@ -277,7 +277,7 @@ class CharacterService(
             "Cannot enter game: no character with id $characterId exists!"
         }
         gameObjectRepository.loadCharacter(character)
-        val shortcuts = Shortcut.findAllBy(character.id, character.activeSubclass)
+        val shortcuts = shortcutRepository.findAllBy(character.id, character.activeSubclass)
 
         send(FullCharacterResponse(character))
         send(InventoryResponse(character.inventory))

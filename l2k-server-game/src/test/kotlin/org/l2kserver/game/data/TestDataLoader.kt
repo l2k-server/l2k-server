@@ -1,9 +1,11 @@
 package org.l2kserver.game.data
 
-import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.jetbrains.exposed.sql.update
 import org.l2kserver.game.data.character.classes.HUMAN_FIGHTER
+import org.l2kserver.game.data.character.classes.HUMAN_MYSTIC
+import org.l2kserver.game.data.item.armor.APPRENTICE_STOCKINGS
+import org.l2kserver.game.data.item.armor.APPRENTICE_TUNIC
 import org.l2kserver.game.data.item.armor.LEATHER_SHIELD
 import org.l2kserver.game.data.item.armor.SQUIRES_PANTS
 import org.l2kserver.game.data.item.armor.SQUIRES_SHIRT
@@ -17,6 +19,7 @@ import org.l2kserver.game.data.item.jewelry.RING_OF_ANGUISH
 import org.l2kserver.game.data.item.jewelry.RING_OF_KNOWLEDGE
 import org.l2kserver.game.data.item.soulshot.SOULSHOT_NO_GRADE
 import org.l2kserver.game.data.item.soulshot.SOULSHOT_S_GRADE
+import org.l2kserver.game.data.item.weapons.APPRENTICE_WAND
 import org.l2kserver.game.data.item.weapons.BOW
 import org.l2kserver.game.data.item.weapons.DAGGER
 import org.l2kserver.game.data.item.weapons.DEMON_SPLINTER
@@ -24,17 +27,16 @@ import org.l2kserver.game.data.item.weapons.HEAVENS_DIVIDER
 import org.l2kserver.game.data.item.weapons.SQUIRES_SWORD
 import org.l2kserver.game.data.item.weapons.TALLUM_BLADE_DARK_LEGIONS_EDGE
 import org.l2kserver.game.data.item.weapons.WILLOW_STAFF
+import org.l2kserver.game.data.npc.GRAND_MAGISTER_GALLINT
 import org.l2kserver.game.data.npc.GRAND_MASTER_ROIEN
 import org.l2kserver.game.data.npc.GREMLIN
 import org.l2kserver.game.data.skill.MORTAL_BLOW
 import org.l2kserver.game.data.skill.POWER_SHOT
 import org.l2kserver.game.data.skill.POWER_STRIKE
+import org.l2kserver.game.data.skill.WIND_STRIKE
 import org.l2kserver.game.domain.AccessLevel
 import org.l2kserver.game.domain.ItemEntity
 import org.l2kserver.game.domain.PlayerCharacterTable
-import org.l2kserver.game.domain.Shortcut
-import org.l2kserver.game.domain.SkillsTable
-import org.l2kserver.game.extensions.model.shortcut.create
 import org.l2kserver.game.model.actor.character.Gender
 import org.l2kserver.game.model.actor.character.CharacterClass
 import org.l2kserver.game.model.actor.character.CharacterRace
@@ -44,6 +46,8 @@ import org.l2kserver.game.model.item.template.ItemTemplate
 import org.l2kserver.game.model.item.template.Slot
 import org.l2kserver.game.model.skill.SkillTemplate
 import org.l2kserver.game.repository.PlayerCharacterRepository
+import org.l2kserver.game.repository.ShortcutRepository
+import org.l2kserver.game.repository.SkillRepository
 import org.l2kserver.game.utils.LevelUtils
 import org.springframework.boot.context.event.ApplicationStartedEvent
 import org.springframework.context.event.EventListener
@@ -57,7 +61,9 @@ private const val TEST_CHARACTER_NAME = "TesterMan"
  */
 @Component
 class TestDataLoader(
-    private val playerCharacterRepository: PlayerCharacterRepository
+    private val playerCharacterRepository: PlayerCharacterRepository,
+    private val skillRepository: SkillRepository,
+    private val shortcutRepository: ShortcutRepository,
 ) {
 
     @EventListener(ApplicationStartedEvent::class)
@@ -70,13 +76,15 @@ class TestDataLoader(
      * Registers some items for testing
      */
     private fun registerTestData() {
-        CharacterClass.Registry.register(
-            HUMAN_FIGHTER
-        )
-
         NpcTemplate.Registry.register(
             GRAND_MASTER_ROIEN,
+            GRAND_MAGISTER_GALLINT,
             GREMLIN
+        )
+
+        CharacterClass.Registry.register(
+            HUMAN_FIGHTER,
+            HUMAN_MYSTIC
         )
 
         ItemTemplate.Registry.register(
@@ -85,6 +93,7 @@ class TestDataLoader(
             DAGGER,
             BOW,
             SQUIRES_SWORD,
+            APPRENTICE_WAND,
 
             // S-Grade Weapons
             DEMON_SPLINTER,
@@ -92,6 +101,8 @@ class TestDataLoader(
             TALLUM_BLADE_DARK_LEGIONS_EDGE,
 
             // Armor
+            APPRENTICE_TUNIC,
+            APPRENTICE_STOCKINGS,
             SQUIRES_SHIRT,
             SQUIRES_PANTS,
             LEATHER_SHIELD,
@@ -118,7 +129,8 @@ class TestDataLoader(
         SkillTemplate.Registry.register(
             POWER_STRIKE,
             MORTAL_BLOW,
-            POWER_SHOT
+            POWER_SHOT,
+            WIND_STRIKE
         )
     }
 
@@ -142,28 +154,35 @@ class TestDataLoader(
             it[accessLevel] = AccessLevel.GAME_MASTER
         }
 
-        SkillsTable.insert {
-            it[characterId] = character.id
-            it[subclassIndex] = 0
-            it[skillId] = MORTAL_BLOW.id
-            it[skillLevel] = 1
-        }
+        skillRepository.save(
+            characterId = character.id,
+            subclassIndex = character.activeSubclass,
+            skillId = MORTAL_BLOW.id,
+            skillLevel = 1
+        )
 
-        SkillsTable.insert {
-            it[characterId] = character.id
-            it[subclassIndex] = 0
-            it[skillId] = POWER_STRIKE.id
-            it[skillLevel] = 1
-        }
+        skillRepository.save(
+            characterId = character.id,
+            subclassIndex = character.activeSubclass,
+            skillId = POWER_STRIKE.id,
+            skillLevel = 1
+        )
 
-        SkillsTable.insert {
-            it[characterId] = character.id
-            it[subclassIndex] = 0
-            it[skillId] = POWER_SHOT.id
-            it[skillLevel] = 1
-        }
+        skillRepository.save(
+            characterId = character.id,
+            subclassIndex = character.activeSubclass,
+            skillId = POWER_SHOT.id,
+            skillLevel = 1
+        )
 
-        Shortcut.create(character.id, 0, 1, ShortcutType.SKILL, POWER_STRIKE.id, 5)
+        shortcutRepository.create(
+            character.id,
+            0,
+            1,
+            ShortcutType.SKILL,
+            POWER_STRIKE.id,
+            5
+        )
 
         character.currentCp = character.stats.maxCp
         character.currentHp = character.stats.maxHp

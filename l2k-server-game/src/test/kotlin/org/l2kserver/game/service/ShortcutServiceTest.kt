@@ -4,13 +4,11 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.l2kserver.game.AbstractTests
-import org.l2kserver.game.domain.Shortcut
-import org.l2kserver.game.extensions.model.shortcut.findBy
-import org.l2kserver.game.extensions.model.skill.create
 import org.l2kserver.game.handler.dto.request.CreateShortcutRequest
 import org.l2kserver.game.handler.dto.response.CreateShortcutResponse
 import org.l2kserver.game.model.actor.character.ShortcutType
-import org.l2kserver.game.model.skill.Skill
+import org.l2kserver.game.repository.ShortcutRepository
+import org.l2kserver.game.repository.SkillRepository
 import org.springframework.beans.factory.annotation.Autowired
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -18,7 +16,9 @@ import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 
 class ShortcutServiceTest(
-    @Autowired private val shortcutService: ShortcutService
+    @Autowired private val shortcutService: ShortcutService,
+    @Autowired private val shortcutRepository: ShortcutRepository,
+    @Autowired private val skillRepository: SkillRepository
 ): AbstractTests() {
 
     @Test
@@ -45,7 +45,9 @@ class ShortcutServiceTest(
         assertEquals(testActionId, response.shortcut.shortcutActionId)
 
         newSuspendedTransaction {
-            val savedShortcut = assertNotNull(Shortcut.findBy(testIndex, character.id, character.activeSubclass))
+            val savedShortcut = assertNotNull(shortcutRepository.findBy(
+                testIndex, character.id, character.activeSubclass
+            ))
 
             assertEquals(testActionType, savedShortcut.type)
             assertEquals(testIndex, savedShortcut.index)
@@ -64,7 +66,12 @@ class ShortcutServiceTest(
         val testIndex = 0
         val testSkillLevel = 1
 
-        newSuspendedTransaction { Skill.create(character.id, character.activeSubclass, testActionId, testSkillLevel) }
+        skillRepository.save(
+            characterId = character.id,
+            subclassIndex = character.activeSubclass,
+            skillId = testActionId,
+            skillLevel = testSkillLevel
+        )
 
         val request = CreateShortcutRequest(
             type = testActionType,
@@ -81,7 +88,11 @@ class ShortcutServiceTest(
         assertEquals(testSkillLevel, response.shortcut.actionLevel)
 
         newSuspendedTransaction {
-            val savedShortcut = assertNotNull(Shortcut.findBy(testIndex, character.id, character.activeSubclass))
+            val savedShortcut = assertNotNull(shortcutRepository.findBy(
+                testIndex,
+                character.id,
+                character.activeSubclass
+            ))
 
             assertEquals(testActionType, savedShortcut.type)
             assertEquals(testIndex, savedShortcut.index)

@@ -42,6 +42,10 @@ interface SingleTargetPhysicalSkillAction: SkillAction {
     fun applyTo(target: ActorInstance, caster: ActorInstance, effectLevel: Int, usedSoulshot: Boolean): SkillEffects
 }
 
+interface SingleTargetMagicSkillAction: SkillAction {
+    fun applyTo(target: ActorInstance, caster: ActorInstance, effectLevel: Int /** usedSpiritshotType */): SkillEffects
+}
+
 inline fun effects(builderFunction: SkillEffects.() -> Unit): SkillEffects {
     val skillEffects = SkillEffects()
     skillEffects.builderFunction()

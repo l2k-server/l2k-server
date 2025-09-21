@@ -6,18 +6,18 @@ import org.l2kserver.game.handler.dto.request.DeleteShortcutRequest
 import org.l2kserver.game.handler.dto.request.CreateShortcutRequest
 import org.l2kserver.game.handler.dto.response.CreateShortcutResponse
 import org.l2kserver.game.repository.GameObjectRepository
-import org.l2kserver.game.domain.Shortcut
-import org.l2kserver.game.extensions.model.shortcut.create
-import org.l2kserver.game.extensions.model.shortcut.deleteBy
-import org.l2kserver.game.extensions.model.shortcut.findBy
 import org.l2kserver.game.model.actor.character.ShortcutType
 import org.l2kserver.game.network.session.send
 import org.l2kserver.game.network.session.sessionContext
+import org.l2kserver.game.repository.ShortcutRepository
+import org.l2kserver.game.repository.SkillRepository
 import org.springframework.stereotype.Service
 
 @Service
 class ShortcutService(
-    override val gameObjectRepository: GameObjectRepository
+    override val gameObjectRepository: GameObjectRepository,
+    private val shortcutRepository: ShortcutRepository,
+    private val skillRepository: SkillRepository
 ) : AbstractService() {
 
     override val log = logger()
@@ -25,13 +25,17 @@ class ShortcutService(
     suspend fun registerShortcut(request: CreateShortcutRequest) = newSuspendedTransaction {
         val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
 
-        Shortcut.findBy(request.index, character.id, character.activeSubclass)?.delete()
+        shortcutRepository.findBy(
+            request.index, character.id, character.activeSubclass
+        )?.delete()
 
         val actionLevel = if (request.type == ShortcutType.SKILL)
-            character.getSkillById(request.shortcutActionId).skillLevel
+            skillRepository.findBy(
+                request.shortcutActionId, character.id, character.activeSubclass
+            ).skillLevel
         else 1
 
-        val newShortcut = Shortcut.create(
+        val newShortcut = shortcutRepository.create(
             characterId = character.id,
             subclassIndex = character.activeSubclass,
             shortcutIndex = request.index,
@@ -46,7 +50,7 @@ class ShortcutService(
 
     suspend fun deleteShortcut(request: DeleteShortcutRequest) = newSuspendedTransaction {
         val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
-        Shortcut.deleteBy(character.id, character.activeSubclass, request.index)
+        shortcutRepository.deleteBy(character.id, character.activeSubclass, request.index)
 
         log.info("Successfully deleted shortcut with index {} of character {}", request.index, character)
     }

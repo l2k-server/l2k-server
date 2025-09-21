@@ -50,7 +50,7 @@ class Inventory(val owner: PlayerCharacter): Collection<ItemInstance> {
 
     /** Character's adena amount */
     val adena: ItemInstance? get() = findAllByTemplateId(ADENA_TEMPLATE_ID).firstOrNull()
-    val weight: Int get() = items.values.sumOf { it.weight }
+    val weight: Int get() = items.values.sumOf { it.amount * it.weight }
     val weapon: Weapon? get() = this.oneHanded ?: this.twoHanded
 
     operator fun get(key: Slot) = equippedItems[key]
@@ -107,6 +107,9 @@ class Inventory(val owner: PlayerCharacter): Collection<ItemInstance> {
     fun findAllNotEquippedByTemplateIds(templateIds: Iterable<Int>) = items.values.filter {
         it.equippedAt == null && templateIds.contains(it.templateId)
     }
+
+    /** Get all the equipped items of this character */
+    fun findAllEquipped() = equippedItems.values.filterNotNull()
 
     /** Returns item from this inventory by [itemId] or null, if it does not exist or is equipped */
     fun findNotEquippedByIdOrNull(itemId: Int) = items[itemId]?.takeIf { !it.isEquipped }

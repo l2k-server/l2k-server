@@ -4,23 +4,20 @@ import org.jetbrains.exposed.dao.IntEntity
 import org.jetbrains.exposed.dao.IntEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.dao.id.IntIdTable
-import org.jetbrains.exposed.sql.javatime.timestamp
 
-object SkillsTable: IntIdTable("skills") {
+object SkillTable: IntIdTable("skills") {
     val characterId = integer("character_id")
     val subclassIndex = integer("subclass_index").nullable()
     val skillId = integer("skill_id")
     val skillLevel = integer("skill_level")
-    val nextUsageTime = timestamp("next_usage_time")
     //TODO skill enchantments
 }
 
 class SkillEntity(id: EntityID<Int>): IntEntity(id) {
-    companion object: IntEntityClass<SkillEntity>(SkillsTable)
+    companion object: IntEntityClass<SkillEntity>(SkillTable)
 
-    val characterId by SkillsTable.characterId
-    val subclassIndex by SkillsTable.subclassIndex
-    val skillId by SkillsTable.skillId
-    val skillLevel by SkillsTable.skillLevel
-    var nextUsageTime by SkillsTable.nextUsageTime
+    var characterId by SkillTable.characterId
+    var subclassIndex by SkillTable.subclassIndex
+    var skillId by SkillTable.skillId
+    var skillLevel by SkillTable.skillLevel
 }

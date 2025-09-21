@@ -2,6 +2,7 @@ package org.l2kserver.game.extensions.model.stats
 
 import org.l2kserver.game.model.actor.PlayerCharacter
 import org.l2kserver.game.model.actor.character.CharacterClass
+import org.l2kserver.game.model.item.instance.EquippableItemInstance
 import org.l2kserver.game.model.item.template.Slot
 import org.l2kserver.game.model.stats.BasicStats
 import org.l2kserver.game.model.stats.CombatStats
@@ -79,9 +80,7 @@ fun CombatStats.applyModifiers(level: Int, characterClass: CharacterClass, basic
     )
 }
 
-/**
- * Calculate stats after applying limitations
- */
+/** Calculate stats after applying limitations */
 fun CombatStats.applyLimitations(): CombatStats = this.copy(
     critRate = minOf(this.critRate, MAX_CRIT_RATE)
 )
@@ -89,6 +88,17 @@ fun CombatStats.applyLimitations(): CombatStats = this.copy(
 private fun hpRegenLevelModifier(characterClass: CharacterClass, level: Int) = characterClass.hpRegenPer10Levels[level/10]
 private fun mpRegenLevelModifier(characterClass: CharacterClass, level: Int) = characterClass.mpRegenPer10Levels[level/10]
 private fun cpRegenLevelModifier(characterClass: CharacterClass, level: Int) = hpRegenLevelModifier(characterClass, level)
+
+/** Applies fixed bonus of items, buffs and passives */
+fun CombatStats.applyFixedBonusStats(
+    equippedItems: Iterable<EquippableItemInstance>
+): CombatStats{
+    var result = this
+    
+    equippedItems.forEach { result += it.fixedBonusStats }
+    
+    return result
+}
 
 /**
  * Calculate CP, HP pr MP level bonus

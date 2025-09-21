@@ -1,5 +1,6 @@
 package org.l2kserver.game.repository
 
+import org.jetbrains.exposed.sql.SortOrder
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.deleteReturning
 import org.jetbrains.exposed.sql.selectAll
@@ -7,13 +8,12 @@ import org.jetbrains.exposed.sql.transactions.transaction
 import org.l2kserver.game.domain.ItemEntity
 import org.l2kserver.game.domain.PlayerCharacterEntity
 import org.l2kserver.game.domain.PlayerCharacterTable
-import org.l2kserver.game.domain.Shortcut
 import org.l2kserver.game.extensions.logger
-import org.l2kserver.game.extensions.model.shortcut.createAllFrom
 import org.l2kserver.game.model.actor.PlayerCharacter
 import org.l2kserver.game.model.actor.character.CharacterRace
 import org.l2kserver.game.model.actor.character.Gender
 import org.l2kserver.game.model.actor.character.CharacterClass
+import org.l2kserver.game.utils.LevelUtils
 import org.springframework.stereotype.Component
 import java.time.LocalDateTime
 
@@ -22,7 +22,10 @@ private const val DEFAULT_TITLE_COLOR = 0xFFFF77
 private const val DEFAULT_TITLE = ""
 
 @Component
-class PlayerCharacterRepository {
+class PlayerCharacterRepository(
+    private val shortcutRepository: ShortcutRepository,
+    private val skillRepository: SkillRepository
+) {
 
     private val log = logger()
 
@@ -51,6 +54,7 @@ class PlayerCharacterRepository {
             this.hairStyle = hairStyle
             this.hairColor = hairColor
             this.faceType = faceType
+            this.lastAccess = LocalDateTime.now()
             this.x = characterTemplate.position.x
             this.y = characterTemplate.position.y
             this.z = characterTemplate.position.z
@@ -59,8 +63,19 @@ class PlayerCharacterRepository {
             this
         }
 
+        val characterLevel = LevelUtils.getLevelByExp(characterEntity.exp)
+        for ((requiredLevel, skillsToLearn) in characterClass.skillTree) {
+            if (requiredLevel > characterLevel) continue
+
+            val learnableSkills = skillsToLearn.filter { it.autoLearn }
+            skillRepository.saveAll(characterEntity.id.value, 0 , learnableSkills)
+        }
+
         ItemEntity.createAllFrom(characterEntity.id.value, characterTemplate.items)
-        Shortcut.createAllFrom(characterEntity.id.value, characterTemplate.shortcuts)
+        shortcutRepository.createAllFrom(
+            characterEntity.id.value,
+            characterTemplate.shortcuts
+        )
 
         val character = characterEntity.toPlayerCharacter()!!
 
@@ -78,6 +93,7 @@ class PlayerCharacterRepository {
     fun findAllByAccountName(accountName: String) = transaction {
         PlayerCharacterEntity
             .find { PlayerCharacterTable.accountName eq accountName }
+            .orderBy(PlayerCharacterTable.lastAccess to SortOrder.DESC)
             .mapNotNull { it.toPlayerCharacter() }
     }
 
