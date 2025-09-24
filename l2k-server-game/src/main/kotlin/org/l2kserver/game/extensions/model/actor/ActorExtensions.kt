@@ -7,9 +7,9 @@ import org.l2kserver.game.model.skill.action.effect.DamageEffect
 import org.l2kserver.game.model.utils.PHYSICAL_ATTACK_BASE
 import org.l2kserver.game.model.utils.PHYSICAL_DMG_FROM_BACK_MODIFIER
 import org.l2kserver.game.model.utils.PHYSICAL_DMG_FROM_SIDE_MODIFIER
-import org.l2kserver.game.model.utils.calculateIsAvoided
-import org.l2kserver.game.model.utils.calculateIsBlocked
-import org.l2kserver.game.model.utils.calculateIsCritical
+import org.l2kserver.game.model.utils.calculateIsPhysicalAttackAvoided
+import org.l2kserver.game.model.utils.calculateIsPhysicalAttackBlocked
+import org.l2kserver.game.model.utils.calculateIsPhysicalAttackCritical
 import kotlin.math.roundToInt
 
 /**
@@ -20,20 +20,18 @@ import kotlin.math.roundToInt
  * (for example dual weapon attack contains two hits, each should deal 50% damage)
  */
 fun ActorInstance.hit(other: ActorInstance, soulshotUsed: Boolean, attackPowerDivider: Int = 1): DamageEffect {
-    val isAvoided = calculateIsAvoided(this, other)
+    val isAvoided = calculateIsPhysicalAttackAvoided(this, other)
     //TODO Calculate PerfectShieldBlock
 
-    if (isAvoided) return DamageEffect(targetId = other.id, isAvoided = true)
+    if (isAvoided) return DamageEffect(isAvoided = true)
 
-    val isCritical = calculateIsCritical(this, other)
-    val isBlocked = calculateIsBlocked(this, other)
+    val isCritical = calculateIsPhysicalAttackCritical(this, other)
+    val isBlocked = calculateIsPhysicalAttackBlocked(this, other)
 
     return DamageEffect(
-        targetId = other.id,
         damage = calculateAutoAttackDamage(
             this, other, isCritical, isBlocked, soulshotUsed
         ) / attackPowerDivider,
-        usedSoulshot = soulshotUsed,
         isCritical = isCritical,
         isBlocked = isBlocked,
     )

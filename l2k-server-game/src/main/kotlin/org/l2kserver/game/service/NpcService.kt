@@ -49,11 +49,8 @@ class NpcService(
     /**
      * Opens chat window with [npc]
      */
-    suspend fun talkTo(npc: Npc) {
-        send(NpcChatWindowResponse(
-            npcId = npc.id,
-            message = npc.replicas.firstOrNull() ?: DEFAULT_INIT_REPLICA
-        ))
+    suspend fun talkTo(npc: Npc) = send {
+        NpcChatWindowResponse(npcId = npc.id, message = npc.replicas.firstOrNull() ?: DEFAULT_INIT_REPLICA)
     }
 
     /**
@@ -63,7 +60,7 @@ class NpcService(
         //Delete corpse from game world after delay
         delay(CORPSE_DISAPPEARANCE_DELAY_MS)
 
-        broadcastPacket(DeleteObjectResponse(npc.id), npc)
+        broadcastAround(npc) { DeleteObjectResponse(npc.id) }
         gameObjectRepository.delete(npc)
 
         //Respawn this NPC after delay

@@ -13,15 +13,20 @@ private const val ATTACK_RESPONSE_PACKET_ID: UByte = 5u
  * Attack data
  *
  * @property attacker Actor, who attacks
- * @property hits All the hits dealt by this attack
+ * @property attacks All the hits dealt by this attack
  */
 data class AttackResponse(
     val attacker: ActorInstance,
-    val hits: List<DamageEffect>,
+    val attacks: List<Attack>,
+    val usedSoulshot: Boolean
 ): ResponsePacket {
+    
+    constructor(
+        attacker: ActorInstance, attack: Attack, usedSoulshot: Boolean
+    ): this(attacker, listOf(attack), usedSoulshot)
 
     init {
-        require(hits.isNotEmpty()) { "Attack must contain at least one hit!" }
+        require(attacks.isNotEmpty()) { "Attack must contain at least one hit!" }
     }
 
     override val data = littleEndianByteArray {
@@ -29,20 +34,37 @@ data class AttackResponse(
 
         putUByte(ATTACK_RESPONSE_PACKET_ID)
         putInt(attacker.id)
-        put(hits.first().toByteArray(weaponGrade))
+        put(attacks.first().toByteArray(usedSoulshot, weaponGrade))
         putInt(attacker.position.x)
         putInt(attacker.position.y)
         putInt(attacker.position.z)
 
-        putShort((hits.size - 1).toShort())
-        for (i: Int in 1..< hits.size) {
-            put(hits[i].toByteArray(weaponGrade))
+        putShort((attacks.size - 1).toShort())
+        for (i: Int in 1..< attacks.size) {
+            put(attacks[i].toByteArray(usedSoulshot, weaponGrade))
         }
     }
 
 }
 
-private fun DamageEffect.toByteArray(weaponGrade: Grade) = littleEndianByteArray {
+data class Attack (
+    val targetId: Int,
+    val damage: Int,
+
+    val isCritical: Boolean,
+    val isBlocked: Boolean,
+    val isAvoided: Boolean,
+)
+
+fun DamageEffect.toAttack(targetId: Int) = Attack(
+    targetId = targetId,
+    damage = this.damage,
+    isCritical = this.isCritical,
+    isBlocked = this.isBlocked,
+    isAvoided = this.isAvoided
+)
+
+private fun Attack.toByteArray(usedSoulshot: Boolean, weaponGrade: Grade) = littleEndianByteArray {
     putInt(targetId)
     putInt(damage)
 

@@ -4,6 +4,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import org.l2kserver.game.extensions.logger
 import org.l2kserver.game.extensions.model.actor.asMutable
+import org.l2kserver.game.handler.dto.ChatTab
 import org.l2kserver.game.handler.dto.response.ChatMessageResponse
 import org.l2kserver.game.model.actor.Npc
 import org.l2kserver.game.model.actor.npc.ai.AiIntents
@@ -59,14 +60,14 @@ class AiService(
         if (!coroutineContext.isActive) return@forEach
         when (intent) {
             is WaitIntent -> delay(intent.waitTimeMillis)
-            is SayIntent -> broadcastPacket(
+            is SayIntent -> this@AiService.broadcastAround(npc.position) {
                 ChatMessageResponse(
                     speakerId = npc.id,
-                    chatTab = org.l2kserver.game.handler.dto.ChatTab.GENERAL,
+                    chatTab = ChatTab.GENERAL,
                     speakerName = npc.name,
                     message = intent.message
                 )
-            )
+            }
             is MoveIntent -> moveService.move(npc, intent.position)
             is AttackIntent -> combatService.attack(npc, intent.target.asMutable())
         }

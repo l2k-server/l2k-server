@@ -93,7 +93,7 @@ class ActorStateService(
 
         if (character.pvpState != PvpState.PVP) {
             character.pvpState = PvpState.PVP
-            broadcastPacket(PvPStatusResponse(character), character.position)
+            this@ActorStateService.broadcastAround(character.position) { PvPStatusResponse(character) }
         }
     }
 
@@ -110,10 +110,12 @@ class ActorStateService(
             //TODO This is part of AI, not combat service
             if (actor is Npc) {
                 actor.moveType = MoveType.RUN
-                broadcastPacket(ChangeMoveTypeResponse(actor.id, actor.moveType))
+                this@ActorStateService.broadcastAround(actor.position) {
+                    ChangeMoveTypeResponse(actor.id, actor.moveType)
+                }
             }
 
-            broadcastPacket(StartFightingResponse(actor.id), actor.position)
+            this@ActorStateService.broadcastAround(actor.position) { StartFightingResponse(actor.id) }
         }
 
         fightingActors[actor] = currentTimeMillis() + COMBAT_TIME_MS
@@ -124,7 +126,7 @@ class ActorStateService(
      * Notifies surrounding characters about this and flushes combatState end time
      */
     suspend fun disableCombatState(actor: MutableActorInstance) {
-        broadcastPacket(StopFightingResponse(actor.id), actor.position)
+        this@ActorStateService.broadcastAround(actor.position) { StopFightingResponse(actor.id) }
         actor.isFighting = false
         fightingActors.remove(actor)
     }
@@ -143,7 +145,7 @@ class ActorStateService(
             //TODO This is part of AI, not combat service
             if (actor is Npc) {
                 actor.moveType = MoveType.WALK
-                broadcastPacket(ChangeMoveTypeResponse(actor.id, actor.moveType))
+                this@ActorStateService.broadcastAround(actor.position) { ChangeMoveTypeResponse(actor.id, actor.moveType) }
             }
 
             disableCombatState(actor)
@@ -155,14 +157,14 @@ class ActorStateService(
         when {
             pvpTimeLeft <= 0 -> newSuspendedTransaction {
                 character.pvpState = PvpState.NOT_IN_PVP
-                broadcastPacket(PvPStatusResponse(character), character.position)
+                this@ActorStateService.broadcastAround(character.position) { PvPStatusResponse(character) }
                 charactersInPvpState.remove(character)
                 log.debug("'{}' is now not in PVP", character)
             }
 
             pvpTimeLeft <= pvpFlagEndingTimeMs -> newSuspendedTransaction {
                 character.pvpState = PvpState.PVP_ENDING
-                broadcastPacket(PvPStatusResponse(character), character.position)
+                this@ActorStateService.broadcastAround(character.position) { PvPStatusResponse(character) }
                 log.debug("Switched PVP state of '{}' to '{}'", character, character.pvpState)
             }
         }
@@ -209,7 +211,8 @@ class ActorStateService(
                 updatedStatuses[StatusAttribute.CUR_CP] = actor.currentCp
             }
 
-            if (updatedStatuses.isNotEmpty()) broadcastPacket(UpdateStatusResponse(actor.id, updatedStatuses))
+            if (updatedStatuses.isNotEmpty())
+                this@ActorStateService.broadcastAround(actor.position) { UpdateStatusResponse(actor.id, updatedStatuses) }
         }
     }
 

@@ -97,7 +97,7 @@ class L2GameRequestHandler(
             is RestartRequest -> characterService.exitToCharactersMenu()
             is RespawnRequest -> characterService.respawnCharacter(request)
 
-            is ManorListRequest -> send(ManorListResponse)
+            is ManorListRequest -> send { ManorListResponse }
 
             is UseItemRequest -> itemService.useItem(request)
             is TakeOffItemRequest -> itemService.takeOffItem(request)
@@ -142,7 +142,7 @@ class L2GameRequestHandler(
 
             is PrivateStoreSellStopRequest, is PrivateStoreBuyStopRequest -> tradeService.stopPrivateStore()
 
-            null -> send(ActionFailedResponse)
+            null -> send { ActionFailedResponse }
         }
     }
 

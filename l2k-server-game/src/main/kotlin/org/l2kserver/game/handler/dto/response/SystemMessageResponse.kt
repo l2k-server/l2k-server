@@ -107,6 +107,16 @@ open class SystemMessageResponse private constructor(
     /** Message: "Critical hit!" */
     data object CriticalHit: SystemMessageResponse(systemMessageId = 44)
 
+    /** Message: "Magic Critical hit!" */
+    data object MagicCriticalHit: SystemMessageResponse(systemMessageId = 1280)
+
+    /** Message: "Your attack has failed" */
+    data object AttackFailed: SystemMessageResponse(systemMessageId = 158)
+
+    /** Message: "[targetName] has resisted your [skill]." */
+    data class HasResisted(val targetName:String, val skill: Skill): SystemMessageResponse(
+        systemMessageId = 139, targetName, skill)
+
     /** Message: "You use [skill]" */
     data class YouUse(val skill: Skill): SystemMessageResponse(systemMessageId = 46, skill)
 

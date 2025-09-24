@@ -59,9 +59,9 @@ class CombatServiceTest(
         // Check attacker's responses
         val attackResponse = assertIs<AttackResponse>(context.responseChannel.receive())
         assertEquals(character.id, attackResponse.attacker.id)
-        assertEquals(1, attackResponse.hits.size)
+        assertEquals(1, attackResponse.attacks.size)
 
-        val hit = attackResponse.hits[0]
+        val hit = attackResponse.attacks[0]
         assertEquals(targetCharacter.id, hit.targetId)
 
         val startFightingResponse = assertIs<StartFightingResponse>(context.responseChannel.receive())
@@ -87,8 +87,8 @@ class CombatServiceTest(
         //Check target's responses
         val attackResponseForTarget = assertIs<AttackResponse>(targetContext.responseChannel.receive())
         assertEquals(character.id, attackResponseForTarget.attacker.id)
-        assertEquals(1, attackResponse.hits.size)
-        assertEquals(hit, attackResponse.hits[0])
+        assertEquals(1, attackResponse.attacks.size)
+        assertEquals(hit, attackResponse.attacks[0])
 
         val startFightingResponseForTarget = assertIs<StartFightingResponse>(targetContext.responseChannel.receive())
         assertEquals(character.id, startFightingResponseForTarget.actorId)
@@ -145,11 +145,12 @@ class CombatServiceTest(
         // Check attacker's responses
         val attackResponse = assertIs<AttackResponse>(context.responseChannel.receive())
         assertEquals(character.id, attackResponse.attacker.id)
-        assertEquals(1, attackResponse.hits.size)
+        assertEquals(1, attackResponse.attacks.size)
+        assertTrue(attackResponse.usedSoulshot)
 
-        val hit = attackResponse.hits[0]
-        assertEquals(targetCharacter.id, hit.targetId)
-        assertEquals(true, hit.usedSoulshot)
+        val attack = attackResponse.attacks[0]
+        assertEquals(targetCharacter.id, attack.targetId)
+
 
         val startFightingResponse = assertIs<StartFightingResponse>(context.responseChannel.receive())
         assertEquals(character.id, startFightingResponse.actorId)
@@ -174,9 +175,10 @@ class CombatServiceTest(
         //Check target's responses
         assertIs<SkillUsedResponse>(targetContext.responseChannel.receive()) //target sees using soulshot too
         val attackResponseForTarget = assertIs<AttackResponse>(targetContext.responseChannel.receive())
+        assertTrue(attackResponseForTarget.usedSoulshot)
         assertEquals(character.id, attackResponseForTarget.attacker.id)
-        assertEquals(1, attackResponse.hits.size)
-        assertEquals(hit, attackResponse.hits[0])
+        assertEquals(1, attackResponse.attacks.size)
+        assertEquals(attack, attackResponse.attacks[0])
 
         val startFightingResponseForTarget = assertIs<StartFightingResponse>(targetContext.responseChannel.receive())
         assertEquals(character.id, startFightingResponseForTarget.actorId)
@@ -242,9 +244,9 @@ class CombatServiceTest(
 
         val attackResponse = assertIs<AttackResponse>(context.responseChannel.receive())
         assertEquals(character.id, attackResponse.attacker.id)
-        assertEquals(1, attackResponse.hits.size)
+        assertEquals(1, attackResponse.attacks.size)
 
-        val hit = attackResponse.hits[0]
+        val hit = attackResponse.attacks[0]
         assertEquals(targetCharacter.id, hit.targetId)
 
         val startFightingResponse = assertIs<StartFightingResponse>(context.responseChannel.receive())

@@ -152,7 +152,7 @@ value class WIT(val value: Int) {
     companion object: BaseStat(modifierBase = 1.05, modifierPowBase = 20.0)
 
     val castingSpdModifier: Double get() = getModifier(value)
-    val magicCritChanceBonus: Int get() = TODO()
+    val magicCritChanceBonus: Double get() = getModifier(value)
 
     operator fun plus(other: WIT) = WIT(this.value + other.value)
 }

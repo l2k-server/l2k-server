@@ -23,7 +23,7 @@ class UserCommandService(
 
         when (request.command) {
             UserCommand.LOC -> handleLocCommand()
-            else -> send(SystemMessageResponse("Got command '${request.command}'"))
+            else -> send { SystemMessageResponse("Got command '${request.command}'") }
         }
     }
 
@@ -33,12 +33,12 @@ class UserCommandService(
 
         val closestTown = Town.Registry.findClosestByPosition(position)
 
-        send(
+        send {
             SystemMessageResponse(
                 "Current location: ${position.x}, ${position.y}, ${position.z}" +
                         if (closestTown != null) " (Near ${closestTown.name})" else ""
             )
-        )
+        } //TODO Use special SystemMessageResponse
     }
 
 }

@@ -44,7 +44,7 @@ class ShortcutService(
             shortcutActionLevel = actionLevel
         )
 
-        send(CreateShortcutResponse(newShortcut))
+        send { CreateShortcutResponse(newShortcut) }
         log.info("Registered new shortcut '{}'", newShortcut)
     }
 

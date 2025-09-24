@@ -3,7 +3,7 @@ package org.l2kserver.game.model.skill.action
 import org.l2kserver.game.model.actor.ActorInstance
 import org.l2kserver.game.model.item.template.calculateRandomDamageModifier
 import org.l2kserver.game.model.utils.PHYSICAL_ATTACK_BASE
-import org.l2kserver.game.model.utils.calculateIsBlocked
+import org.l2kserver.game.model.utils.calculateIsPhysicalAttackBlocked
 import org.l2kserver.game.model.utils.calculatePositionCritChanceMultiplier
 import kotlin.math.roundToInt
 import kotlin.random.Random
@@ -23,7 +23,7 @@ class BlowSkillAction(
     val lethalStrikePossible: Boolean = false
 ): SingleTargetPhysicalSkillAction {
 
-    override fun applyTo(target: ActorInstance, caster: ActorInstance, effectLevel: Int, usedSoulshot: Boolean) = effects {
+    override fun applyTo(target: ActorInstance, caster: ActorInstance, actionLevel: Int, usedSoulshot: Boolean) = effects {
         // Calculate blow chance
         val successChance = when {
             caster.isBehind(target) -> BLOW_CHANCE_FROM_BEHIND
@@ -32,11 +32,14 @@ class BlowSkillAction(
         }
         val dexSuccessRateModifier = 1.0 + (caster.basicStats.dex.value.toDouble() - 20.0) / 100.0
 
-        if (successChance * dexSuccessRateModifier < Random.nextDouble()) return@effects
+        if (successChance * dexSuccessRateModifier < Random.nextDouble()) {
+            miss()
+            return@effects
+        }
 
         // Calculate damage
         var damage = (caster.stats.pAtk * if (usedSoulshot) 2 else 1).toDouble()
-        damage += power[effectLevel - 1] * if (usedSoulshot) 1.5 else 1.0
+        damage += power[actionLevel - 1] * if (usedSoulshot) 1.5 else 1.0
 
         damage *= caster.weaponType.calculateRandomDamageModifier()
         damage *= calculatePositionCritChanceMultiplier(caster, target)
@@ -47,12 +50,12 @@ class BlowSkillAction(
         // https://github.com/orgs/l2k-server/projects/1?pane=issue&itemId=124732573&issue=l2k-server%7Cl2k-server%7C47
 
         var defence = target.stats.pDef
-        val isBlocked = calculateIsBlocked(caster, target)
+        val isBlocked = calculateIsPhysicalAttackBlocked(caster, target)
         if (isBlocked) defence += target.stats.shieldDef
 
         damage = (PHYSICAL_ATTACK_BASE * damage) / defence
 
-        hit(damage.roundToInt(), target, usedSoulshot, isBlocked = isBlocked)
+        hit(damage.roundToInt(), isBlocked = isBlocked)
     }
 
 }

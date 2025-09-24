@@ -50,9 +50,11 @@ class AdminCommandService(
         }
         catch (e: Exception) {
             log.error("Failed executing command '{}'", commandRequest.commandString, e)
-            send(SystemMessageResponse(
-                "Failed executing command '${commandRequest.commandString}' - ${e.message}")
-            )
+            send {
+                SystemMessageResponse(
+                    "Failed executing command '${commandRequest.commandString}' - ${e.message}"
+                )
+            }
         }
     }
 
@@ -60,9 +62,9 @@ class AdminCommandService(
      * Handles help command. Iterates through all the CommandDescription object instances and sends their manuals
      */
     private suspend fun handleHelpCommand() {
-        send(SystemMessageResponse("List of available commands:"))
+        send { SystemMessageResponse("List of available commands:") }
         CommandDescription::class.sealedSubclasses.forEach {
-            it.objectInstance?.let { description -> send(SystemMessageResponse(description.manual)) }
+            it.objectInstance?.let { description -> send { SystemMessageResponse(description.manual) } }
         }
     }
 
@@ -74,7 +76,7 @@ class AdminCommandService(
         val characterToTeleport = command.name?.let { gameObjectRepository.findCharacterByName(it) }
             ?: gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
 
-        send(SystemMessageResponse("'${characterToTeleport.name}' was teleported to '${command.position}'"))
+        send { SystemMessageResponse("'${characterToTeleport.name}' was teleported to '${command.position}'") }
         moveService.teleport(characterToTeleport, command.position)
     }
 
@@ -106,20 +108,20 @@ class AdminCommandService(
         }
 
         if (item == null) {
-            send(
+            send {
                 SystemMessageResponse(
                     "Player ${characterToEnchant.name} has " +
                             "no equipped ${command.itemToEnchant.name.lowercase().replace('_', ' ')}"
-                ),
-                PlaySoundResponse(Sound.ITEMSOUND_SYS_IMPOSSIBLE)
-            )
+                )
+            }
+            send { PlaySoundResponse(Sound.ITEMSOUND_SYS_IMPOSSIBLE) }
             return
         }
 
         newSuspendedTransaction {
             item.enchantLevel = command.enchantLevel
-            send(SystemMessageResponse.YourItemHasBeenSuccessfullyEnchanted(item))
-            send(UpdateItemsResponse().wasModified(item))
+            send { SystemMessageResponse.YourItemHasBeenSuccessfullyEnchanted(item) }
+            send { UpdateItemsResponse().wasModified(item) }
             broadcastActorInfo(characterToEnchant)
         }
     }
