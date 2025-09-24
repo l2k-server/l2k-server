@@ -24,6 +24,7 @@ import org.l2kserver.game.model.actor.MutableActorInstance
 import org.l2kserver.game.model.actor.PlayerCharacter
 import org.l2kserver.game.model.item.ConsumableItem
 import org.l2kserver.game.model.skill.Skill
+import org.l2kserver.game.model.skill.action.SingleTargetMagicSkillAction
 import org.l2kserver.game.model.skill.action.SingleTargetPhysicalSkillAction
 import org.l2kserver.game.model.skill.action.effect.DamageEffect
 import org.l2kserver.game.network.session.send
@@ -57,7 +58,7 @@ class SkillService(
         val skills = skillRepository.findAllByCharacterIdAndSubclassIndex(
             character.id, character.activeSubclass
         )
-        send(SkillListResponse(skills))
+        send { SkillListResponse(skills) }
         log.info("Successfully sent skill list to character {}", character)
     }
 
@@ -76,12 +77,12 @@ class SkillService(
         log.debug("'{}' tries to use skill '{}'", actor, skill)
         when (skill.skillType) {
             SkillType.ACTIVE, SkillType.MAGIC -> useActiveSkill(actor, skill, forced, holdPosition)
-            SkillType.PASSIVE -> send(ActionFailedResponse)
+            SkillType.PASSIVE -> send { ActionFailedResponse }
             SkillType.TOGGLE -> {
                 //TODO Toggle skills
-                send(SystemMessageResponse("Toggle skills are not implemented yet"))
-                send(PlaySoundResponse(Sound.ITEMSOUND_SYS_SHORTAGE))
-                send(ActionFailedResponse)
+                send { SystemMessageResponse("Toggle skills are not implemented yet") }
+                send { PlaySoundResponse(Sound.ITEMSOUND_SYS_SHORTAGE) }
+                send { ActionFailedResponse }
             }
         }
     }
@@ -111,7 +112,7 @@ class SkillService(
 
                 //Check if movement was interrupted or stopped at some obstacle
                 if (!actor.position.isCloseTo(target.position, requiredDistance)) {
-                    send(SystemMessageResponse.TargetOutOfRange)
+                    send { SystemMessageResponse.TargetOutOfRange }
                     return@launchAction
                 }
             }
@@ -138,11 +139,11 @@ class SkillService(
         if (actor is PlayerCharacter) skill.consumes?.item?.let {
             val resourceItem = actor.inventory.findById(it.id)
             val reducedItem = actor.inventory.reduceAmount(it.id, it.amount)
-            if (reducedItem == null) send(UpdateItemsResponse().wasDeleted(resourceItem))
-            else send(UpdateItemsResponse().wasModified(reducedItem))
+            if (reducedItem == null) send { UpdateItemsResponse().wasDeleted(resourceItem) }
+            else send { UpdateItemsResponse().wasModified(reducedItem) }
         }
 
-        if (actor is PlayerCharacter && statusUpdated) send(
+        if (actor is PlayerCharacter && statusUpdated) send {
             UpdateStatusResponse(
                 objectId = actor.id,
                 StatusAttribute.CUR_HP to actor.currentHp,
@@ -150,7 +151,7 @@ class SkillService(
                 StatusAttribute.CUR_CP to actor.currentCp,
                 StatusAttribute.MAX_CP to actor.stats.maxCp
             )
-        )
+        }
     }
 
     /** Cast [skill] and apply cooldown */
@@ -164,9 +165,10 @@ class SkillService(
         skill.nextUsageTime = Instant.now().plusMillis(reuseDelay.toLong())
         //TODO Here spend resources for casting start
         withContext(kotlin.coroutines.coroutineContext + NonCancellable) {
+            send { SystemMessageResponse.YouUse(skill) }
+            send { GaugeResponse(GaugeColor.BLUE, castTime) }
 
-            send(SystemMessageResponse.YouUse(skill), GaugeResponse(GaugeColor.BLUE, castTime))
-            broadcastPacket(
+            this@SkillService.broadcastAround(this@castSkillOn.position) {
                 SkillUsedResponse(
                     casterId = this@castSkillOn.id,
                     targetId = target.id,
@@ -176,7 +178,7 @@ class SkillService(
                     reuseDelay = reuseDelay,
                     casterPosition = this@castSkillOn.position
                 )
-            )
+            }
 
             //Time, needed to cast a skill
             delay(castTime.toLong())
@@ -200,72 +202,72 @@ class SkillService(
     private suspend fun ActorInstance.canUseSkill(skill: Skill, target: ActorInstance?, forced: Boolean): Boolean = when {
         this.isParalyzed || this.isDead() -> false //TODO Physical/Magical silence
         skill.requires?.weaponTypes?.contains(this.weaponType) == false -> {
-            send(PlaySoundResponse(Sound.ITEMSOUND_SYS_IMPOSSIBLE), ActionFailedResponse)
+            send { PlaySoundResponse(Sound.ITEMSOUND_SYS_IMPOSSIBLE) }
+            send { ActionFailedResponse }
             false
         }
         Instant.now().isBefore(skill.nextUsageTime) -> {
-            send(SystemMessageResponse.IsBeingPreparedForReuse(skill), ActionFailedResponse)
+            send { SystemMessageResponse.IsBeingPreparedForReuse(skill) }
+            send { ActionFailedResponse }
             false
         }
         (skill.consumes?.hp ?: 0) > this.currentHp -> {
-            send(
-                PlaySoundResponse(Sound.ITEMSOUND_SYS_IMPOSSIBLE),
-                SystemMessageResponse.NotEnoughHp,
-                ActionFailedResponse
-            )
+            send { PlaySoundResponse(Sound.ITEMSOUND_SYS_IMPOSSIBLE) }
+            send { SystemMessageResponse.NotEnoughHp }
+            send { ActionFailedResponse }
             false
         }
         (skill.consumes?.mp ?: 0) > this.currentMp -> {
-            send(
-                PlaySoundResponse(Sound.ITEMSOUND_SYS_IMPOSSIBLE),
-                SystemMessageResponse.NotEnoughMp,
-                ActionFailedResponse
-            )
+            send { PlaySoundResponse(Sound.ITEMSOUND_SYS_IMPOSSIBLE) }
+            send { SystemMessageResponse.NotEnoughMp }
+            send { ActionFailedResponse }
             false
         }
         this is PlayerCharacter && !this.hasEnoughConsumable(skill.consumes?.item) -> {
-            send(
-                PlaySoundResponse(Sound.ITEMSOUND_SYS_IMPOSSIBLE),
-                SystemMessageResponse.NotEnoughItems,
-                ActionFailedResponse
-            )
+            send { PlaySoundResponse(Sound.ITEMSOUND_SYS_IMPOSSIBLE) }
+            send { SystemMessageResponse.NotEnoughItems }
+            send { ActionFailedResponse }
             false
+
         }
         skill.targetType != SkillTargetType.SELF && this.targetId == null -> {
-            send(SystemMessageResponse.YouMustSelectTarget)
-            send(PlaySoundResponse(Sound.ITEMSOUND_SYS_IMPOSSIBLE))
-            send(ActionFailedResponse)
+            send { SystemMessageResponse.YouMustSelectTarget }
+            send { PlaySoundResponse(Sound.ITEMSOUND_SYS_IMPOSSIBLE) }
+            send { ActionFailedResponse }
             false
         }
         skill.targetType != SkillTargetType.SELF && target == null -> {
-            send(SystemMessageResponse.TargetCannotBeFound)
-            send(PlaySoundResponse(Sound.ITEMSOUND_SYS_IMPOSSIBLE))
-            send(ActionFailedResponse)
+            send { SystemMessageResponse.TargetCannotBeFound }
+            send { PlaySoundResponse(Sound.ITEMSOUND_SYS_IMPOSSIBLE) }
+            send { ActionFailedResponse }
             false
         }
         skill.targetType != SkillTargetType.FRIEND && this.targetId == this.id -> {
-            send(SystemMessageResponse.CannotUseThisOnYourself)
-            send(PlaySoundResponse(Sound.ITEMSOUND_SYS_IMPOSSIBLE))
-            send(ActionFailedResponse)
+            send { SystemMessageResponse.CannotUseThisOnYourself }
+            send { PlaySoundResponse(Sound.ITEMSOUND_SYS_IMPOSSIBLE) }
+            send { ActionFailedResponse }
             false
         }
         skill.targetType == SkillTargetType.ENEMY && target?.isEnemyOf(this) == false && !forced -> {
-            send(ActionFailedResponse)
+            send { ActionFailedResponse }
             false
         }
 
         skill.castsOnCorpse() xor (target?.isDead() == true) -> {
-            send(SystemMessageResponse.IncorrectTarget, ActionFailedResponse)
+            send { SystemMessageResponse.IncorrectTarget }
+            send { ActionFailedResponse }
             false
         }
 
         skill.targetType == SkillTargetType.DEAD_ENEMY && (target?.isDead() == false || target?.isEnemyOf(this) == false) -> {
-            send(SystemMessageResponse.IncorrectTarget, ActionFailedResponse)
+            send { SystemMessageResponse.IncorrectTarget }
+            send { ActionFailedResponse }
             false
         }
 
         skill.targetType == SkillTargetType.DEAD_FRIEND && (target?.isDead() == false || target?.isEnemyOf(this) == true) -> {
-            send(SystemMessageResponse.IncorrectTarget, ActionFailedResponse)
+            send { SystemMessageResponse.IncorrectTarget }
+            send { ActionFailedResponse }
             false
         }
         //TODO Check PeaceZone
@@ -283,10 +285,12 @@ class SkillService(
     private suspend fun Skill.applyEffects(
         caster: MutableActorInstance, target: MutableActorInstance
     ) = newSuspendedTransaction {
+        var overhitPossible = false
         val effects = try {
             when (val action = this@applyEffects.skillAction) {
                 is SingleTargetPhysicalSkillAction -> {
                     val soulshotUsed = (caster as? PlayerCharacter)?.inventory?.weapon?.soulshotCharged ?: false
+                    overhitPossible = action.overhitPossible
                     action.applyTo(target, caster, this@applyEffects.skillLevel, soulshotUsed)
                         .also {
                             if (soulshotUsed) caster.inventory.weapon?.soulshotCharged = false
@@ -296,6 +300,9 @@ class SkillService(
                                 itemService.useSoulshot(caster, it)
                             }
                         }
+                }
+                is SingleTargetMagicSkillAction -> {
+                    action.applyTo(target, caster, this@applyEffects.skillLevel)
                 }
                 else -> emptyList()
             }
@@ -307,7 +314,9 @@ class SkillService(
 
         effects.forEach { effect ->
             when (effect) {
-                is DamageEffect -> combatService.applyDamageEffect(effect, caster)
+                is DamageEffect -> combatService.applyDamageEffect(
+                    caster, target, effect, this@applyEffects, overhitPossible
+                )
             }
         }
     }

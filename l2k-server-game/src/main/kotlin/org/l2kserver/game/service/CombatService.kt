@@ -21,11 +21,13 @@ import org.l2kserver.game.handler.dto.response.PlayerDiedResponse
 import org.l2kserver.game.handler.dto.response.SystemMessageResponse
 import org.l2kserver.game.handler.dto.response.UpdateItemsResponse
 import org.l2kserver.game.handler.dto.response.UpdateStatusResponse
+import org.l2kserver.game.handler.dto.response.toAttack
 import org.l2kserver.game.model.actor.ActorInstance
 import org.l2kserver.game.model.actor.MutableActorInstance
 import org.l2kserver.game.model.actor.Npc
 import org.l2kserver.game.model.actor.PlayerCharacter
 import org.l2kserver.game.model.item.template.WeaponType
+import org.l2kserver.game.model.skill.Skill
 import org.l2kserver.game.model.skill.action.effect.DamageEffect
 import org.l2kserver.game.network.session.send
 import org.l2kserver.game.network.session.sendTo
@@ -78,7 +80,7 @@ class CombatService(
 
                 //Check if movement was interrupted or stopped at some obstacle
                 if (!attacker.position.isCloseTo(attacked.position, requiredDistance)) {
-                    send(SystemMessageResponse.TargetOutOfRange)
+                    send { SystemMessageResponse.TargetOutOfRange }
                     break
                 }
 
@@ -111,9 +113,15 @@ class CombatService(
         }
     }
 
-    suspend fun applyDamageEffect(damageEffect: DamageEffect, attacker: MutableActorInstance) {
-        val attacked = gameObjectRepository.findActorById(damageEffect.targetId)
-        if (attacked.isDead()) return //Needed for double weapon, if target was killed by first hit
+    suspend fun applyDamageEffect(
+        attacker: MutableActorInstance,
+        attacked: MutableActorInstance,
+        damageEffect: DamageEffect,
+        skill: Skill? = null,
+        overhitPossible: Boolean = false
+    ) {
+        //For double weapon, if target was killed by first hit, or if actor is already killed by smth else
+        if (attacked.isDead()) return
 
         log.debug("{} has dealt {} damage to {}", attacker, damageEffect.damage, attacked)
 
@@ -124,7 +132,7 @@ class CombatService(
         }
 
         if (damageEffect.isAvoided) {
-            send(SystemMessageResponse.YouMissed)
+            send { SystemMessageResponse.YouMissed }
             sendTo(
                 attacked.id,
                 SystemMessageResponse.YouHaveAvoidedAttackOf(attacker.name)
@@ -134,7 +142,7 @@ class CombatService(
 
         // Calculate overhit damage.
         // "mob had 10 HP left, over-hit skill did 50 damage total, over-hit damage is 40" (c) l2jserver
-        val overhitDamage = if (damageEffect.overhitPossible && attacked is Npc)
+        val overhitDamage = if (overhitPossible && attacked is Npc)
             maxOf(damageEffect.damage - attacked.currentHp, 0)
         else 0
 
@@ -152,13 +160,21 @@ class CombatService(
             attacked.currentHp = maxOf(0, attacked.currentHp - hitOnHp)
         } else attacked.currentHp = maxOf(0, attacked.currentHp - damageEffect.damage)
 
-        if (damageEffect.isCritical) send(SystemMessageResponse.CriticalHit)
-        if (damageEffect.isBlocked) sendTo(attacked.id, SystemMessageResponse.ShieldDefenceSuccessful)
+        if (damageEffect.isCritical)
+            send { SystemMessageResponse.CriticalHit }
+        if (damageEffect.isMagicCritical)
+            send { SystemMessageResponse.MagicCriticalHit }
+        if (damageEffect.isHalfSuccessful)
+            send { SystemMessageResponse.AttackFailed }
+        if (skill!= null && damageEffect.isFailed)
+            send { SystemMessageResponse.HasResisted(attacked.name, skill) }
+        if (damageEffect.isBlocked)
+            sendTo(attacked.id, SystemMessageResponse.ShieldDefenceSuccessful)
 
-        send(SystemMessageResponse.YouHit(damageEffect.damage))
+        send { SystemMessageResponse.YouHit(damageEffect.damage) }
         sendTo(attacked.id, SystemMessageResponse.YouWereHitBy(attacker.name, damageEffect.damage))
 
-        if (overhitDamage > 0) send(SystemMessageResponse.OverHit)
+        if (overhitDamage > 0) send { SystemMessageResponse.OverHit }
 
         val updatedStatus = UpdateStatusResponse.hpMpCpOf(attacked)
         sendTo(attacked.id, updatedStatus)
@@ -184,18 +200,21 @@ class CombatService(
         val attackDuration = calculateAttackTime(attacker.stats.atkSpd)
         nextAttackAvailableTimeMap[attacker.id] = currentTimeMillis() + attackDuration
 
-        val soulshotUsed = (attacker as? PlayerCharacter)?.inventory?.weapon?.soulshotCharged ?: false
-        val hits = List(hitAmount) { attacker.hit(attacked, soulshotUsed, hitAmount) }
-        if (soulshotUsed && hits.any { !it.isAvoided }) attacker.inventory.weapon?.soulshotCharged = false
+        val weapon = (attacker as? PlayerCharacter)?.inventory?.weapon
+        val usedSoulshot = weapon?.soulshotCharged ?: false
+        val effects = List(hitAmount) { attacker.hit(attacked, usedSoulshot, hitAmount) }
+        if (usedSoulshot && effects.any { !it.isAvoided }) attacker.inventory.weapon?.soulshotCharged = false
 
         val delayBeforeHit = attackDuration / (1 + hitAmount)
-        broadcastPacket(AttackResponse(attacker, hits), attacker.position)
+
+        val attacks = effects.map { it.toAttack(attacked.id) }
+        broadcastAround(attacker.position) { AttackResponse(attacker, attacks, usedSoulshot) }
 
         //Delay for the time between start of the attack animation and the hit
         delay(delayBeforeHit)
 
-        hits.forEach {
-            applyDamageEffect(it, attacker)
+        effects.forEach {
+            applyDamageEffect(attacker, attacked, it)
             //Delay for the time between the hit and the end of the attack animation
             delay(delayBeforeHit)
         }
@@ -216,7 +235,7 @@ class CombatService(
 
             //Check if player has enough mana
             if (attacker.currentMp < weapon.manaCost) {
-                send(SystemMessageResponse.NotEnoughMp)
+                send { SystemMessageResponse.NotEnoughMp }
                 coroutineContext.cancel() //TODO cancelling whole process seems to be not very good idea...
                 return
             }
@@ -226,20 +245,20 @@ class CombatService(
                 val arrows = attacker.inventory.findAllByTemplateId(consumable.id).firstOrNull()
                 //Check if player has enough ammo
                 if (arrows == null || consumable.amount > arrows.amount) {
-                    send(SystemMessageResponse.NotEnoughArrows)
+                    send { SystemMessageResponse.NotEnoughArrows }
                     coroutineContext.cancel()
                     return
                 }
 
                 //Subtract ammo
                 val updatedArrows = attacker.inventory.reduceAmount(arrows.id, consumable.amount)
-                if (updatedArrows == null) send(UpdateItemsResponse().wasDeleted(arrows))
-                else send(UpdateItemsResponse().wasModified(updatedArrows))
+                if (updatedArrows == null) send { UpdateItemsResponse().wasDeleted(arrows) }
+                else send { UpdateItemsResponse().wasModified(updatedArrows) }
             }
 
             //Subtract mana
             attacker.currentMp -= weapon.manaCost
-            send(UpdateStatusResponse.hpMpCpOf(attacker))
+            send { UpdateStatusResponse.hpMpCpOf(attacker) }
         }
 
         val attackDuration = calculateAttackTime(attacker.stats.atkSpd)
@@ -247,14 +266,17 @@ class CombatService(
 
         nextAttackAvailableTimeMap[attacker.id] = currentTimeMillis() + attackDuration + reuseDelay
 
-        send(SystemMessageResponse.YouCarefullyNockAnArrow)
+        send { SystemMessageResponse.YouCarefullyNockAnArrow }
 
-        val soulshotUsed = (attacker as? PlayerCharacter)?.inventory?.weapon?.soulshotCharged ?: false
-        val hit = attacker.hit(attacked, soulshotUsed)
-        if (soulshotUsed && !hit.isAvoided) attacker.inventory.weapon?.soulshotCharged = false
+        val usedSoulshot = (attacker as? PlayerCharacter)?.inventory?.weapon?.soulshotCharged ?: false
 
-        send(GaugeResponse(GaugeColor.RED, (attackDuration + reuseDelay).toInt()))
-        broadcastPacket(AttackResponse(attacker, listOf(hit)), attacker.position)
+        val damageEffect = attacker.hit(attacked, usedSoulshot)
+        if (usedSoulshot && !damageEffect.isAvoided) attacker.inventory.weapon?.soulshotCharged = false
+
+        send { GaugeResponse(GaugeColor.RED, (attackDuration + reuseDelay).toInt()) }
+        broadcastAround(attacker.position) {
+            AttackResponse(attacker, damageEffect.toAttack(attacked.id), usedSoulshot)
+        }
 
         //Delay before launching an arrow
         delay((attackDuration * 0.9).roundToLong())
@@ -263,7 +285,7 @@ class CombatService(
         CoroutineScope(coroutineContext + NonCancellable).launch {
             //Delay for time it takes for the arrow to reach the target
             delay((attacker.position.distanceTo(attacked.position) / ARROW_SPEED_PER_MS).toLong())
-            newSuspendedTransaction { applyDamageEffect(hit, attacker) }
+            newSuspendedTransaction { applyDamageEffect(attacker, attacked, damageEffect) }
         }
 
         //Delay for the time between the hit and the end of the attack animation
@@ -279,8 +301,8 @@ class CombatService(
     private suspend fun performPoleAttack(attacker: MutableActorInstance, attacked: MutableActorInstance) {
         //TODO Pole attack
         log.debug("{} tries to hit {} by pole", attacker, attacked)
-        send(SystemMessageResponse("Pole attack is not implemented yet"))
-        send(ActionFailedResponse)
+        send { SystemMessageResponse("Pole attack is not implemented yet") }
+        send { ActionFailedResponse }
         coroutineContext.cancel()
     }
 
@@ -299,13 +321,13 @@ class CombatService(
 
         when (actor) {
             is Npc -> {
-                broadcastPacket(NpcDiedResponse(actor), actor.position)
+                broadcastAround(actor.position) { NpcDiedResponse(actor) }
                 npcService.handleNpcDeath(actor)
                 if (killer is PlayerCharacter) rewardService.manageRewardForKillingNpc(killer, actor, overhitDamage)
             }
 
             is PlayerCharacter -> {
-                broadcastPacket(PlayerDiedResponse(actor), actor.position)
+                broadcastAround(actor.position) { PlayerDiedResponse(actor) }
                 if (killer is PlayerCharacter) rewardService.manageRewardForKillingPlayer(actor, killer)
             }
         }
@@ -315,14 +337,14 @@ class CombatService(
     private suspend fun ActorInstance.canAttack(target: ActorInstance) = when {
         this.isParalyzed || this.isDead() -> {
             log.debug("'{}' is paralyzed or dead and cannot attack '{}'", this, target)
-            send(ActionFailedResponse)
+            send { ActionFailedResponse }
             false
         }
 
         target.isDead() -> {
             log.debug("'{}' is dead and cannot be attacked", target)
-            send(SystemMessageResponse.IncorrectTarget)
-            send(ActionFailedResponse)
+            send { SystemMessageResponse.IncorrectTarget }
+            send { ActionFailedResponse }
             false
         }
 

@@ -28,18 +28,20 @@ abstract class AbstractService {
     protected abstract val log: Logger
 
     /**
-     * Sends [responsePacket] to all characters near provided [position] on given [distance].
-     * If position is null, sends packet to all players in game
-     *
+     * Sends [responsePacket] to all characters near provided [position] on given [distance] (default - vision range).
      * Should be used only in SessionContext
      */
-    protected suspend fun broadcastPacket(
-        responsePacket: ResponsePacket, position: Position? = null, distance: Int = VISION_RANGE
+    protected suspend inline fun broadcastAround(
+        position: Position,
+        distance: Int = VISION_RANGE,
+        responsePacket: () -> ResponsePacket
     ) {
-        val addressees = position?.let { gameObjectRepository.findAllCharactersNear(it, distance) }
-            ?: gameObjectRepository.findAllCharacters()
+        val addressees = gameObjectRepository.findAllCharactersNear(position, distance)
 
-        addressees.forEach { sendTo(it.id, responsePacket) }
+        if (addressees.isNotEmpty()) {
+            val response = responsePacket()
+            addressees.forEach { sendTo(it.id, response) }
+        }
     }
 
     /**
@@ -48,11 +50,16 @@ abstract class AbstractService {
      *
      * Should be used only in SessionContext
      */
-    protected suspend fun broadcastPacket(
-        responsePacket: ResponsePacket, actor: ActorInstance, distance: Int = VISION_RANGE
+    protected suspend inline fun broadcastAround(
+        actor: ActorInstance,
+        distance: Int = VISION_RANGE,
+        responsePacket: () -> ResponsePacket
     ) {
-        gameObjectRepository.findAllCharactersNear(actor, distance)
-            .forEach { sendTo(it.id, responsePacket) }
+        val addressees = gameObjectRepository.findAllCharactersNear(actor, distance)
+        if (addressees.isNotEmpty()){
+            val response = responsePacket()
+            addressees.forEach { sendTo(it.id, response) }
+        }
     }
 
     /**
@@ -61,11 +68,11 @@ abstract class AbstractService {
      * Should be used only in SessionContext
      */
     protected suspend fun broadcastActorInfo(actor: ActorInstance) {
-        broadcastPacket(actor.toInfoResponse(), actor)
+        broadcastAround(actor) { actor.toInfoResponse() }
 
         if (actor is PlayerCharacter) {
             sendTo(actor.id, FullCharacterResponse(actor))
-            actor.privateStore?.let { broadcastPacket(it.toMessageResponse(actor.id), actor.position) }
+            actor.privateStore?.let { this@AbstractService.broadcastAround(actor.position) { it.toMessageResponse(actor.id) } }
         }
 
     }
@@ -86,7 +93,9 @@ abstract class AbstractService {
     protected suspend fun PlayerCharacter.sitDown() {
         if (this.posture == Posture.STANDING) {
             this.posture = Posture.SITTING
-            broadcastPacket(ChangePostureResponse(this.id, this.position, this.posture), this.position)
+            this@AbstractService.broadcastAround( this.position) {
+                ChangePostureResponse(this.id, this.position, this.posture)
+            }
         }
     }
 
@@ -94,7 +103,9 @@ abstract class AbstractService {
     protected suspend fun PlayerCharacter.standUp() {
         if (this.posture != Posture.STANDING) {
             this.posture = Posture.STANDING
-            broadcastPacket(ChangePostureResponse(this.id, this.position, this.posture), this.position)
+            this@AbstractService.broadcastAround(this.position) {
+                ChangePostureResponse(this.id, this.position, this.posture)
+            }
         }
     }
 
@@ -127,12 +138,12 @@ abstract class AbstractService {
 
     private suspend fun PlayerCharacter.removeObjectFromKnowsAndNotify(gameObject: GameWorldObject) {
         this.knownGameWorldObjects.remove(gameObject)
-        send(DeleteObjectResponse(gameObject.id))
+        send { DeleteObjectResponse(gameObject.id) }
 
         if (this.targetId == gameObject.id) {
             this.targetId = null
             if (gameObject is MutableActorInstance) gameObject.targetedBy.remove(this)
-            send(SetTargetResponse(0, 0))
+            send { SetTargetResponse(0, 0) }
         }
 
         if (gameObject is PlayerCharacter) {
@@ -152,7 +163,7 @@ abstract class AbstractService {
 
     private suspend fun PlayerCharacter.addToKnownListAndNotify(gameObject: GameWorldObject, movementDestination: Position?) {
         this.knownGameWorldObjects.add(gameObject)
-        send(gameObject.toInfoResponse())
+        send { gameObject.toInfoResponse() }
 
         if (gameObject is PlayerCharacter) {
             gameObject.knownGameWorldObjects.add(this)
@@ -164,9 +175,9 @@ abstract class AbstractService {
                 )
             }
             gameObject.privateStore?.let { store ->
-                send(
+                send {
                     PrivateStoreSellSetMessageResponse(gameObject.id, store.title)
-                )
+                }
             }
         }
     }

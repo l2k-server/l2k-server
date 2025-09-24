@@ -47,6 +47,8 @@ data class CombatStats(
     val critDamage: Int = 0,
     val attackRange: Int = 0,
 
+    val mCritRate: Int = 0,
+
     //Regen stats
     val hpRegen: Double = 0.0,
     val mpRegen: Double = 0.0,
@@ -166,6 +168,7 @@ data class CombatStats(
         castingSpd = this.castingSpd + other.castingSpd,
         critDamage = this.critDamage + other.critDamage,
         attackRange = this.attackRange + other.attackRange,
+        mCritRate = this.mCritRate + other.mCritRate,
         hpRegen = this.hpRegen + other.hpRegen,
         mpRegen = this.mpRegen + other.mpRegen,
         cpRegen = this.cpRegen + other.cpRegen
@@ -193,6 +196,8 @@ data class CombatStats(
 
             if (critDamage != 0) add("critDamage=$critDamage")
             if (attackRange != 0) add("attackRange=$attackRange")
+
+            if (mCritRate != 0) add("mCritRate=$mCritRate")
 
             if (hpRegen != 0.0) add("hpRegen=$hpRegen")
             if (mpRegen != 0.0) add("mpRegen=$mpRegen")

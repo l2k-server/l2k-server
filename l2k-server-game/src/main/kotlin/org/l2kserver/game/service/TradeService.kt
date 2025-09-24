@@ -95,7 +95,7 @@ class TradeService(
 
         //Check that player has no private store, or it's private store is PrivateStore.Sell
         if (character.privateStore !is PrivateStore.Sell?) {
-            send(ActionFailedResponse)
+            send { ActionFailedResponse }
             return@newSuspendedTransaction
         }
 
@@ -114,7 +114,7 @@ class TradeService(
 
         val adenaAmount = character.inventory.adena?.amount ?: 0
 
-        send(
+        send {
             ItemListForPrivateStoreSellResponse(
                 characterId = character.id,
                 packageSale = privateStore?.packageSale == true,
@@ -122,13 +122,13 @@ class TradeService(
                 itemsInInventory = itemsInInventory,
                 itemsInStore = itemsInStore
             )
-        )
+        }
     }
 
     /** Set message of private store (sell) to cache */
     suspend fun setPrivateStoreSellMessage(request: PrivateStoreSellSetMessageRequest) {
         setPrivateStoreMessage(request.message)?.let {
-            send(PrivateStoreSellSetMessageResponse(sessionContext().getCharacterId(), it))
+            send { PrivateStoreSellSetMessageResponse(sessionContext().getCharacterId(), it) }
         }
     }
 
@@ -139,12 +139,12 @@ class TradeService(
 
         if (request.items.isEmpty()) {
             log.warn("{} is trying to start private store (sell), but without items", character)
-            send(ActionFailedResponse)
+            send { ActionFailedResponse }
             return@newSuspendedTransaction
         }
 
         if (character.tradeAndInventoryStats.privateStoreSize < request.items.size) {
-            send(SystemMessageResponse.YouHaveExceededPrivateStoreQuantity)
+            send { SystemMessageResponse.YouHaveExceededPrivateStoreQuantity }
 
             getItemsForPrivateStoreSell()
             return@newSuspendedTransaction
@@ -173,14 +173,14 @@ class TradeService(
         val requiredDistance = INTERACTION_DISTANCE + (customer.collisionBox.radius + seller.collisionBox.radius).roundToInt()
         if (!customer.position.isCloseTo(seller.position, requiredDistance)) {
             log.debug("StoreOwner is too far to buy")
-            send(PlaySoundResponse(Sound.ITEMSOUND_SYS_SHORTAGE))
-            send(ActionFailedResponse)
+            send { PlaySoundResponse(Sound.ITEMSOUND_SYS_SHORTAGE) }
+            send { ActionFailedResponse }
             return
         }
 
         val privateStore = seller.privateStore as? PrivateStore.Sell ?: run {
             log.debug("Cannot buy anything from '{}', because he has no private store (sell) opened", seller)
-            send(ActionFailedResponse)
+            send { ActionFailedResponse }
             return
         }
 
@@ -193,7 +193,7 @@ class TradeService(
                         "[SELL] '{}' or '{}' inventory does not contain all required items from request '{}'",
                         privateStore, seller, request
                     )
-                    send(ActionFailedResponse)
+                    send { ActionFailedResponse }
                     return@newSuspendedTransaction
                 }
                 val totalPrice = calculateTotalPrice(privateStore.items, request.items)
@@ -201,8 +201,8 @@ class TradeService(
                 val customerAdena = customer.inventory.adena
 
                 if ((customerAdena?.amount ?: 0) < totalPrice) {
-                    send(SystemMessageResponse.NotEnoughAdena)
-                    send(ActionFailedResponse)
+                    send { SystemMessageResponse.NotEnoughAdena }
+                    send { ActionFailedResponse }
                     return@newSuspendedTransaction
                 }
 
@@ -244,19 +244,20 @@ class TradeService(
     /** Start private manufacture */
     suspend fun startGeneralPrivateManufacture() {
         //TODO https://github.com/l2kserver/l2kserver-game/issues/27
-        send(SystemMessageResponse("Private manufacture is not implemented yet"), ActionFailedResponse)
+        send { SystemMessageResponse("Private manufacture is not implemented yet") }
+        send { ActionFailedResponse }
     }
 
     /** Shows [character]'s private store info */
     suspend fun showPrivateStoreOf(character: PlayerCharacter) {
         val privateStore = character.privateStore ?: run {
             log.warn("No private store of character '{}' found", character)
-            send(ActionFailedResponse)
+            send { ActionFailedResponse }
             return
         }
 
         val customer = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
-        send(privateStore.toInfoResponse(character, customer))
+        send { privateStore.toInfoResponse(character, customer) }
     }
 
     /** Sends to the client items, suitable for private store (Buy) */
@@ -266,7 +267,7 @@ class TradeService(
 
         //Check that player has no private store, or it's private store is PrivateStore.Buy
         if (character.privateStore !is PrivateStore.Buy?) {
-            send(ActionFailedResponse)
+            send { ActionFailedResponse }
             return@newSuspendedTransaction
         }
 
@@ -281,20 +282,20 @@ class TradeService(
 
         val adenaAmount = character.inventory.adena?.amount ?: 0
 
-        send(
+        send {
             ItemListForPrivateStoreBuyResponse(
                 characterId = character.id,
                 characterAdena = adenaAmount,
                 itemsInInventory = itemsInInventory,
                 itemsInStore = itemsInStore
             )
-        )
+        }
     }
 
     /** Set message of private store (sell) to cache */
     suspend fun setPrivateStoreBuyMessage(request: PrivateStoreBuySetMessageRequest) {
         setPrivateStoreMessage(request.message)?.let {
-            send(PrivateStoreBuySetMessageResponse(sessionContext().getCharacterId(), it))
+            send { PrivateStoreBuySetMessageResponse(sessionContext().getCharacterId(), it) }
         }
     }
 
@@ -305,12 +306,12 @@ class TradeService(
 
         if (request.items.isEmpty()) {
             log.warn("{} is trying to start private store (buy), but without items", character)
-            send(ActionFailedResponse)
+            send { ActionFailedResponse }
             return@newSuspendedTransaction
         }
 
         if (character.tradeAndInventoryStats.privateStoreSize < request.items.size) {
-            send(SystemMessageResponse.YouHaveExceededPrivateStoreQuantity)
+            send { SystemMessageResponse.YouHaveExceededPrivateStoreQuantity }
             getItemsForPrivateStoreBuy()
             return@newSuspendedTransaction
         }
@@ -319,7 +320,7 @@ class TradeService(
         val totalPrice = request.items.map { it.amount * it.price }.reduce { acc, i -> acc + i }
 
         if (characterAdenaAmount < totalPrice) {
-            send(SystemMessageResponse.NotEnoughAdena)
+            send { SystemMessageResponse.NotEnoughAdena }
             getItemsForPrivateStoreBuy()
             return@newSuspendedTransaction
         }
@@ -344,14 +345,14 @@ class TradeService(
         val requiredDistance = INTERACTION_DISTANCE + (seller.collisionBox.radius + storeOwner.collisionBox.radius).roundToInt()
         if (!seller.position.isCloseTo(storeOwner.position, requiredDistance)) {
             log.debug("StoreOwner is too far to sell")
-            send(PlaySoundResponse(Sound.ITEMSOUND_SYS_SHORTAGE))
-            send(ActionFailedResponse)
+            send { PlaySoundResponse(Sound.ITEMSOUND_SYS_SHORTAGE) }
+            send { ActionFailedResponse }
             return
         }
 
         val privateStore = storeOwner.privateStore as? PrivateStore.Buy ?: run {
             log.debug("Cannot buy anything from '{}', because he has no private store (buy) opened", seller)
-            send(ActionFailedResponse)
+            send { ActionFailedResponse }
             return
         }
 
@@ -364,7 +365,7 @@ class TradeService(
                         "[BUY] '{}' or '{}' inventory does not contain all required items from request '{}'",
                         privateStore, seller, request
                     )
-                    send(ActionFailedResponse)
+                    send { ActionFailedResponse }
                     return@newSuspendedTransaction
                 }
 
@@ -372,7 +373,7 @@ class TradeService(
                 val storeOwnerAdena = storeOwner.inventory.adena
 
                 if ((storeOwnerAdena?.amount ?: 0) < totalPrice) {
-                    send(ActionFailedResponse)
+                    send { ActionFailedResponse }
                     return@newSuspendedTransaction
                 }
 
@@ -448,7 +449,7 @@ class TradeService(
         val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
         if (message.length > PRIVATE_STORE_MESSAGE_MAX_SIZE) {
             log.warn("'{}' was trying to set too big private store (Buy) message!", character)
-            send(ActionFailedResponse)
+            send { ActionFailedResponse }
             return null
         }
         //TODO Message censorship?

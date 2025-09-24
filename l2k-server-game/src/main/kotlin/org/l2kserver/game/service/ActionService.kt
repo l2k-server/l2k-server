@@ -70,10 +70,10 @@ class ActionService(
             target is Npc && target.isEnemyOf(character) -> combatService.launchAttack(character, target)
             target is Npc || target is PlayerCharacter && target.privateStore != null -> character.interactWith(target)
             target is PlayerCharacter && target.isEnemyOf(character) -> combatService.launchAttack(character, target)
-            target is PlayerCharacter -> { send(ActionFailedResponse) } //TODO https://github.com/l2k-server/l2k-server/issues/21
+            target is PlayerCharacter -> send { ActionFailedResponse } //TODO https://github.com/l2k-server/l2k-server/issues/21
             target == null -> {
                 log.warn("Character '{}' tries to set target to non-existent target with id = '{}'", character, request.targetId)
-                send(ActionFailedResponse)
+                send { ActionFailedResponse }
             }
         }
     }
@@ -89,7 +89,7 @@ class ActionService(
         }
 
         character.targetId = null
-        broadcastPacket(CancelActionResponse(character.id, character.position), character.position)
+        broadcastAround(character.position) { CancelActionResponse(character.id, character.position) }
     }
 
     /** Handles request to perform some basic action - switching sit/stand, walk/run, summon actions... */
@@ -109,7 +109,9 @@ class ActionService(
                 if (character.moveType == MoveType.RUN) character.moveType = MoveType.WALK
                 else character.moveType = MoveType.RUN
 
-                broadcastPacket(ChangeMoveTypeResponse(character.id, character.moveType), character.position)
+                broadcastAround(character.position) {
+                    ChangeMoveTypeResponse(character.id, character.moveType)
+                }
             }
             BasicAction.GENERAL_MANUFACTURE -> tradeService.startGeneralPrivateManufacture()
         }
@@ -120,15 +122,17 @@ class ActionService(
         val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
 
         if (character.isParalyzed) {
-            send(ActionFailedResponse)
+            send { ActionFailedResponse }
             return
         }
 
-        broadcastPacket(SocialActionResponse(character.id, request.socialAction), character.position)
+        broadcastAround(character.position) {
+            SocialActionResponse(character.id, request.socialAction)
+        }
     }
 
     /** Handles request to show map */
-    suspend fun showMap() = send(ShowMapResponse)
+    suspend fun showMap() = send { ShowMapResponse }
 
     /** Moves PlayerCharacter enough close to [target] and starts interaction with it */
     private suspend fun PlayerCharacter.interactWith(
@@ -158,16 +162,16 @@ class ActionService(
         targeted.targetedBy.add(this)
 
         when (targeted) {
-            is PlayerCharacter -> send(SetTargetResponse(targeted.id))
+            is PlayerCharacter -> send {SetTargetResponse(targeted.id) }
             is Npc -> {
-                send(SetTargetResponse(targeted.id, this.level - targeted.level))
-                send(
+                send{ SetTargetResponse(targeted.id, this.level - targeted.level) }
+                send {
                     UpdateStatusResponse(
                         targeted.id,
                         StatusAttribute.CUR_HP to targeted.currentHp,
                         StatusAttribute.MAX_HP to targeted.stats.maxHp
                     )
-                )
+                }
             }
         }
     }

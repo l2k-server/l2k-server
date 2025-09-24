@@ -7,7 +7,6 @@ import org.l2kserver.game.model.skill.SkillType
 import org.l2kserver.game.model.skill.action.SingleTargetMagicDamageSkillAction
 import org.l2kserver.game.model.stats.Attribute
 
-//TODO Magic Level (1 4 7 11 14)
 val WIND_STRIKE = SkillTemplate(
     id = 1177,
     skillName = "Wind Strike",
@@ -25,6 +24,8 @@ val WIND_STRIKE = SkillTemplate(
     ),
     skillAction = SingleTargetMagicDamageSkillAction(
         power = listOf(12, 13, 15, 18, 21),
-        attribute = Attribute.WIND to 20
+        magicLevel = listOf(1, 4, 7, 11, 14),
+        attribute = Attribute.WIND,
+        attributeValue = 20
     )
 )

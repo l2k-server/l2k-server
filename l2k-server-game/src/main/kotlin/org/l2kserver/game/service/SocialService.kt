@@ -41,10 +41,10 @@ class SocialService(
         )
 
         when (request.chatTab) {
-            ChatTab.GENERAL -> broadcastPacket(response, speaker.position, generalChatRange)
+            ChatTab.GENERAL -> this@SocialService.broadcastAround(speaker.position, generalChatRange) { response }
             ChatTab.WHISPER -> {
                 if (request.targetName != null) {
-                    send(response)
+                    send { response }
                     sendTo(gameObjectRepository.findCharacterByName(request.targetName).id, response)
                 }
             }
@@ -56,7 +56,7 @@ class SocialService(
                 )
             }
 
-            else -> send(SystemMessageResponse("${request.chatTab} chat is not supported yet"))
+            else -> send { SystemMessageResponse("${request.chatTab} chat is not supported yet") }
         }
 
     }

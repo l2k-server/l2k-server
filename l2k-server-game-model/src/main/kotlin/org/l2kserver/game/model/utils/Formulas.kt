@@ -1,14 +1,17 @@
-@file:JvmName("CalculationUtils")
+@file:JvmName("Formulas")
 package org.l2kserver.game.model.utils
 
 import org.l2kserver.game.model.actor.ActorInstance
 import org.l2kserver.game.model.item.template.WeaponType
+import kotlin.math.pow
 import kotlin.math.roundToInt
 import kotlin.random.Random
 
 const val PHYSICAL_ATTACK_BASE = 70
 const val PHYSICAL_DMG_FROM_SIDE_MODIFIER = 1.1
 const val PHYSICAL_DMG_FROM_BACK_MODIFIER = 1.2
+
+const val MAGIC_ATTACK_BASE = 91
 
 const val ACCURACY_FROM_SIDE_MODIFIER = 1.1
 const val ACCURACY_FROM_BACK_MODIFIER = 1.3
@@ -22,13 +25,13 @@ const val BONUS_SHIELD_DEF_RATE_AGAINST_BOW = 30
 const val BONUS_SHIELD_DEF_RATE_AGAINST_DAGGER = 12
 
 /** Calculates if attack of [attacker] on [attacked] is critical */
-fun calculateIsCritical(attacker: ActorInstance, attacked: ActorInstance): Boolean {
+fun calculateIsPhysicalAttackCritical(attacker: ActorInstance, attacked: ActorInstance): Boolean {
     val critRate = attacker.stats.critRate * calculatePositionCritChanceMultiplier(attacker, attacked)
     return critRate.roundToInt() > Random.nextInt(0, 1000)
 }
 
 /** Calculates if [attacked] has avoided [attacker]'s attack */
-fun calculateIsAvoided(attacker: ActorInstance, attacked: ActorInstance): Boolean {
+fun calculateIsPhysicalAttackAvoided(attacker: ActorInstance, attacked: ActorInstance): Boolean {
     var hitChance = EVASION_CHANCE_BASE + 2.0 * (attacker.stats.accuracy - attacked.stats.evasion)
 
     if (attacker.isOnSideOf(attacked)) hitChance *= ACCURACY_FROM_SIDE_MODIFIER
@@ -38,7 +41,7 @@ fun calculateIsAvoided(attacker: ActorInstance, attacked: ActorInstance): Boolea
 }
 
 /** Calculates if [attacked] has blocked [attacker]'s attack  */
-fun calculateIsBlocked(attacker: ActorInstance, attacked: ActorInstance): Boolean {
+fun calculateIsPhysicalAttackBlocked(attacker: ActorInstance, attacked: ActorInstance): Boolean {
     val attackerWeaponBonus = if (!attacked.hasShield) 0 else when (attacker.weaponType) {
         WeaponType.BOW -> BONUS_SHIELD_DEF_RATE_AGAINST_BOW
         WeaponType.DAGGER -> BONUS_SHIELD_DEF_RATE_AGAINST_DAGGER
@@ -60,4 +63,18 @@ fun calculatePositionCritChanceMultiplier(attacker: ActorInstance, attacked: Act
     }
 
     return elevationFactor * positionBonus
+}
+
+/** Calculate if magic hit was successful */
+fun calculateIsMagicSucceeded(attacked: ActorInstance, magicLevel: Int): Boolean {
+    val levelDifference = attacked.level - magicLevel
+    val failChance = 1.3.pow(levelDifference) / 100
+
+    return Random.nextDouble() > failChance
+}
+
+/** Calculates if magic of [attacker] is critical */
+fun calculateIsMagicCritical(attacker: ActorInstance): Boolean {
+    val critRate = attacker.stats.mCritRate
+    return critRate > Random.nextInt(0, 1000)
 }

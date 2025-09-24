@@ -102,25 +102,26 @@ class MoveService(
             character.position = request.position
 
             //CRUTCH If this response is not sent - character becomes stuck
-            send(ActionFailedResponse)
+            send { ActionFailedResponse }
         } else {
             log.trace("Difference is too big, modifying position at client side")
-            send(ValidatePositionResponse(character.id, character.position, character.heading))
+            send { ValidatePositionResponse(character.id, character.position, character.heading) }
         }
     }
 
     suspend fun startRotation(request: StartRotationRequest) {
         val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
-        broadcastPacket(
-            StartRotationResponse(character.id, request.currentHeading, request.rotationDirection),
-            character.position
-        )
+        broadcastAround(character.position) {
+            StartRotationResponse(character.id, request.currentHeading, request.rotationDirection)
+        }
     }
 
     suspend fun stopRotation(request: StopRotationRequest) {
         val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
         character.heading = request.heading
-        broadcastPacket(StopRotationResponse(character.id, character.heading), character.position)
+        broadcastAround(character.position) {
+            StopRotationResponse(character.id, character.heading)
+        }
     }
 
     /**
@@ -166,8 +167,10 @@ class MoveService(
                         targetPosition = actor.position.positionBetween(target.position, requiredDistance)
                     )
 
-                    broadcastPacket(StartMovingResponse(actor.id, actor.position, target.position), actor.position)
-                    send(StartMovingToTargetResponse(actor.id, target.id, requiredDistance, actor.position))
+                    broadcastAround(actor.position) {
+                        StartMovingResponse(actor.id, actor.position, target.position)
+                    }
+                    send { StartMovingToTargetResponse(actor.id, target.id, requiredDistance, actor.position) }
                     turningJob.cancelAndJoin()
                     turningJob = launchTurning(actor, target.position)
                 }
@@ -201,7 +204,9 @@ class MoveService(
         } finally {
             actor.isMoving = false
             updateObjectsAround(actor)
-            broadcastPacket(ArrivedResponse(actor.id, actor.position, actor.heading), actor.position)
+            broadcastAround(actor.position) {
+                ArrivedResponse(actor.id, actor.position, actor.heading)
+            }
         }
     }
 
@@ -289,7 +294,7 @@ class MoveService(
         // If Z becomes lower too fast, send ValidatePositionResponse with actual position,
         // to prevent falling under the textures on client side
         if (actor is PlayerCharacter && actor.position.deltaZ(newPosition) < -Position.ACCEPTABLE_DELTA) {
-            send(ValidatePositionResponse(actor.id, newPosition, actor.heading))
+            send { ValidatePositionResponse(actor.id, newPosition, actor.heading) }
         }
     }
 

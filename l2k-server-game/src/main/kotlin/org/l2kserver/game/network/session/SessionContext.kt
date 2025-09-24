@@ -107,10 +107,10 @@ suspend inline fun sessionContext() = checkNotNull(coroutineContext[SessionConte
     "Coroutine is not in SessionContext"
 }
 
-/** Sends [responses] to the current session owner. If no SessionContext found - does nothing */
-suspend inline fun send(vararg responses: ResponsePacket) = responses.forEach {
-    coroutineContext[SessionContext]?.responseChannel?.send(it)
-}
+/** Sends [response] to the current session owner. If no SessionContext found - does nothing */
+suspend inline fun send(response:() -> ResponsePacket) = coroutineContext[SessionContext]
+    ?.responseChannel
+    ?.send(response())
 
 /** Sends [responses] to character with id = [addresseeCharacterId]. If no characters session found, does nothing */
 suspend fun sendTo(addresseeCharacterId: Int, vararg responses: ResponsePacket) = responses.forEach {

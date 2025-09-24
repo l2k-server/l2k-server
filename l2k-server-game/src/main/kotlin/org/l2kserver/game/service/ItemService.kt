@@ -89,12 +89,14 @@ class ItemService(
         when {
             character.isDead() -> {
                 log.debug("{} is dead and cannot use items", character)
-                send(SystemMessageResponse.ItemCannotBeUsed(item), ActionFailedResponse)
+                send { SystemMessageResponse.ItemCannotBeUsed(item) }
+                send { ActionFailedResponse }
                 return
             }
             (character.privateStore as? PrivateStore.Sell)?.items?.contains(item.id) == true -> {
                 log.debug("{} is in {}'s private store and cannot be used", item, character)
-                send(SystemMessageResponse.ItemCannotBeUsed(item), ActionFailedResponse)
+                send { SystemMessageResponse.ItemCannotBeUsed(item) }
+                send { ActionFailedResponse }
                 return
             }
             item is EquippableItemInstance -> equipOrDisarmItem(character, item)
@@ -125,12 +127,13 @@ class ItemService(
         when {
             character.privateStore != null -> {
                 log.debug("{} holds private store and cannot delete items", character)
-                send(SystemMessageResponse.CannotDiscardDestroyOrTradeWhileInShop, ActionFailedResponse)
+                send { SystemMessageResponse.CannotDiscardDestroyOrTradeWhileInShop }
+                send { ActionFailedResponse }
                 return
             }
             !item.isDestroyable -> {
                 log.debug("Character '{}' tried to delete undeletable item '{}'", character.name, item)
-                send(SystemMessageResponse.CannotDiscardItem)
+                send { SystemMessageResponse.CannotDiscardItem }
                 return
             }
             else -> {
@@ -149,28 +152,29 @@ class ItemService(
         when {
             character.privateStore != null -> {
                 log.debug("{} holds private store and cannot drop items", character)
-                send(SystemMessageResponse.CannotDiscardDestroyOrTradeWhileInShop, ActionFailedResponse)
+                send { SystemMessageResponse.CannotDiscardDestroyOrTradeWhileInShop }
+                send { ActionFailedResponse }
                 return
             }
             !item.isDroppable -> {
-                send(SystemMessageResponse.CannotDiscardItem)
+                send { SystemMessageResponse.CannotDiscardItem }
                 return
             }
             !character.position.isCloseTo(request.position, DROP_DISTANCE) -> {
-                send(SystemMessageResponse.TooFarToDiscard)
+                send { SystemMessageResponse.TooFarToDiscard }
                 return
             }
             !item.isStackable && request.amount > 1 -> {
                 throw IllegalArgumentException("'${character}' tried to drop '${request.amount}' non-stackable items '$item')!")
             }
             request.amount > item.amount -> {
-                send(SystemMessageResponse.NotEnoughItems)
+                send { SystemMessageResponse.NotEnoughItems }
                 return
             }
             else -> {
                 val scatteredItemPosition = geoDataService.getAvailableTargetPosition(character.position, request.position)
                 val scatteredItem = gameObjectRepository.save(item.toScatteredItem(scatteredItemPosition, request.amount))!!
-                broadcastPacket(DroppedItemResponse(character.id, scatteredItem), position = character.position)
+                this@ItemService.broadcastAround(character.position) { DroppedItemResponse(character.id, scatteredItem) }
                 deleteItem(item, request.amount, character)
                 log.info("Character '{}' has dropped item '{}'", character.name, item)
             }
@@ -201,7 +205,7 @@ class ItemService(
         }.filterNotNull()
 
         scatteredItems.forEach { scatteredItem ->
-            broadcastPacket(DroppedItemResponse(dropper.id, scatteredItem), position = dropper.position)
+            this@ItemService.broadcastAround(dropper.position) { DroppedItemResponse(dropper.id, scatteredItem) }
         }
     }
 
@@ -223,12 +227,12 @@ class ItemService(
         //TODO Binding item on being dropped to it's owner
         //TODO Checks if player can pick up this item
         val deletedScatteredItem = gameObjectRepository.delete(scatteredItem) ?: run {
-            send(ActionFailedResponse)
+            send { ActionFailedResponse }
             return@launchAction
         }
 
-        broadcastPacket(PickUpItemResponse(character.id, deletedScatteredItem), character.position)
-        broadcastPacket(DeleteObjectResponse(deletedScatteredItem.id), character.position)
+        this@ItemService.broadcastAround(character.position) { PickUpItemResponse(character.id, deletedScatteredItem) }
+        this@ItemService.broadcastAround(character.position) { DeleteObjectResponse(deletedScatteredItem.id) }
 
         giveItem(
             itemReceiver = character,
@@ -236,10 +240,9 @@ class ItemService(
             amount = deletedScatteredItem.amount,
             enchantLevel = deletedScatteredItem.enchantLevel,
         ).forEach { item ->
-            broadcastPacket(
-                SystemMessageResponse.AttentionPlayerPickedUp(character.name, item),
-                character
-            )
+            broadcastAround(character) {
+                SystemMessageResponse.AttentionPlayerPickedUp(character.name, item)
+            }
         }
     }
 
@@ -273,8 +276,8 @@ class ItemService(
             newItem
         }
 
-        send(UpdateStatusResponse.weightOf(itemReceiver))
-        items.forEach { send(SystemMessageResponse.YouHaveObtained(it)) }
+        send { UpdateStatusResponse.weightOf(itemReceiver) }
+        items.forEach { send { SystemMessageResponse.YouHaveObtained(it) }}
 
         log.info("Character '{}' has received item '{}'", itemReceiver.name, items)
 
@@ -325,15 +328,15 @@ class ItemService(
 
     private suspend fun toggleSoulshotAutoUsage(character: PlayerCharacter, soulshot: Soulshot) {
         val weapon = character.inventory.weapon ?: run {
-            send(SystemMessageResponse.CannotUseSoulshot)
+            send { SystemMessageResponse.CannotUseSoulshot }
             return
         }
 
         if (!weapon.canUseSoulshot(soulshot)) return
 
         character.autoUsesSoulshot?.let {
-            send(SystemMessageResponse.AutomaticUseDeactivated(it))
-            send(AutoUseSsResponse(it.templateId, enabled = false))
+            send { SystemMessageResponse.AutomaticUseDeactivated(it) }
+            send { AutoUseSsResponse(it.templateId, enabled = false) }
 
             character.autoUsesSoulshot = null
             if (it == soulshot) return
@@ -343,8 +346,8 @@ class ItemService(
 
         if (weapon.canUseSoulshot(soulshot)) {
             character.autoUsesSoulshot = soulshot
-            send(SystemMessageResponse.AutomaticUseActivated(soulshot))
-            send(AutoUseSsResponse(soulshot.templateId, enabled = true))
+            send { SystemMessageResponse.AutomaticUseActivated(soulshot) }
+            send { AutoUseSsResponse(soulshot.templateId, enabled = true) }
         }
     }
 
@@ -359,7 +362,7 @@ class ItemService(
      */
     suspend fun useSoulshot(character: PlayerCharacter, soulshot: Soulshot) {
         val weapon = character.inventory.weapon ?: run {
-            send(SystemMessageResponse.CannotUseSoulshot)
+            send { SystemMessageResponse.CannotUseSoulshot }
             return
         }
 
@@ -368,17 +371,17 @@ class ItemService(
         val reducedSoulshot = character.inventory.reduceAmount(soulshot.id, weapon.soulshotUsed)
 
         weapon.soulshotCharged = true
-        send(SystemMessageResponse.SoulshotEnabled)
+        send { SystemMessageResponse.SoulshotEnabled }
 
         if (weapon.soulshotUsed > (reducedSoulshot?.amount ?: 0)) character.autoUsesSoulshot?.let {
-            send(SystemMessageResponse.AutomaticUseDeactivated(it))
+            send { SystemMessageResponse.AutomaticUseDeactivated(it) }
             character.autoUsesSoulshot = null
         }
 
-        if (reducedSoulshot == null ) send(UpdateItemsResponse().wasDeleted(soulshot))
-        else send(UpdateItemsResponse().wasModified(soulshot))
+        if (reducedSoulshot == null ) send { UpdateItemsResponse().wasDeleted(soulshot) }
+        else send { UpdateItemsResponse().wasModified(soulshot) }
 
-        broadcastPacket(SsUsedResponse(character, soulshot), character.position)
+        this@ItemService.broadcastAround(character.position) { SsUsedResponse(character, soulshot) }
     }
 
     suspend fun useSpiritshot(character: PlayerCharacter, spiritshot: Spiritshot): Boolean {
@@ -479,7 +482,7 @@ class ItemService(
             character.autoUsesSoulshot?.let {
                 //if (character.inventory.weapon?.canUseSoulshot(character.autoUsesSoulshot) ?: false) {
                 if (item is Weapon && !item.canUseSoulshot(character.autoUsesSoulshot)) {
-                    send(AutoUseSsResponse(it.templateId, false))
+                    send { AutoUseSsResponse(it.templateId, false) }
                     character.autoUsesSoulshot = null
                 }
             }
@@ -491,14 +494,18 @@ class ItemService(
                 if (it.isEquipped) {
                     //CRUTCH: Server must send SystemMessage -> CharacterResponse -> UpdatedItemResponse -> CharacterResponse
                     //otherwise jewellery sucks
-                    send(SystemMessageResponse.EquipItem(it))
-                    send(FullCharacterResponse(character))
-                } else send(SystemMessageResponse.DisarmItem(it))
+                    send { SystemMessageResponse.EquipItem(it) }
+                    send { FullCharacterResponse(character) }
+                } else send { SystemMessageResponse.DisarmItem(it) }
             }
 
-            val response = UpdateItemsResponse()
-            updatedItems.forEach { response.wasModified(it) }
-            send(response)
+
+            send {
+                val response = UpdateItemsResponse()
+                updatedItems.forEach { response.wasModified(it) }
+
+                response
+            }
 
             broadcastActorInfo(character)
             log.info("Character '{}' has equipped item '{}'", character.name, item)
@@ -529,12 +536,12 @@ class ItemService(
 
     private suspend fun Weapon.canUseSoulshot(soulshot: Soulshot?) = when {
         this.soulshotUsed > (soulshot?.amount ?: 0) -> {
-            send(SystemMessageResponse.NotEnoughSoulshots)
+            send { SystemMessageResponse.NotEnoughSoulshots }
             //character.autoUsesSoulshot = null
             false
         }
         this.grade != soulshot?.grade -> {
-            send(SystemMessageResponse.SoulshotGradeMismatch)
+            send { SystemMessageResponse.SoulshotGradeMismatch }
             false
         }
         else -> true

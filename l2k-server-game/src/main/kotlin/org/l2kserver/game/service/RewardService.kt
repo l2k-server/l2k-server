@@ -72,13 +72,10 @@ class RewardService(
             killed.karma = 0
 
             log.debug("{} was killed, decreased his karma to '{}'", killed, killed.karma)
-
-            sendTo(killed.id, FullCharacterResponse(killed))
-            broadcastPacket(PvPStatusResponse(killed), killed.position)
         }
 
-        sendTo(killer.id, FullCharacterResponse(killer))
-        broadcastPacket(PvPStatusResponse(killer), killer.position)
+        sendTo(killed.id, FullCharacterResponse(killed))
+        broadcastAround(killed.position) { PvPStatusResponse(killed) }
     }
 
     /**
@@ -196,7 +193,9 @@ class RewardService(
 
         sendTo(character.id, UpdateStatusResponse.hpMpCpOf(character))
         sendTo(character.id, SystemMessageResponse.YourLevelHasIncreased)
-        broadcastPacket(SocialActionResponse(character.id, SocialAction.LEVEL_UP), character.position)
+        broadcastAround(character.position) {
+            SocialActionResponse(character.id, SocialAction.LEVEL_UP)
+        }
 
         //TODO Manage new skills
         //TODO Manage weight

@@ -3,9 +3,9 @@ package org.l2kserver.game.model.skill.action
 import org.l2kserver.game.model.actor.ActorInstance
 import org.l2kserver.game.model.item.template.calculateRandomDamageModifier
 import org.l2kserver.game.model.utils.PHYSICAL_ATTACK_BASE
-import org.l2kserver.game.model.utils.calculateIsAvoided
-import org.l2kserver.game.model.utils.calculateIsBlocked
-import org.l2kserver.game.model.utils.calculateIsCritical
+import org.l2kserver.game.model.utils.calculateIsPhysicalAttackAvoided
+import org.l2kserver.game.model.utils.calculateIsPhysicalAttackBlocked
+import org.l2kserver.game.model.utils.calculateIsPhysicalAttackCritical
 import kotlin.math.roundToInt
 
 /**
@@ -18,20 +18,21 @@ import kotlin.math.roundToInt
 class SingleTargetPhysicalDamageSkillAction(
     val power: List<Int>,
     val ignoresShield: Boolean = false,
-    val overhitPossible: Boolean = false
+    override val overhitPossible: Boolean = false
 ): SingleTargetPhysicalSkillAction {
 
-    override fun applyTo(target: ActorInstance, caster: ActorInstance, effectLevel: Int, usedSoulshot: Boolean) = effects {
-        if (!ignoresShield && calculateIsAvoided(caster, target)) {
-            miss(target)
+    override fun applyTo(target: ActorInstance, caster: ActorInstance, actionLevel: Int, usedSoulshot: Boolean) = effects {
+        if (!ignoresShield && calculateIsPhysicalAttackAvoided(caster, target)) {
+            miss()
             return@effects
         }
+
         //TODO Excellent shield block
         // https://github.com/orgs/l2k-server/projects/1?pane=issue&itemId=120794579&issue=l2k-server%7Cl2k-server%7C10
-        val isBlocked = !ignoresShield && calculateIsBlocked(caster, target)
-        val isCritical = !isBlocked && calculateIsCritical(caster, target)
+        val isBlocked = !ignoresShield && calculateIsPhysicalAttackBlocked(caster, target)
+        val isCritical = !isBlocked && calculateIsPhysicalAttackCritical(caster, target)
 
-        var damage = ((power.getOrNull(effectLevel - 1) ?: 0) + caster.stats.pAtk).toDouble()
+        var damage = ((power.getOrNull(actionLevel - 1) ?: 0) + caster.stats.pAtk).toDouble()
         damage *= (caster.weaponType.calculateRandomDamageModifier())
 
         if (usedSoulshot) damage *= 2
@@ -45,14 +46,7 @@ class SingleTargetPhysicalDamageSkillAction(
 
         damage = (PHYSICAL_ATTACK_BASE * damage) / defence
 
-        hit(
-            damage = damage.roundToInt(),
-            target = target,
-            usedSs = usedSoulshot,
-            isCritical = isCritical,
-            isBlocked = isBlocked,
-            overhitPossible = overhitPossible
-        )
+        hit(damage.roundToInt(), isCritical, isBlocked)
     }
 
 }

@@ -116,19 +116,19 @@ class CharacterService(
             val playerCharacters = playerCharacterRepository.findAllByAccountName(context.getAccountName())
 
             //Send characters list to
-            send(CharacterListResponse(
-                gameSessionKey1 = context.getAuthorizationKey().gameSessionKey1,
-                accountName = context.getAccountName(),
-                playerCharacters = playerCharacters
-            ))
+            send {
+                CharacterListResponse(
+                    gameSessionKey1 = context.getAuthorizationKey().gameSessionKey1,
+                    accountName = context.getAccountName(),
+                    playerCharacters = playerCharacters
+                )
+            }
         } catch (e: Exception) {
             log.error("Error occurred while getting characters of user ${context.getAccountName()}", e)
         }
     }
 
-    suspend fun getCharacterTemplates() {
-        send(CharacterTemplatesResponse)
-    }
+    suspend fun getCharacterTemplates() = send { CharacterTemplatesResponse }
 
     /**
      * Creates character using info got in [request]
@@ -138,11 +138,11 @@ class CharacterService(
 
         try {
             if (playerCharacterRepository.countByAccountName(accountName) >= CHARACTERS_MAX_AMOUNT)
-                send(CreateCharacterFailResponse(CreateCharacterFailReason.TOO_MANY_CHARACTERS))
+                send { CreateCharacterFailResponse(CreateCharacterFailReason.TOO_MANY_CHARACTERS) }
             else if (playerCharacterRepository.existsByName(request.characterName))
-                send(CreateCharacterFailResponse(CreateCharacterFailReason.NAME_ALREADY_EXISTS))
+                send { CreateCharacterFailResponse(CreateCharacterFailReason.NAME_ALREADY_EXISTS) }
             else if (!request.characterName.matches(Regex(newCharacterNameRegexp)))
-                send(CreateCharacterFailResponse(CreateCharacterFailReason.NAME_EXCEED_16_CHARACTERS))
+                send { CreateCharacterFailResponse(CreateCharacterFailReason.NAME_EXCEED_16_CHARACTERS) }
             else {
                 playerCharacterRepository.create(
                     accountName = accountName,
@@ -168,7 +168,7 @@ class CharacterService(
                 request.characterName, accountName, e
             )
 
-            send(CreateCharacterFailResponse(CreateCharacterFailReason.CREATION_FAILED))
+            send { CreateCharacterFailResponse(CreateCharacterFailReason.CREATION_FAILED) }
         }
     }
 
@@ -188,7 +188,7 @@ class CharacterService(
                 //TODO Checks - cannot delete clan leader
                 if (playerCharacter.clanId != 0) {
                     log.debug("Cannot delete clan member")
-                    send(DeleteCharacterFailResponse(DeleteCharacterFailReason.YOU_MAY_NOT_DELETE_CLAN_MEMBER))
+                    send { DeleteCharacterFailResponse(DeleteCharacterFailReason.YOU_MAY_NOT_DELETE_CLAN_MEMBER) }
                 } else {
                     val deletionDate = if (playerCharacter.level > 10)
                         LocalDateTime.now().plus(characterDeletionTime, ChronoUnit.MILLIS)
@@ -203,7 +203,7 @@ class CharacterService(
                     "Cannot delete character, because character slot {} of the account {} is empty",
                     request.characterSlot, accountName
                 )
-                send(DeleteCharacterFailResponse(DeleteCharacterFailReason.DELETION_FAILED))
+                send { DeleteCharacterFailResponse(DeleteCharacterFailReason.DELETION_FAILED) }
             }
         }
 
@@ -255,7 +255,7 @@ class CharacterService(
 
         log.debug("Player {} has successfully selected character {}", accountName, selectedPlayerCharacter.name)
 
-        send(SelectCharacterResponse(context.getAuthorizationKey(), selectedPlayerCharacter))
+        send { SelectCharacterResponse(context.getAuthorizationKey(), selectedPlayerCharacter) }
     }
 
     /**
@@ -279,16 +279,14 @@ class CharacterService(
         gameObjectRepository.loadCharacter(character)
         val shortcuts = shortcutRepository.findAllBy(character.id, character.activeSubclass)
 
-        send(FullCharacterResponse(character))
-        send(InventoryResponse(character.inventory))
-        send(ShortcutPanelResponse(shortcuts))
-        send(SystemMessageResponse.Welcome)
+        send { FullCharacterResponse(character) }
+        send { InventoryResponse(character.inventory) }
+        send { ShortcutPanelResponse(shortcuts) }
+        send { SystemMessageResponse.Welcome }
 
-        if (character.isDead()) send(PlayerDiedResponse(character))
+        if (character.isDead()) send { PlayerDiedResponse(character) }
 
         updateObjectsAround(character)
-        send(SystemMessageResponse("${character.position.getTileX()}_${character.position.getTileY()}"))
-
         log.info("Player {} has entered world with character {}", accountName, character.name)
     }
 
@@ -330,7 +328,7 @@ class CharacterService(
             removeFromGameWorld(character)
 
             context.setCharacterId(null)
-            send(RestartResponse)
+            send { RestartResponse }
             sendCharactersList()
 
             log.info("Player {} has quit to characters menu", accountName)
@@ -349,7 +347,7 @@ class CharacterService(
         val character = gameObjectRepository.findCharacterById(context.getCharacterId())
 
         if (character.canExitWorld()) {
-            send(ExitGameResponse)
+            send { ExitGameResponse }
             coroutineContext.cancel()
             log.info("Player {} has quit game", context.getAccountName())
         }
@@ -367,7 +365,7 @@ class CharacterService(
     suspend fun removeFromGameWorld(character: PlayerCharacter) {
         asyncTaskService.cancelActionByActorId(character.id)
 
-        broadcastPacket(DeleteObjectResponse(character.id), character)
+        broadcastAround(character) { DeleteObjectResponse(character.id) }
         actorStateService.stopUpdatingStates(character)
         gameObjectRepository.deleteById(character.id)
     }
@@ -378,7 +376,7 @@ class CharacterService(
     private suspend fun PlayerCharacter.canExitWorld(): Boolean {
         //TODO Other checks if player cannot leave game
         if (this.isFighting) {
-            send(SystemMessageResponse.CannotRestartInCombat)
+            send { SystemMessageResponse.CannotRestartInCombat }
             return false
         }
 
@@ -391,7 +389,7 @@ class CharacterService(
      */
     private suspend fun respawnCharacterAt(character: PlayerCharacter, position: Position) {
         moveService.teleport(character, position)
-        broadcastPacket(ReviveResponse(character.id), character.position)
+        broadcastAround(character.position) { ReviveResponse(character.id) }
 
         newSuspendedTransaction {
             character.currentCp = (character.stats.maxCp * respawnCpRate).roundToInt()
@@ -401,9 +399,9 @@ class CharacterService(
             character.privateStore = null
             character.standUp()
 
-            broadcastPacket(UpdateStatusResponse.hpMpCpOf(character), character.position)
-            send(FullCharacterResponse(character))
-            send(ChangePostureResponse(character.id, character.position, character.posture))
+            broadcastAround(character.position) { UpdateStatusResponse.hpMpCpOf(character) }
+            send { FullCharacterResponse(character) }
+            send { ChangePostureResponse(character.id, character.position, character.posture) }
         }
     }
 

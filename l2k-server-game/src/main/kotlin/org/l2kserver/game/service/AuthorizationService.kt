@@ -26,7 +26,7 @@ class AuthorizationService(
             "Protocol version ${request.protocolVersion} is not supported"
         }
 
-        send(InitialResponse(key))
+        send { InitialResponse(key) }
     }
 
     /**

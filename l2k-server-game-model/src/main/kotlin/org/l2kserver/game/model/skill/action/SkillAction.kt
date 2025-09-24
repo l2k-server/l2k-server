@@ -10,40 +10,45 @@ value class SkillEffects private constructor(
 ): Iterable<Effect> by effectList {
     constructor(): this(ArrayList<Effect>())
 
-    /** Applies the event of dealing damage to [target] */
-    fun hit(
-        damage: Int,
-        target: ActorInstance,
-        usedSs: Boolean = false,
-        isCritical: Boolean = false,
-        isBlocked: Boolean = false,
-        overhitPossible: Boolean = false
-    ) {
-        effectList.add(DamageEffect(
-            target.id,
-            damage,
-            usedSoulshot = usedSs,
-            isCritical = isCritical,
-            isBlocked = isBlocked,
-            overhitPossible = overhitPossible
-        ))
+    fun add(effect: Effect) {
+        effectList.add(effect)
     }
 
-    /** Applies the event of [target]'s evasion */
-    fun miss(target: ActorInstance) {
-        effectList.add(DamageEffect(target.id, 0, isAvoided = true))
-    }
+    /** Applies the event of dealing damage */
+    fun hit(
+        damage: Int,
+        isCritical: Boolean = false,
+        isBlocked: Boolean = false,
+        isMagicCritical: Boolean = false,
+        isHalfSuccessful: Boolean = false,
+        isFailed: Boolean = false
+    ) = add(
+        DamageEffect(
+            damage,
+            isCritical = isCritical,
+            isBlocked = isBlocked,
+            isMagicCritical = isMagicCritical,
+            isHalfSuccessful = isHalfSuccessful,
+            isFailed = isFailed
+        )
+    )
+
+    /** Applies the event of missing target */
+    fun miss() = add(DamageEffect(isAvoided = true))
 
 }
 
 interface SkillAction
 
 interface SingleTargetPhysicalSkillAction: SkillAction {
-    fun applyTo(target: ActorInstance, caster: ActorInstance, effectLevel: Int, usedSoulshot: Boolean): SkillEffects
+
+    val overhitPossible: Boolean get() = false
+
+    fun applyTo(target: ActorInstance, caster: ActorInstance, actionLevel: Int, usedSoulshot: Boolean): SkillEffects
 }
 
 interface SingleTargetMagicSkillAction: SkillAction {
-    fun applyTo(target: ActorInstance, caster: ActorInstance, effectLevel: Int /** usedSpiritshotType */): SkillEffects
+    fun applyTo(target: ActorInstance, caster: ActorInstance, actionLevel: Int /** usedSpiritshotType */): SkillEffects
 }
 
 inline fun effects(builderFunction: SkillEffects.() -> Unit): SkillEffects {

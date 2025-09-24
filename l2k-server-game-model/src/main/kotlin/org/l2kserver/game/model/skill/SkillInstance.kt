@@ -8,6 +8,7 @@ import org.l2kserver.game.model.skill.action.SkillAction
  *
  * @property skillId Skill identifier
  * @property skillName Skill name (eng)
+ * @property skillLevel Level of skill (learnt)
  * @property skillType Skill type - active, passive or toggle
  * @property reuseDelay Base cooldown of this skill
  * @property castTime Base casting time of this skill

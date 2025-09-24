@@ -66,18 +66,33 @@ fun CombatStats.applyModifiers(level: Int, characterClass: CharacterClass, basic
         accuracy = this.accuracy + basicStats.dex.accuracyBonus + level,
         critRate = (this.critRate * basicStats.dex.critRateModifier).toInt(),
         atkSpd = (this.atkSpd * basicStats.dex.atkSpdModifier).toInt(),
+
         mAtk = (this.mAtk * basicStats.int.mAtkModifier.pow(2) * levelModifier.pow(2)).toInt(),
         mDef = (this.mDef * basicStats.men.mDefModifier * levelModifier).toInt(),
+
         evasion = this.evasion + basicStats.dex.evasionBonus + level,
         speed = (this.speed * basicStats.dex.speedModifier).toInt(),
         castingSpd = (this.castingSpd * basicStats.wit.castingSpdModifier).toInt(),
-        shieldDef = this.shieldDef,
+
         shieldDefRate = (this.shieldDefRate * basicStats.dex.shieldBlockRateModifier).toInt(),
+
+        mCritRate = this.mCritRate + (basicStats.wit.magicCritChanceBonus * 10).roundToInt(),
 
         hpRegen = (this.hpRegen + hpRegenLevelModifier(characterClass, level)) * basicStats.con.hpRegenModifier,
         mpRegen = (this.mpRegen + mpRegenLevelModifier(characterClass, level)) * basicStats.men.mpRegenModifier,
         cpRegen = (this.cpRegen + cpRegenLevelModifier(characterClass, level)) * basicStats.con.cpRegenModifier
     )
+}
+
+/** Applies fixed bonus of items, buffs and passives */
+fun CombatStats.applyFixedBonusStats(
+    equippedItems: Iterable<EquippableItemInstance> //TODO + fixed bonus stats from buffs
+): CombatStats{
+    var result = this
+    
+    equippedItems.forEach { result += it.fixedBonusStats }
+    
+    return result
 }
 
 /** Calculate stats after applying limitations */
@@ -88,17 +103,6 @@ fun CombatStats.applyLimitations(): CombatStats = this.copy(
 private fun hpRegenLevelModifier(characterClass: CharacterClass, level: Int) = characterClass.hpRegenPer10Levels[level/10]
 private fun mpRegenLevelModifier(characterClass: CharacterClass, level: Int) = characterClass.mpRegenPer10Levels[level/10]
 private fun cpRegenLevelModifier(characterClass: CharacterClass, level: Int) = hpRegenLevelModifier(characterClass, level)
-
-/** Applies fixed bonus of items, buffs and passives */
-fun CombatStats.applyFixedBonusStats(
-    equippedItems: Iterable<EquippableItemInstance>
-): CombatStats{
-    var result = this
-    
-    equippedItems.forEach { result += it.fixedBonusStats }
-    
-    return result
-}
 
 /**
  * Calculate CP, HP pr MP level bonus
