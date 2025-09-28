@@ -2,6 +2,7 @@ package org.l2kserver.game.model.skill.action
 
 import org.l2kserver.game.model.actor.ActorInstance
 import org.l2kserver.game.model.item.template.calculateRandomDamageModifier
+import org.l2kserver.game.model.skill.action.effect.effects
 import org.l2kserver.game.model.utils.PHYSICAL_ATTACK_BASE
 import org.l2kserver.game.model.utils.calculateIsPhysicalAttackBlocked
 import org.l2kserver.game.model.utils.calculatePositionCritChanceMultiplier
@@ -16,11 +17,9 @@ private const val BLOW_CHANCE_FROM_THE_FRONT = 0.5
  * Blow effect of dagger skill - similar to SingleTargetPhysicalDamage, but calculates differently.
  *
  * @property power Array of effect power per effect level (0 based)
- * @property lethalStrikePossible Can this blow produce Lethal Strike
  */
 class BlowSkillAction(
-    val power: List<Int>,
-    val lethalStrikePossible: Boolean = false
+    val power: List<Int>
 ): SingleTargetPhysicalSkillAction {
 
     override fun applyTo(target: ActorInstance, caster: ActorInstance, actionLevel: Int, usedSoulshot: Boolean) = effects {

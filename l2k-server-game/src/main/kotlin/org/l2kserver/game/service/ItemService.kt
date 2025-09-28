@@ -352,7 +352,28 @@ class ItemService(
     }
 
     private suspend fun toggleSpiritshotAutoUsage(character: PlayerCharacter, spiritshot: Spiritshot) {
-        TODO("Using $spiritshot by $character https://github.com/l2k-server/l2k-server/issues/62")
+        val weapon = character.inventory.weapon ?: run {
+            send { SystemMessageResponse.CannotUseSoulshot }
+            return
+        }
+
+        if (!weapon.canUseSpiritshot(spiritshot)) return
+
+        character.autoUsesSpiritshot?.let {
+            send { SystemMessageResponse.AutomaticUseDeactivated(it) }
+            send { AutoUseSsResponse(it.templateId, enabled = false) }
+
+            character.autoUsesSpiritshot = null
+            if (it == spiritshot) return
+        }
+
+        useSpiritshot(character, spiritshot)
+
+        if (weapon.canUseSpiritshot(spiritshot)) {
+            character.autoUsesSpiritshot = spiritshot
+            send { SystemMessageResponse.AutomaticUseActivated(spiritshot) }
+            send { AutoUseSsResponse(spiritshot.templateId, enabled = true) }
+        }
     }
 
     /**
@@ -384,8 +405,28 @@ class ItemService(
         this@ItemService.broadcastAround(character.position) { SsUsedResponse(character, soulshot) }
     }
 
-    suspend fun useSpiritshot(character: PlayerCharacter, spiritshot: Spiritshot): Boolean {
-        TODO("Using $spiritshot by $character https://github.com/l2k-server/l2k-server/issues/62")
+    suspend fun useSpiritshot(character: PlayerCharacter, spiritshot: Spiritshot) {
+        val weapon = character.inventory.weapon ?: run {
+            send { SystemMessageResponse.CannotUseSpiritshot }
+            return
+        }
+
+        if (!weapon.canUseSpiritshot(spiritshot) || weapon.spiritshotChargedType != null) return
+
+        val reducedSpiritshot = character.inventory.reduceAmount(spiritshot.id, weapon.soulshotUsed)
+
+        weapon.spiritshotChargedType = spiritshot.spiritshotType
+        send { SystemMessageResponse.SoulshotEnabled }
+
+        if (weapon.spiritshotUsed > (reducedSpiritshot?.amount ?: 0)) character.autoUsesSpiritshot?.let {
+            send { SystemMessageResponse.AutomaticUseDeactivated(it) }
+            character.autoUsesSpiritshot = null
+        }
+
+        if (reducedSpiritshot == null ) send { UpdateItemsResponse().wasDeleted(spiritshot) }
+        else send { UpdateItemsResponse().wasModified(spiritshot) }
+
+        this@ItemService.broadcastAround(character.position) { SsUsedResponse(character, spiritshot) }
     }
 
     /**
@@ -480,12 +521,19 @@ class ItemService(
             }
 
             character.autoUsesSoulshot?.let {
-                //if (character.inventory.weapon?.canUseSoulshot(character.autoUsesSoulshot) ?: false) {
                 if (item is Weapon && !item.canUseSoulshot(character.autoUsesSoulshot)) {
                     send { AutoUseSsResponse(it.templateId, false) }
                     character.autoUsesSoulshot = null
                 }
             }
+
+            character.autoUsesSpiritshot?.let {
+                if (item is Weapon && !item.canUseSpiritshot(character.autoUsesSpiritshot)) {
+                    send { AutoUseSsResponse(it.templateId, false) }
+                    character.autoUsesSpiritshot = null
+                }
+            }
+
             updatedItems += equipAndDisarmArrows(updatedItems, character)
         }
 
@@ -537,10 +585,21 @@ class ItemService(
     private suspend fun Weapon.canUseSoulshot(soulshot: Soulshot?) = when {
         this.soulshotUsed > (soulshot?.amount ?: 0) -> {
             send { SystemMessageResponse.NotEnoughSoulshots }
-            //character.autoUsesSoulshot = null
             false
         }
         this.grade != soulshot?.grade -> {
+            send { SystemMessageResponse.SoulshotGradeMismatch }
+            false
+        }
+        else -> true
+    }
+
+    private suspend fun Weapon.canUseSpiritshot(spiritshot: Spiritshot?) = when {
+        this.spiritshotUsed > (spiritshot?.amount ?: 0) -> {
+            send { SystemMessageResponse.NotEnoughSoulshots }
+            false
+        }
+        this.grade != spiritshot?.grade -> {
             send { SystemMessageResponse.SoulshotGradeMismatch }
             false
         }

@@ -6,6 +6,7 @@ import org.l2kserver.game.model.item.instance.EnchantableItemInstance
 import org.l2kserver.game.model.item.instance.EquippableItemInstance
 import org.l2kserver.game.model.item.template.Grade
 import org.l2kserver.game.model.item.template.ItemGroup
+import org.l2kserver.game.model.item.template.SpiritshotType
 import org.l2kserver.game.model.item.template.WeaponTemplate
 import org.l2kserver.game.model.item.template.WeaponType
 import org.l2kserver.game.model.stats.CombatStats
@@ -59,10 +60,8 @@ class Weapon(
     val soulshotUsed = itemTemplate.soulshotUsed
     val spiritshotUsed = itemTemplate.spiritshotUsed
 
-    @Volatile
     var soulshotCharged = false
-    var spiritshotCharged = false
-    var blessedSpiritshotCharged = false
+    var spiritshotChargedType: SpiritshotType? = null
 
     val manaCost = itemTemplate.manaCost
     val consumes = itemTemplate.consumes

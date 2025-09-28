@@ -61,5 +61,5 @@ class Spiritshot(
     override val category = itemTemplate.category
     override val group = ItemGroup.ETC
 
-    val isBlessed = itemTemplate.isBlessed
+    val spiritshotType = itemTemplate.spiritshotType
 }

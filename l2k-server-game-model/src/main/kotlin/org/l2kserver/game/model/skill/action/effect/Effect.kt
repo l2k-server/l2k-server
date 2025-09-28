@@ -1,5 +1,46 @@
 package org.l2kserver.game.model.skill.action.effect
 
+@JvmInline
+value class SkillEffects private constructor(
+    private val effectList: MutableList<Effect>
+): Iterable<Effect> by effectList {
+    constructor(): this(ArrayList<Effect>())
+
+    fun add(effect: Effect) {
+        effectList.add(effect)
+    }
+
+    /** Applies the event of dealing damage */
+    fun hit(
+        damage: Int,
+        isCritical: Boolean = false,
+        isBlocked: Boolean = false,
+        isMagicCritical: Boolean = false,
+        isHalfSuccessful: Boolean = false,
+        isFailed: Boolean = false
+    ) = add(
+        DamageEffect(
+            damage,
+            isCritical = isCritical,
+            isBlocked = isBlocked,
+            isMagicCritical = isMagicCritical,
+            isHalfSuccessful = isHalfSuccessful,
+            isFailed = isFailed
+        )
+    )
+
+    /** Applies the event of missing target */
+    fun miss() = add(DamageEffect(isAvoided = true))
+
+}
+
+inline fun effects(builderFunction: SkillEffects.() -> Unit): SkillEffects {
+    val skillEffects = SkillEffects()
+    skillEffects.builderFunction()
+
+    return skillEffects
+}
+
 sealed interface Effect
 
 /**
