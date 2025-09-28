@@ -2,6 +2,7 @@ package org.l2kserver.game.model.skill.action
 
 import org.l2kserver.game.model.actor.ActorInstance
 import org.l2kserver.game.model.item.template.calculateRandomDamageModifier
+import org.l2kserver.game.model.skill.action.effect.effects
 import org.l2kserver.game.model.utils.PHYSICAL_ATTACK_BASE
 import org.l2kserver.game.model.utils.calculateIsPhysicalAttackAvoided
 import org.l2kserver.game.model.utils.calculateIsPhysicalAttackBlocked
@@ -13,12 +14,10 @@ import kotlin.math.roundToInt
  *
  * @property power Array of effect power per effect level (0 based)
  * @property ignoresShield Does this effect ignore shield or evasion
- * @property overhitPossible Can this effect produce an over-hit
  */
 class SingleTargetPhysicalDamageSkillAction(
     val power: List<Int>,
-    val ignoresShield: Boolean = false,
-    override val overhitPossible: Boolean = false
+    val ignoresShield: Boolean = false
 ): SingleTargetPhysicalSkillAction {
 
     override fun applyTo(target: ActorInstance, caster: ActorInstance, actionLevel: Int, usedSoulshot: Boolean) = effects {

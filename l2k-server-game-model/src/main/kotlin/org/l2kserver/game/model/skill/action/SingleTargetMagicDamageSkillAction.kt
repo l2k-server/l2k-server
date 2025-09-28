@@ -1,6 +1,8 @@
 package org.l2kserver.game.model.skill.action
 
 import org.l2kserver.game.model.actor.ActorInstance
+import org.l2kserver.game.model.item.template.SpiritshotType
+import org.l2kserver.game.model.skill.action.effect.effects
 import org.l2kserver.game.model.stats.Attribute
 import org.l2kserver.game.model.utils.MAGIC_ATTACK_BASE
 import org.l2kserver.game.model.utils.calculateIsMagicCritical
@@ -15,12 +17,23 @@ class SingleTargetMagicDamageSkillAction(
     val attributeValue: Int
 ): SingleTargetMagicSkillAction {
 
-    override fun applyTo(target: ActorInstance, caster: ActorInstance, actionLevel: Int) = effects {
+    override fun applyTo(
+        target: ActorInstance,
+        caster: ActorInstance,
+        actionLevel: Int,
+        usedSpiritshotType: SpiritshotType?
+    ) = effects {
         //TODO https://github.com/l2k-server/l2k-server/issues/73
         val magicLevel = this@SingleTargetMagicDamageSkillAction.magicLevel.getOrNull(actionLevel - 1) ?: 0
         val power = this@SingleTargetMagicDamageSkillAction.power.getOrNull(actionLevel - 1) ?: 0
 
-        var damage = MAGIC_ATTACK_BASE * sqrt(caster.stats.mAtk.toDouble() /* TODO * Spiritshot */) * power
+        val spiritshotMultiplier = when(usedSpiritshotType) {
+            null -> 1
+            SpiritshotType.SPIRITSHOT -> 2
+            SpiritshotType.BLESSED_SPIRITSHOT -> 4
+        }
+
+        var damage = MAGIC_ATTACK_BASE * sqrt(caster.stats.mAtk.toDouble() * spiritshotMultiplier) * power
 
         damage /= target.stats.mDef
 

@@ -44,6 +44,7 @@ class Skill(
     override val effectRange = template.effectRange
     override val requires = template.requires
     override val consumes: SkillConsumables? get() = template.consumes?.toSkillConsumables()
+    override val overhitPossible = template.overhitPossible
     override val skillAction = template.skillAction
 
     var nextUsageTime: Instant

@@ -14,6 +14,11 @@ data class SoulshotTemplate(
     override val isStackable = true
 }
 
+enum class SpiritshotType {
+    SPIRITSHOT,
+    BLESSED_SPIRITSHOT
+}
+
 data class SpiritshotTemplate(
     override val id: Int,
     override val name: String,
@@ -24,7 +29,7 @@ data class SpiritshotTemplate(
     override val isDroppable: Boolean,
     override val isDestroyable: Boolean,
     override val isExchangeable: Boolean,
-    val isBlessed: Boolean
+    val spiritshotType: SpiritshotType
 ): ItemTemplate {
     override val isStackable = true
 }

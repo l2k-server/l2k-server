@@ -31,10 +31,10 @@ val POWER_STRIKE = SkillTemplate(
     consumes = SkillConsumablesTemplate(
         mp = listOf(10, 10, 11, 13, 13, 14, 17, 18, 19)
     ),
+    overhitPossible = true,
     skillAction = SingleTargetPhysicalDamageSkillAction(
         power = listOf(25, 27, 30, 39, 42, 46, 60, 65, 70),
-        ignoresShield = true,
-        overhitPossible = true
+        ignoresShield = true
     )
 )
 

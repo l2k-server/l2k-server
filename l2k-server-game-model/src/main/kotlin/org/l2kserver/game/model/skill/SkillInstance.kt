@@ -32,6 +32,7 @@ interface SkillInstance {
     val effectRange: Int
     val requires: SkillRequirements?
     val consumes: SkillConsumables?
+    val overhitPossible: Boolean
     val skillAction: SkillAction
 
     fun castsOnCorpse() = targetType == SkillTargetType.DEAD_ENEMY || targetType == SkillTargetType.DEAD_FRIEND

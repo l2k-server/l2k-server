@@ -35,6 +35,8 @@ data class SkillTemplate(
     val requires: SkillRequirements? = null,
     val maxSkillLevel: Int,
     val consumes: SkillConsumablesTemplate? = null,
+    val overhitPossible: Boolean = false,
+    val lethalStrikePossible: Boolean = false,
     val skillAction: SkillAction
 ): GameData {
 

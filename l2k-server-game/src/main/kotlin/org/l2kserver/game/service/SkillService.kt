@@ -285,12 +285,10 @@ class SkillService(
     private suspend fun Skill.applyEffects(
         caster: MutableActorInstance, target: MutableActorInstance
     ) = newSuspendedTransaction {
-        var overhitPossible = false
         val effects = try {
             when (val action = this@applyEffects.skillAction) {
                 is SingleTargetPhysicalSkillAction -> {
                     val soulshotUsed = (caster as? PlayerCharacter)?.inventory?.weapon?.soulshotCharged ?: false
-                    overhitPossible = action.overhitPossible
                     action.applyTo(target, caster, this@applyEffects.skillLevel, soulshotUsed)
                         .also {
                             if (soulshotUsed) caster.inventory.weapon?.soulshotCharged = false
@@ -302,7 +300,15 @@ class SkillService(
                         }
                 }
                 is SingleTargetMagicSkillAction -> {
-                    action.applyTo(target, caster, this@applyEffects.skillLevel)
+                    val usedSpiritshotType = (caster as? PlayerCharacter)?.inventory?.weapon?.spiritshotChargedType
+                    action.applyTo(target, caster, this@applyEffects.skillLevel, usedSpiritshotType).also {
+                        if (usedSpiritshotType != null) caster.inventory.weapon?.spiritshotChargedType = null
+
+                        //Enable SS if auto-use spiritshot enabled
+                        (caster as? PlayerCharacter)?.autoUsesSpiritshot?.let {
+                            itemService.useSpiritshot(caster, it)
+                        }
+                    }
                 }
                 else -> emptyList()
             }
