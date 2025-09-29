@@ -72,12 +72,13 @@ class PlayerCharacterRepository(
         }
 
         ItemEntity.createAllFrom(characterEntity.id.value, characterTemplate.items)
-        shortcutRepository.createAllFrom(
-            characterEntity.id.value,
-            characterTemplate.shortcuts
-        )
 
         val character = characterEntity.toPlayerCharacter()!!
+
+        shortcutRepository.createAllFrom(
+            characterTemplate.shortcuts,
+            character
+        )
 
         character.currentCp = character.stats.maxCp
         character.currentHp = character.stats.maxHp

@@ -53,6 +53,8 @@ fun RequestPacket(data: ByteArray): RequestPacket {
 
         SHOW_MAP_REQUEST_PACKET_ID -> ShowMapRequest
 
+        LINK_REQUEST_PACKET_ID -> LinkRequest(buffer)
+        BYPASS_TO_SERVER_REQUEST_PACKET_ID -> BypassToServerRequest(buffer)
         ADMIN_COMMAND_REQUEST_PACKET_ID -> AdminCommandRequest(buffer)
         USER_COMMAND_REQUEST_PACKET_ID -> UserCommandRequest(buffer)
 

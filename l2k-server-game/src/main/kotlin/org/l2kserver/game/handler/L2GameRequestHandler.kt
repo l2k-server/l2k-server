@@ -32,7 +32,9 @@ import org.l2kserver.game.handler.dto.request.PrivateStoreBuySetMessageRequest
 import org.l2kserver.game.handler.dto.request.PrivateStoreBuyStartRequest
 import org.l2kserver.game.handler.dto.request.PrivateStoreBuyStopRequest
 import org.l2kserver.game.handler.dto.request.BuyInPrivateStoreRequest
+import org.l2kserver.game.handler.dto.request.BypassToServerRequest
 import org.l2kserver.game.handler.dto.request.ExchangeRequest
+import org.l2kserver.game.handler.dto.request.LinkRequest
 import org.l2kserver.game.handler.dto.request.RespawnRequest
 import org.l2kserver.game.handler.dto.request.PrivateStoreSellSetMessageRequest
 import org.l2kserver.game.handler.dto.request.ShowMapRequest
@@ -54,6 +56,7 @@ import org.l2kserver.game.network.session.sessionContext
 import org.l2kserver.game.service.ActionService
 import org.l2kserver.game.service.AdminCommandService
 import org.l2kserver.game.service.AuthorizationService
+import org.l2kserver.game.service.HtmlCommandService
 import org.l2kserver.game.service.CharacterService
 import org.l2kserver.game.service.ItemService
 import org.l2kserver.game.service.MoveService
@@ -71,6 +74,7 @@ class L2GameRequestHandler(
     private val actionService: ActionService,
     private val itemService: ItemService,
     private val moveService: MoveService,
+    private val htmlCommandService: HtmlCommandService,
     private val adminCommandService: AdminCommandService,
     private val userCommandService: UserCommandService,
     private val socialService: SocialService,
@@ -115,6 +119,8 @@ class L2GameRequestHandler(
             is AttackRequest -> actionService.attackTarget(request)
             is ShowMapRequest -> actionService.showMap()
 
+            is LinkRequest -> htmlCommandService.handleLinkRequest(request)
+            is BypassToServerRequest -> htmlCommandService.handleBypassRequest(request)
             is AdminCommandRequest -> adminCommandService.handleAdminCommand(request)
             is UserCommandRequest -> userCommandService.handleUserCommand(request)
 

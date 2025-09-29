@@ -198,4 +198,6 @@ class Inventory(val owner: PlayerCharacter): Collection<ItemInstance> {
     override fun containsAll(elements: Collection<ItemInstance>) = items.values.containsAll(elements)
     override fun isEmpty() = items.isEmpty()
     override fun iterator() = items.values.iterator()
+
+    override fun toString() = "Inventory(ownerId=${owner.id}, items=${items.values}, equippedItems=$equippedItems, size=$size)"
 }

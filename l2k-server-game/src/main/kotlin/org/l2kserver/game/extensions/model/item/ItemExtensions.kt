@@ -9,10 +9,12 @@ import org.l2kserver.game.model.item.Jewelry
 import org.l2kserver.game.model.item.SimpleItem
 import org.l2kserver.game.model.item.Weapon
 import org.l2kserver.game.domain.ItemEntity
+import org.l2kserver.game.model.item.Book
 import org.l2kserver.game.model.item.Soulshot
 import org.l2kserver.game.model.item.Spiritshot
 import org.l2kserver.game.model.item.template.ArmorTemplate
 import org.l2kserver.game.model.item.template.ArrowTemplate
+import org.l2kserver.game.model.item.template.BookTemplate
 import org.l2kserver.game.model.item.template.ItemTemplate
 import org.l2kserver.game.model.item.template.JewelryTemplate
 import org.l2kserver.game.model.item.template.SimpleItemTemplate
@@ -30,6 +32,7 @@ fun ItemEntity.toItemInstance(): ItemInstance? = when (val itemTemplate = ItemTe
     is SimpleItemTemplate -> SimpleItem(this, itemTemplate)
     is SoulshotTemplate -> Soulshot(this, itemTemplate)
     is SpiritshotTemplate -> Spiritshot(this, itemTemplate)
+    is BookTemplate -> Book(this, itemTemplate)
     else -> null
 }
 

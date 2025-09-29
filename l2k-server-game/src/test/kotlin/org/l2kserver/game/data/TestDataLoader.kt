@@ -11,6 +11,7 @@ import org.l2kserver.game.data.item.armor.SQUIRES_PANTS
 import org.l2kserver.game.data.item.armor.SQUIRES_SHIRT
 import org.l2kserver.game.data.item.arrows.BONE_ARROW
 import org.l2kserver.game.data.item.arrows.WOODEN_ARROW
+import org.l2kserver.game.data.item.book.TUTORIAL_GUIDE
 import org.l2kserver.game.data.item.etc.ADENA
 import org.l2kserver.game.data.item.jewelry.EARRING_OF_STRENGTH
 import org.l2kserver.game.data.item.jewelry.EARRING_OF_WISDOM
@@ -43,6 +44,7 @@ import org.l2kserver.game.model.actor.character.CharacterClass
 import org.l2kserver.game.model.actor.character.CharacterRace
 import org.l2kserver.game.model.actor.character.ShortcutType
 import org.l2kserver.game.model.actor.npc.NpcTemplate
+import org.l2kserver.game.model.html.HtmlRegistry
 import org.l2kserver.game.model.item.template.ItemTemplate
 import org.l2kserver.game.model.skill.SkillTemplate
 import org.l2kserver.game.repository.PlayerCharacterRepository
@@ -77,6 +79,8 @@ class TestDataLoader(
      * Registers some items for testing
      */
     private fun registerTestData() {
+        HtmlRegistry.loadResource("data/html/tutobook")
+
         NpcTemplate.Registry.register(
             GRAND_MASTER_ROIEN,
             GRAND_MAGISTER_GALLINT,
@@ -89,6 +93,8 @@ class TestDataLoader(
         )
 
         ItemTemplate.Registry.register(
+            TUTORIAL_GUIDE,
+
             // No Grade weapons
             WILLOW_STAFF,
             DAGGER,

@@ -99,7 +99,7 @@ class GameObjectRepository {
     @Suppress("UNCHECKED_CAST")
     fun <T: GameWorldObject> delete(gameObject: T): T? = when (gameObject) {
         is PlayerCharacter -> charactersMap.remove(gameObject.id)
-        is Npc -> charactersMap.remove(gameObject.id)
+        is Npc -> npcMap.remove(gameObject.id)
         else -> objectMap.remove(gameObject.id)
     } as T?
 

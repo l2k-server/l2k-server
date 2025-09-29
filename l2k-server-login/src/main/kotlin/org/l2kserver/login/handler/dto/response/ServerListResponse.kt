@@ -22,7 +22,7 @@ data class ServerListResponse(
                 .put(it.serverIp)
                 .putInt(it.port)
                 .put(it.ageLimit)
-                .put(if(it.isPvp) 1 else 0)
+                .put(if (it.isPvp) 1 else 0)
                 .putShort(it.currentPlayers)
                 .putShort(it.maxPlayers)
                 .put(if(it.isOnline) 1 else 0)
