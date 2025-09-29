@@ -2,6 +2,7 @@ package org.l2kserver.game.data.character.classes
 
 import org.l2kserver.game.data.item.armor.SQUIRES_PANTS
 import org.l2kserver.game.data.item.armor.SQUIRES_SHIRT
+import org.l2kserver.game.data.item.book.TUTORIAL_GUIDE
 import org.l2kserver.game.data.item.weapons.DAGGER
 import org.l2kserver.game.data.item.weapons.SQUIRES_SWORD
 import org.l2kserver.game.model.actor.CollisionBox
@@ -60,11 +61,13 @@ val HUMAN_FIGHTER = CharacterClass(
             InitialItem(SQUIRES_PANTS.id, isEquipped = true),
             InitialItem(SQUIRES_SWORD.id, isEquipped = true),
             InitialItem(DAGGER.id, isEquipped = false),
+            InitialItem(TUTORIAL_GUIDE.id, isEquipped = false)
         ),
         shortcuts = listOf(
             InitialShortcut(0, ShortcutType.ACTION, 2),
             InitialShortcut(3, ShortcutType.ACTION, 5),
-            InitialShortcut(10, ShortcutType.ACTION, 0)
+            InitialShortcut(10, ShortcutType.ACTION, 0),
+            InitialShortcut(11, type = ShortcutType.ITEM, TUTORIAL_GUIDE.id)
         ),
         collisionBox = CollisionBox(9.0, 23.0)
     ),

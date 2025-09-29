@@ -41,7 +41,7 @@ val GRAND_MASTER_ROIEN = NpcTemplate(
                 <a action=\"bypass -h npc_%objectId%_Quest\">Quest</a>
             </body>
         </html>
-        """.trimIndent().replace("\\s+".toRegex(), " ")
+        """.replace("\\s+".toRegex(), " ")
     )
 )
 
@@ -77,6 +77,6 @@ val GRAND_MAGISTER_GALLINT = NpcTemplate(
                 <a action="bypass -h npc_%objectId%_Quest">Quest</a>
             </body>
         </html>
-        """.trimIndent().replace("\\s+".toRegex(), " ")
+        """.replace("\\s+".toRegex(), " ")
     )
 )

@@ -14,6 +14,7 @@ import org.l2kserver.game.handler.dto.response.AutoUseSsResponse
 import org.l2kserver.game.handler.dto.response.DeleteObjectResponse
 import org.l2kserver.game.handler.dto.response.FullCharacterResponse
 import org.l2kserver.game.handler.dto.response.DroppedItemResponse
+import org.l2kserver.game.handler.dto.response.NpcChatWindowResponse
 import org.l2kserver.game.handler.dto.response.PickUpItemResponse
 import org.l2kserver.game.handler.dto.response.SsUsedResponse
 import org.l2kserver.game.handler.dto.response.SystemMessageResponse
@@ -24,6 +25,7 @@ import org.l2kserver.game.model.actor.ActorInstance
 import org.l2kserver.game.model.actor.PlayerCharacter
 import org.l2kserver.game.model.actor.ScatteredItem
 import org.l2kserver.game.model.item.Arrow
+import org.l2kserver.game.model.item.Book
 import org.l2kserver.game.model.item.Soulshot
 import org.l2kserver.game.model.item.Spiritshot
 import org.l2kserver.game.model.item.Ss
@@ -101,7 +103,8 @@ class ItemService(
             }
             item is EquippableItemInstance -> equipOrDisarmItem(character, item)
             item is Soulshot -> useSoulshot(character, item)
-            item is Spiritshot-> useSpiritshot(character, item)
+            item is Spiritshot -> useSpiritshot(character, item)
+            item is Book -> useBook(item)
         }
     }
 
@@ -427,6 +430,10 @@ class ItemService(
         else send { UpdateItemsResponse().wasModified(spiritshot) }
 
         this@ItemService.broadcastAround(character.position) { SsUsedResponse(character, spiritshot) }
+    }
+
+    suspend fun useBook(book: Book) = send {
+        NpcChatWindowResponse(npcId = book.templateId, message = book.text)
     }
 
     /**

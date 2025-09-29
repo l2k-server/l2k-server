@@ -2,6 +2,7 @@ package org.l2kserver.game.data.character.classes
 
 import org.l2kserver.game.data.item.armor.APPRENTICE_STOCKINGS
 import org.l2kserver.game.data.item.armor.APPRENTICE_TUNIC
+import org.l2kserver.game.data.item.book.TUTORIAL_GUIDE
 import org.l2kserver.game.data.item.weapons.APPRENTICE_WAND
 import org.l2kserver.game.data.skill.WIND_STRIKE
 import org.l2kserver.game.model.actor.CollisionBox
@@ -60,12 +61,14 @@ val HUMAN_MYSTIC = CharacterClass(
             InitialItem(APPRENTICE_TUNIC.id, isEquipped = true),
             InitialItem(APPRENTICE_STOCKINGS.id, isEquipped = true),
             InitialItem(APPRENTICE_WAND.id, isEquipped = true),
+            InitialItem(TUTORIAL_GUIDE.id, isEquipped = false)
         ),
         shortcuts = listOf(
             InitialShortcut(0, ShortcutType.ACTION, 2),
             InitialShortcut(1, ShortcutType.SKILL, WIND_STRIKE.id),
             InitialShortcut(3, ShortcutType.ACTION, 5),
-            InitialShortcut(10, ShortcutType.ACTION, 0)
+            InitialShortcut(10, ShortcutType.ACTION, 0),
+            InitialShortcut(11, type = ShortcutType.ITEM, TUTORIAL_GUIDE.id)
         ),
         collisionBox = CollisionBox(7.5, 22.8)
     ),

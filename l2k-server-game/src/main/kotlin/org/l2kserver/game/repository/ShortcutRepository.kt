@@ -7,6 +7,7 @@ import org.jetbrains.exposed.sql.insertAndGetId
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.l2kserver.game.domain.Shortcut
 import org.l2kserver.game.domain.ShortcutTable
+import org.l2kserver.game.model.actor.PlayerCharacter
 import org.l2kserver.game.model.actor.character.InitialShortcut
 import org.l2kserver.game.model.actor.character.ShortcutType
 import org.springframework.stereotype.Component
@@ -35,14 +36,19 @@ class ShortcutRepository {
         Shortcut.findById(shortcutId)!!
     }
 
-    fun createAllFrom(characterId: Int, initialShortcuts: Iterable<InitialShortcut>) = transaction {
-        initialShortcuts.map {
+    fun createAllFrom(initialShortcuts: Iterable<InitialShortcut>, character: PlayerCharacter) = transaction {
+        initialShortcuts.mapNotNull {
+            val shortcutActionId = if (it.type == ShortcutType.ITEM) {
+                character.inventory.findAllByTemplateId(it.shortcutActionId).firstOrNull()?.id
+                    ?: return@mapNotNull null
+            }
+            else it.shortcutActionId
             create(
-                characterId = characterId,
+                characterId = character.id,
                 subclassIndex = 0,
                 shortcutIndex = it.index,
                 shortcutType = it.type,
-                shortcutActionId = it.shortcutActionId,
+                shortcutActionId = shortcutActionId,
                 shortcutActionLevel = it.actionLevel
             )
         }

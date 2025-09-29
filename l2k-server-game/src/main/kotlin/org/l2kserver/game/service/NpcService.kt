@@ -14,6 +14,7 @@ import org.l2kserver.game.handler.dto.response.DeleteObjectResponse
 import org.l2kserver.game.model.actor.npc.SpawnedAt
 import org.l2kserver.game.model.actor.position.Heading
 import org.l2kserver.game.model.actor.position.SpawnPosition
+import org.l2kserver.game.utils.getNoTextMessage
 import org.l2kserver.game.model.zone.SpawnZone
 import org.l2kserver.game.network.session.send
 import org.l2kserver.game.utils.IdUtils
@@ -22,8 +23,6 @@ import org.springframework.context.event.EventListener
 import org.springframework.stereotype.Service
 import kotlin.random.Random
 import kotlin.random.nextInt
-
-private const val DEFAULT_INIT_REPLICA = "<html><body>My text is missing!</body></html>"
 
 private const val CORPSE_DISAPPEARANCE_DELAY_MS = 8_500L
 //TODO Raid boss mechanics
@@ -50,7 +49,10 @@ class NpcService(
      * Opens chat window with [npc]
      */
     suspend fun talkTo(npc: Npc) = send {
-        NpcChatWindowResponse(npcId = npc.id, message = npc.replicas.firstOrNull() ?: DEFAULT_INIT_REPLICA)
+        NpcChatWindowResponse(
+            npcId = npc.id,
+            message = npc.replicas.firstOrNull() ?: getNoTextMessage(npc.id, npc.name)
+        )
     }
 
     /**
