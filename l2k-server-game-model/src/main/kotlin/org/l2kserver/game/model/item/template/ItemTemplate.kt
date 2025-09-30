@@ -4,6 +4,9 @@ import org.l2kserver.game.model.GameData
 import org.l2kserver.game.model.GameDataRegistry
 import org.l2kserver.game.model.stats.CombatStats
 
+/** Stores all the item templates */
+object ItemTemplateRegistry: GameDataRegistry<ItemTemplate>()
+
 /**
  * Data, common to all items of this type
  *
@@ -31,8 +34,6 @@ sealed interface ItemTemplate: GameData {
     val isDestroyable: Boolean
     val isExchangeable: Boolean
     val isStackable: Boolean
-
-    object Registry: GameDataRegistry<ItemTemplate>()
 }
 
 /**

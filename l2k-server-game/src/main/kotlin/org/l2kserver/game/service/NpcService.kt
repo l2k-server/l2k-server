@@ -11,6 +11,7 @@ import org.l2kserver.game.model.actor.Npc
 import org.l2kserver.game.repository.GameObjectRepository
 import org.l2kserver.game.model.actor.npc.NpcTemplate
 import org.l2kserver.game.handler.dto.response.DeleteObjectResponse
+import org.l2kserver.game.model.actor.npc.NpcTemplateRegistry
 import org.l2kserver.game.model.actor.npc.SpawnedAt
 import org.l2kserver.game.model.actor.position.Heading
 import org.l2kserver.game.model.actor.position.SpawnPosition
@@ -39,25 +40,18 @@ class NpcService(
 
     @EventListener(ApplicationReadyEvent::class)
     fun init() = asyncTaskService.launchTask("INITIAL_SPAWN_TASK") {
-        NpcTemplate.Registry.forEach { template ->
+        NpcTemplateRegistry.forEach { template ->
             template.spawn.positions?.forEach { spawnAtPosition(template, it) }
             template.spawn.zones?.forEach { zone -> repeat(zone.npcAmount) { spawnAtZone(template, zone) }}
         }
     }
 
-    /**
-     * Opens chat window with [npc]
-     */
+    /** Opens chat window with [npc] */
     suspend fun talkTo(npc: Npc) = send {
-        NpcChatWindowResponse(
-            npcId = npc.id,
-            message = npc.replicas.firstOrNull() ?: getNoTextMessage(npc.id, npc.name)
-        )
+        NpcChatWindowResponse(npcId = npc.id, message = npc.replica ?: getNoTextMessage(npc.id, npc.name))
     }
 
-    /**
-     * Handles [npc]'s death - schedules corpse disappearing and respawn
-     */
+    /** Handles [npc]'s death - schedules corpse disappearing and respawn */
     suspend fun handleNpcDeath(npc: Npc) = CoroutineScope(Dispatchers.Default).launch {
         //Delete corpse from game world after delay
         delay(CORPSE_DISAPPEARANCE_DELAY_MS)
@@ -66,7 +60,7 @@ class NpcService(
         gameObjectRepository.delete(npc)
 
         //Respawn this NPC after delay
-        val template = NpcTemplate.Registry.findByIdOrNull(npc.templateId)!!
+        val template = NpcTemplateRegistry.findByIdOrNull(npc.templateId)!!
         delay(template.spawn.respawnDelay)
 
         //Spawn NPC at position or zone, depending on what is present
@@ -115,9 +109,7 @@ class NpcService(
         return npc
     }
 
-    /**
-     * Saved NPC to gameObjectRepository and notified surrounding players about spawn
-     */
+    /** Saved NPC to gameObjectRepository and notified surrounding players about spawn */
     private suspend fun spawnNpc(npc: Npc) {
         gameObjectRepository.save(npc)
         updateObjectsAround(npc)

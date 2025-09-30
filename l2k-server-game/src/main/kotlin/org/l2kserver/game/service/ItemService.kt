@@ -31,9 +31,9 @@ import org.l2kserver.game.model.item.Spiritshot
 import org.l2kserver.game.model.item.Ss
 import org.l2kserver.game.model.item.instance.EquippableItemInstance
 import org.l2kserver.game.model.item.instance.ItemInstance
-import org.l2kserver.game.model.item.template.ItemTemplate
 import org.l2kserver.game.model.item.template.Slot
 import org.l2kserver.game.model.item.Weapon
+import org.l2kserver.game.model.item.template.ItemTemplateRegistry
 import org.l2kserver.game.model.item.template.WeaponType
 import org.l2kserver.game.model.reward.RewardItem
 import org.l2kserver.game.model.store.PrivateStore
@@ -189,7 +189,7 @@ class ItemService(
      * random position in [DROP_REWARD_DISTANCE] radius and drops it by [dropper]
      */
     suspend fun dropRewardItem(item: RewardItem, dropper: ActorInstance) {
-        val template = ItemTemplate.Registry.findByIdOrNull(item.id) ?: run {
+        val template = ItemTemplateRegistry.findByIdOrNull(item.id) ?: run {
             log.warn("No item template found by id {}", item.id)
             return
         }
@@ -254,7 +254,7 @@ class ItemService(
         itemReceiver: PlayerCharacter, itemTemplateId: Int, amount: Int, enchantLevel: Int
     ) = newSuspendedTransaction {
         val existingItem = itemReceiver.inventory.findAllByTemplateId(itemTemplateId).firstOrNull()
-        val itemTemplate = ItemTemplate.Registry.findById(itemTemplateId)
+        val itemTemplate = ItemTemplateRegistry.findById(itemTemplateId)
 
         val consumableId = itemReceiver.inventory.weapon?.consumes?.id
         val equippedAt = if (consumableId == itemTemplate.id) Slot.LEFT_HAND else null

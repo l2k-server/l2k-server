@@ -8,7 +8,7 @@ import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.deleteWhere
 import org.l2kserver.game.model.actor.character.InitialItem
-import org.l2kserver.game.model.item.template.ItemTemplate
+import org.l2kserver.game.model.item.template.ItemTemplateRegistry
 import org.l2kserver.game.model.item.template.Slot
 
 /**
@@ -36,7 +36,7 @@ class ItemEntity(id: EntityID<Int>): IntEntity(id) {
 
         /** Creates new items from provided [initialItems] and assigns it to owner with given [ownerId]. Saves new items to DB */
         fun createAllFrom(ownerId: Int, initialItems: List<InitialItem>) = initialItems.mapNotNull {
-            val itemTemplate = ItemTemplate.Registry.findByIdOrNull(it.id)
+            val itemTemplate = ItemTemplateRegistry.findByIdOrNull(it.id)
 
             if (itemTemplate == null) null
             else new {

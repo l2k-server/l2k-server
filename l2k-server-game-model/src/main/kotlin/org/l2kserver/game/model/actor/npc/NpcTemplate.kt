@@ -10,6 +10,9 @@ import org.l2kserver.game.model.stats.BasicStats
 import org.l2kserver.game.model.stats.CombatStats
 import org.l2kserver.game.model.zone.SpawnZone
 
+/** Stores all the NPC templates */
+object NpcTemplateRegistry: GameDataRegistry<NpcTemplate>()
+
 data class NpcTemplate(
     override val id: Int,
     val name: String,
@@ -24,19 +27,11 @@ data class NpcTemplate(
     val basicStats: BasicStats,
     val reward: Reward = Reward(),
     val spawn: SpawnData,
-    val replicas: List<String> = emptyList(),
+    val replica: String? = null,
     val equippedWeaponTemplateId: Int? = null,
     val equippedShieldTemplateId: Int? = null,
     val ai: Ai? = null
-): GameData {
-    init {
-        //TODO Separate classes?
-        require(isEnemy xor replicas.isNotEmpty()) { "Monsters must have no replicas!" }
-    }
-
-
-    object Registry: GameDataRegistry<NpcTemplate>()
-}
+): GameData
 
 data class SpawnData(
     val respawnDelay: Long = 0,

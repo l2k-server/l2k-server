@@ -6,6 +6,9 @@ import org.l2kserver.game.model.item.ConsumableItem
 import org.l2kserver.game.model.item.template.WeaponType
 import org.l2kserver.game.model.skill.action.SkillAction
 
+/** Stores all the skill templates */
+object SkillTemplateRegistry: GameDataRegistry<SkillTemplate>()
+
 /**
  * Data class representing common skill data
  *
@@ -38,10 +41,7 @@ data class SkillTemplate(
     val overhitPossible: Boolean = false,
     val lethalStrikePossible: Boolean = false,
     val skillAction: SkillAction
-): GameData {
-
-    object Registry: GameDataRegistry<SkillTemplate>()
-}
+): GameData
 
 /**
  * Skill requirements - conditions to use this skill

@@ -34,7 +34,7 @@ interface NpcInstance: ActorInstance {
     override val basicStats: BasicStats
     val reward: Reward
     val spawnedAt: SpawnedAt
-    val replicas: List<String>
+    val replica: String?
     override val collisionBox: CollisionBox
     override val currentHp: Int
     override val currentMp: Int

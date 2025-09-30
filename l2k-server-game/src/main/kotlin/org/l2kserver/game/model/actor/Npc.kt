@@ -28,7 +28,7 @@ import org.l2kserver.game.model.stats.CombatStats
  * @property stats NPC's stats
  * @property reward Reward for killing this NPC
  * @property spawnedAt Where was this NPC spawned (position or zone)
- * @property replicas NPC's chat replicas
+ * @property replica NPC's chat replica
  * @property collisionBox NPC's collision box
  * @property currentHp NPC's current HP
  * @property currentMp NPC's current mana
@@ -50,7 +50,7 @@ class Npc(
     override val basicStats: BasicStats,
     override val reward: Reward,
     override val spawnedAt: SpawnedAt,
-    override val replicas: List<String>,
+    override val replica: String?,
     override val collisionBox: CollisionBox,
     override var currentHp: Int,
     override var currentMp: Int,

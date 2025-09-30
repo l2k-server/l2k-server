@@ -25,7 +25,6 @@ import java.time.temporal.ChronoUnit
 import kotlinx.coroutines.cancel
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.l2kserver.game.domain.AccessLevel
-import org.l2kserver.game.model.map.Town
 import org.l2kserver.game.handler.dto.request.RespawnAt
 import org.l2kserver.game.handler.dto.request.RespawnRequest
 import org.l2kserver.game.handler.dto.response.ChangePostureResponse
@@ -43,6 +42,7 @@ import org.l2kserver.game.model.actor.PlayerCharacter
 import org.l2kserver.game.model.actor.position.Position
 import org.l2kserver.game.model.actor.character.CharacterRace
 import org.l2kserver.game.model.actor.character.Gender
+import org.l2kserver.game.model.map.TownRegistry
 import org.l2kserver.game.network.session.SessionContext
 import org.l2kserver.game.network.session.send
 import org.l2kserver.game.network.session.sessionContext
@@ -298,7 +298,7 @@ class CharacterService(
 
         val respawnPosition = when (request.respawnAt) {
             //TODO During a siege, character should be teleported to other town... or not?
-            RespawnAt.VILLAGE -> Town.Registry.getRandomSpawnPointByPosition(
+            RespawnAt.VILLAGE -> TownRegistry.getRandomSpawnPointByPosition(
                 character.position,
                 isOutlaw = character.karma > 0
             )

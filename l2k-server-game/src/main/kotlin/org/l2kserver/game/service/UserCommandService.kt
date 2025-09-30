@@ -4,7 +4,7 @@ import org.l2kserver.game.extensions.logger
 import org.l2kserver.game.handler.dto.request.UserCommand
 import org.l2kserver.game.handler.dto.request.UserCommandRequest
 import org.l2kserver.game.handler.dto.response.SystemMessageResponse
-import org.l2kserver.game.model.map.Town
+import org.l2kserver.game.model.map.TownRegistry
 import org.l2kserver.game.network.session.send
 import org.l2kserver.game.network.session.sessionContext
 import org.l2kserver.game.repository.GameObjectRepository
@@ -31,7 +31,7 @@ class UserCommandService(
         val context = sessionContext()
         val position = gameObjectRepository.findCharacterById(context.getCharacterId()).position
 
-        val closestTown = Town.Registry.findClosestByPosition(position)
+        val closestTown = TownRegistry.findClosestByPosition(position)
 
         send {
             SystemMessageResponse(

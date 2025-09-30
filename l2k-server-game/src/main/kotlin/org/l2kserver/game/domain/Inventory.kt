@@ -11,7 +11,7 @@ import org.l2kserver.game.model.item.Jewelry
 import org.l2kserver.game.model.item.Weapon
 import org.l2kserver.game.model.item.instance.EquippableItemInstance
 import org.l2kserver.game.model.item.instance.ItemInstance
-import org.l2kserver.game.model.item.template.ItemTemplate
+import org.l2kserver.game.model.item.template.ItemTemplateRegistry
 import org.l2kserver.game.model.item.template.Slot
 import java.util.EnumMap
 
@@ -63,7 +63,7 @@ class Inventory(val owner: PlayerCharacter): Collection<ItemInstance> {
 
     /** Creates new item at the inventory */
     fun createItem(templateId: Int, amount: Int = 1, equippedAt: Slot? = null, enchantLevel: Int = 0) = transaction {
-        val itemTemplate = requireNotNull(ItemTemplate.Registry.findByIdOrNull(templateId)) {
+        val itemTemplate = requireNotNull(ItemTemplateRegistry.findByIdOrNull(templateId)) {
             "Cannot add new item to the database - no template found by id=$templateId"
         }
 

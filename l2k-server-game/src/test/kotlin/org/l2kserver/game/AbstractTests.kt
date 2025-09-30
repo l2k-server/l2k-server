@@ -21,7 +21,7 @@ import org.l2kserver.game.model.actor.ScatteredItem
 import org.l2kserver.game.model.actor.character.CharacterRace
 import org.l2kserver.game.model.actor.character.Gender
 import org.l2kserver.game.model.actor.character.InitialItem
-import org.l2kserver.game.model.actor.npc.NpcTemplate
+import org.l2kserver.game.model.actor.npc.NpcTemplateRegistry
 import org.l2kserver.game.model.actor.position.Position
 import org.l2kserver.game.model.item.template.ItemTemplate
 import org.l2kserver.game.network.session.SessionContext
@@ -69,7 +69,7 @@ abstract class AbstractTests {
         gameObjectRepository.deleteAll()
         actorStateService.flushStates()
         asyncTaskService.cancelTask(REGENERATION_JOB)
-        NpcTemplate.Registry.flush()
+        NpcTemplateRegistry.flush()
     }
 
     protected fun createRandomAuthorizationKey() = AuthorizationKey(

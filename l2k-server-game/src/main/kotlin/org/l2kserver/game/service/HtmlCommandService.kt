@@ -22,6 +22,6 @@ class HtmlCommandService {
     }
 
     suspend fun handleBypassRequest(request: BypassToServerRequest) {
-        send { SystemMessageResponse(request.bypassCommandString) }
+        send { SystemMessageResponse(request.toString()) }
     }
 }

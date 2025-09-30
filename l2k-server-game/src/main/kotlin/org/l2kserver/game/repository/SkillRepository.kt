@@ -6,7 +6,7 @@ import org.l2kserver.game.domain.SkillEntity
 import org.l2kserver.game.domain.SkillTable
 import org.l2kserver.game.model.actor.character.SkillToLearn
 import org.l2kserver.game.model.skill.Skill
-import org.l2kserver.game.model.skill.SkillTemplate
+import org.l2kserver.game.model.skill.SkillTemplateRegistry
 import org.springframework.stereotype.Component
 
 @Component
@@ -76,7 +76,7 @@ class SkillRepository {
     }
 }
 
-private fun SkillEntity.toSkill() = Skill(this, SkillTemplate.Registry.findById(this.skillId))
+private fun SkillEntity.toSkill() = Skill(this, SkillTemplateRegistry.findById(this.skillId))
 
 private fun SkillEntity.Companion.findAllByCharacterIdAndSubclassIndex(
     characterId: Int, subclassIndex: Int

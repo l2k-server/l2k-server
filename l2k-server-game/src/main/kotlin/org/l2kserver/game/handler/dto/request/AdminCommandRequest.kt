@@ -10,7 +10,7 @@ const val ADMIN_COMMAND_REQUEST_PACKET_ID: UByte = 91u
  *
  * @property commandString Command string.
  *
- * @see org.l2kserver.game.model.command.Command
+ * @see org.l2kserver.game.model.command.AdminCommand
  */
 data class AdminCommandRequest(val commandString: String): RequestPacket {
 
