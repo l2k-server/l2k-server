@@ -7,7 +7,7 @@ import org.l2kserver.game.model.actor.position.Heading
 import org.l2kserver.game.model.actor.MoveType
 import org.l2kserver.game.model.actor.npc.SpawnedAt
 import org.l2kserver.game.model.item.template.ArmorTemplate
-import org.l2kserver.game.model.item.template.ItemTemplate
+import org.l2kserver.game.model.item.template.ItemTemplateRegistry
 import org.l2kserver.game.model.item.template.WeaponTemplate
 
 fun NpcTemplate.toNpc(id: Int, position: Position, heading: Heading, spawnedAt: SpawnedAt) = Npc(
@@ -24,12 +24,12 @@ fun NpcTemplate.toNpc(id: Int, position: Position, heading: Heading, spawnedAt: 
     basicStats = this.basicStats,
     reward = this.reward,
     spawnedAt = spawnedAt,
-    replicas = this.replicas,
+    replica = this.replica,
     collisionBox = this.collisionBox,
     currentHp = this.stats.maxHp,
     currentMp = this.stats.maxMp,
     moveType = MoveType.WALK,
-    equippedWeaponTemplate = this.equippedWeaponTemplateId?.let { ItemTemplate.Registry.findByIdOrNull(it) as? WeaponTemplate },
-    equippedShieldTemplate = this.equippedShieldTemplateId?.let { ItemTemplate.Registry.findByIdOrNull(it) as? ArmorTemplate },
+    equippedWeaponTemplate = this.equippedWeaponTemplateId?.let { ItemTemplateRegistry.findByIdOrNull(it) as? WeaponTemplate },
+    equippedShieldTemplate = this.equippedShieldTemplateId?.let { ItemTemplateRegistry.findByIdOrNull(it) as? ArmorTemplate },
     ai = this.ai
 )

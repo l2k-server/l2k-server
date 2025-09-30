@@ -7,6 +7,9 @@ import org.l2kserver.game.model.stats.BasicStats
 import org.l2kserver.game.model.stats.CombatStats
 import org.l2kserver.game.model.stats.TradeAndInventoryStats
 
+/** Stores all the character classes */
+object CharacterClassRegistry: GameDataRegistry<CharacterClass>()
+
 /**
  * Character class data - stats, skills, misc. information
  *
@@ -115,8 +118,6 @@ data class CharacterClass(
 
     val baseAtkSpd = emptySlotStats.values.reduce { acc, stats -> acc + stats }.atkSpd
     val baseSpeed = combatStats.speed
-
-    object Registry: GameDataRegistry<CharacterClass>()
 }
 
 /**`

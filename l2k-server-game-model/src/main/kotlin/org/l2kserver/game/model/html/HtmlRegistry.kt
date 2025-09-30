@@ -6,6 +6,7 @@ import java.lang.Exception
 import java.nio.charset.Charset
 import java.util.concurrent.ConcurrentHashMap
 
+/** Stores all the HTMLs for npc chat windows, quests, community table, etc. */
 object HtmlRegistry {
 
     private val log = logger()

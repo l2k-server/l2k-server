@@ -26,7 +26,7 @@ import org.l2kserver.game.handler.dto.response.StartFightingResponse
 import org.l2kserver.game.handler.dto.response.StatusAttribute
 import org.l2kserver.game.handler.dto.response.SystemMessageResponse
 import org.l2kserver.game.handler.dto.response.UpdateStatusResponse
-import org.l2kserver.game.model.actor.npc.NpcTemplate
+import org.l2kserver.game.model.actor.npc.NpcTemplateRegistry
 import org.springframework.beans.factory.annotation.Autowired
 import kotlin.random.Random
 import kotlin.test.Test
@@ -81,7 +81,7 @@ class SkillServiceTest(
 
         // Create our target
         val target = npcService.spawnAtPosition(
-            template = NpcTemplate.Registry.register(GREMLIN.copy(ai = null)),
+            template = NpcTemplateRegistry.register(GREMLIN.copy(ai = null)),
             spawnPosition = character.position.toSpawnPosition()
         )
         context.responseChannel.receive() //Skip NpcInfoResponse
@@ -112,7 +112,7 @@ class SkillServiceTest(
 
         // Create our target
         val target = npcService.spawnAtPosition(
-            template = NpcTemplate.Registry.register(GREMLIN.copy(ai = null)),
+            template = NpcTemplateRegistry.register(GREMLIN.copy(ai = null)),
             spawnPosition = character.position.toSpawnPosition()
         )
 
@@ -182,7 +182,7 @@ class SkillServiceTest(
 
         // Create our target
         val target = npcService.spawnAtPosition(
-            template = NpcTemplate.Registry.register(GREMLIN.copy(ai = null)),
+            template = NpcTemplateRegistry.register(GREMLIN.copy(ai = null)),
             spawnPosition = character.position.toSpawnPosition()
         )
         context.responseChannel.receive() //Skip NpcInfoResponse

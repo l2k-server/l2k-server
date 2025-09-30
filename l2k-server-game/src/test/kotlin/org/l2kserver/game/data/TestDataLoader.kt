@@ -40,13 +40,13 @@ import org.l2kserver.game.data.skill.WIND_STRIKE
 import org.l2kserver.game.domain.AccessLevel
 import org.l2kserver.game.domain.PlayerCharacterTable
 import org.l2kserver.game.model.actor.character.Gender
-import org.l2kserver.game.model.actor.character.CharacterClass
+import org.l2kserver.game.model.actor.character.CharacterClassRegistry
 import org.l2kserver.game.model.actor.character.CharacterRace
 import org.l2kserver.game.model.actor.character.ShortcutType
-import org.l2kserver.game.model.actor.npc.NpcTemplate
+import org.l2kserver.game.model.actor.npc.NpcTemplateRegistry
 import org.l2kserver.game.model.html.HtmlRegistry
-import org.l2kserver.game.model.item.template.ItemTemplate
-import org.l2kserver.game.model.skill.SkillTemplate
+import org.l2kserver.game.model.item.template.ItemTemplateRegistry
+import org.l2kserver.game.model.skill.SkillTemplateRegistry
 import org.l2kserver.game.repository.PlayerCharacterRepository
 import org.l2kserver.game.repository.ShortcutRepository
 import org.l2kserver.game.repository.SkillRepository
@@ -59,9 +59,7 @@ private const val TEST_CHARACTER_ACCOUNT_NAME = "admin"
 private const val TEST_FIGHTER_CHARACTER_NAME = "TesterMan"
 private const val TEST_MYSTIC_CHARACTER_NAME = "TesterWoman"
 
-/**
- * Loads data for LIVE test. Don't use it for integration testing
- */
+/** Loads data for LIVE test. Don't use it for integration testing */
 @Component
 class TestDataLoader(
     private val playerCharacterRepository: PlayerCharacterRepository,
@@ -79,20 +77,20 @@ class TestDataLoader(
      * Registers some items for testing
      */
     private fun registerTestData() {
-        HtmlRegistry.loadResource("data/html/tutobook")
+        HtmlRegistry.loadResource("data/html")
 
-        NpcTemplate.Registry.register(
+        NpcTemplateRegistry.register(
             GRAND_MASTER_ROIEN,
             GRAND_MAGISTER_GALLINT,
             GREMLIN
         )
 
-        CharacterClass.Registry.register(
+        CharacterClassRegistry.register(
             HUMAN_FIGHTER,
             HUMAN_MYSTIC
         )
 
-        ItemTemplate.Registry.register(
+        ItemTemplateRegistry.register(
             TUTORIAL_GUIDE,
 
             // No Grade weapons
@@ -137,7 +135,7 @@ class TestDataLoader(
             BLESSED_SPIRITSHOT_NO_GRADE
         )
 
-        SkillTemplate.Registry.register(
+        SkillTemplateRegistry.register(
             POWER_STRIKE,
             MORTAL_BLOW,
             POWER_SHOT,
@@ -145,9 +143,6 @@ class TestDataLoader(
         )
     }
 
-    /**
-     * Creates test character
-     */
     private fun createTestCharacter() = transaction {
         val testFighter = playerCharacterRepository.create(
             accountName = TEST_CHARACTER_ACCOUNT_NAME,

@@ -11,7 +11,7 @@ import org.l2kserver.game.handler.dto.response.UpdateItemsResponse
 import org.l2kserver.game.network.session.send
 import org.l2kserver.game.network.session.sessionContext
 import org.l2kserver.game.repository.GameObjectRepository
-import org.l2kserver.game.model.command.Command
+import org.l2kserver.game.model.command.AdminCommand
 import org.l2kserver.game.model.command.CommandDescription
 import org.l2kserver.game.model.command.EnchantCommand
 import org.l2kserver.game.model.command.GiveCommand
@@ -40,12 +40,12 @@ class AdminCommandService(
         }
 
         try {
-            val command = Command.parse(commandRequest.commandString)
-            when (command) {
+            val adminCommand = AdminCommand.parse(commandRequest.commandString)
+            when (adminCommand) {
                 is HelpCommand -> handleHelpCommand()
-                is TeleportCommand -> handleTeleportCommand(command)
-                is EnchantCommand -> handleEnchantCommand(command)
-                is GiveCommand ->  handleGiveCommand(command)
+                is TeleportCommand -> handleTeleportCommand(adminCommand)
+                is EnchantCommand -> handleEnchantCommand(adminCommand)
+                is GiveCommand ->  handleGiveCommand(adminCommand)
             }
         }
         catch (e: Exception) {

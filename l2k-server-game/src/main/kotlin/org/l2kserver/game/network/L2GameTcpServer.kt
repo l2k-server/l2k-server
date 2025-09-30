@@ -86,7 +86,10 @@ class L2GameTcpServer(
                             readChannel.readBytes(dataSize - Short.SIZE_BYTES)
                         }
 
-                        val request = runCatching { RequestPacket(gameCrypt.decrypt(data)) }.getOrNull()
+                        val request = runCatching { RequestPacket(gameCrypt.decrypt(data)) }
+                            .onFailure { log.error("An error occurred on decoding request", it) }
+                            .getOrNull()
+
                         l2GameRequestHandler.handle(gameCrypt.initialKey, request)
                     }
                 } catch (_: ClosedReceiveChannelException) {

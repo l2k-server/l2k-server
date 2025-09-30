@@ -12,7 +12,7 @@ import org.l2kserver.game.extensions.logger
 import org.l2kserver.game.model.actor.PlayerCharacter
 import org.l2kserver.game.model.actor.character.CharacterRace
 import org.l2kserver.game.model.actor.character.Gender
-import org.l2kserver.game.model.actor.character.CharacterClass
+import org.l2kserver.game.model.actor.character.CharacterClassRegistry
 import org.l2kserver.game.utils.LevelUtils
 import org.springframework.stereotype.Component
 import java.time.LocalDateTime
@@ -33,7 +33,7 @@ class PlayerCharacterRepository(
         accountName: String, characterName: String, race: CharacterRace, gender: Gender,
         classId: Int, hairColor: Int, hairStyle: Int, faceType: Int
     ): PlayerCharacter = transaction {
-        val characterClass = requireNotNull(CharacterClass.Registry.findByIdOrNull(classId)) {
+        val characterClass = requireNotNull(CharacterClassRegistry.findByIdOrNull(classId)) {
             "No class with id $classId exists!"
         }
 
@@ -130,7 +130,7 @@ class PlayerCharacterRepository(
     }
 
     private fun PlayerCharacterEntity.toPlayerCharacter(): PlayerCharacter? {
-        val characterClass = CharacterClass.Registry.findByIdOrNull(this.classId)
+        val characterClass = CharacterClassRegistry.findByIdOrNull(this.classId)
         return if (characterClass != null)
             PlayerCharacter(this, characterClass)
         else {

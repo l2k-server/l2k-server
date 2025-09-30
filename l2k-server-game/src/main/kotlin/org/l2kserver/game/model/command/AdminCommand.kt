@@ -3,9 +3,9 @@ package org.l2kserver.game.model.command
 import com.github.ajalt.clikt.core.NoOpCliktCommand
 import com.github.ajalt.clikt.core.parse
 
-sealed class Command : NoOpCliktCommand() {
+sealed class AdminCommand : NoOpCliktCommand() {
     companion object {
-        fun parse(commandString: String): Command {
+        fun parse(commandString: String): AdminCommand {
             val splitText = commandString.trim().split("\\s+".toRegex())
             val commandName = splitText[0]
             val commandArgs = if (splitText.size > 1) splitText.subList(1, splitText.size) else emptyList()

@@ -39,7 +39,7 @@ import org.l2kserver.game.domain.ItemTable
 import org.l2kserver.game.handler.dto.response.item
 import org.l2kserver.game.handler.dto.response.operation
 import org.l2kserver.game.model.actor.Posture
-import org.l2kserver.game.model.item.template.ItemTemplate
+import org.l2kserver.game.model.item.template.ItemTemplateRegistry
 import org.l2kserver.game.model.item.template.Slot
 import org.l2kserver.game.model.store.PrivateStore
 import org.springframework.beans.factory.annotation.Autowired
@@ -623,7 +623,7 @@ class ItemServiceTests(
 
         //Create scattered item
         val scatteredItem = createTestScatteredItem(
-            character.position, ItemTemplate.Registry.findByIdOrNull(HEAVENS_DIVIDER.id)!!)
+            character.position, ItemTemplateRegistry.findByIdOrNull(HEAVENS_DIVIDER.id)!!)
 
         //Pick up item!
         withContext(context) { itemService.launchPickUp(character, scatteredItem).join() }
@@ -663,7 +663,7 @@ class ItemServiceTests(
 
         //Create scattered item
         val scatteredItem = createTestScatteredItem(
-            character.position, ItemTemplate.Registry.findByIdOrNull(WOODEN_ARROW.id)!!, 100)
+            character.position, ItemTemplateRegistry.findByIdOrNull(WOODEN_ARROW.id)!!, 100)
 
         //Pick up item!
         withContext(context) {

@@ -13,7 +13,7 @@ import org.l2kserver.game.model.actor.position.Position
  * @property name Name of character that should be teleported
  * @property position Teleporting target position
  */
-class TeleportCommand: Command() {
+class TeleportCommand: AdminCommand() {
     val name by argument("character name").optional()
     val position by option("-to").convert { it.toPosition() }.required()
 

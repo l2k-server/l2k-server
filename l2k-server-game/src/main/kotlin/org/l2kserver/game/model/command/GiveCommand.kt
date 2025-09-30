@@ -7,14 +7,14 @@ import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.required
 import com.github.ajalt.clikt.parameters.types.int
-import org.l2kserver.game.model.item.template.ItemTemplate
+import org.l2kserver.game.model.item.template.ItemTemplateRegistry
 
-class GiveCommand: Command() {
+class GiveCommand: AdminCommand() {
 
     val name by argument("character name").optional()
 
     val templateId by option("-item").int().required()
-        .check({ "No item found in game data by id = '$it'" }) { ItemTemplate.Registry.existsById(it) }
+        .check({ "No item found in game data by id = '$it'" }) { ItemTemplateRegistry.existsById(it) }
 
     val amount by option("-amount").int().default(1)
         .check("Item amount must be greater than 0") { it > 0 }

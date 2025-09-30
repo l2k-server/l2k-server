@@ -15,7 +15,7 @@ import org.l2kserver.game.model.item.Spiritshot
 import org.l2kserver.game.model.item.template.ArmorTemplate
 import org.l2kserver.game.model.item.template.ArrowTemplate
 import org.l2kserver.game.model.item.template.BookTemplate
-import org.l2kserver.game.model.item.template.ItemTemplate
+import org.l2kserver.game.model.item.template.ItemTemplateRegistry
 import org.l2kserver.game.model.item.template.JewelryTemplate
 import org.l2kserver.game.model.item.template.SimpleItemTemplate
 import org.l2kserver.game.model.item.template.SoulshotTemplate
@@ -24,7 +24,7 @@ import org.l2kserver.game.model.item.template.WeaponTemplate
 import org.l2kserver.game.utils.IdUtils
 import kotlin.Int
 
-fun ItemEntity.toItemInstance(): ItemInstance? = when (val itemTemplate = ItemTemplate.Registry.findByIdOrNull(this.templateId)) {
+fun ItemEntity.toItemInstance(): ItemInstance? = when (val itemTemplate = ItemTemplateRegistry.findById(this.templateId)) {
     is WeaponTemplate -> Weapon(this, itemTemplate)
     is ArmorTemplate -> Armor(this, itemTemplate)
     is ArrowTemplate -> Arrow(this, itemTemplate)
@@ -33,7 +33,6 @@ fun ItemEntity.toItemInstance(): ItemInstance? = when (val itemTemplate = ItemTe
     is SoulshotTemplate -> Soulshot(this, itemTemplate)
     is SpiritshotTemplate -> Spiritshot(this, itemTemplate)
     is BookTemplate -> Book(this, itemTemplate)
-    else -> null
 }
 
 fun ItemInstance.toScatteredItem(position: Position, amount: Int) = ScatteredItem(
