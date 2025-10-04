@@ -27,6 +27,7 @@ import org.l2kserver.game.data.item.weapons.BOW
 import org.l2kserver.game.data.item.weapons.DAGGER
 import org.l2kserver.game.data.item.weapons.DEMON_SPLINTER
 import org.l2kserver.game.data.item.weapons.HEAVENS_DIVIDER
+import org.l2kserver.game.data.item.weapons.SHORT_SPEAR
 import org.l2kserver.game.data.item.weapons.SQUIRES_SWORD
 import org.l2kserver.game.data.item.weapons.TALLUM_BLADE_DARK_LEGIONS_EDGE
 import org.l2kserver.game.data.item.weapons.WILLOW_STAFF
@@ -97,6 +98,7 @@ class TestDataLoader(
             WILLOW_STAFF,
             DAGGER,
             BOW,
+            SHORT_SPEAR,
             SQUIRES_SWORD,
             APPRENTICE_WAND,
 

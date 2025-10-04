@@ -19,6 +19,11 @@ object AttackRange {
     const val BOW_DEFAULT_ATTACK_RANGE = 450
 }
 
+object PoleAoeStats {
+    const val POLE_DEFAULT_TARGETS_AMOUNT = 3
+    const val POLE_DEFAULT_AOE_SPREAD = 10922 //~60 degrees
+}
+
 /**
  * Data class representing stats.
  * Character stats is combination of its class stats, item stats, skill stats, etc...
@@ -46,6 +51,9 @@ data class CombatStats(
 
     val critDamage: Int = 0,
     val attackRange: Int = 0,
+
+    val aoeTargetsAmount: Int = 0,
+    val aoeHitSpread: Int = 0,
 
     val mCritRate: Int = 0,
 
@@ -134,7 +142,9 @@ data class CombatStats(
             mAtk = mAtk,
             critRate = CritRate.SWORD_AND_POLE_DEFAULT_CRIT_RATE,
             atkSpd = AttackSpeed.NORMAL,
-            attackRange = AttackRange.MELEE_WEAPON_DEFAULT_ATTACK_RANGE
+            attackRange = AttackRange.MELEE_WEAPON_DEFAULT_ATTACK_RANGE,
+            aoeTargetsAmount = PoleAoeStats.POLE_DEFAULT_TARGETS_AMOUNT,
+            aoeHitSpread = PoleAoeStats.POLE_DEFAULT_AOE_SPREAD
         )
 
         /** Applies default combat stats of double blades with provided [pAtk] and [mAtk] */
@@ -168,6 +178,8 @@ data class CombatStats(
         castingSpd = this.castingSpd + other.castingSpd,
         critDamage = this.critDamage + other.critDamage,
         attackRange = this.attackRange + other.attackRange,
+        aoeTargetsAmount = this.aoeTargetsAmount + other.aoeTargetsAmount,
+        aoeHitSpread = this.aoeHitSpread + other.aoeHitSpread,
         mCritRate = this.mCritRate + other.mCritRate,
         hpRegen = this.hpRegen + other.hpRegen,
         mpRegen = this.mpRegen + other.mpRegen,

@@ -94,10 +94,12 @@ class CombatService(
                     //Already launched attack must not be cancelled TODO STUN??
                     withContext(coroutineContext + NonCancellable) {
                         when (attacker.weaponType) {
-                            WeaponType.BOW -> performBowAttack(attacker, attacked)
-                            WeaponType.POLE -> performPoleAttack(attacker, attacked)
-                            WeaponType.FIST, WeaponType.DOUBLE_BLADES -> performSimpleAttacks(attacker, attacked, 2)
-                            else -> performSimpleAttacks(attacker, attacked, 1)
+                            WeaponType.BOW ->
+                                performBowAttack(attacker, attacked)
+                            WeaponType.FIST, WeaponType.DOUBLE_BLADES ->
+                                performSimpleAttacks(attacker, attacked, 2)
+                            else ->
+                                performSimpleAttacks(attacker, attacked, 1)
                         }
 
                         //Enable SS if auto-use soulshot enabled
@@ -166,7 +168,7 @@ class CombatService(
             send { SystemMessageResponse.MagicCriticalHit }
         if (damageEffect.isHalfSuccessful)
             send { SystemMessageResponse.AttackFailed }
-        if (skill!= null && damageEffect.isFailed)
+        if (skill != null && damageEffect.isFailed)
             send { SystemMessageResponse.HasResisted(attacked.name, skill) }
         if (damageEffect.isBlocked)
             sendTo(attacked.id, SystemMessageResponse.ShieldDefenceSuccessful)
@@ -191,9 +193,7 @@ class CombatService(
      * @param hitAmount How many hits does the attack contain
      */
     private suspend fun performSimpleAttacks(
-        attacker: MutableActorInstance,
-        attacked: MutableActorInstance,
-        hitAmount: Int
+        attacker: MutableActorInstance, attacked: MutableActorInstance, hitAmount: Int
     ) {
         log.debug("{} tries to perform {} attacks on {}", attacker, hitAmount, attacked)
 
@@ -201,20 +201,37 @@ class CombatService(
         nextAttackAvailableTimeMap[attacker.id] = currentTimeMillis() + attackDuration
 
         val weapon = (attacker as? PlayerCharacter)?.inventory?.weapon
-        val usedSoulshot = weapon?.soulshotCharged ?: false
-        val effects = List(hitAmount) { attacker.hit(attacked, usedSoulshot, hitAmount) }
-        if (usedSoulshot && effects.any { !it.isAvoided }) attacker.inventory.weapon?.soulshotCharged = false
+        val soulshotUsed = weapon?.soulshotCharged ?: false
+
+        val effectLists = mutableListOf(
+            attacked to List(hitAmount) {
+                attacker.hit(attacked, soulshotUsed, hitAmount)
+            }
+        )
+
+        if (attacker.stats.aoeTargetsAmount > 0) effectLists += getAoeAttackTargets(attacker, attacked).map { aoeTarget ->
+            aoeTarget to List(hitAmount) {
+                attacker.hit(attacked, soulshotUsed, hitAmount)
+            }
+        }
+
+        if (soulshotUsed && effectLists.map { it.second }.flatten().any { !it.isAvoided })
+            attacker.inventory.weapon?.soulshotCharged = false
 
         val delayBeforeHit = attackDuration / (1 + hitAmount)
 
-        val attacks = effects.map { it.toAttack(attacked.id) }
-        broadcastAround(attacker.position) { AttackResponse(attacker, attacks, usedSoulshot) }
+        val attacks = effectLists.map { (target, effects) -> effects.map { it.toAttack(target.id) }}.flatten()
+        broadcastAround(attacker.position) { AttackResponse(attacker, attacks, soulshotUsed) }
 
         //Delay for the time between start of the attack animation and the hit
         delay(delayBeforeHit)
 
-        effects.forEach {
-            applyDamageEffect(attacker, attacked, it)
+
+        repeat(hitAmount) { hitNumber ->
+            effectLists.forEach { (target, effect) ->
+                applyDamageEffect(attacker, target, effect[hitNumber])
+            }
+
             //Delay for the time between the hit and the end of the attack animation
             delay(delayBeforeHit)
         }
@@ -293,17 +310,34 @@ class CombatService(
     }
 
     /**
-     * Performs pole attack
+     * Finds targets for AoE attacks
      *
      * @param attacker Actor,who performs the attack
-     * @param attacked Actor, who is a target for this attack
+     * @param attacked Actor, who is a main target for this attack
      */
-    private suspend fun performPoleAttack(attacker: MutableActorInstance, attacked: MutableActorInstance) {
-        //TODO Pole attack
-        log.debug("{} tries to hit {} by pole", attacker, attacked)
-        send { SystemMessageResponse("Pole attack is not implemented yet") }
-        send { ActionFailedResponse }
-        coroutineContext.cancel()
+    private suspend fun getAoeAttackTargets(
+        attacker: MutableActorInstance, attacked: MutableActorInstance
+    ): Sequence<MutableActorInstance> {
+        val sweepRange = (attacker.stats.attackRange * 1.5).roundToInt()
+
+        val headingToMainTarget = attacker.position.headingTo(attacked.position)
+        val minHeading = (headingToMainTarget - attacker.stats.aoeHitSpread).value
+        val maxHeading = (headingToMainTarget + attacker.stats.aoeHitSpread).value
+
+        return gameObjectRepository
+            .findAllActorsNear(attacker, sweepRange)
+            .filter { it != attacked && it != attacker }
+            .filter { it.isEnemyOf(attacker) && !it.isDead() }
+            .filter {
+                val headingToIt = attacker.position.headingTo(it.position).value
+
+                if (minHeading < maxHeading) headingToIt in minHeading..maxHeading
+                else {
+                    headingToIt in minHeading..UShort.MAX_VALUE || headingToIt in UShort.MIN_VALUE..maxHeading
+                }
+            }
+            .shuffled()
+            .take(attacker.stats.aoeTargetsAmount)
     }
 
     private fun calculateAttackTime(atkSpd: Int) = DELAY_BETWEEN_ATTACKS_BASE / atkSpd

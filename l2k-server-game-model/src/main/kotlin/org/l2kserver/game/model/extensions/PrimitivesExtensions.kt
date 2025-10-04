@@ -12,13 +12,8 @@ inline fun <T> Array<T>.forEachNotNull(action: (T) -> Unit) = forEach {
 }
 
 /** Performs given [action] on each element matching given [predicate] */
-inline fun <T> Iterable<T>.forEachMatching(predicate: (T) -> Boolean, action: (T) -> Unit) = forEach {
+inline fun <T> Sequence<T>.forEachMatching(predicate: (T) -> Boolean, action: (T) -> Unit) = forEach {
     if (predicate(it)) action(it)
-}
-
-/** Performs given [action] on each element, which is instance of [R] */
-inline fun <reified R> Iterable<*>.forEachInstance(action: (R) -> Unit) = forEach {
-    if (it is R) action(it)
 }
 
 /** Performs given [action] on each element, which is instance of [R] matching given [predicate] */

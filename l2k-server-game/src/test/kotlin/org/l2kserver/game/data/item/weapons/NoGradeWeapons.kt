@@ -90,6 +90,26 @@ val BOW = WeaponTemplate(
     manaCost = 1
 )
 
+val SHORT_SPEAR = WeaponTemplate(
+    id = 15,
+    name = "Short Spear",
+    grade = Grade.NO_GRADE,
+    weight = 2140,
+    price = 136_000,
+    isSellable = true,
+    isDroppable = true,
+    isDestroyable = true,
+    isExchangeable = true,
+    type = WeaponType.POLE,
+    stats = CombatStats.ofPole(
+        pAtk = 24,
+        mAtk = 17
+    ),
+    crystalCount = 0,
+    soulshotUsed = 2,
+    spiritshotUsed = 2
+)
+
 val SQUIRES_SWORD = WeaponTemplate(
     id = 2369,
     name = "Squire's Sword",

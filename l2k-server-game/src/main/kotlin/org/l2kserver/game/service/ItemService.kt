@@ -399,6 +399,7 @@ class ItemService(
 
         if (weapon.soulshotUsed > (reducedSoulshot?.amount ?: 0)) character.autoUsesSoulshot?.let {
             send { SystemMessageResponse.AutomaticUseDeactivated(it) }
+            send { AutoUseSsResponse(it.templateId, enabled = false) }
             character.autoUsesSoulshot = null
         }
 
@@ -423,6 +424,7 @@ class ItemService(
 
         if (weapon.spiritshotUsed > (reducedSpiritshot?.amount ?: 0)) character.autoUsesSpiritshot?.let {
             send { SystemMessageResponse.AutomaticUseDeactivated(it) }
+            send { AutoUseSsResponse(it.templateId, enabled = false) }
             character.autoUsesSpiritshot = null
         }
 

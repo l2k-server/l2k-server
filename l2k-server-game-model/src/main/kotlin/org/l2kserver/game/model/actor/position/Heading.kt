@@ -11,6 +11,7 @@ value class Heading(val value: UShort) {
     constructor(value: Double): this(value.toInt().toUShort())
 
     operator fun minus(other: Heading) = Heading(this.value.toInt() - other.value.toInt())
+    operator fun minus(other: Int) = Heading(this.value.toInt() - other)
     operator fun plus(other: Int) = Heading((this.value.toInt() + other).toUShort())
 
     fun toShort() = this.value.toShort()
