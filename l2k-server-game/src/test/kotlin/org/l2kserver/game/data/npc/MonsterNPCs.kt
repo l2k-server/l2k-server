@@ -84,10 +84,10 @@ val GREMLIN = NpcTemplate(
                 )
             )
         )
-            //Uncomment this to enable GREMLINOCALYPSE at talking island
+        //Uncomment this to enable GREMLINOCALYPSE at talking island
 //        zones = listOf(SpawnZone(
 //            name = "Talking Island",
-//            npcAmount = 40_000,
+//            npcAmount = 80_000,
 //            zMin = -3748,
 //            zMax = -3032,
 //            vertices = listOf(

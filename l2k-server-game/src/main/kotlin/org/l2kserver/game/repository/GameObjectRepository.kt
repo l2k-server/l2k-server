@@ -7,10 +7,9 @@ import org.springframework.stereotype.Component
 import java.util.concurrent.ConcurrentHashMap
 import org.l2kserver.game.model.actor.Npc
 import org.l2kserver.game.service.VISION_RANGE
+import kotlin.collections.asSequence
 
-/**
- * Storage of game entities in game world
- */
+/** Storage of game entities in game world */
 @Component
 class GameObjectRepository {
 
@@ -68,13 +67,24 @@ class GameObjectRepository {
             }
 
     /**
-     * Finds all characters near GameObject.
+     * Finds all the actors near provided [gameObject].
      * @return all the characters near provided GameObject except provided GameObject
      */
-    fun findAllCharactersNear(gameObject: GameWorldObject, distance: Int = VISION_RANGE) =
-        charactersMap.values.filter {
-            it.position.isCloseTo(gameObject.position, distance) && it.id != gameObject.id
-        }
+    fun findAllActorsNear(
+        gameObject: GameWorldObject, distance: Int = VISION_RANGE
+    ) = sequenceOf(charactersMap.values, npcMap.values)
+        .flatten()
+        .filter { it.position.isCloseTo(gameObject.position, distance) && it.id != gameObject.id }
+
+    /**
+     * Finds all the characters near provided [gameObject].
+     * @return all the characters near provided GameObject except provided GameObject
+     */
+    fun findAllCharactersNear(
+        gameObject: GameWorldObject, distance: Int = VISION_RANGE
+    ) = charactersMap.values.asSequence().filter {
+        it.position.isCloseTo(gameObject.position, distance) && it.id != gameObject.id
+    }
 
     /**
      * Finds all characters near given Position.
@@ -86,13 +96,13 @@ class GameObjectRepository {
     }
 
     /** Finds all the characters in game */
-    fun findAllCharacters() = charactersMap.values.toList()
+    fun findAllCharacters() = charactersMap.values.asSequence()
 
     /** Finds all the actors in game */
-    fun findAllActors() = npcMap.values + charactersMap.values
+    fun findAllActors() = sequenceOf(npcMap.values + charactersMap.values).flatten()
 
     /** Finds all the NPCs in game */
-    fun findAllNpc() = npcMap.values.toList()
+    fun findAllNpc() = npcMap.values.asSequence()
 
     fun existsById(id: Int) = objectMap.containsKey(id) || charactersMap.containsKey(id) || npcMap.containsKey(id)
 

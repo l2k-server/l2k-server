@@ -53,13 +53,11 @@ abstract class AbstractService {
     protected suspend inline fun broadcastAround(
         actor: ActorInstance,
         distance: Int = VISION_RANGE,
-        responsePacket: () -> ResponsePacket
+        crossinline responsePacket: () -> ResponsePacket
     ) {
         val addressees = gameObjectRepository.findAllCharactersNear(actor, distance)
-        if (addressees.isNotEmpty()){
-            val response = responsePacket()
-            addressees.forEach { sendTo(it.id, response) }
-        }
+        val lazyResponse = lazy { responsePacket() }
+        addressees.forEach { sendTo(it.id, lazyResponse.value) }
     }
 
     /**
