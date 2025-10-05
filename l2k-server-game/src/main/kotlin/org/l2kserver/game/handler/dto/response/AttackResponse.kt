@@ -5,7 +5,7 @@ import org.l2kserver.game.extensions.putUByte
 import org.l2kserver.game.model.actor.ActorInstance
 import org.l2kserver.game.model.actor.PlayerCharacter
 import org.l2kserver.game.model.item.template.Grade
-import org.l2kserver.game.model.skill.action.effect.DamageEffect
+import org.l2kserver.game.model.skill.effect.DamageEffect
 
 private const val ATTACK_RESPONSE_PACKET_ID: UByte = 5u
 

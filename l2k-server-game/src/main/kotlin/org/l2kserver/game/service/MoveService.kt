@@ -15,7 +15,7 @@ import org.l2kserver.game.handler.dto.request.ValidatePositionRequest
 import org.l2kserver.game.handler.dto.response.ActionFailedResponse
 import org.l2kserver.game.handler.dto.response.ArrivedResponse
 import org.l2kserver.game.handler.dto.response.StartMovingResponse
-import org.l2kserver.game.handler.dto.response.StartMovingToTargetResponse
+import org.l2kserver.game.handler.dto.response.StartMovingToAttackResponse
 import org.l2kserver.game.handler.dto.response.StartRotationResponse
 import org.l2kserver.game.handler.dto.response.StopRotationResponse
 import org.l2kserver.game.handler.dto.response.TeleportResponse
@@ -141,7 +141,10 @@ class MoveService(
         var turningJob = launchTurning(actor, target.position)
 
         //If actor is already at destination point - no need to do anything else
-        if (actor.position.isCloseTo(target.position, requiredDistance)) return@newSuspendedTransaction
+        if (actor.position.isCloseTo(target.position, requiredDistance)) {
+            send { StartMovingToAttackResponse(actor, target.id, requiredDistance) }
+            return@newSuspendedTransaction
+        }
 
         log.trace("Start moving actor '{}' to target '{}'", actor, target)
 
@@ -167,10 +170,8 @@ class MoveService(
                         targetPosition = actor.position.positionBetween(target.position, requiredDistance)
                     )
 
-                    broadcastAround(actor.position) {
-                        StartMovingResponse(actor.id, actor.position, target.position)
-                    }
-                    send { StartMovingToTargetResponse(actor.id, target.id, requiredDistance, actor.position) }
+                    broadcastAround(actor.position) { StartMovingResponse(actor, target.position) }
+                    send { StartMovingToAttackResponse(actor, target.id, requiredDistance) }
                     turningJob.cancelAndJoin()
                     turningJob = launchTurning(actor, target.position)
                 }

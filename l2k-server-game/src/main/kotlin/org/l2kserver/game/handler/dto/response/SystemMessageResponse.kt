@@ -227,6 +227,12 @@ open class SystemMessageResponse private constructor(
     /** Message: "The automatic use of [ss] has been deactivated" */
     data class AutomaticUseDeactivated(val ss: Ss): SystemMessageResponse(systemMessageId = 1434, ss)
 
+    /** Message: [value] HP has been restored. (by [healerName]) */
+    data class HpRestored(val value: Int, val healerName: String? = null): SystemMessageResponse(
+        systemMessageId = if (healerName == null) 1066 else 1067, 
+        healerName, value
+    )
+
     override val data = littleEndianByteArray {
         putUByte(SYSTEM_MESSAGE_RESPONSE_PACKET_ID)
         putInt(systemMessageId)

@@ -28,7 +28,7 @@ import org.l2kserver.game.model.actor.Npc
 import org.l2kserver.game.model.actor.PlayerCharacter
 import org.l2kserver.game.model.item.template.WeaponType
 import org.l2kserver.game.model.skill.Skill
-import org.l2kserver.game.model.skill.action.effect.DamageEffect
+import org.l2kserver.game.model.skill.effect.DamageEffect
 import org.l2kserver.game.network.session.send
 import org.l2kserver.game.network.session.sendTo
 import org.l2kserver.game.repository.GameObjectRepository
@@ -91,22 +91,24 @@ class CombatService(
                 }
 
                 newSuspendedTransaction {
-                    //Already launched attack must not be cancelled TODO STUN??
-                    withContext(coroutineContext + NonCancellable) {
-                        when (attacker.weaponType) {
-                            WeaponType.BOW ->
-                                performBowAttack(attacker, attacked)
-                            WeaponType.FIST, WeaponType.DOUBLE_BLADES ->
-                                performSimpleAttacks(attacker, attacked, 2)
-                            else ->
-                                performSimpleAttacks(attacker, attacked, 1)
-                        }
+                    // Player character must spend mana and arrows for attack (if weapon requires)
+                    if ((attacker as? PlayerCharacter)?.spendResources() != false)
+                        //Already launched attack must not be cancelled TODO STUN??
+                        withContext(coroutineContext + NonCancellable) {
+                            when (attacker.weaponType) {
+                                WeaponType.BOW ->
+                                    performBowAttack(attacker, attacked)
+                                WeaponType.FIST, WeaponType.DOUBLE_BLADES ->
+                                    performSimpleAttacks(attacker, attacked, 2)
+                                else ->
+                                    performSimpleAttacks(attacker, attacked, 1)
+                            }
 
-                        //Enable SS if auto-use soulshot enabled
-                        (attacker as? PlayerCharacter)?.autoUsesSoulshot?.let {
-                            itemService.useSoulshot(attacker, it)
+                            //Enable SS if auto-use soulshot enabled
+                            (attacker as? PlayerCharacter)?.autoUsesSoulshot?.let {
+                                itemService.useSoulshot(attacker, it)
+                            }
                         }
-                    }
                 }
             } catch (e: Exception) {
                 log.error("An error occurred while attacking target {} by {}", attacked, attacker, e)
@@ -118,14 +120,14 @@ class CombatService(
     suspend fun applyDamageEffect(
         attacker: MutableActorInstance,
         attacked: MutableActorInstance,
-        damageEffect: DamageEffect,
+        effect: DamageEffect,
         skill: Skill? = null,
         overhitPossible: Boolean = false
     ) {
         //For double weapon, if target was killed by first hit, or if actor is already killed by smth else
         if (attacked.isDead()) return
 
-        log.debug("{} has dealt {} damage to {}", attacker, damageEffect.damage, attacked)
+        log.debug("{} has dealt {} damage to {}", attacker, effect.damage, attacked)
 
         actorStateService.activateCombatState(attacker)
         actorStateService.activateCombatState(attacked)
@@ -133,7 +135,7 @@ class CombatService(
             actorStateService.activatePvpState(attacker)
         }
 
-        if (damageEffect.isAvoided) {
+        if (effect.isAvoided) {
             send { SystemMessageResponse.YouMissed }
             sendTo(
                 attacked.id,
@@ -145,36 +147,36 @@ class CombatService(
         // Calculate overhit damage.
         // "mob had 10 HP left, over-hit skill did 50 damage total, over-hit damage is 40" (c) l2jserver
         val overhitDamage = if (overhitPossible && attacked is Npc)
-            maxOf(damageEffect.damage - attacked.currentHp, 0)
+            maxOf(effect.damage - attacked.currentHp, 0)
         else 0
 
         //Store damage for AI and reward ownership
         if (attacked is Npc) synchronized(attacked.opponents) {
             val damageDealt = attacked.opponents[attacker] ?: 0
-            attacked.opponents[attacker] = damageDealt + minOf(damageEffect.damage, attacked.currentHp)
+            attacked.opponents[attacker] = damageDealt + minOf(effect.damage, attacked.currentHp)
         }
 
         //If fighters are players, subtract fom CP first
         if (attacker is PlayerCharacter && attacked is PlayerCharacter) {
-            val hitOnHp = -minOf(attacked.currentCp - damageEffect.damage, 0)
+            val hitOnHp = -minOf(attacked.currentCp - effect.damage, 0)
 
-            attacked.currentCp = maxOf(0, attacked.currentCp - damageEffect.damage)
+            attacked.currentCp = maxOf(0, attacked.currentCp - effect.damage)
             attacked.currentHp = maxOf(0, attacked.currentHp - hitOnHp)
-        } else attacked.currentHp = maxOf(0, attacked.currentHp - damageEffect.damage)
+        } else attacked.currentHp = maxOf(0, attacked.currentHp - effect.damage)
 
-        if (damageEffect.isCritical)
+        if (effect.isCritical)
             send { SystemMessageResponse.CriticalHit }
-        if (damageEffect.isMagicCritical)
+        if (effect.isMagicCritical)
             send { SystemMessageResponse.MagicCriticalHit }
-        if (damageEffect.isHalfSuccessful)
+        if (effect.isHalfSuccessful)
             send { SystemMessageResponse.AttackFailed }
-        if (skill != null && damageEffect.isFailed)
+        if (skill != null && effect.isFailed)
             send { SystemMessageResponse.HasResisted(attacked.name, skill) }
-        if (damageEffect.isBlocked)
+        if (effect.isBlocked)
             sendTo(attacked.id, SystemMessageResponse.ShieldDefenceSuccessful)
 
-        send { SystemMessageResponse.YouHit(damageEffect.damage) }
-        sendTo(attacked.id, SystemMessageResponse.YouWereHitBy(attacker.name, damageEffect.damage))
+        send { SystemMessageResponse.YouHit(effect.damage) }
+        sendTo(attacked.id, SystemMessageResponse.YouWereHitBy(attacker.name, effect.damage))
 
         if (overhitDamage > 0) send { SystemMessageResponse.OverHit }
 
@@ -245,38 +247,6 @@ class CombatService(
      */
     private suspend fun performBowAttack(attacker: MutableActorInstance, attacked: MutableActorInstance) {
         log.debug("{} tries to hit {} by bow", attacker, attacked)
-
-        // Consume mana and arrows for shot, if attacker is PlayerCharacter
-        if (attacker is PlayerCharacter) {
-            val weapon = attacker.inventory.weapon!!
-
-            //Check if player has enough mana
-            if (attacker.currentMp < weapon.manaCost) {
-                send { SystemMessageResponse.NotEnoughMp }
-                coroutineContext.cancel() //TODO cancelling whole process seems to be not very good idea...
-                return
-            }
-
-            //If weapon consumes smth
-            weapon.consumes?.let { consumable ->
-                val arrows = attacker.inventory.findAllByTemplateId(consumable.id).firstOrNull()
-                //Check if player has enough ammo
-                if (arrows == null || consumable.amount > arrows.amount) {
-                    send { SystemMessageResponse.NotEnoughArrows }
-                    coroutineContext.cancel()
-                    return
-                }
-
-                //Subtract ammo
-                val updatedArrows = attacker.inventory.reduceAmount(arrows.id, consumable.amount)
-                if (updatedArrows == null) send { UpdateItemsResponse().wasDeleted(arrows) }
-                else send { UpdateItemsResponse().wasModified(updatedArrows) }
-            }
-
-            //Subtract mana
-            attacker.currentMp -= weapon.manaCost
-            send { UpdateStatusResponse.hpMpCpOf(attacker) }
-        }
 
         val attackDuration = calculateAttackTime(attacker.stats.atkSpd)
         val reuseDelay = calculateBowAttackReuseTime(attacker.stats.atkSpd)
@@ -388,6 +358,46 @@ class CombatService(
         }
 
         else -> true
+    }
+
+    /**
+     * Spends resources for attack
+     *
+     * @return `true` if resources are spent and attack can be performed, `false` - if not
+     */
+    private suspend fun PlayerCharacter.spendResources(): Boolean {
+        val weapon = this.inventory.weapon!!
+
+        //Check if player has enough mana
+        if (this.currentMp < weapon.manaCost) {
+            send { SystemMessageResponse.NotEnoughMp }
+            coroutineContext.cancel() //TODO cancelling whole process seems to be not very good idea...
+            return false
+        }
+
+        //If weapon consumes smth
+        weapon.consumes?.let { consumable ->
+            val arrows = this.inventory.findAllByTemplateId(consumable.id).firstOrNull()
+            //Check if player has enough ammo
+            if (arrows == null || consumable.amount > arrows.amount) {
+                send { SystemMessageResponse.NotEnoughArrows }
+                coroutineContext.cancel()
+                return false
+            }
+
+            //Subtract ammo
+            val updatedArrows = this.inventory.reduceAmount(arrows.id, consumable.amount)
+            if (updatedArrows == null) send { UpdateItemsResponse().wasDeleted(arrows) }
+            else send { UpdateItemsResponse().wasModified(updatedArrows) }
+        }
+
+        if (weapon.manaCost != 0) {
+            //Subtract mana
+            this.currentMp -= weapon.manaCost
+            send { UpdateStatusResponse.hpMpCpOf(this) }
+        }
+
+        return true
     }
 
 }

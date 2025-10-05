@@ -75,8 +75,7 @@ enum class SkillTargetType {
     DEAD_FRIEND,
 
     /**
-     * Skill will be cast on the actor himself
-     * These skills can be applied to friendly targets only with `forced` parameter
+     * Skill will be cast on the actor himself. AoE skills around caster also have this target type
      */
     SELF
 }

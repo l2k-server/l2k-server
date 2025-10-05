@@ -34,14 +34,11 @@ abstract class AbstractService {
     protected suspend inline fun broadcastAround(
         position: Position,
         distance: Int = VISION_RANGE,
-        responsePacket: () -> ResponsePacket
+        crossinline responsePacket: () -> ResponsePacket
     ) {
         val addressees = gameObjectRepository.findAllCharactersNear(position, distance)
-
-        if (addressees.isNotEmpty()) {
-            val response = responsePacket()
-            addressees.forEach { sendTo(it.id, response) }
-        }
+        val lazyResponse by lazy { responsePacket() }
+        addressees.forEach { sendTo(it.id, lazyResponse) }
     }
 
     /**
@@ -56,8 +53,8 @@ abstract class AbstractService {
         crossinline responsePacket: () -> ResponsePacket
     ) {
         val addressees = gameObjectRepository.findAllCharactersNear(actor, distance)
-        val lazyResponse = lazy { responsePacket() }
-        addressees.forEach { sendTo(it.id, lazyResponse.value) }
+        val lazyResponse by lazy { responsePacket() }
+        addressees.forEach { sendTo(it.id, lazyResponse) }
     }
 
     /**
@@ -114,7 +111,7 @@ abstract class AbstractService {
             sendTo(it.id, npc.toInfoResponse())
             if (movementDestination != null) sendTo(
                 it.id,
-                StartMovingResponse(npc.id, npc.position, movementDestination)
+                StartMovingResponse(npc, movementDestination)
             )
         }
     }
@@ -169,7 +166,7 @@ abstract class AbstractService {
             movementDestination?.let { destination ->
                 sendTo(
                     gameObject.id,
-                    StartMovingResponse(this.id, this.position, destination)
+                    StartMovingResponse(this, destination)
                 )
             }
             gameObject.privateStore?.let { store ->

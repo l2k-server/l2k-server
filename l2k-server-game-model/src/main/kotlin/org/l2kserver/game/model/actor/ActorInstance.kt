@@ -53,9 +53,6 @@ interface ActorInstance: GameWorldObject {
     /** Is actor running now */
     val isRunning: Boolean get() = isMoving && moveType == MoveType.RUN
 
-    /** Actor's movement speed */
-    val moveSpeed: Int get() = if (moveType == MoveType.WALK) stats.walkSpeed else stats.speed
-
     /** Check if actor is behind other actor */
     fun isBehind(other: ActorInstance): Boolean {
         //If [this] is straight behind [other], delta will be equal to 0

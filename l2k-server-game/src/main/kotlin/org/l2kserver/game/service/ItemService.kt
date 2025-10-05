@@ -420,7 +420,7 @@ class ItemService(
         val reducedSpiritshot = character.inventory.reduceAmount(spiritshot.id, weapon.soulshotUsed)
 
         weapon.spiritshotChargedType = spiritshot.spiritshotType
-        send { SystemMessageResponse.SoulshotEnabled }
+        send { SystemMessageResponse.SpiritshotEnabled }
 
         if (weapon.spiritshotUsed > (reducedSpiritshot?.amount ?: 0)) character.autoUsesSpiritshot?.let {
             send { SystemMessageResponse.AutomaticUseDeactivated(it) }
@@ -605,11 +605,11 @@ class ItemService(
 
     private suspend fun Weapon.canUseSpiritshot(spiritshot: Spiritshot?) = when {
         this.spiritshotUsed > (spiritshot?.amount ?: 0) -> {
-            send { SystemMessageResponse.NotEnoughSoulshots }
+            send { SystemMessageResponse.NotEnoughSpiritshots }
             false
         }
         this.grade != spiritshot?.grade -> {
-            send { SystemMessageResponse.SoulshotGradeMismatch }
+            send { SystemMessageResponse.SpiritshotGradeMismatch }
             false
         }
         else -> true

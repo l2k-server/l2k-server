@@ -22,12 +22,16 @@ import org.l2kserver.game.handler.dto.response.UpdateStatusResponse
 import org.l2kserver.game.model.actor.ActorInstance
 import org.l2kserver.game.model.actor.MutableActorInstance
 import org.l2kserver.game.model.actor.PlayerCharacter
+import org.l2kserver.game.model.actor.npc.NpcInstance
+import org.l2kserver.game.model.extensions.forEachInstance
 import org.l2kserver.game.model.item.ConsumableItem
 import org.l2kserver.game.model.skill.Skill
 import org.l2kserver.game.model.skill.action.SingleTargetMagicSkillAction
 import org.l2kserver.game.model.skill.action.SingleTargetPhysicalSkillAction
-import org.l2kserver.game.model.skill.action.effect.DamageEffect
+import org.l2kserver.game.model.skill.effect.DamageEffect
+import org.l2kserver.game.model.skill.effect.HealEffect
 import org.l2kserver.game.network.session.send
+import org.l2kserver.game.network.session.sendTo
 import org.l2kserver.game.network.session.sessionContext
 import org.l2kserver.game.repository.GameObjectRepository
 import org.l2kserver.game.repository.SkillRepository
@@ -97,7 +101,10 @@ class SkillService(
         actor: MutableActorInstance, skill: Skill, forced: Boolean, holdPosition: Boolean
     ) {
         //TODO Check if actor is already casting
-        val target = actor.targetId?.let { gameObjectRepository.findActorByIdOrNull(it) }
+
+        val target =
+            if (skill.targetType == SkillTargetType.SELF) actor
+            else actor.targetId?.let { gameObjectRepository.findActorByIdOrNull(it) }
 
         //TODO Introduce parameter - if target is enemy, but "friendly" skill used - fail using or use it on yourself
         // https://github.com/orgs/l2k-server/projects/1/views/3?pane=issue&itemId=124732573&issue=l2k-server%7Cl2k-server%7C47
@@ -323,7 +330,24 @@ class SkillService(
                 is DamageEffect -> combatService.applyDamageEffect(
                     caster, target, effect, this@applyEffects, overhitPossible
                 )
+                is HealEffect -> applyHealEffect(caster, target, effect)
             }
+        }
+    }
+
+    private suspend fun applyHealEffect(
+        caster: MutableActorInstance, target: MutableActorInstance, effect: HealEffect
+    ) {
+        target.currentHp = minOf(target.currentHp + effect.value, target.stats.maxHp)
+        val healerName = if (caster == target) null else caster.name
+
+        val updateStatusResponse by lazy { UpdateStatusResponse.hpMpCpOf(target) }
+
+        send { updateStatusResponse }
+        send { SystemMessageResponse.HpRestored(effect.value, healerName) }
+
+        if (target is NpcInstance) target.targetedBy.forEachInstance<PlayerCharacter> {
+            sendTo(it.id, updateStatusResponse)
         }
     }
 
