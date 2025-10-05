@@ -3,7 +3,7 @@ package org.l2kserver.game.extensions.model.actor
 import org.l2kserver.game.model.actor.ActorInstance
 import org.l2kserver.game.model.actor.MutableActorInstance
 import org.l2kserver.game.model.item.template.calculateRandomDamageModifier
-import org.l2kserver.game.model.skill.action.effect.DamageEffect
+import org.l2kserver.game.model.skill.effect.DamageEffect
 import org.l2kserver.game.model.utils.PHYSICAL_ATTACK_BASE
 import org.l2kserver.game.model.utils.PHYSICAL_DMG_FROM_BACK_MODIFIER
 import org.l2kserver.game.model.utils.PHYSICAL_DMG_FROM_SIDE_MODIFIER

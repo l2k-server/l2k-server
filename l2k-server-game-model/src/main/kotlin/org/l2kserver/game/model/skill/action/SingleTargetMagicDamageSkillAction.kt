@@ -2,7 +2,8 @@ package org.l2kserver.game.model.skill.action
 
 import org.l2kserver.game.model.actor.ActorInstance
 import org.l2kserver.game.model.item.template.SpiritshotType
-import org.l2kserver.game.model.skill.action.effect.effects
+import org.l2kserver.game.model.skill.effect.effects
+import org.l2kserver.game.model.skill.effect.hit
 import org.l2kserver.game.model.stats.Attribute
 import org.l2kserver.game.model.utils.MAGIC_ATTACK_BASE
 import org.l2kserver.game.model.utils.calculateIsMagicCritical

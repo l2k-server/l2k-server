@@ -36,6 +36,7 @@ import org.l2kserver.game.handler.dto.response.PickUpItemResponse
 import org.l2kserver.game.handler.dto.response.StatusAttribute
 import org.l2kserver.game.domain.ItemEntity
 import org.l2kserver.game.domain.ItemTable
+import org.l2kserver.game.handler.dto.response.StartMovingToAttackResponse
 import org.l2kserver.game.handler.dto.response.item
 import org.l2kserver.game.handler.dto.response.operation
 import org.l2kserver.game.model.actor.Posture
@@ -629,6 +630,7 @@ class ItemServiceTests(
         withContext(context) { itemService.launchPickUp(character, scatteredItem).join() }
 
         //Assert pick up animation
+        assertIs<StartMovingToAttackResponse>(context.responseChannel.receive())
         val pickUpResponse = assertIs<PickUpItemResponse>(context.responseChannel.receive())
         assertEquals(character.id, pickUpResponse.characterId, "Must get PickUpResponse of $character")
         assertEquals(scatteredItem, pickUpResponse.item)
@@ -671,6 +673,7 @@ class ItemServiceTests(
         }
 
         //Assert pick up animation
+        assertIs<StartMovingToAttackResponse>(context.responseChannel.receive())
         val pickUpResponse = assertIs<PickUpItemResponse>(context.responseChannel.receive())
         assertEquals(character.id, pickUpResponse.characterId, "Must get PickUpResponse of $character")
         assertEquals(scatteredItem, pickUpResponse.item)

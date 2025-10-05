@@ -2,7 +2,9 @@ package org.l2kserver.game.model.skill.action
 
 import org.l2kserver.game.model.actor.ActorInstance
 import org.l2kserver.game.model.item.template.calculateRandomDamageModifier
-import org.l2kserver.game.model.skill.action.effect.effects
+import org.l2kserver.game.model.skill.effect.effects
+import org.l2kserver.game.model.skill.effect.hit
+import org.l2kserver.game.model.skill.effect.miss
 import org.l2kserver.game.model.utils.PHYSICAL_ATTACK_BASE
 import org.l2kserver.game.model.utils.calculateIsPhysicalAttackAvoided
 import org.l2kserver.game.model.utils.calculateIsPhysicalAttackBlocked

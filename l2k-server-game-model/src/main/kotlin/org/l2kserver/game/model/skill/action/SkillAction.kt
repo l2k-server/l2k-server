@@ -2,7 +2,7 @@ package org.l2kserver.game.model.skill.action
 
 import org.l2kserver.game.model.actor.ActorInstance
 import org.l2kserver.game.model.item.template.SpiritshotType
-import org.l2kserver.game.model.skill.action.effect.SkillEffects
+import org.l2kserver.game.model.skill.effect.SkillEffects
 
 interface SkillAction
 

@@ -91,7 +91,9 @@ class GameObjectRepository {
      * @return all the characters near provided position
      */
     @Suppress("UNCHECKED_CAST")
-    fun findAllCharactersNear(position: Position, distance: Int = VISION_RANGE) = charactersMap.values.filter {
+    fun findAllCharactersNear(
+        position: Position, distance: Int = VISION_RANGE
+    ) = charactersMap.values.asSequence().filter {
         it.position.isCloseTo(position, distance)
     }
 

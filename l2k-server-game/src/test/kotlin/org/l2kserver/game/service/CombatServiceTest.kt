@@ -6,7 +6,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
-import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.jetbrains.exposed.sql.transactions.transaction
 import kotlin.test.Test
 import org.l2kserver.game.AbstractTests
@@ -26,6 +25,7 @@ import org.l2kserver.game.handler.dto.response.UpdateStatusResponse
 import org.l2kserver.game.domain.ItemEntity
 import org.l2kserver.game.handler.dto.request.UseItemRequest
 import org.l2kserver.game.handler.dto.response.SkillUsedResponse
+import org.l2kserver.game.handler.dto.response.StartMovingToAttackResponse
 import org.l2kserver.game.handler.dto.response.item
 import org.l2kserver.game.handler.dto.response.operation
 import org.l2kserver.game.model.actor.character.PvpState
@@ -57,6 +57,7 @@ class CombatServiceTest(
         }
 
         // Check attacker's responses
+        assertIs<StartMovingToAttackResponse>(context.responseChannel.receive())
         val attackResponse = assertIs<AttackResponse>(context.responseChannel.receive())
         assertEquals(character.id, attackResponse.attacker.id)
         assertEquals(1, attackResponse.attacks.size)
@@ -143,6 +144,7 @@ class CombatServiceTest(
         }
 
         // Check attacker's responses
+        assertIs<StartMovingToAttackResponse>(context.responseChannel.receive())
         val attackResponse = assertIs<AttackResponse>(context.responseChannel.receive())
         assertEquals(character.id, attackResponse.attacker.id)
         assertEquals(1, attackResponse.attacks.size)
@@ -232,6 +234,7 @@ class CombatServiceTest(
         }
 
         // Check attacker's responses
+        assertIs<StartMovingToAttackResponse>(context.responseChannel.receive())
         val updateItemsResponse = assertIs<UpdateItemsResponse>(context.responseChannel.receive())
         assertEquals(UpdateItemOperation.REMOVE, updateItemsResponse.operations.first().operation)
         assertEquals(arrowsId, updateItemsResponse.operations.first().item.id)
@@ -269,13 +272,17 @@ class CombatServiceTest(
         )
 
         //Check arrow amount after attack
-        val arrows = newSuspendedTransaction {
+        val arrows = transaction {
             ItemEntity.findAllByOwnerIdAndTemplateId(character.id, WOODEN_ARROW.id).toList()
         }
         assertTrue(arrows.isEmpty(), "Arrows must be empty")
 
         assertIs<SystemMessageResponse.NotEnoughArrows>(
-            context.responseChannel.receiveIgnoring(UpdateStatusResponse::class))
+            context.responseChannel.receiveIgnoring(
+                StartMovingToAttackResponse::class,
+                UpdateStatusResponse::class
+            )
+        )
     }
 
 }

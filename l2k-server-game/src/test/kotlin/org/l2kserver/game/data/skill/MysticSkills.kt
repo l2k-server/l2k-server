@@ -4,6 +4,7 @@ import org.l2kserver.game.model.skill.SkillConsumablesTemplate
 import org.l2kserver.game.model.skill.SkillTargetType
 import org.l2kserver.game.model.skill.SkillTemplate
 import org.l2kserver.game.model.skill.SkillType
+import org.l2kserver.game.model.skill.action.SingleTargetHealSkillAction
 import org.l2kserver.game.model.skill.action.SingleTargetMagicDamageSkillAction
 import org.l2kserver.game.model.stats.Attribute
 
@@ -27,5 +28,22 @@ val WIND_STRIKE = SkillTemplate(
         magicLevel = listOf(1, 4, 7, 11, 14),
         attribute = Attribute.WIND,
         attributeValue = 20
+    )
+)
+
+val SELF_HEAL = SkillTemplate(
+    id = 1216,
+    skillName = "Self Heal",
+    skillType = SkillType.MAGIC,
+    targetType = SkillTargetType.SELF,
+    reuseDelay = 10_000,
+    castTime = 5000,
+    maxSkillLevel = 1,
+    consumes = SkillConsumablesTemplate(
+        mpToStart = listOf(2),
+        mp = listOf(7)
+    ),
+    skillAction = SingleTargetHealSkillAction(
+        power = listOf(42)
     )
 )

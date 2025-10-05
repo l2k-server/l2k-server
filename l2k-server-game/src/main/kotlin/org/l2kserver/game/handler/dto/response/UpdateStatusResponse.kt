@@ -33,9 +33,7 @@ data class UpdateStatusResponse(
 
     companion object {
 
-        /**
-         * Create UpdateStatusResponse for updating actor's HP, MP and CP (if actor is PlayerCharacter) on client side
-         */
+        /** Create UpdateStatusResponse for updating actor's HP, MP and CP (if actor is PlayerCharacter) on client side */
         fun hpMpCpOf(actor: ActorInstance): UpdateStatusResponse {
             val attributes = mutableMapOf(
                 StatusAttribute.CUR_HP to actor.currentHp,
@@ -46,9 +44,7 @@ data class UpdateStatusResponse(
             return UpdateStatusResponse(actor.id, attributes)
         }
 
-        /**
-         * Create UpdateStatusResponse for updating character's weight on client side
-         */
+        /** Create UpdateStatusResponse for updating character's weight on client side */
         fun weightOf(character: PlayerCharacter) = UpdateStatusResponse(
             character.id,
             StatusAttribute.CUR_LOAD to character.inventory.weight

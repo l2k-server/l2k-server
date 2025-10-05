@@ -37,6 +37,7 @@ import org.l2kserver.game.data.npc.GREMLIN
 import org.l2kserver.game.data.skill.MORTAL_BLOW
 import org.l2kserver.game.data.skill.POWER_SHOT
 import org.l2kserver.game.data.skill.POWER_STRIKE
+import org.l2kserver.game.data.skill.SELF_HEAL
 import org.l2kserver.game.data.skill.WIND_STRIKE
 import org.l2kserver.game.domain.AccessLevel
 import org.l2kserver.game.domain.PlayerCharacterTable
@@ -141,7 +142,8 @@ class TestDataLoader(
             POWER_STRIKE,
             MORTAL_BLOW,
             POWER_SHOT,
-            WIND_STRIKE
+            WIND_STRIKE,
+            SELF_HEAL
         )
     }
 
@@ -210,6 +212,7 @@ class TestDataLoader(
 
         PlayerCharacterTable.update({ PlayerCharacterTable.id eq testMystic.id }) {
             it[accessLevel] = AccessLevel.GAME_MASTER
+            it[currentHp] = 1
         }
 
     }

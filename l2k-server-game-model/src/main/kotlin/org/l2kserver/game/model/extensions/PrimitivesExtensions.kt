@@ -16,6 +16,11 @@ inline fun <T> Sequence<T>.forEachMatching(predicate: (T) -> Boolean, action: (T
     if (predicate(it)) action(it)
 }
 
+/** Performs given [action] on each element, which is instance of [R] */
+inline fun <reified R> Iterable<*>.forEachInstance(
+    action: (R) -> Unit
+) = forEach { if (it is R) action(it) }
+
 /** Performs given [action] on each element, which is instance of [R] matching given [predicate] */
 inline fun <reified R> Iterable<*>.forEachInstanceMatching(
     predicate: (R) -> Boolean,
