@@ -227,9 +227,21 @@ open class SystemMessageResponse private constructor(
     /** Message: "The automatic use of [ss] has been deactivated" */
     data class AutomaticUseDeactivated(val ss: Ss): SystemMessageResponse(systemMessageId = 1434, ss)
 
+    /** Message: [value] CP has been restored. (by [healerName]) */
+    data class CpRestored(val value: Int, val healerName: String?): SystemMessageResponse(
+        systemMessageId = if (healerName == null) 1405 else 1406,
+        healerName, value
+    )
+
     /** Message: [value] HP has been restored. (by [healerName]) */
     data class HpRestored(val value: Int, val healerName: String? = null): SystemMessageResponse(
         systemMessageId = if (healerName == null) 1066 else 1067, 
+        healerName, value
+    )
+
+    /** Message: [value] MP has been restored. (by [healerName]) */
+    data class MpRestored(val value: Int, val healerName: String? = null): SystemMessageResponse(
+        systemMessageId = if (healerName == null) 1068 else 1069,
         healerName, value
     )
 

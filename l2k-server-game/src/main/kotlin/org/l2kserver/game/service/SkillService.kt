@@ -266,13 +266,13 @@ class SkillService(
             false
         }
 
-        skill.targetType == SkillTargetType.DEAD_ENEMY && (target?.isDead() == false || target?.isEnemyOf(this) == false) -> {
+        skill.targetType == SkillTargetType.DEAD_MOB && (target?.isDead() == false || target?.isEnemyOf(this) == false) -> {
             send { SystemMessageResponse.IncorrectTarget }
             send { ActionFailedResponse }
             false
         }
 
-        skill.targetType == SkillTargetType.DEAD_FRIEND && (target?.isDead() == false || target?.isEnemyOf(this) == true) -> {
+        skill.targetType == SkillTargetType.DEAD_PLAYER && (target?.isDead() == false || target?.isEnemyOf(this) == true) -> {
             send { SystemMessageResponse.IncorrectTarget }
             send { ActionFailedResponse }
             false
@@ -296,7 +296,7 @@ class SkillService(
             when (val action = this@applyEffects.skillAction) {
                 is SingleTargetPhysicalSkillAction -> {
                     val soulshotUsed = (caster as? PlayerCharacter)?.inventory?.weapon?.soulshotCharged ?: false
-                    action.applyTo(target, caster, this@applyEffects.skillLevel, soulshotUsed)
+                    action.apply(target, caster, this@applyEffects.skillLevel, soulshotUsed)
                         .also {
                             if (soulshotUsed) caster.inventory.weapon?.soulshotCharged = false
 
@@ -308,7 +308,7 @@ class SkillService(
                 }
                 is SingleTargetMagicSkillAction -> {
                     val usedSpiritshotType = (caster as? PlayerCharacter)?.inventory?.weapon?.spiritshotChargedType
-                    action.applyTo(target, caster, this@applyEffects.skillLevel, usedSpiritshotType).also {
+                    action.apply(target, caster, this@applyEffects.skillLevel, usedSpiritshotType).also {
                         if (usedSpiritshotType != null) caster.inventory.weapon?.spiritshotChargedType = null
 
                         //Enable SS if auto-use spiritshot enabled
@@ -328,16 +328,16 @@ class SkillService(
         effects.forEach { effect ->
             when (effect) {
                 is DamageEffect -> combatService.applyDamageEffect(
-                    caster, target, effect, this@applyEffects, overhitPossible
+                    caster, effect, this@applyEffects, overhitPossible
                 )
-                is HealEffect -> applyHealEffect(caster, target, effect)
+                is HealEffect -> applyHealEffect(caster, effect)
             }
         }
     }
 
-    private suspend fun applyHealEffect(
-        caster: MutableActorInstance, target: MutableActorInstance, effect: HealEffect
-    ) {
+    private suspend fun applyHealEffect(caster: MutableActorInstance, effect: HealEffect) {
+        val target = gameObjectRepository.findActorByIdOrNull(effect.targetId) ?: return
+
         target.currentHp = minOf(target.currentHp + effect.value, target.stats.maxHp)
         val healerName = if (caster == target) null else caster.name
 
@@ -347,7 +347,7 @@ class SkillService(
         send { SystemMessageResponse.HpRestored(effect.value, healerName) }
 
         if (target is NpcInstance) target.targetedBy.forEachInstance<PlayerCharacter> {
-            sendTo(it.id, updateStatusResponse)
+            sendTo(it.id) { updateStatusResponse }
         }
     }
 

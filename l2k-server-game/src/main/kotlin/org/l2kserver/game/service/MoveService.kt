@@ -249,7 +249,7 @@ class MoveService(
         )
 
         //TODO Checks if player can teleport ???
-        sendTo(actor.id, TeleportResponse(actor.id, fixedPosition))
+        sendTo(actor.id) { TeleportResponse(actor.id, fixedPosition) }
 
         // Imitate teleporting process. Client validates position after disappearance animation ends,
         // so it will break if position will change immediately

@@ -34,6 +34,7 @@ import org.l2kserver.game.data.item.weapons.WILLOW_STAFF
 import org.l2kserver.game.data.npc.GRAND_MAGISTER_GALLINT
 import org.l2kserver.game.data.npc.GRAND_MASTER_ROIEN
 import org.l2kserver.game.data.npc.GREMLIN
+import org.l2kserver.game.data.skill.LIFE_SCAVENGE
 import org.l2kserver.game.data.skill.MORTAL_BLOW
 import org.l2kserver.game.data.skill.POWER_SHOT
 import org.l2kserver.game.data.skill.POWER_STRIKE
@@ -142,6 +143,7 @@ class TestDataLoader(
             POWER_STRIKE,
             MORTAL_BLOW,
             POWER_SHOT,
+            LIFE_SCAVENGE,
             WIND_STRIKE,
             SELF_HEAL
         )
@@ -163,6 +165,13 @@ class TestDataLoader(
         PlayerCharacterTable.update({ PlayerCharacterTable.id eq testFighter.id }) {
             it[accessLevel] = AccessLevel.GAME_MASTER
         }
+
+        skillRepository.save(
+            characterId = testFighter.id,
+            subclassIndex = testFighter.activeSubclass,
+            skillId = LIFE_SCAVENGE.id,
+            skillLevel = 1
+        )
 
         skillRepository.save(
             characterId = testFighter.id,

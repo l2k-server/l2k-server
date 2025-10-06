@@ -18,7 +18,7 @@ class SingleTargetMagicDamageSkillAction(
     val attributeValue: Int
 ): SingleTargetMagicSkillAction {
 
-    override fun applyTo(
+    override fun apply(
         target: ActorInstance,
         caster: ActorInstance,
         actionLevel: Int,
@@ -43,16 +43,16 @@ class SingleTargetMagicDamageSkillAction(
 
         if (!calculateIsMagicSucceeded(target, magicLevel)) {
             if (calculateIsMagicSucceeded(target, magicLevel) && (target.level - caster.level) <= 9) {
-                hit(damage = (damage / 2).roundToInt(), isHalfSuccessful = true)
+                hit(targetId = target.id, damage = (damage / 2).roundToInt(), isHalfSuccessful = true)
             }
             else {
-                hit(1, isFailed = true)
+                hit(targetId = target.id, 1, isFailed = true)
             }
         }
         else if (calculateIsMagicCritical(caster)) {
-            hit(damage = (damage * 4).roundToInt(), isMagicCritical = true)
+            hit(targetId = target.id, damage = (damage * 4).roundToInt(), isMagicCritical = true)
         }
-        else hit(damage.roundToInt())
+        else hit(targetId = target.id, damage.roundToInt())
     }
 
 }

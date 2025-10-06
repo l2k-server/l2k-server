@@ -219,17 +219,21 @@ class TradeService(
                     //Subtract sold items from itemsOnSale
                     itemsOnSale = itemsOnSale.subtractTradedItem(it)
 
-                    sendTo(customer.id, SystemMessageResponse.youHavePurchased(item, seller.name, it.amount))
-                    sendTo(seller.id, SystemMessageResponse.otherHasPurchased(customer.name, item, it.amount))
+                    sendTo(customer.id) {
+                        SystemMessageResponse.youHavePurchased(item, seller.name, it.amount)
+                    }
+                    sendTo(seller.id){
+                        SystemMessageResponse.otherHasPurchased(customer.name, item, it.amount)
+                    }
 
                     operations
                 }.reduce { acc, pair -> (acc.first + pair.first) to (acc.second + pair.second) }
 
-                sendTo(customer.id, (adenaOperationsOfCustomer + itemOperationsOfCustomer))
-                sendTo(seller.id, (adenaOperationsOfSeller + itemOperationsOfSeller))
+                sendTo(customer.id) { adenaOperationsOfCustomer + itemOperationsOfCustomer }
+                sendTo(seller.id) { adenaOperationsOfSeller + itemOperationsOfSeller }
 
-                sendTo(customer.id, UpdateStatusResponse.weightOf(customer))
-                sendTo(seller.id, UpdateStatusResponse.weightOf(seller))
+                sendTo(customer.id) { UpdateStatusResponse.weightOf(customer) }
+                sendTo(seller.id) { UpdateStatusResponse.weightOf(seller) }
 
                 //If no items left to sell - close store, otherwise update it
                 if (itemsOnSale.isEmpty()) {
@@ -390,17 +394,21 @@ class TradeService(
                     //Subtract bought items from itemsInWishList
                     itemsInWishList = itemsInWishList.subtractTradedItem(it)
 
-                    sendTo(storeOwner.id, SystemMessageResponse.youHavePurchased(item, seller.name, it.amount))
-                    sendTo(seller.id, SystemMessageResponse.otherHasPurchased(storeOwner.name, item, it.amount))
+                    sendTo(storeOwner.id) {
+                        SystemMessageResponse.youHavePurchased(item, seller.name, it.amount)
+                    }
+                    sendTo(seller.id) {
+                        SystemMessageResponse.otherHasPurchased(storeOwner.name, item, it.amount)
+                    }
 
                     operations
                 }.reduce { acc, pair -> (acc.first + pair.first) to (acc.second + pair.second) }
 
-                sendTo(storeOwner.id, (adenaOperationsOfStoreOwner + itemOperationsOfStoreOwner))
-                sendTo(seller.id, (adenaOperationsOfSeller + itemOperationsOfSeller))
+                sendTo(storeOwner.id) { adenaOperationsOfStoreOwner + itemOperationsOfStoreOwner }
+                sendTo(seller.id) { adenaOperationsOfSeller + itemOperationsOfSeller }
 
-                sendTo(storeOwner.id, UpdateStatusResponse.weightOf(storeOwner))
-                sendTo(seller.id, UpdateStatusResponse.weightOf(seller))
+                sendTo(storeOwner.id) { UpdateStatusResponse.weightOf(storeOwner) }
+                sendTo(seller.id) { UpdateStatusResponse.weightOf(seller) }
 
                 //If no items left to sell - close store, otherwise update it
                 if (itemsInWishList.isEmpty()) {

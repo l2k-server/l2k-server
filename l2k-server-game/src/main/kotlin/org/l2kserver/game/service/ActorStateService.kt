@@ -115,7 +115,7 @@ class ActorStateService(
                 }
             }
 
-            this@ActorStateService.broadcastAround(actor.position) { StartFightingResponse(actor.id) }
+            broadcastAround(actor.position) { StartFightingResponse(actor.id) }
         }
 
         fightingActors[actor] = currentTimeMillis() + COMBAT_TIME_MS
@@ -126,7 +126,7 @@ class ActorStateService(
      * Notifies surrounding characters about this and flushes combatState end time
      */
     suspend fun disableCombatState(actor: MutableActorInstance) {
-        this@ActorStateService.broadcastAround(actor.position) { StopFightingResponse(actor.id) }
+        broadcastAround(actor.position) { StopFightingResponse(actor.id) }
         actor.isFighting = false
         fightingActors.remove(actor)
     }

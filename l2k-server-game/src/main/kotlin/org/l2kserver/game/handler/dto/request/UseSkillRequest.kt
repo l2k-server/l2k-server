@@ -13,8 +13,8 @@ const val USE_SKILL_REQUEST_PACKET_ID: UByte = 47u
  */
 data class UseSkillRequest(
     val skillId: Int,
-    val forced: Boolean,
-    val holdPosition: Boolean
+    val forced: Boolean = false,
+    val holdPosition: Boolean = false
 ): RequestPacket {
 
     constructor(data: ByteBuffer): this(

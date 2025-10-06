@@ -22,9 +22,9 @@ class SingleTargetPhysicalDamageSkillAction(
     val ignoresShield: Boolean = false
 ): SingleTargetPhysicalSkillAction {
 
-    override fun applyTo(target: ActorInstance, caster: ActorInstance, actionLevel: Int, usedSoulshot: Boolean) = effects {
+    override fun apply(target: ActorInstance, caster: ActorInstance, actionLevel: Int, usedSoulshot: Boolean) = effects {
         if (!ignoresShield && calculateIsPhysicalAttackAvoided(caster, target)) {
-            miss()
+            miss(target.id)
             return@effects
         }
 
@@ -47,7 +47,7 @@ class SingleTargetPhysicalDamageSkillAction(
 
         damage = (PHYSICAL_ATTACK_BASE * damage) / defence
 
-        hit(damage.roundToInt(), isCritical, isBlocked)
+        hit(target.id, damage.roundToInt(), isCritical, isBlocked)
     }
 
 }
