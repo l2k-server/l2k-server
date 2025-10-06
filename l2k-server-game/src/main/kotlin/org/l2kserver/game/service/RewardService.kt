@@ -74,7 +74,7 @@ class RewardService(
             log.debug("{} was killed, decreased his karma to '{}'", killed, killed.karma)
         }
 
-        sendTo(killed.id, FullCharacterResponse(killed))
+        sendTo(killed.id) { FullCharacterResponse(killed) }
         broadcastAround(killed.position) { PvPStatusResponse(killed) }
     }
 
@@ -130,14 +130,18 @@ class RewardService(
                 if (attacker.karma > 0)
                     attacker.karma = maxOf(attacker.karma - calculateKarmaLossForExp(expShare.roundToInt()), 0)
 
-                sendTo(attacker.id,
-                    SystemMessageResponse.YouHaveEarnedExpAndSp(expShare.roundToInt(), spShare.roundToInt())
-                )
+                sendTo(attacker.id) {
+                    SystemMessageResponse.YouHaveEarnedExpAndSp(
+                        expShare.roundToInt(),
+                        spShare.roundToInt()
+                    )
+                }
 
-                if (overhitExp > 0) sendTo(attacker.id,
-                    SystemMessageResponse.YouHaveAcquiredExpForOverHit(overhitExp))
+                if (overhitExp > 0) sendTo(attacker.id) {
+                    SystemMessageResponse.YouHaveAcquiredExpForOverHit(overhitExp)
+                }
 
-                sendTo(attacker.id, FullCharacterResponse(attacker))
+                sendTo(attacker.id) { FullCharacterResponse(attacker) }
                 if (attacker.level > killerLevel) handleLevelUp(attacker)
             }
         }
@@ -191,11 +195,9 @@ class RewardService(
         character.currentHp = character.stats.maxHp
         character.currentMp = character.stats.maxMp
 
-        sendTo(character.id, UpdateStatusResponse.hpMpCpOf(character))
-        sendTo(character.id, SystemMessageResponse.YourLevelHasIncreased)
-        broadcastAround(character.position) {
-            SocialActionResponse(character.id, SocialAction.LEVEL_UP)
-        }
+        sendTo(character.id) { UpdateStatusResponse.hpMpCpOf(character) }
+        sendTo(character.id) { SystemMessageResponse.YourLevelHasIncreased }
+        broadcastAround(character.position) { SocialActionResponse(character.id, SocialAction.LEVEL_UP) }
 
         //TODO Manage new skills
         //TODO Manage weight

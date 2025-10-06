@@ -56,8 +56,8 @@ data class Attack (
     val isAvoided: Boolean,
 )
 
-fun DamageEffect.toAttack(targetId: Int) = Attack(
-    targetId = targetId,
+fun DamageEffect.toAttack() = Attack(
+    targetId = this.targetId,
     damage = this.damage,
     isCritical = this.isCritical,
     isBlocked = this.isBlocked,

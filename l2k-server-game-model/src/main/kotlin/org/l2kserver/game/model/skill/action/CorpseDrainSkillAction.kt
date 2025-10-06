@@ -6,7 +6,7 @@ import org.l2kserver.game.model.skill.effect.effects
 import org.l2kserver.game.model.skill.effect.heal
 import kotlin.math.roundToInt
 
-class SingleTargetHealSkillAction(
+class CorpseDrainSkillAction(
     val power: List<Int>
 ): SingleTargetMagicSkillAction {
 
@@ -23,7 +23,7 @@ class SingleTargetHealSkillAction(
 
         //TODO Heal effectiveness buffs/debuffs (like Prayer or Touch of Death)
 
-        heal(target.id, restoredHp.roundToInt())
+        heal(caster.id, restoredHp.roundToInt())
     }
 
 }

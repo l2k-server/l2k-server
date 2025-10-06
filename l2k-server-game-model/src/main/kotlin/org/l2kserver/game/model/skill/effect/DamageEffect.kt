@@ -12,6 +12,7 @@ package org.l2kserver.game.model.skill.effect
  * @property isFailed is this attack failed
  */
 data class DamageEffect(
+    override val targetId: Int,
     val damage: Int = 0,
     val isCritical: Boolean = false,
     val isBlocked: Boolean = false,
@@ -23,6 +24,7 @@ data class DamageEffect(
 
 /** Applies the event of dealing damage */
 fun SkillEffects.hit(
+    targetId: Int,
     damage: Int,
     isCritical: Boolean = false,
     isBlocked: Boolean = false,
@@ -31,7 +33,8 @@ fun SkillEffects.hit(
     isFailed: Boolean = false
 ) = add(
     DamageEffect(
-        damage,
+        targetId = targetId,
+        damage = damage,
         isCritical = isCritical,
         isBlocked = isBlocked,
         isMagicCritical = isMagicCritical,
@@ -41,4 +44,4 @@ fun SkillEffects.hit(
 )
 
 /** Applies the event of missing target */
-fun SkillEffects.miss() = add(DamageEffect(isAvoided = true))
+fun SkillEffects.miss(targetId: Int) = add(DamageEffect(targetId = targetId, isAvoided = true))

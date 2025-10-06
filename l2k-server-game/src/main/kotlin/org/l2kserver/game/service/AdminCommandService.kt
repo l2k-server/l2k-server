@@ -8,6 +8,7 @@ import org.l2kserver.game.handler.dto.response.PlaySoundResponse
 import org.l2kserver.game.handler.dto.response.Sound
 import org.l2kserver.game.handler.dto.response.SystemMessageResponse
 import org.l2kserver.game.handler.dto.response.UpdateItemsResponse
+import org.l2kserver.game.handler.dto.response.UpdateStatusResponse
 import org.l2kserver.game.network.session.send
 import org.l2kserver.game.network.session.sessionContext
 import org.l2kserver.game.repository.GameObjectRepository
@@ -17,18 +18,19 @@ import org.l2kserver.game.model.command.EnchantCommand
 import org.l2kserver.game.model.command.GiveCommand
 import org.l2kserver.game.model.command.HelpCommand
 import org.l2kserver.game.model.command.ItemToEnchant
+import org.l2kserver.game.model.command.RestoreCommand
+import org.l2kserver.game.model.command.StatToRestore
 import org.l2kserver.game.model.command.TeleportCommand
+import org.l2kserver.game.network.session.sendTo
 import org.springframework.stereotype.Service
 
-/**
- * Service for handling admin commands
- */
+/** Service for handling admin commands */
 @Service
 class AdminCommandService(
     override val gameObjectRepository: GameObjectRepository,
     private val moveService: MoveService,
     private val itemService: ItemService
-): AbstractService() {
+) : AbstractService() {
 
     override val log = logger()
 
@@ -45,10 +47,10 @@ class AdminCommandService(
                 is HelpCommand -> handleHelpCommand()
                 is TeleportCommand -> handleTeleportCommand(adminCommand)
                 is EnchantCommand -> handleEnchantCommand(adminCommand)
-                is GiveCommand ->  handleGiveCommand(adminCommand)
+                is GiveCommand -> handleGiveCommand(adminCommand)
+                is RestoreCommand -> handleRestoreCommand(adminCommand)
             }
-        }
-        catch (e: Exception) {
+        } catch (e: Exception) {
             log.error("Failed executing command '{}'", commandRequest.commandString, e)
             send {
                 SystemMessageResponse(
@@ -89,9 +91,14 @@ class AdminCommandService(
         val characterToEnchant = command.characterName?.let { gameObjectRepository.findCharacterByName(it) }
             ?: gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
 
-        log.debug("Got command to enchant '{}' of '{}' by '{}'", command.itemToEnchant, characterToEnchant, command.enchantLevel)
+        log.debug(
+            "Got command to enchant '{}' of '{}' by '{}'",
+            command.itemToEnchant,
+            characterToEnchant,
+            command.enchantLevel
+        )
 
-        val item = when(command.itemToEnchant) {
+        val item = when (command.itemToEnchant) {
             ItemToEnchant.UNDERWEAR -> characterToEnchant.inventory.underwear
             ItemToEnchant.RIGHT_EARRING -> characterToEnchant.inventory.rightEarring
             ItemToEnchant.LEFT_EARRING -> characterToEnchant.inventory.leftEarring
@@ -126,6 +133,12 @@ class AdminCommandService(
         }
     }
 
+    /**
+     * Handles enchant command.
+     * Gives [GiveCommand.amount] items with [GiveCommand.templateId]
+     * to [GiveCommand.name] or session owner, if no [GiveCommand.name] was provided,
+     * enchanted by [GiveCommand.enchantLevel]
+     */
     private suspend fun handleGiveCommand(command: GiveCommand) {
         val character = command.name?.let { gameObjectRepository.findCharacterByName(it) }
             ?: gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
@@ -136,6 +149,44 @@ class AdminCommandService(
             command.amount,
             enchantLevel = command.enchantLevel,
         )
+    }
+
+    /**
+     * Handles restore command. Restores [RestoreCommand.statsToRestore]
+     * of character with [RestoreCommand.name]
+     * If [RestoreCommand.name] is null, restore stats of character who called this command
+     */
+    private suspend fun handleRestoreCommand(command: RestoreCommand) = newSuspendedTransaction {
+        val healer = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
+        val character = command.name?.let { gameObjectRepository.findCharacterByName(it) } ?: healer
+
+        val stats = command.statsToRestore ?: StatToRestore.entries
+        val healerName = if (healer != character) healer.name else null
+
+        stats.forEach {
+            when (it) {
+                StatToRestore.CP -> {
+                    sendTo(character.id) {
+                        SystemMessageResponse.CpRestored(character.stats.maxCp - character.currentCp, healerName)
+                    }
+                    character.currentCp = character.stats.maxCp
+                }
+                StatToRestore.HP -> {
+                    sendTo(character.id) {
+                        SystemMessageResponse.HpRestored(character.stats.maxHp - character.currentHp, healerName)
+                    }
+                    character.currentHp = character.stats.maxHp
+                }
+                StatToRestore.MP -> {
+                    sendTo(character.id) {
+                        SystemMessageResponse.MpRestored(character.stats.maxMp - character.currentMp, healerName)
+                    }
+                    character.currentMp = character.stats.maxMp
+                }
+            }
+        }
+
+        send { UpdateStatusResponse.hpMpCpOf(character) }
     }
 
 }

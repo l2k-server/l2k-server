@@ -38,7 +38,7 @@ abstract class AbstractService {
     ) {
         val addressees = gameObjectRepository.findAllCharactersNear(position, distance)
         val lazyResponse by lazy { responsePacket() }
-        addressees.forEach { sendTo(it.id, lazyResponse) }
+        addressees.forEach { sendTo(it.id) { lazyResponse }}
     }
 
     /**
@@ -54,7 +54,7 @@ abstract class AbstractService {
     ) {
         val addressees = gameObjectRepository.findAllCharactersNear(actor, distance)
         val lazyResponse by lazy { responsePacket() }
-        addressees.forEach { sendTo(it.id, lazyResponse) }
+        addressees.forEach { sendTo(it.id) { lazyResponse }}
     }
 
     /**
@@ -66,8 +66,10 @@ abstract class AbstractService {
         broadcastAround(actor) { actor.toInfoResponse() }
 
         if (actor is PlayerCharacter) {
-            sendTo(actor.id, FullCharacterResponse(actor))
-            actor.privateStore?.let { this@AbstractService.broadcastAround(actor.position) { it.toMessageResponse(actor.id) } }
+            sendTo(actor.id) { FullCharacterResponse(actor) }
+            actor.privateStore?.let {
+                broadcastAround(actor.position) { it.toMessageResponse(actor.id) }
+            }
         }
 
     }
@@ -108,11 +110,10 @@ abstract class AbstractService {
         npc: NpcInstance, movementDestination: Position?
     ) = gameObjectRepository.findAllCharactersNear(npc).forEach {
         if (it.knownGameWorldObjects.add(npc)) {
-            sendTo(it.id, npc.toInfoResponse())
-            if (movementDestination != null) sendTo(
-                it.id,
+            sendTo(it.id) { npc.toInfoResponse() }
+            if (movementDestination != null) sendTo(it.id) {
                 StartMovingResponse(npc, movementDestination)
-            )
+            }
         }
     }
 
@@ -143,15 +144,12 @@ abstract class AbstractService {
 
         if (gameObject is PlayerCharacter) {
             gameObject.knownGameWorldObjects.remove(this)
-            sendTo(gameObject.id, DeleteObjectResponse(this.id))
+            sendTo(gameObject.id) { DeleteObjectResponse(this.id) }
 
             if (gameObject.targetId == this.id) {
                 gameObject.targetId = null
                 this.targetedBy.remove(gameObject)
-                sendTo(
-                    gameObject.id,
-                    SetTargetResponse(0, 0)
-                )
+                sendTo(gameObject.id) { SetTargetResponse(0, 0) }
             }
         }
     }
@@ -162,17 +160,13 @@ abstract class AbstractService {
 
         if (gameObject is PlayerCharacter) {
             gameObject.knownGameWorldObjects.add(this)
-            sendTo(gameObject.id, this.toInfoResponse())
+            sendTo(gameObject.id) { this.toInfoResponse() }
+
             movementDestination?.let { destination ->
-                sendTo(
-                    gameObject.id,
-                    StartMovingResponse(this, destination)
-                )
+                sendTo(gameObject.id) { StartMovingResponse(this, destination) }
             }
             gameObject.privateStore?.let { store ->
-                send {
-                    PrivateStoreSellSetMessageResponse(gameObject.id, store.title)
-                }
+                send { PrivateStoreSellSetMessageResponse(gameObject.id, store.title) }
             }
         }
     }

@@ -23,12 +23,13 @@ fun ActorInstance.hit(other: ActorInstance, soulshotUsed: Boolean, attackPowerDi
     val isAvoided = calculateIsPhysicalAttackAvoided(this, other)
     //TODO Calculate PerfectShieldBlock
 
-    if (isAvoided) return DamageEffect(isAvoided = true)
+    if (isAvoided) return DamageEffect(targetId = other.id, isAvoided = true)
 
     val isCritical = calculateIsPhysicalAttackCritical(this, other)
     val isBlocked = calculateIsPhysicalAttackBlocked(this, other)
 
     return DamageEffect(
+        targetId = other.id,
         damage = calculateAutoAttackDamage(
             this, other, isCritical, isBlocked, soulshotUsed
         ) / attackPowerDivider,

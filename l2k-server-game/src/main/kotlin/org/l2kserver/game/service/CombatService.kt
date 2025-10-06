@@ -41,9 +41,7 @@ private const val DELAY_BETWEEN_ATTACKS_BASE = 470_000L
 private const val BOW_REUSE_DELAY = 499_500L
 private const val ARROW_SPEED_PER_MS = 0.9
 
-/**
- * Service to handle all fighting stuff - auto attacks, offensive skills, damage, etc.
- */
+/** Service to handle fighting stuff - auto attacks, damage, etc. */
 @Service
 class CombatService(
     private val moveService: MoveService,
@@ -72,6 +70,13 @@ class CombatService(
     /** Move [attacker] enough close to hit and attack [attacked] */
     suspend fun attack(attacker: MutableActorInstance, attacked: MutableActorInstance) {
         log.debug("Started attacking '{}' by '{}'", attacked, attacker)
+
+        if (attacked.isDead()) {
+            log.debug("'{}' is dead and cannot be attacked", attacked)
+            send { SystemMessageResponse.IncorrectTarget }
+            return
+        }
+
         while (coroutineContext.isActive && attacker.canAttack(attacked)) {
             try {
                 val requiredDistance = (attacker.stats.attackRange + attacked.collisionBox.radius).roundToInt()
@@ -118,12 +123,10 @@ class CombatService(
     }
 
     suspend fun applyDamageEffect(
-        attacker: MutableActorInstance,
-        attacked: MutableActorInstance,
-        effect: DamageEffect,
-        skill: Skill? = null,
-        overhitPossible: Boolean = false
+        attacker: MutableActorInstance, effect: DamageEffect, skill: Skill? = null, overhitPossible: Boolean = false
     ) {
+        val attacked = gameObjectRepository.findActorByIdOrNull(effect.targetId) ?: return
+
         //For double weapon, if target was killed by first hit, or if actor is already killed by smth else
         if (attacked.isDead()) return
 
@@ -137,10 +140,9 @@ class CombatService(
 
         if (effect.isAvoided) {
             send { SystemMessageResponse.YouMissed }
-            sendTo(
-                attacked.id,
+            sendTo(attacked.id) {
                 SystemMessageResponse.YouHaveAvoidedAttackOf(attacker.name)
-            )
+            }
             return
         }
 
@@ -172,17 +174,20 @@ class CombatService(
             send { SystemMessageResponse.AttackFailed }
         if (skill != null && effect.isFailed)
             send { SystemMessageResponse.HasResisted(attacked.name, skill) }
-        if (effect.isBlocked)
-            sendTo(attacked.id, SystemMessageResponse.ShieldDefenceSuccessful)
+        if (effect.isBlocked) sendTo(attacked.id) {
+            SystemMessageResponse.ShieldDefenceSuccessful
+        }
 
         send { SystemMessageResponse.YouHit(effect.damage) }
-        sendTo(attacked.id, SystemMessageResponse.YouWereHitBy(attacker.name, effect.damage))
+        sendTo(attacked.id) {
+            SystemMessageResponse.YouWereHitBy(attacker.name, effect.damage)
+        }
 
         if (overhitDamage > 0) send { SystemMessageResponse.OverHit }
 
         val updatedStatus = UpdateStatusResponse.hpMpCpOf(attacked)
-        sendTo(attacked.id, updatedStatus)
-        attacked.targetedBy.forEach { sendTo(it.id, updatedStatus) }
+        sendTo(attacked.id) { updatedStatus }
+        attacked.targetedBy.forEach { sendTo(it.id) { updatedStatus }}
 
         if (attacked.currentHp == 0) killActor(attacked, attacker, overhitDamage)
     }
@@ -205,36 +210,27 @@ class CombatService(
         val weapon = (attacker as? PlayerCharacter)?.inventory?.weapon
         val soulshotUsed = weapon?.soulshotCharged ?: false
 
-        val effectLists = mutableListOf(
-            attacked to List(hitAmount) {
-                attacker.hit(attacked, soulshotUsed, hitAmount)
-            }
-        )
+        val aoeTargets = getAoeAttackTargets(attacker, attacked)
 
-        if (attacker.stats.aoeTargetsAmount > 0) effectLists += getAoeAttackTargets(attacker, attacked).map { aoeTarget ->
-            aoeTarget to List(hitAmount) {
-                attacker.hit(attacked, soulshotUsed, hitAmount)
-            }
+        val hits = List(hitAmount) {
+            val effects = aoeTargets.map { attacker.hit(it, soulshotUsed, hitAmount) }.toMutableList()
+            effects.add(attacker.hit(attacked, soulshotUsed, hitAmount))
+
+            effects
         }
 
-        if (soulshotUsed && effectLists.map { it.second }.flatten().any { !it.isAvoided })
-            attacker.inventory.weapon?.soulshotCharged = false
+        if (soulshotUsed && hits.flatten().any { !it.isAvoided }) attacker.inventory.weapon?.soulshotCharged = false
 
         val delayBeforeHit = attackDuration / (1 + hitAmount)
 
-        val attacks = effectLists.map { (target, effects) -> effects.map { it.toAttack(target.id) }}.flatten()
+        val attacks = hits.flatten().map { it.toAttack() }
         broadcastAround(attacker.position) { AttackResponse(attacker, attacks, soulshotUsed) }
 
         //Delay for the time between start of the attack animation and the hit
         delay(delayBeforeHit)
 
-
-        repeat(hitAmount) { hitNumber ->
-            effectLists.forEach { (target, effect) ->
-                applyDamageEffect(attacker, target, effect[hitNumber])
-            }
-
-            //Delay for the time between the hit and the end of the attack animation
+        hits.forEach { hitEffects ->
+            hitEffects.forEach { applyDamageEffect(attacker, it) }
             delay(delayBeforeHit)
         }
     }
@@ -262,7 +258,7 @@ class CombatService(
 
         send { GaugeResponse(GaugeColor.RED, (attackDuration + reuseDelay).toInt()) }
         broadcastAround(attacker.position) {
-            AttackResponse(attacker, damageEffect.toAttack(attacked.id), usedSoulshot)
+            AttackResponse(attacker, damageEffect.toAttack(), usedSoulshot)
         }
 
         //Delay before launching an arrow
@@ -272,7 +268,7 @@ class CombatService(
         CoroutineScope(coroutineContext + NonCancellable).launch {
             //Delay for time it takes for the arrow to reach the target
             delay((attacker.position.distanceTo(attacked.position) / ARROW_SPEED_PER_MS).toLong())
-            newSuspendedTransaction { applyDamageEffect(attacker, attacked, damageEffect) }
+            newSuspendedTransaction { applyDamageEffect(attacker, damageEffect) }
         }
 
         //Delay for the time between the hit and the end of the attack animation
@@ -340,20 +336,17 @@ class CombatService(
     /** Checks if `this` can attack [target] and sends system messages */
     private suspend fun ActorInstance.canAttack(target: ActorInstance) = when {
         this.isParalyzed || this.isDead() -> {
-            log.debug("'{}' is paralyzed or dead and cannot attack '{}'", this, target)
             send { ActionFailedResponse }
             false
         }
-
         target.isDead() -> {
-            log.debug("'{}' is dead and cannot be attacked", target)
-            send { SystemMessageResponse.IncorrectTarget }
             send { ActionFailedResponse }
             false
         }
 
         !gameObjectRepository.existsById(target.id)
                 || !this.position.isCloseTo(target.position, VISION_RANGE) -> {
+            send { ActionFailedResponse }
             false
         }
 

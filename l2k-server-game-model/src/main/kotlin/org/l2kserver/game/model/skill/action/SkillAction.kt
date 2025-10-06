@@ -6,8 +6,8 @@ import org.l2kserver.game.model.skill.effect.SkillEffects
 
 interface SkillAction
 
-interface SingleTargetPhysicalSkillAction: SkillAction {
-    fun applyTo(
+interface SingleTargetPhysicalSkillAction : SkillAction {
+    fun apply(
         target: ActorInstance,
         caster: ActorInstance,
         actionLevel: Int,
@@ -15,13 +15,11 @@ interface SingleTargetPhysicalSkillAction: SkillAction {
     ): SkillEffects
 }
 
-interface SingleTargetMagicSkillAction: SkillAction {
-
-    fun applyTo(
+interface SingleTargetMagicSkillAction : SkillAction {
+    fun apply(
         target: ActorInstance,
         caster: ActorInstance,
         actionLevel: Int,
         usedSpiritshotType: SpiritshotType?
     ): SkillEffects
-
 }

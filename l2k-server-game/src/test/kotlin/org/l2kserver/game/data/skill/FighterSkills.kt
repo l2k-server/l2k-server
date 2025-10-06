@@ -8,6 +8,7 @@ import org.l2kserver.game.model.skill.SkillTargetType
 import org.l2kserver.game.model.skill.SkillTemplate
 import org.l2kserver.game.model.skill.SkillType
 import org.l2kserver.game.model.skill.action.BlowSkillAction
+import org.l2kserver.game.model.skill.action.CorpseDrainSkillAction
 
 val POWER_STRIKE = SkillTemplate(
     id = 3,
@@ -83,5 +84,24 @@ val POWER_SHOT = SkillTemplate(
             65, 71, 78, 102, 112, 122, 158, 172, 187, 239, 258, 279, 326, 352, 379, 440, 472, 507, 584, 625, 669, 763, 814, 865
         ),
         ignoresShield = true
+    )
+)
+
+val LIFE_SCAVENGE = SkillTemplate(
+    id = 46,
+    skillName = "Life Scavenge",
+    skillType = SkillType.MAGIC,
+    targetType = SkillTargetType.DEAD_MOB,
+    reuseDelay = 20_000,
+    castTime = 1500,
+    castRange = 400,
+    effectRange = 900,
+    maxSkillLevel = 15,
+    consumes = SkillConsumablesTemplate(
+        mpToStart = listOf(7, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13, 13, 14, 14),
+        mp = listOf(28, 30, 33, 35, 38, 40, 43, 44, 46, 48, 49, 51, 52, 53, 55)
+    ),
+    skillAction = CorpseDrainSkillAction(
+        power = listOf(105, 113, 122, 131, 140, 150, 159, 169, 180, 190, 201, 211, 222, 232, 243),
     )
 )

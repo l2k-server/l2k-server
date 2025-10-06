@@ -19,4 +19,6 @@ inline fun effects(builderFunction: SkillEffects.() -> Unit): SkillEffects {
     return skillEffects
 }
 
-sealed interface Effect
+sealed interface Effect {
+    val targetId: Int
+}

@@ -24,7 +24,7 @@ class BlowSkillAction(
     val power: List<Int>
 ): SingleTargetPhysicalSkillAction {
 
-    override fun applyTo(target: ActorInstance, caster: ActorInstance, actionLevel: Int, usedSoulshot: Boolean) = effects {
+    override fun apply(target: ActorInstance, caster: ActorInstance, actionLevel: Int, usedSoulshot: Boolean) = effects {
         // Calculate blow chance
         val successChance = when {
             caster.isBehind(target) -> BLOW_CHANCE_FROM_BEHIND
@@ -34,7 +34,7 @@ class BlowSkillAction(
         val dexSuccessRateModifier = 1.0 + (caster.basicStats.dex.value.toDouble() - 20.0) / 100.0
 
         if (successChance * dexSuccessRateModifier < Random.nextDouble()) {
-            miss()
+            miss(target.id)
             return@effects
         }
 
@@ -56,7 +56,7 @@ class BlowSkillAction(
 
         damage = (PHYSICAL_ATTACK_BASE * damage) / defence
 
-        hit(damage.roundToInt(), isBlocked = isBlocked)
+        hit(target.id, damage.roundToInt(), isBlocked = isBlocked)
     }
 
 }

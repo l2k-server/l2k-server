@@ -44,15 +44,16 @@ class SocialService(
             ChatTab.GENERAL -> this@SocialService.broadcastAround(speaker.position, generalChatRange) { response }
             ChatTab.WHISPER -> {
                 if (request.targetName != null) {
+                    val addressee = gameObjectRepository.findCharacterByName(request.targetName)
                     send { response }
-                    sendTo(gameObjectRepository.findCharacterByName(request.targetName).id, response)
+                    sendTo(addressee.id) { response }
                 }
             }
             ChatTab.SHOUT, ChatTab.TRADE -> {
                 val closestTown = TownRegistry.findClosestByPosition(speaker.position)
                 gameObjectRepository.findAllCharacters().forEachMatching(
                     predicate = { TownRegistry.findClosestByPosition(it.position) == closestTown },
-                    action = { sendTo(it.id, response) }
+                    action = { sendTo(it.id) { response }}
                 )
             }
 

@@ -262,20 +262,18 @@ class ItemService(
         val items = if (itemTemplate.isStackable) {
             if (existingItem == null) {
                 val newItem = itemReceiver.inventory.createItem(itemTemplateId, amount, equippedAt, enchantLevel)
-                sendTo(itemReceiver.id, UpdateItemsResponse().wasAdded(newItem))
+                sendTo(itemReceiver.id) { UpdateItemsResponse().wasAdded(newItem) }
                 listOf(newItem)
             }
             else {
                 existingItem.amount += amount
-                sendTo(itemReceiver.id, UpdateItemsResponse().wasModified(existingItem))
-
+                sendTo(itemReceiver.id) { UpdateItemsResponse().wasModified(existingItem) }
                 listOf(existingItem)
             }
         }
         else List(amount) {
             val newItem = itemReceiver.inventory.createItem(itemTemplateId, 1, equippedAt, enchantLevel)
-            sendTo(itemReceiver.id, UpdateItemsResponse().wasAdded(newItem))
-
+            sendTo(itemReceiver.id) { UpdateItemsResponse().wasAdded(newItem) }
             newItem
         }
 
@@ -298,13 +296,13 @@ class ItemService(
         require(item.isStackable || amount == 1) { "Cannot remove '$amount' of non-stackable '$item' of '${owner}'!" }
 
         if (amount > item.amount) {
-            sendTo(owner.id, SystemMessageResponse.NotEnoughItems)
+            sendTo(owner.id) { SystemMessageResponse.NotEnoughItems }
             return@newSuspendedTransaction
         }
 
         if (amount < item.amount) {
             item.amount -= amount
-            sendTo(owner.id, UpdateItemsResponse().wasModified(item))
+            sendTo(owner.id) { UpdateItemsResponse().wasModified(item) }
         } else {
             val response = UpdateItemsResponse()
             if (item is EquippableItemInstance && item.isEquipped) {
@@ -322,11 +320,11 @@ class ItemService(
                 broadcastActorInfo(owner)
             }
             response.wasDeleted(item)
-            sendTo(owner.id, response)
+            sendTo(owner.id) { response }
             owner.inventory.delete(item)
         }
 
-        sendTo(owner.id, UpdateStatusResponse.weightOf(owner))
+        sendTo(owner.id) { UpdateStatusResponse.weightOf(owner) }
     }
 
     private suspend fun toggleSoulshotAutoUsage(character: PlayerCharacter, soulshot: Soulshot) {

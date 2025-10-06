@@ -61,7 +61,7 @@ class SkillServiceTest(
         context.setCharacterId(character.id)
 
         assertThrows<IllegalArgumentException> {
-            withContext(context) { skillService.useSkill(UseSkillRequest(MORTAL_BLOW.id, false, false)) }
+            withContext(context) { skillService.useSkill(UseSkillRequest(MORTAL_BLOW.id)) }
         }
     }
 
@@ -90,7 +90,7 @@ class SkillServiceTest(
         context.responseChannel.receive() //Skip NpcInfoResponse
         character.targetId = target.id
 
-        withContext(context) { skillService.useSkill(UseSkillRequest(MORTAL_BLOW.id, false, false)) }
+        withContext(context) { skillService.useSkill(UseSkillRequest(MORTAL_BLOW.id)) }
         val playSoundResponse = assertIs<PlaySoundResponse>(context.responseChannel.receive())
         assertEquals(Sound.ITEMSOUND_SYS_IMPOSSIBLE, playSoundResponse.sound)
         assertIs<ActionFailedResponse>(context.responseChannel.receive())
@@ -125,11 +125,7 @@ class SkillServiceTest(
         target.targetedBy.add(character)
 
         withContext(context) {
-            skillService.useSkill(UseSkillRequest(
-                skillId = POWER_STRIKE.id,
-                forced = false,
-                holdPosition = false
-            ))
+            skillService.useSkill(UseSkillRequest(POWER_STRIKE.id))
         }
 
         // Check results
@@ -159,7 +155,9 @@ class SkillServiceTest(
 
         val damageResponse = assertIs<SystemMessageResponse.YouHit>(context.responseChannel.receiveIgnoring(
             SystemMessageResponse.CriticalHit::class))
-        val updateStatusResponse = assertIs<UpdateStatusResponse>(context.responseChannel.receive())
+        val updateStatusResponse = assertIs<UpdateStatusResponse>(context.responseChannel.receiveIgnoring(
+            SystemMessageResponse.OverHit::class
+        ))
 
         assertEquals(
             damageResponse.damage,
@@ -193,7 +191,7 @@ class SkillServiceTest(
         character.targetId = target.id
 
         // First skill usage
-        withContext(context) { skillService.useSkill(UseSkillRequest(POWER_STRIKE.id, false, false)) }
+        withContext(context) { skillService.useSkill(UseSkillRequest(POWER_STRIKE.id)) }
 
         assertIs<StartMovingToAttackResponse>(context.responseChannel.receive())
         assertIs<UpdateStatusResponse>(context.responseChannel.receive())
@@ -212,7 +210,7 @@ class SkillServiceTest(
 
         delay(1000)
         // Second skill usage
-        withContext(context) { skillService.useSkill(UseSkillRequest(POWER_STRIKE.id, false, false)) }
+        withContext(context) { skillService.useSkill(UseSkillRequest(POWER_STRIKE.id)) }
 
         val cooldownResponse = assertIs<SystemMessageResponse.IsBeingPreparedForReuse>(
             context.responseChannel.receiveIgnoring(
@@ -220,6 +218,7 @@ class SkillServiceTest(
                 SystemMessageResponse.YouHaveAcquiredExpForOverHit::class
             )
         )
+
         assertEquals(POWER_STRIKE.id, cooldownResponse.skill.skillId)
         assertIs<ActionFailedResponse>(context.responseChannel.receive())
     }
@@ -242,7 +241,7 @@ class SkillServiceTest(
         }
 
         assertThrows<IllegalArgumentException> {
-            withContext(context) { skillService.useSkill(UseSkillRequest(MORTAL_BLOW.id, false, false)) }
+            withContext(context) { skillService.useSkill(UseSkillRequest(MORTAL_BLOW.id)) }
         }
     }
 
@@ -265,11 +264,7 @@ class SkillServiceTest(
 
         character.targetId = character.id
 
-        withContext(context) { skillService.useSkill(UseSkillRequest(
-            skillId = POWER_STRIKE.id,
-            forced = false,
-            holdPosition = false
-        )) }
+        withContext(context) { skillService.useSkill(UseSkillRequest(POWER_STRIKE.id)) }
 
         // Check results
         assertIs<SystemMessageResponse.CannotUseThisOnYourself>(context.responseChannel.receive())
@@ -292,7 +287,7 @@ class SkillServiceTest(
             }
         }
 
-        withContext(context) { skillService.useSkill(UseSkillRequest(POWER_STRIKE.id, false, false)) }
+        withContext(context) { skillService.useSkill(UseSkillRequest(POWER_STRIKE.id)) }
 
         // Check results
         assertIs<SystemMessageResponse.YouMustSelectTarget>(context.responseChannel.receive())
@@ -317,7 +312,7 @@ class SkillServiceTest(
 
         character.targetId = Random.nextInt()
 
-        withContext(context) { skillService.useSkill(UseSkillRequest(POWER_STRIKE.id, false, false)) }
+        withContext(context) { skillService.useSkill(UseSkillRequest(POWER_STRIKE.id)) }
 
         // Check results
         assertIs<SystemMessageResponse.TargetCannotBeFound>(context.responseChannel.receive())
@@ -341,11 +336,7 @@ class SkillServiceTest(
         }
 
         withContext(context) {
-            skillService.useSkill(UseSkillRequest(
-                skillId = SELF_HEAL.id,
-                forced = false,
-                holdPosition = false
-            ))
+            skillService.useSkill(UseSkillRequest(SELF_HEAL.id))
         }
 
         // MP consumption update
@@ -380,11 +371,7 @@ class SkillServiceTest(
         }
 
         withContext(context) {
-            skillService.useSkill(UseSkillRequest(
-                skillId = SELF_HEAL.id,
-                forced = false,
-                holdPosition = false
-            ))
+            skillService.useSkill(UseSkillRequest(SELF_HEAL.id))
         }
 
         // MP consumption update
