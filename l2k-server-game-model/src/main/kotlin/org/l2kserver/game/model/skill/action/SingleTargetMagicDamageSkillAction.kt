@@ -4,18 +4,32 @@ import org.l2kserver.game.model.actor.ActorInstance
 import org.l2kserver.game.model.item.template.SpiritshotType
 import org.l2kserver.game.model.skill.effect.effects
 import org.l2kserver.game.model.skill.effect.hit
-import org.l2kserver.game.model.stats.Attribute
 import org.l2kserver.game.model.utils.MAGIC_ATTACK_BASE
 import org.l2kserver.game.model.utils.calculateIsMagicCritical
 import org.l2kserver.game.model.utils.calculateIsMagicSucceeded
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
 
+enum class Attribute {
+    EARTH,
+    WIND,
+    FIRE,
+    WATER,
+    DARK,
+    LIGHT
+}
+
+/**
+ * This effect deals magic damage to single target
+ *
+ * @property power Array of effect power per effect level (0 based)
+ * @property magicLevel Array of level of magic (to compare with target level) per effect level
+ * @property attribute
+ */
 class SingleTargetMagicDamageSkillAction(
     val power: List<Int>,
     val magicLevel: List<Int>,
-    val attribute: Attribute,
-    val attributeValue: Int
+    val attribute: Attribute
 ): SingleTargetMagicSkillAction {
 
     override fun apply(

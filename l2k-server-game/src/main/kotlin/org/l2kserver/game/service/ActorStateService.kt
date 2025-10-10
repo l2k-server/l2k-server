@@ -17,7 +17,6 @@ import org.l2kserver.game.model.actor.Npc
 import org.l2kserver.game.model.actor.PlayerCharacter
 import org.l2kserver.game.model.actor.MoveType
 import org.l2kserver.game.model.actor.MutableActorInstance
-import org.l2kserver.game.model.actor.Posture
 import org.l2kserver.game.model.actor.character.PvpState
 import org.l2kserver.game.repository.GameObjectRepository
 import org.springframework.beans.factory.annotation.Value
@@ -32,9 +31,6 @@ const val ACTOR_STATE_JOB = "ACTOR_STATE_JOB"
 const val REGENERATION_JOB = "REGENERATION_JOB"
 
 private const val REGENERATION_TASK_DELAY_MS = 3_000L // 5 minutes for doors
-private const val REGENERATION_MULTIPLIER_ON_SITTING = 1.5
-private const val REGENERATION_MULTIPLIER_ON_STAYING = 1.1
-private const val REGENERATION_MULTIPLIER_ON_RUNNING = 0.7
 
 @Service
 class ActorStateService(
@@ -176,16 +172,9 @@ class ActorStateService(
 
             val updatedStatuses = mutableMapOf<StatusAttribute, Int>()
 
-            val postureBonus = when {
-                actor is PlayerCharacter && actor.posture == Posture.SITTING -> REGENERATION_MULTIPLIER_ON_SITTING
-                !actor.isMoving -> REGENERATION_MULTIPLIER_ON_STAYING
-                actor.isRunning -> REGENERATION_MULTIPLIER_ON_RUNNING
-                else -> 1.0
-            }
-
             // Regenerate HP
             if (actor.stats.maxHp > actor.currentHp) {
-                val hpRegeneration = actor.stats.hpRegen * postureBonus //TODO apply buffs and zones
+                val hpRegeneration = actor.stats.hpRegen
                 actor.currentHp = minOf(actor.stats.maxHp, actor.currentHp + hpRegeneration.roundToInt())
 
                 //Both hp and mp must be sent, otherwise client does not update status
@@ -195,7 +184,7 @@ class ActorStateService(
 
             // Regenerate MP
             if (actor.stats.maxMp > actor.currentMp) {
-                val mpRegeneration = actor.stats.mpRegen * postureBonus //TODO apply buffs and zones
+                val mpRegeneration = actor.stats.mpRegen
                 actor.currentMp = minOf(actor.stats.maxMp, actor.currentMp + mpRegeneration.roundToInt())
 
                 //Both hp and mp must be sent, otherwise client does not update status
@@ -205,7 +194,7 @@ class ActorStateService(
 
             // Regenerate CP
             if (actor is PlayerCharacter && actor.stats.maxCp > actor.currentCp) {
-                val cpRegeneration = actor.stats.cpRegen * postureBonus //TODO apply buffs and zones
+                val cpRegeneration = actor.stats.cpRegen
                 actor.currentCp = minOf(actor.stats.maxCp, actor.currentCp + cpRegeneration.roundToInt())
 
                 updatedStatuses[StatusAttribute.CUR_CP] = actor.currentCp

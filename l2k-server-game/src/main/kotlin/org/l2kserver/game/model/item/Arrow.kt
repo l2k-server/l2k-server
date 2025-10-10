@@ -27,7 +27,7 @@ class Arrow(
     override val isExchangeable = itemTemplate.isExchangeable
     override val isStackable = true
 
-    override val category = itemTemplate.category
+    override val popUpHintType = itemTemplate.popupHintType
     override val group = ItemGroup.ETC
 
     override fun toString() = "Arrow(name=$name id=$id amount=$amount)"

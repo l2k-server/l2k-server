@@ -12,7 +12,7 @@ package org.l2kserver.game.model.skill.effect
  * @property isFailed is this attack failed
  */
 data class DamageEffect(
-    override val targetId: Int,
+    val targetId: Int,
     val damage: Int = 0,
     val isCritical: Boolean = false,
     val isBlocked: Boolean = false,

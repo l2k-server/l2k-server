@@ -16,7 +16,7 @@ data class WeaponTemplate(
     override val isExchangeable: Boolean,
     override val type: WeaponType,
     override val stats: CombatStats,
-    override val fixedBonusStats: CombatStats = CombatStats(),
+    override val fixedBonusStats: CombatStats? = null,
     override val crystalCount: Int,
 
     val soulshotUsed: Int,
@@ -25,7 +25,7 @@ data class WeaponTemplate(
     val manaCost: Int = 0
 ): EquippableItemTemplate, CrystallizableItemTemplate {
 
-    override val category = ItemCategory.WEAPON
+    override val popupHintType = PopupHintType.WEAPON
 }
 
 /**

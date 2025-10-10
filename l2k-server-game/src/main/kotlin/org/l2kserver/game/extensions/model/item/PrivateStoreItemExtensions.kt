@@ -39,7 +39,7 @@ fun RequestedToSellItem.toItemOnSale(owner: PlayerCharacter): ItemOnSale = trans
     return@transaction ItemOnSale(
         itemId = item.id,
         templateId = item.templateId,
-        categoryId = item.category.id,
+        categoryId = item.popUpHintType.id,
         amount = requestedItem.amount,
         enchantLevel = item.enchantLevel,
         equippableAt = item.type.availableSlots.firstOrNull(),
@@ -57,7 +57,7 @@ fun RequestedToBuyItem.toItemInWishList(ownerId: Int): ItemInWishList = transact
 
     return@transaction ItemInWishList(
         templateId = itemTemplate.id,
-        categoryId = itemTemplate.category.id,
+        popupHintId = itemTemplate.popupHintType.id,
         amount = requestedItem.amount,
         enchantLevel = requestedItem.enchantLevel,
         equippableAt = itemTemplate.type.availableSlots.firstOrNull(),
@@ -84,5 +84,5 @@ fun ItemInstance.toItemInInventory(amount: Int = this.amount) = ItemInInventory(
     amount = amount,
     price = this.price,
     equippableAt = this.type.availableSlots.firstOrNull(),
-    categoryId = this.category.id
+    categoryId = this.popUpHintType.id
 )

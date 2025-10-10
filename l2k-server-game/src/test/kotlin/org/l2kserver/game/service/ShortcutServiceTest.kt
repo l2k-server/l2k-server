@@ -8,7 +8,6 @@ import org.l2kserver.game.handler.dto.request.CreateShortcutRequest
 import org.l2kserver.game.handler.dto.response.CreateShortcutResponse
 import org.l2kserver.game.model.actor.character.ShortcutType
 import org.l2kserver.game.repository.ShortcutRepository
-import org.l2kserver.game.repository.SkillRepository
 import org.springframework.beans.factory.annotation.Autowired
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -18,7 +17,6 @@ import kotlin.test.assertNotNull
 class ShortcutServiceTest(
     @Autowired private val shortcutService: ShortcutService,
     @Autowired private val shortcutRepository: ShortcutRepository,
-    @Autowired private val skillRepository: SkillRepository
 ): AbstractTests() {
 
     @Test
@@ -66,12 +64,7 @@ class ShortcutServiceTest(
         val testIndex = 0
         val testSkillLevel = 1
 
-        skillRepository.save(
-            characterId = character.id,
-            subclassIndex = character.activeSubclass,
-            skillId = testActionId,
-            skillLevel = testSkillLevel
-        )
+        character.skillsAndMagic.learn(skillId = testActionId, skillLevel = testSkillLevel)
 
         val request = CreateShortcutRequest(
             type = testActionType,

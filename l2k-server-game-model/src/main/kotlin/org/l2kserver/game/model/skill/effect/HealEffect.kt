@@ -6,7 +6,7 @@ package org.l2kserver.game.model.skill.effect
  * @property value How many HP is restored
  */
 data class HealEffect(
-    override val targetId: Int,
+    val targetId: Int,
     val value: Int
 ): Effect
 

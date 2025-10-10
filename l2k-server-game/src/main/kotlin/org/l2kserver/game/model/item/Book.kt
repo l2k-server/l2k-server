@@ -3,7 +3,7 @@ package org.l2kserver.game.model.item
 import org.l2kserver.game.domain.ItemEntity
 import org.l2kserver.game.model.item.instance.ItemInstance
 import org.l2kserver.game.model.item.template.BookTemplate
-import org.l2kserver.game.model.item.template.ItemCategory
+import org.l2kserver.game.model.item.template.PopupHintType
 import org.l2kserver.game.model.item.template.ItemGroup
 
 class Book(itemEntity: ItemEntity, itemTemplate: BookTemplate): ItemInstance {
@@ -24,7 +24,7 @@ class Book(itemEntity: ItemEntity, itemTemplate: BookTemplate): ItemInstance {
     override val isExchangeable = itemTemplate.isExchangeable
     override val isStackable = itemTemplate.isStackable
 
-    override val category = ItemCategory.OTHER
+    override val popUpHintType = PopupHintType.OTHER
     override val group = ItemGroup.ETC
 
     val text = itemTemplate.text

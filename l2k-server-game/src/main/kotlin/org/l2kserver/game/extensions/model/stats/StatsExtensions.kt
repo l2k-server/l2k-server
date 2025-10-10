@@ -1,23 +1,29 @@
 package org.l2kserver.game.extensions.model.stats
 
+import org.l2kserver.game.model.actor.ActorInstance
 import org.l2kserver.game.model.actor.PlayerCharacter
+import org.l2kserver.game.model.actor.Posture
 import org.l2kserver.game.model.actor.character.CharacterClass
-import org.l2kserver.game.model.item.instance.EquippableItemInstance
 import org.l2kserver.game.model.item.template.Slot
-import org.l2kserver.game.model.stats.BasicStats
+import org.l2kserver.game.model.skill.effect.StatsEffect
 import org.l2kserver.game.model.stats.CombatStats
+import org.l2kserver.game.model.stats.CombatStatsMultipliers
 import kotlin.math.pow
 import kotlin.math.roundToInt
 
 private const val MAX_CRIT_RATE = 500
 private const val P_DEF_BASE = 4
 
+private const val REGENERATION_MULTIPLIER_ON_SITTING = 1.5
+private const val REGENERATION_MULTIPLIER_ON_STAYING = 1.1
+private const val REGENERATION_MULTIPLIER_ON_RUNNING = 0.7
+
 /**
  * Apply stats of the equipment
  *
  * @param character Equipment owner
  */
-fun CombatStats.applyEquipment(character: PlayerCharacter): CombatStats {
+fun CombatStats.applyEquipmentOf(character: PlayerCharacter): CombatStats {
     var result = this + (character.inventory.weapon?.stats ?: character.characterClass.emptySlotStats[Slot.RIGHT_HAND])
 
     val upperBodyStats = character.inventory[Slot.UPPER_BODY]?.stats ?: character.characterClass.emptySlotStats[Slot.UPPER_BODY]
@@ -42,8 +48,22 @@ fun CombatStats.applyEquipment(character: PlayerCharacter): CombatStats {
 /**
  * Calculate stats after applying base stats and level modifiers
  */
-fun CombatStats.applyModifiers(level: Int, characterClass: CharacterClass, basicStats: BasicStats): CombatStats {
-    val levelModifier = (level + 89) / 100.0
+fun CombatStats.applyModifiersOf(character: PlayerCharacter): CombatStats {
+    val level = character.level
+    val characterClass = character.characterClass
+    val basicStats = character.basicStats
+
+    val multipliers = character.skillsAndMagic.passives()
+        .map { it.skillAction.apply(character, it.skillLevel) }
+        .flatten()
+        .filterIsInstance<StatsEffect>()
+        .fold(CombatStatsMultipliers()) { acc, statsEffect ->
+            statsEffect.combatStatsMultipliers?.let { acc * it } ?: acc
+
+        }
+    //TODO Buffs multipliers
+
+    val levelModifier = (character.level + 89) / 100.0
 
     val levelResourceMultiplier = level - characterClass.requiredLevel
     val maxCpBase = this.maxCp + calculateResourceStatLevelBonus(
@@ -57,42 +77,62 @@ fun CombatStats.applyModifiers(level: Int, characterClass: CharacterClass, basic
     )
 
     return this.copy(
-        maxCp = (maxCpBase * basicStats.con.cpModifier).toInt(),
-        maxHp = (maxHpBase * basicStats.con.hpModifier).toInt(),
-        maxMp = (maxMpBase * basicStats.men.mpModifier).toInt(),
+        maxCp = (maxCpBase * basicStats.con.cpModifier * multipliers.maxCp).toInt(),
+        maxHp = (maxHpBase * basicStats.con.hpModifier * multipliers.maxHp).toInt(),
+        maxMp = (maxMpBase * basicStats.men.mpModifier * multipliers.maxMp).toInt(),
 
-        pAtk = (this.pAtk * basicStats.str.pAtkModifier * levelModifier).toInt(),
-        pDef = P_DEF_BASE + (this.pDef * levelModifier).toInt(),
+        pAtk = (this.pAtk * basicStats.str.pAtkModifier * levelModifier * multipliers.pAtk).toInt(),
+        pDef = P_DEF_BASE + (this.pDef * levelModifier * multipliers.pDef).toInt(),
         accuracy = this.accuracy + basicStats.dex.accuracyBonus + level,
-        critRate = (this.critRate * basicStats.dex.critRateModifier).toInt(),
-        atkSpd = (this.atkSpd * basicStats.dex.atkSpdModifier).toInt(),
+        critRate = (this.critRate * basicStats.dex.critRateModifier * multipliers.critRate).toInt(),
+        atkSpd = (this.atkSpd * basicStats.dex.atkSpdModifier * multipliers.atkSpd).toInt(),
 
-        mAtk = (this.mAtk * basicStats.int.mAtkModifier.pow(2) * levelModifier.pow(2)).toInt(),
-        mDef = (this.mDef * basicStats.men.mDefModifier * levelModifier).toInt(),
+        mAtk = (this.mAtk * basicStats.int.mAtkModifier.pow(2) * levelModifier.pow(2) * multipliers.mAtk).toInt(),
+        mDef = (this.mDef * basicStats.men.mDefModifier * levelModifier * multipliers.mDef).toInt(),
 
         evasion = this.evasion + basicStats.dex.evasionBonus + level,
-        speed = (this.speed * basicStats.dex.speedModifier).toInt(),
-        castingSpd = (this.castingSpd * basicStats.wit.castingSpdModifier).toInt(),
+        speed = (this.speed * basicStats.dex.speedModifier * multipliers.speed).toInt(),
+        castingSpd = (this.castingSpd * basicStats.wit.castingSpdModifier * multipliers.castingSpd).toInt(),
 
-        shieldDefRate = (this.shieldDefRate * basicStats.dex.shieldBlockRateModifier).toInt(),
+        shieldDef = (this.shieldDef * multipliers.shieldDef).toInt(),
+        shieldDefRate = (this.shieldDefRate * basicStats.dex.shieldBlockRateModifier * multipliers.shieldDefRate).toInt(),
 
-        mCritRate = this.mCritRate + (basicStats.wit.magicCritChanceBonus * 10).roundToInt(),
+        mCritRate = this.mCritRate + (basicStats.wit.magicCritChanceBonus * 10 * multipliers.mCritRate).roundToInt(),
 
-        hpRegen = (this.hpRegen + hpRegenLevelModifier(characterClass, level)) * basicStats.con.hpRegenModifier,
-        mpRegen = (this.mpRegen + mpRegenLevelModifier(characterClass, level)) * basicStats.men.mpRegenModifier,
-        cpRegen = (this.cpRegen + cpRegenLevelModifier(characterClass, level)) * basicStats.con.cpRegenModifier
+        hpRegen = (this.hpRegen + hpRegenLevelModifier(characterClass, level)) * basicStats.con.hpRegenModifier * multipliers.hpRegen,
+        mpRegen = (this.mpRegen + mpRegenLevelModifier(characterClass, level)) * basicStats.men.mpRegenModifier * multipliers.mpRegen,
+        cpRegen = (this.cpRegen + cpRegenLevelModifier(characterClass, level)) * basicStats.con.cpRegenModifier * multipliers.cpRegen
     )
 }
 
 /** Applies fixed bonus of items, buffs and passives */
-fun CombatStats.applyFixedBonusStats(
-    equippedItems: Iterable<EquippableItemInstance> //TODO + fixed bonus stats from buffs
-): CombatStats{
-    var result = this
-    
-    equippedItems.forEach { result += it.fixedBonusStats }
-    
-    return result
+fun CombatStats.applyFixedBonusStatsOf(character: PlayerCharacter): CombatStats {
+    val itemsFixedBonusStats = character.inventory.findAllEquipped().mapNotNull { it.fixedBonusStats }
+    val passivesFixedBonusStats = character.skillsAndMagic.passives()
+        .map { it.skillAction.apply(character, it.skillLevel) }
+        .flatten()
+        .filterIsInstance<StatsEffect>()
+        .mapNotNull { it.bonusCombatStats }
+    //TODO Buffs fixed stats
+
+    return this + (itemsFixedBonusStats + passivesFixedBonusStats)
+        .fold(CombatStats()) { acc, stats -> acc + stats }
+}
+
+/** Applies posture bonus to regen stats */
+fun CombatStats.applyPostureBonusOf(actor: ActorInstance): CombatStats {
+    val postureBonus = when {
+        actor is PlayerCharacter && actor.posture == Posture.SITTING -> REGENERATION_MULTIPLIER_ON_SITTING
+        !actor.isMoving -> REGENERATION_MULTIPLIER_ON_STAYING
+        actor.isRunning -> REGENERATION_MULTIPLIER_ON_RUNNING
+        else -> 1.0
+    }
+
+    return this.copy(
+        cpRegen = this.cpRegen * postureBonus,
+        hpRegen = this.hpRegen * postureBonus,
+        mpRegen = this.mpRegen * postureBonus
+    )
 }
 
 /** Calculate stats after applying limitations */

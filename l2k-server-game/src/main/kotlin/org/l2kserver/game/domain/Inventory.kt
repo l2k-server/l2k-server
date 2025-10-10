@@ -14,6 +14,7 @@ import org.l2kserver.game.model.item.instance.ItemInstance
 import org.l2kserver.game.model.item.template.ItemTemplateRegistry
 import org.l2kserver.game.model.item.template.Slot
 import java.util.EnumMap
+import java.util.concurrent.ConcurrentHashMap
 
 private const val ADENA_TEMPLATE_ID = 57
 
@@ -22,7 +23,7 @@ private const val ADENA_TEMPLATE_ID = 57
  */
 class Inventory(val owner: PlayerCharacter): Collection<ItemInstance> {
 
-    private lateinit var items: MutableMap<Int, ItemInstance>
+    private val items: MutableMap<Int, ItemInstance> = ConcurrentHashMap()
     private lateinit var equippedItems: EnumMap<Slot, EquippableItemInstance>
 
     init {
@@ -180,10 +181,8 @@ class Inventory(val owner: PlayerCharacter): Collection<ItemInstance> {
 
     /** Reloads items from the database */
     private fun updateItems() = transaction {
-        items = ItemEntity.findAllByOwnerId(owner.id)
-            .mapNotNull { it.toItemInstance() }
-            .associateBy { it.id }
-            .toMutableMap()
+        items.clear()
+        items += ItemEntity.findAllByOwnerId(owner.id).mapNotNull { it.toItemInstance() }.associateBy { it.id }
     }
 
     /** Updates the equipped items list */

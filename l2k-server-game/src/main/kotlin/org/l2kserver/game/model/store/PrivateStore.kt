@@ -77,7 +77,7 @@ data class ItemOnSale(
  * Item, registered in private store (buy)
  *
  * @property templateId Wished item template id
- * @property categoryId Wished item category id
+ * @property popupHintId Wished item popup hint id
  * @property amount Amount of items, that can be bought in this store
  * @property enchantLevel Wished item enchant level
  * @property equippableAt Wished item slot to equip
@@ -86,7 +86,7 @@ data class ItemOnSale(
  */
 data class ItemInWishList(
     val templateId: Int,
-    val categoryId: Int,
+    val popupHintId: Int,
     val amount: Int,
     val enchantLevel: Int,
     val equippableAt: Slot?,

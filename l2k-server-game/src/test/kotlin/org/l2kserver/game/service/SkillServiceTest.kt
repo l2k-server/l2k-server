@@ -73,14 +73,7 @@ class SkillServiceTest(
         context.setCharacterId(character.id)
 
         //Learn skill
-        newSuspendedTransaction {
-            SkillTable.insert {
-                it[characterId] = character.id
-                it[subclassIndex] = 0
-                it[skillId] = MORTAL_BLOW.id
-                it[skillLevel] = 1
-            }
-        }
+        character.skillsAndMagic.learn(MORTAL_BLOW.id, 1)
 
         // Create our target
         val target = npcService.spawnAtPosition(
@@ -104,14 +97,7 @@ class SkillServiceTest(
         context.setCharacterId(character.id)
 
         //Learn skill
-        newSuspendedTransaction {
-            SkillTable.insert {
-                it[characterId] = character.id
-                it[subclassIndex] = 0
-                it[skillId] = POWER_STRIKE.id
-                it[skillLevel] = 1
-            }
-        }
+        character.skillsAndMagic.learn(POWER_STRIKE.id, 1)
 
         // Create our target
         val target = npcService.spawnAtPosition(
@@ -130,11 +116,8 @@ class SkillServiceTest(
 
         // Check results
         assertIs<StartMovingToAttackResponse>(context.responseChannel.receive())
-        val updateCharacterStatusResponse = assertIs<UpdateStatusResponse>(context.responseChannel.receive())
-        assertEquals(character.id, updateCharacterStatusResponse.objectId)
 
         assertIs<SystemMessageResponse.YouUse>(context.responseChannel.receive())
-
         val gaugeResponse = assertIs<GaugeResponse>(context.responseChannel.receive())
         assertEquals(GaugeColor.BLUE, gaugeResponse.gaugeColor)
 
@@ -150,11 +133,13 @@ class SkillServiceTest(
 
         assertIs<ChangeMoveTypeResponse>(context.responseChannel.receive())
 
+
         val targetFightingResponse = assertIs<StartFightingResponse>(context.responseChannel.receive())
         assertEquals(target.id, targetFightingResponse.actorId)
 
         val damageResponse = assertIs<SystemMessageResponse.YouHit>(context.responseChannel.receiveIgnoring(
             SystemMessageResponse.CriticalHit::class))
+
         val updateStatusResponse = assertIs<UpdateStatusResponse>(context.responseChannel.receiveIgnoring(
             SystemMessageResponse.OverHit::class
         ))
@@ -163,6 +148,9 @@ class SkillServiceTest(
             damageResponse.damage,
             target.stats.maxHp - (updateStatusResponse.attributes[StatusAttribute.CUR_HP] ?: 0)
         )
+
+        val updateCharacterStatusResponse = assertIs<UpdateStatusResponse>(context.responseChannel.receive())
+        assertEquals(character.id, updateCharacterStatusResponse.objectId)
     }
 
     @Test
@@ -173,18 +161,15 @@ class SkillServiceTest(
         context.setCharacterId(character.id)
 
         //Learn skill
-        newSuspendedTransaction {
-            SkillTable.insert {
-                it[characterId] = character.id
-                it[subclassIndex] = 0
-                it[skillId] = POWER_STRIKE.id
-                it[skillLevel] = 1
-            }
-        }
+        character.skillsAndMagic.learn(POWER_STRIKE.id, 1)
+
+        val fatDummyGremlinTemplate = NpcTemplateRegistry.register(GREMLIN.copy(
+            stats = GREMLIN.stats.copy(maxHp = 1000), ai = null
+        ))
 
         // Create our target
         val target = npcService.spawnAtPosition(
-            template = NpcTemplateRegistry.register(GREMLIN.copy(ai = null)),
+            template = fatDummyGremlinTemplate,
             spawnPosition = character.position.toSpawnPosition()
         )
         context.responseChannel.receive() //Skip NpcInfoResponse
@@ -194,7 +179,6 @@ class SkillServiceTest(
         withContext(context) { skillService.useSkill(UseSkillRequest(POWER_STRIKE.id)) }
 
         assertIs<StartMovingToAttackResponse>(context.responseChannel.receive())
-        assertIs<UpdateStatusResponse>(context.responseChannel.receive())
         assertIs<SystemMessageResponse.YouUse>(context.responseChannel.receive())
         assertIs<GaugeResponse>(context.responseChannel.receive())
         assertIs<SkillUsedResponse>(context.responseChannel.receive())
@@ -207,6 +191,7 @@ class SkillServiceTest(
         assertIs<SystemMessageResponse.YouHit>(context.responseChannel.receiveIgnoring(
             SystemMessageResponse.CriticalHit::class))
 
+        assertIs<UpdateStatusResponse>(context.responseChannel.receive())
 
         delay(1000)
         // Second skill usage
@@ -253,15 +238,7 @@ class SkillServiceTest(
         context.setCharacterId(character.id)
 
         //Learn skill
-        newSuspendedTransaction {
-            SkillTable.insert {
-                it[characterId] = character.id
-                it[subclassIndex] = 0
-                it[skillId] = POWER_STRIKE.id
-                it[skillLevel] = 1
-            }
-        }
-
+        character.skillsAndMagic.learn(POWER_STRIKE.id, 1)
         character.targetId = character.id
 
         withContext(context) { skillService.useSkill(UseSkillRequest(POWER_STRIKE.id)) }
@@ -278,14 +255,7 @@ class SkillServiceTest(
         context.setCharacterId(character.id)
 
         //Learn skill
-        newSuspendedTransaction {
-            SkillTable.insert {
-                it[characterId] = character.id
-                it[subclassIndex] = 0
-                it[skillId] = POWER_STRIKE.id
-                it[skillLevel] = 1
-            }
-        }
+        character.skillsAndMagic.learn(POWER_STRIKE.id, 1)
 
         withContext(context) { skillService.useSkill(UseSkillRequest(POWER_STRIKE.id)) }
 
@@ -301,14 +271,7 @@ class SkillServiceTest(
         context.setCharacterId(character.id)
 
         //Learn skill
-        newSuspendedTransaction {
-            SkillTable.insert {
-                it[characterId] = character.id
-                it[subclassIndex] = 0
-                it[skillId] = POWER_STRIKE.id
-                it[skillLevel] = 1
-            }
-        }
+        character.skillsAndMagic.learn(POWER_STRIKE.id, 1)
 
         character.targetId = Random.nextInt()
 
@@ -325,22 +288,17 @@ class SkillServiceTest(
         context.setCharacterId(character.id)
 
         // Learn self-heal
-        newSuspendedTransaction {
-            SkillTable.insert {
-                it[characterId] = character.id
-                it[subclassIndex] = 0
-                it[skillId] = SELF_HEAL.id
-                it[skillLevel] = 1
-            }
-            character.currentHp = 1
-        }
+        character.skillsAndMagic.learn(SELF_HEAL.id, 1)
+        transaction { character.currentHp = 1 }
 
         withContext(context) {
             skillService.useSkill(UseSkillRequest(SELF_HEAL.id))
         }
 
-        // MP consumption update
+
         assertIs<UpdateStatusResponse>(context.responseChannel.receive())
+
+        // MP consumption update
         assertIs<SystemMessageResponse.YouUse>(context.responseChannel.receive())
         assertIs<GaugeResponse>(context.responseChannel.receive())
         assertIs<SkillUsedResponse>(context.responseChannel.receive())
@@ -359,16 +317,8 @@ class SkillServiceTest(
         context.setCharacterId(character.id)
 
         // Learn self-heal
-        newSuspendedTransaction {
-            SkillTable.insert {
-                it[characterId] = character.id
-                it[subclassIndex] = 0
-                it[skillId] = SELF_HEAL.id
-                it[skillLevel] = 1
-            }
-
-            character.currentHp = character.stats.maxHp - 10
-        }
+        character.skillsAndMagic.learn(SELF_HEAL.id, 1)
+        transaction { character.currentHp = character.stats.maxHp - 10 }
 
         withContext(context) {
             skillService.useSkill(UseSkillRequest(SELF_HEAL.id))

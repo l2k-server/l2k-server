@@ -53,7 +53,7 @@ data class ItemListForPrivateStoreBuyResponse(
             putInt(itemInStore.price)
             putShort(0)
             putInt(itemInStore.equippableAt?.id ?: 0)
-            putShort(itemInStore.categoryId.toShort())
+            putShort(itemInStore.popupHintId.toShort())
             putInt(itemInStore.price)
             putInt(itemInStore.recommendedPrice)
         }

@@ -1,6 +1,10 @@
 package org.l2kserver.game.model.skill
 
 import org.l2kserver.game.domain.SkillEntity
+import org.l2kserver.game.model.skill.instance.ActiveSkillInstance
+import org.l2kserver.game.model.skill.instance.SkillConsumables
+import org.l2kserver.game.model.skill.template.ActiveSkillTemplate
+import org.l2kserver.game.model.skill.template.SkillConsumablesTemplate
 import java.time.Instant
 import java.util.concurrent.ConcurrentHashMap
 
@@ -13,7 +17,6 @@ private val cooldowns = ConcurrentHashMap<Int, Instant>()
  * @property skillId Skill identifier
  * @property skillName Skill name (eng)
  * @property skillLevel Level of skill
- * @property skillType Skill type - active, passive or toggle
  * @property reuseDelay Base cooldown of this skill
  * @property castTime Base casting time of this skill
  * @property repriseTime Time to return to the starting position after skill casting
@@ -23,10 +26,10 @@ private val cooldowns = ConcurrentHashMap<Int, Instant>()
  * @property consumes Skill consumables - mp, items, etc.
  * @property skillAction Effects, dealt by this skill
  */
-class Skill(
+class ActiveSkill(
     private val entity: SkillEntity,
-    private val template: SkillTemplate
-) : SkillInstance {
+    private val template: ActiveSkillTemplate
+) : ActiveSkillInstance {
     companion object;
 
     private val skillEntityId = entity.id.value
@@ -43,11 +46,12 @@ class Skill(
     override val castRange = template.castRange
     override val effectRange = template.effectRange
     override val requires = template.requires
+    override val consumesToStart: SkillConsumables? get() = template.consumesToStart?.toSkillConsumables()
     override val consumes: SkillConsumables? get() = template.consumes?.toSkillConsumables()
     override val overhitPossible = template.overhitPossible
     override val skillAction = template.skillAction
 
-    var nextUsageTime: Instant
+    override var nextUsageTime: Instant
         get() = cooldowns[skillEntityId] ?: Instant.MIN
         set(value) {
             cooldowns[skillEntityId] = value
@@ -71,5 +75,5 @@ class Skill(
         },
     )
 
-    override fun toString() = "Skill(id=$skillId name=$skillName level=$skillLevel)"
+    override fun toString() = "ActiveSkill(id=$skillId name=$skillName level=$skillLevel)"
 }

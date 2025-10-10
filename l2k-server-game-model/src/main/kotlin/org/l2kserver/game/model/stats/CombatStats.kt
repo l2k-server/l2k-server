@@ -216,10 +216,6 @@ data class CombatStats(
             if (cpRegen != 0.0) add("cpRegen=$cpRegen")
         }
 
-        return with(StringBuilder()) {
-            append("Stats(")
-            append(statList.joinToString(","))
-            append(")")
-        }.toString()
+        return statList.joinToString(",", "CombatStats(", ")")
     }
 }

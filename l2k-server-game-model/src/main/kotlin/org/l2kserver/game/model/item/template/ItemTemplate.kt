@@ -25,7 +25,7 @@ sealed interface ItemTemplate: GameData {
     override val id: Int
     val name: String
     val type: ItemType get() = NonEquippableItemType
-    val category: ItemCategory get() = ItemCategory.OTHER
+    val popupHintType: PopupHintType get() = PopupHintType.OTHER
     val grade: Grade
     val weight: Int
     val price: Int
@@ -46,7 +46,7 @@ sealed interface EquippableItemTemplate: ItemTemplate {
     override val isStackable: Boolean get() = false
 
     val stats: CombatStats
-    val fixedBonusStats: CombatStats
+    val fixedBonusStats: CombatStats?
 }
 
 /**
@@ -71,22 +71,43 @@ object NonEquippableItemType : ItemType {
     override val availableSlots: Set<Slot> = emptySet()
 }
 
+/** Some item group. I don't know what does it affect ¯\_(ツ)_/¯ */
 enum class ItemGroup(val id: Int) {
     WEAPON_OR_JEWELRY(0),
     ARMOR(1),
     ETC(4)
 }
 
-enum class ItemCategory {
+/** Determines pop-up hint type to be displayed by client */
+enum class PopupHintType {
+    /** Displays weapon type and it's pAtk, mAtk, atkSpeed stats */
     WEAPON,
+
+    /** Displays armor type and it's p.def and shield def rate (if it is Shield) stats */
     ARMOR,
+
+    /** Displays jewelry type and it's m.def stat */
     JEWELRY,
+
+    /** Displays 'Quest Item' on item icon hover */
     QUEST_ITEM,
+
+    /** TODO ¯\_(ツ)_/¯ Seems it works the same as 'OTHER' */
     MONEY,
+
+    /** Displays weight and item description (if exists)*/
     OTHER,
+
+    /** TODO ¯\_(ツ)_/¯ */
     PET_WOLF,
+
+    /** TODO ¯\_(ツ)_/¯ */
     PET_HATCHLING,
+
+    /** TODO ¯\_(ツ)_/¯ */
     PET_STRIDER,
+
+    /** TODO ¯\_(ツ)_/¯ */
     PET_BABY;
 
     val id = this.ordinal
@@ -96,9 +117,7 @@ enum class Grade {
     NO_GRADE, D, C, B, A, S
 }
 
-/**
- * Slot, where the item should be placed (at paperdoll)
- **/
+/** Slot, where the item should be placed (at paperdoll) */
 enum class Slot(val id: Int) {
     //    INVENTORY(0),
     UNDERWEAR(1),

@@ -27,7 +27,7 @@ import org.l2kserver.game.model.actor.MutableActorInstance
 import org.l2kserver.game.model.actor.Npc
 import org.l2kserver.game.model.actor.PlayerCharacter
 import org.l2kserver.game.model.item.template.WeaponType
-import org.l2kserver.game.model.skill.Skill
+import org.l2kserver.game.model.skill.ActiveSkill
 import org.l2kserver.game.model.skill.effect.DamageEffect
 import org.l2kserver.game.network.session.send
 import org.l2kserver.game.network.session.sendTo
@@ -123,7 +123,7 @@ class CombatService(
     }
 
     suspend fun applyDamageEffect(
-        attacker: MutableActorInstance, effect: DamageEffect, skill: Skill? = null, overhitPossible: Boolean = false
+        attacker: MutableActorInstance, effect: DamageEffect, skill: ActiveSkill? = null, overhitPossible: Boolean = false
     ) {
         val attacked = gameObjectRepository.findActorByIdOrNull(effect.targetId) ?: return
 

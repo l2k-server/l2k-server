@@ -10,7 +10,7 @@ fun ItemInstance.toItemOnSale(price: Int, amount: Int = this.amount): ItemOnSale
     return ItemOnSale(
         itemId = this.id,
         templateId = this.templateId,
-        categoryId = this.category.id,
+        categoryId = this.popUpHintType.id,
         amount = amount,
         enchantLevel = this.enchantLevel,
         equippableAt = this.type.availableSlots.firstOrNull(),
@@ -21,7 +21,7 @@ fun ItemInstance.toItemOnSale(price: Int, amount: Int = this.amount): ItemOnSale
 
 fun ItemInstance.toItemInWishList(price: Int, amount: Int = this.amount) = ItemInWishList(
     templateId = this.templateId,
-    categoryId = this.category.id,
+    popupHintId = this.popUpHintType.id,
     amount = amount,
     enchantLevel = this.enchantLevel,
     equippableAt = this.type.availableSlots.firstOrNull(),
