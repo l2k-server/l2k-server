@@ -39,6 +39,7 @@ import org.l2kserver.game.data.skill.MORTAL_BLOW
 import org.l2kserver.game.data.skill.POWER_SHOT
 import org.l2kserver.game.data.skill.POWER_STRIKE
 import org.l2kserver.game.data.skill.SELF_HEAL
+import org.l2kserver.game.data.skill.SPELLCRAFT
 import org.l2kserver.game.data.skill.WIND_STRIKE
 import org.l2kserver.game.domain.AccessLevel
 import org.l2kserver.game.domain.PlayerCharacterTable
@@ -49,10 +50,9 @@ import org.l2kserver.game.model.actor.character.ShortcutType
 import org.l2kserver.game.model.actor.npc.NpcTemplateRegistry
 import org.l2kserver.game.model.html.HtmlRegistry
 import org.l2kserver.game.model.item.template.ItemTemplateRegistry
-import org.l2kserver.game.model.skill.SkillTemplateRegistry
+import org.l2kserver.game.model.skill.template.SkillTemplateRegistry
 import org.l2kserver.game.repository.PlayerCharacterRepository
 import org.l2kserver.game.repository.ShortcutRepository
-import org.l2kserver.game.repository.SkillRepository
 import org.l2kserver.game.utils.LevelUtils
 import org.springframework.boot.context.event.ApplicationStartedEvent
 import org.springframework.context.event.EventListener
@@ -66,7 +66,6 @@ private const val TEST_MYSTIC_CHARACTER_NAME = "TesterWoman"
 @Component
 class TestDataLoader(
     private val playerCharacterRepository: PlayerCharacterRepository,
-    private val skillRepository: SkillRepository,
     private val shortcutRepository: ShortcutRepository,
 ) {
 
@@ -145,7 +144,8 @@ class TestDataLoader(
             POWER_SHOT,
             LIFE_SCAVENGE,
             WIND_STRIKE,
-            SELF_HEAL
+            SELF_HEAL,
+            SPELLCRAFT
         )
     }
 
@@ -166,33 +166,10 @@ class TestDataLoader(
             it[accessLevel] = AccessLevel.GAME_MASTER
         }
 
-        skillRepository.save(
-            characterId = testFighter.id,
-            subclassIndex = testFighter.activeSubclass,
-            skillId = LIFE_SCAVENGE.id,
-            skillLevel = 1
-        )
-
-        skillRepository.save(
-            characterId = testFighter.id,
-            subclassIndex = testFighter.activeSubclass,
-            skillId = MORTAL_BLOW.id,
-            skillLevel = 1
-        )
-
-        skillRepository.save(
-            characterId = testFighter.id,
-            subclassIndex = testFighter.activeSubclass,
-            skillId = POWER_STRIKE.id,
-            skillLevel = 1
-        )
-
-        skillRepository.save(
-            characterId = testFighter.id,
-            subclassIndex = testFighter.activeSubclass,
-            skillId = POWER_SHOT.id,
-            skillLevel = 1
-        )
+        testFighter.skillsAndMagic.learn(skillId = LIFE_SCAVENGE.id, skillLevel = 1)
+        testFighter.skillsAndMagic.learn(skillId = MORTAL_BLOW.id, skillLevel = 1)
+        testFighter.skillsAndMagic.learn(skillId = POWER_STRIKE.id, skillLevel = 1)
+        testFighter.skillsAndMagic.learn(skillId = POWER_SHOT.id, skillLevel = 1)
 
         shortcutRepository.create(
             testFighter.id,

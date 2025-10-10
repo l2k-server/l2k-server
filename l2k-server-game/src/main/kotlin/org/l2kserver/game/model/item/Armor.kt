@@ -38,7 +38,7 @@ class Armor(
     override val type = itemTemplate.type
     override val crystalCount = itemTemplate.crystalCount
 
-    override val category = itemTemplate.category
+    override val popUpHintType = itemTemplate.popupHintType
     override val group = ItemGroup.ARMOR
 
     override fun toString() = "Armor(name=$name id=$id enchantLevel=$enchantLevel)"

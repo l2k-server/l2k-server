@@ -5,6 +5,7 @@ import org.l2kserver.game.data.item.armor.APPRENTICE_TUNIC
 import org.l2kserver.game.data.item.book.TUTORIAL_GUIDE
 import org.l2kserver.game.data.item.weapons.APPRENTICE_WAND
 import org.l2kserver.game.data.skill.SELF_HEAL
+import org.l2kserver.game.data.skill.SPELLCRAFT
 import org.l2kserver.game.data.skill.WIND_STRIKE
 import org.l2kserver.game.model.actor.CollisionBox
 import org.l2kserver.game.model.actor.character.CharacterClass
@@ -76,7 +77,8 @@ val HUMAN_MYSTIC = CharacterClass(
     skillTree = mapOf(
         1 to listOf(
             SkillToLearn(WIND_STRIKE.id, 1, autoLearn = true),
-            SkillToLearn(SELF_HEAL.id, 1, autoLearn = true)
+            SkillToLearn(SELF_HEAL.id, 1, autoLearn = true),
+            SkillToLearn(SPELLCRAFT.id, 1, autoLearn = true)
         )
     )
 )

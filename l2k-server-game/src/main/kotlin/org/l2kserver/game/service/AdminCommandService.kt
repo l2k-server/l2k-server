@@ -18,6 +18,7 @@ import org.l2kserver.game.model.command.EnchantCommand
 import org.l2kserver.game.model.command.GiveCommand
 import org.l2kserver.game.model.command.HelpCommand
 import org.l2kserver.game.model.command.ItemToEnchant
+import org.l2kserver.game.model.command.LearnCommand
 import org.l2kserver.game.model.command.RestoreCommand
 import org.l2kserver.game.model.command.StatToRestore
 import org.l2kserver.game.model.command.TeleportCommand
@@ -29,7 +30,8 @@ import org.springframework.stereotype.Service
 class AdminCommandService(
     override val gameObjectRepository: GameObjectRepository,
     private val moveService: MoveService,
-    private val itemService: ItemService
+    private val itemService: ItemService,
+    private val skillService: SkillService
 ) : AbstractService() {
 
     override val log = logger()
@@ -49,6 +51,7 @@ class AdminCommandService(
                 is EnchantCommand -> handleEnchantCommand(adminCommand)
                 is GiveCommand -> handleGiveCommand(adminCommand)
                 is RestoreCommand -> handleRestoreCommand(adminCommand)
+                is LearnCommand -> handleLearnCommand(adminCommand)
             }
         } catch (e: Exception) {
             log.error("Failed executing command '{}'", commandRequest.commandString, e)
@@ -188,5 +191,13 @@ class AdminCommandService(
 
         send { UpdateStatusResponse.hpMpCpOf(character) }
     }
+
+    private suspend fun handleLearnCommand(command: LearnCommand) {
+        val character = command.name?.let { gameObjectRepository.findCharacterByName(it) }
+            ?: gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
+
+        skillService.learnSkill(character, command.skillId, command.level)
+    }
+
 
 }

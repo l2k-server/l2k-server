@@ -5,12 +5,15 @@ import org.l2kserver.game.domain.Inventory
 import org.l2kserver.game.model.actor.position.Position
 import org.l2kserver.game.utils.LevelUtils
 import org.l2kserver.game.domain.PlayerCharacterEntity
+import org.l2kserver.game.domain.SkillsAndMagic
 import org.l2kserver.game.extensions.model.stats.applyBasicStats
-import org.l2kserver.game.extensions.model.stats.applyEquipment
+import org.l2kserver.game.extensions.model.stats.applyEquipmentOf
 import org.l2kserver.game.extensions.model.stats.applyLimitations
-import org.l2kserver.game.extensions.model.stats.applyModifiers
-import org.l2kserver.game.extensions.model.stats.applyFixedBonusStats
+import org.l2kserver.game.extensions.model.stats.applyModifiersOf
+import org.l2kserver.game.extensions.model.stats.applyFixedBonusStatsOf
+import org.l2kserver.game.extensions.model.stats.applyPostureBonusOf
 import org.l2kserver.game.model.actor.character.CharacterClass
+import org.l2kserver.game.model.actor.character.CharacterInstance
 import org.l2kserver.game.model.actor.character.PvpState
 import org.l2kserver.game.model.actor.position.Heading
 import org.l2kserver.game.model.item.Soulshot
@@ -58,7 +61,7 @@ import org.l2kserver.game.model.store.PrivateStore
  * @property karma Karma value
  * @property pvpCount Number of PvP kills
  * @property pkCount Number of Player Kills
- * @property hairStyle Character's hair style
+ * @property hairStyle Character's hairstyle
  * @property hairColor Character's hair color
  * @property faceType Character's face type
  * @property lastAccess Timestamp of last character access
@@ -93,37 +96,37 @@ import org.l2kserver.game.model.store.PrivateStore
 class PlayerCharacter(
     private val entity: PlayerCharacterEntity,
     val characterClass: CharacterClass
-): MutableActorInstance() {
+): MutableActorInstance(), CharacterInstance {
 
     override val id: Int = entity.id.value
-    val accountName by entity::accountName
+    override val accountName by entity::accountName
     override val name by entity::name
 
-    var title by entity::title
-    var clanId by entity::clanId
+    override var title by entity::title
+    override var clanId by entity::clanId
 
-    val gender by entity::gender
-    val race by entity::race
+    override val gender by entity::gender
+    override val race by entity::race
 
-    var currentCp by entity::currentCp
+    override var currentCp by entity::currentCp
     override var currentHp by entity::currentHp
     override var currentMp by entity::currentMp
 
-    var sp by entity::sp
-    var exp by entity::exp
-    var karma by entity::karma
-    var pvpCount by entity::pvpCount
-    var pkCount by entity::pkCount
+    override var sp by entity::sp
+    override var exp by entity::exp
+    override var karma by entity::karma
+    override var pvpCount by entity::pvpCount
+    override var pkCount by entity::pkCount
 
-    val hairStyle by entity::hairStyle
-    val hairColor by entity::hairColor
-    val faceType by entity::faceType
+    override val hairStyle by entity::hairStyle
+    override val hairColor by entity::hairColor
+    override val faceType by entity::faceType
 
     var lastAccess by entity::lastAccess
     var deletionDate by entity::deletionDate
 
     override var moveType = MoveType.RUN
-    var posture: Posture = Posture.STANDING
+    override var posture: Posture = Posture.STANDING
 
     val nameColor by entity::nameColor
     val titleColor by entity::titleColor
@@ -141,7 +144,8 @@ class PlayerCharacter(
 
     override var heading = Heading()
 
-    val inventory = Inventory(this)
+    override val inventory = Inventory(this)
+    override val skillsAndMagic = SkillsAndMagic(this)
 
     override val collisionBox: CollisionBox get() {
         //Scan character class and its parent classes for character template, to get its collision box
@@ -161,13 +165,14 @@ class PlayerCharacter(
 
     override val level: Int get() = LevelUtils.getLevelByExp(exp)
 
-    override val basicStats: BasicStats get() = characterClass.basicStats
+    override val basicStats: BasicStats get() = characterClass.basicStats //TODO + Henna, set bonuses, augmentations
 
     override val stats: CombatStats get() = characterClass.combatStats
-        .applyEquipment(this)
-        .applyModifiers(level, characterClass, basicStats)
-        .applyFixedBonusStats(this.inventory.findAllEquipped())
-        .applyLimitations() //TODO apply skills
+        .applyEquipmentOf(this)
+        .applyModifiersOf(this)
+        .applyFixedBonusStatsOf(this)
+        .applyPostureBonusOf(this)
+        .applyLimitations()
 
     val tradeAndInventoryStats: TradeAndInventoryStats get() = characterClass.tradeAndInventoryStats
         .applyBasicStats(basicStats)//TODO apply skills

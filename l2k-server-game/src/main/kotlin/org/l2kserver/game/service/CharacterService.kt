@@ -36,6 +36,7 @@ import org.l2kserver.game.handler.dto.response.PlayerDiedResponse
 import org.l2kserver.game.handler.dto.response.RestartResponse
 import org.l2kserver.game.handler.dto.response.ReviveResponse
 import org.l2kserver.game.handler.dto.response.ShortcutPanelResponse
+import org.l2kserver.game.handler.dto.response.SkillListResponse
 import org.l2kserver.game.handler.dto.response.SystemMessageResponse
 import org.l2kserver.game.handler.dto.response.UpdateStatusResponse
 import org.l2kserver.game.model.actor.PlayerCharacter
@@ -281,6 +282,7 @@ class CharacterService(
 
         send { FullCharacterResponse(character) }
         send { InventoryResponse(character.inventory) }
+        send { SkillListResponse(character.skillsAndMagic.values) }
         send { ShortcutPanelResponse(shortcuts) }
         send { SystemMessageResponse.Welcome }
 

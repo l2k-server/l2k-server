@@ -1,7 +1,9 @@
-package org.l2kserver.game.model.skill
+package org.l2kserver.game.model.skill.instance
 
 import org.l2kserver.game.model.item.ConsumableItem
-import org.l2kserver.game.model.skill.action.SkillAction
+import org.l2kserver.game.model.skill.action.ActiveSkillAction
+import org.l2kserver.game.model.skill.template.SkillRequirements
+import java.time.Instant
 
 /**
  * Skill instance
@@ -9,21 +11,22 @@ import org.l2kserver.game.model.skill.action.SkillAction
  * @property skillId Skill identifier
  * @property skillName Skill name (eng)
  * @property skillLevel Level of skill (learnt)
- * @property skillType Skill type - active, passive or toggle
+ * @property skillType Skill type - active or magic
  * @property reuseDelay Base cooldown of this skill
  * @property castTime Base casting time of this skill
  * @property repriseTime Time to return to the starting position after skill casting
  * @property castRange Range to target to cast this skill, or radius for mass skill
  * @property effectRange TODO
  * @property requires Requirements to use this skill
+ * @property consumesToStart
  * @property consumes Skill consumables - mp, items, etc.
  * @property skillAction Effects, dealt by this skill
  */
-interface SkillInstance {
-    val skillId: Int
-    val skillName: String
-    val skillLevel: Int
-    val skillType: SkillType
+interface ActiveSkillInstance: SkillInstance {
+    override val skillId: Int
+    override val skillName: String
+    override val skillLevel: Int
+    val skillType: ActiveSkillType
     val targetType: SkillTargetType
     val reuseDelay: Int
     val castTime: Int
@@ -31,19 +34,17 @@ interface SkillInstance {
     val castRange: Int
     val effectRange: Int
     val requires: SkillRequirements?
+    val consumesToStart: SkillConsumables?
     val consumes: SkillConsumables?
     val overhitPossible: Boolean
-    val skillAction: SkillAction
-
-    fun castsOnCorpse() = targetType == SkillTargetType.DEAD_MOB || targetType == SkillTargetType.DEAD_PLAYER
+    val skillAction: ActiveSkillAction
+    val nextUsageTime: Instant
 }
 
 /** Skill type - active, magic, passive or toggle */
-enum class SkillType {
+enum class ActiveSkillType {
     ACTIVE,
-    MAGIC,
-    PASSIVE,
-    TOGGLE
+    MAGIC
 }
 
 /**
@@ -52,6 +53,7 @@ enum class SkillType {
  * effects has their own target types
  */
 enum class SkillTargetType {
+
     /**
      * Skill will be cast on actor's target enemy.
      * These skills can be applied to friendly targets only with `forced` parameter
@@ -67,10 +69,10 @@ enum class SkillTargetType {
     /**
      * Skill will be cast on actor's target monster corpse (like Necromancer's Summon Zombie).
      */
-    DEAD_MOB,
+    DEAD_NPC,
 
     /**
-     * Skill will be cast on actor's target friend corpse (like Resurrection).
+     * Skill will be cast on actor's target player corpse (like Resurrection).
      */
     DEAD_PLAYER,
 

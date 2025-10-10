@@ -1,7 +1,7 @@
 package org.l2kserver.game.model.item.instance
 
 import org.l2kserver.game.model.item.template.Grade
-import org.l2kserver.game.model.item.template.ItemCategory
+import org.l2kserver.game.model.item.template.PopupHintType
 import org.l2kserver.game.model.item.template.ItemGroup
 import org.l2kserver.game.model.item.template.ItemType
 import org.l2kserver.game.model.item.template.Slot
@@ -22,8 +22,8 @@ import org.l2kserver.game.model.stats.CombatStats
  * @property isDroppable If true, this item can be dropped on the ground
  * @property isDestroyable If true, this item can be destroyed
  * @property isExchangeable If true, this item can be exchanged with other players
- * @property category Item category
- * @property group Item group
+ * @property popUpHintType Type of popup hint to be displayed on this item icon hover
+ * @property group Item group (I don't know what does it affect ¯\_(ツ)_/¯)
  */
 interface ItemInstance {
      val id: Int
@@ -43,7 +43,7 @@ interface ItemInstance {
      val isDestroyable: Boolean
      val isExchangeable: Boolean
      val isStackable: Boolean
-     val category: ItemCategory
+     val popUpHintType: PopupHintType
      val group: ItemGroup
 
      val isEquipped: Boolean get() = equippedAt != null
@@ -63,7 +63,7 @@ interface ItemInstance {
 interface EquippableItemInstance : ItemInstance {
      override val grade: Grade
      val stats: CombatStats
-     val fixedBonusStats: CombatStats
+     val fixedBonusStats: CombatStats?
      override var equippedAt: Slot?
 
      override val isStackable: Boolean get() = false

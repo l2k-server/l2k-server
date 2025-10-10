@@ -30,10 +30,11 @@ import org.l2kserver.game.handler.dto.response.FullCharacterResponse
 import org.l2kserver.game.handler.dto.response.InventoryResponse
 import org.l2kserver.game.handler.dto.response.RestartResponse
 import org.l2kserver.game.handler.dto.response.ShortcutPanelResponse
+import org.l2kserver.game.handler.dto.response.SkillListResponse
 import org.l2kserver.game.handler.dto.response.SystemMessageResponse
 import org.l2kserver.game.model.actor.character.CharacterRace
 import org.l2kserver.game.model.actor.character.Gender
-import org.l2kserver.game.repository.SkillRepository
+import org.l2kserver.game.repository.ShortcutRepository
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
@@ -42,7 +43,7 @@ import kotlin.test.assertTrue
 
 class CharacterServiceTests(
     @Autowired private val characterService: CharacterService,
-    @Autowired private val skillRepository: SkillRepository
+    @Autowired private val shortcutRepository: ShortcutRepository
 ) : AbstractTests() {
 
     @Test
@@ -189,14 +190,23 @@ class CharacterServiceTests(
 
             // Check database
             transaction {
-                assertNull(PlayerCharacterEntity.findById(character.id),
-                    "PlayerCharacter must be deleted")
-                assertTrue(ItemEntity.findAllByOwnerId(character.id).toList().isEmpty(),
-                    "Items of deleted character must be deleted too")
-                assertTrue(skillRepository.findAllByCharacterId(character.id).isEmpty(),
-                    "Shortcuts of deleted character must be deleted too")
-                assertTrue(skillRepository.findAllByCharacterId(character.id).isEmpty(),
-                    "Learned skills of deleted character must be deleted too")
+                assertNull(
+                    PlayerCharacterEntity.findById(character.id),
+                    "PlayerCharacter must be deleted"
+                )
+                assertTrue(
+                    ItemEntity.findAllByOwnerId(character.id).toList().isEmpty(),
+                    "Items of deleted character must be deleted too"
+                )
+                assertTrue(
+                    shortcutRepository
+                        .findAllBy(character.id, character.activeSubclass).isEmpty(),
+                    "Shortcuts of deleted character must be deleted too"
+                )
+                assertTrue(
+                    character.skillsAndMagic.isEmpty(),
+                    "Learned skills of deleted character must be deleted too"
+                )
             }
         }
     }
@@ -214,6 +224,7 @@ class CharacterServiceTests(
         assertNotNull(gameObjectRepository.findByIdOrNull(character.id))
 
         assertIs<InventoryResponse>(context.responseChannel.receive())
+        assertIs<SkillListResponse>(context.responseChannel.receive())
         assertIs<ShortcutPanelResponse>(context.responseChannel.receive())
 
         assertIs<SystemMessageResponse>(context.responseChannel.receive())

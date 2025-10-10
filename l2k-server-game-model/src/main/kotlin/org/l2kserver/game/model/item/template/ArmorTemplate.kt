@@ -14,10 +14,10 @@ data class ArmorTemplate(
     override val isExchangeable: Boolean,
     override val type: ArmorType,
     override val stats: CombatStats,
-    override val fixedBonusStats: CombatStats = CombatStats(),
+    override val fixedBonusStats: CombatStats? = null,
     override val crystalCount: Int
 ): EquippableItemTemplate, CrystallizableItemTemplate {
-    override val category = ItemCategory.ARMOR
+    override val popupHintType = PopupHintType.ARMOR
 }
 
 /**

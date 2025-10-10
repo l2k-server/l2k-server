@@ -2,18 +2,19 @@ package org.l2kserver.game.data.skill
 
 import org.l2kserver.game.model.skill.action.SingleTargetPhysicalDamageSkillAction
 import org.l2kserver.game.model.item.template.WeaponType
-import org.l2kserver.game.model.skill.SkillConsumablesTemplate
-import org.l2kserver.game.model.skill.SkillRequirements
-import org.l2kserver.game.model.skill.SkillTargetType
-import org.l2kserver.game.model.skill.SkillTemplate
-import org.l2kserver.game.model.skill.SkillType
+import org.l2kserver.game.model.skill.template.SkillConsumablesTemplate
+import org.l2kserver.game.model.skill.template.SkillRequirements
+import org.l2kserver.game.model.skill.instance.SkillTargetType
+import org.l2kserver.game.model.skill.template.ActiveSkillTemplate
+import org.l2kserver.game.model.skill.instance.ActiveSkillType
 import org.l2kserver.game.model.skill.action.BlowSkillAction
 import org.l2kserver.game.model.skill.action.CorpseDrainSkillAction
 
-val POWER_STRIKE = SkillTemplate(
+val POWER_STRIKE = ActiveSkillTemplate(
     id = 3,
     skillName = "Power strike",
-    skillType = SkillType.ACTIVE,
+    maxLevel = 9,
+    skillType = ActiveSkillType.ACTIVE,
     targetType = SkillTargetType.ENEMY,
     reuseDelay = 13_000,
     castTime = 1_080,
@@ -28,7 +29,6 @@ val POWER_STRIKE = SkillTemplate(
             WeaponType.BLUNT_TWO_HANDED
         )
     ),
-    maxSkillLevel = 9,
     consumes = SkillConsumablesTemplate(
         mp = listOf(10, 10, 11, 13, 13, 14, 17, 18, 19)
     ),
@@ -39,10 +39,11 @@ val POWER_STRIKE = SkillTemplate(
     )
 )
 
-val MORTAL_BLOW = SkillTemplate(
+val MORTAL_BLOW = ActiveSkillTemplate(
     id = 16,
     skillName = "Mortal Blow",
-    skillType = SkillType.ACTIVE,
+    maxLevel = 24,
+    skillType = ActiveSkillType.ACTIVE,
     targetType = SkillTargetType.ENEMY,
     reuseDelay = 11_000,
     castTime = 1_080,
@@ -52,7 +53,6 @@ val MORTAL_BLOW = SkillTemplate(
     requires = SkillRequirements(
         weaponTypes = listOf(WeaponType.DAGGER)
     ),
-    maxSkillLevel = 24,
     consumes = SkillConsumablesTemplate(
         mp = listOf(9,9,10,11,12,13,16,16,17,19,20,20,21,22,23,25,26,27,28,28,29,32,33,34)
     ),
@@ -62,10 +62,11 @@ val MORTAL_BLOW = SkillTemplate(
     )
 )
 
-val POWER_SHOT = SkillTemplate(
+val POWER_SHOT = ActiveSkillTemplate(
     id = 56,
     skillName = "Power Shot",
-    skillType = SkillType.ACTIVE,
+    maxLevel = 24,
+    skillType = ActiveSkillType.ACTIVE,
     targetType = SkillTargetType.ENEMY,
     reuseDelay = 25_000,
     castTime = 3_200,
@@ -75,7 +76,6 @@ val POWER_SHOT = SkillTemplate(
     requires = SkillRequirements(
         weaponTypes = listOf(WeaponType.BOW)
     ),
-    maxSkillLevel = 24,
     consumes = SkillConsumablesTemplate(
         mp = listOf(17, 18, 19, 22, 23, 25, 31, 32, 34, 38, 39, 40, 42, 43, 45, 49, 51, 53, 56, 56, 58, 63, 65, 67)
     ),
@@ -87,18 +87,20 @@ val POWER_SHOT = SkillTemplate(
     )
 )
 
-val LIFE_SCAVENGE = SkillTemplate(
+val LIFE_SCAVENGE = ActiveSkillTemplate(
     id = 46,
     skillName = "Life Scavenge",
-    skillType = SkillType.MAGIC,
-    targetType = SkillTargetType.DEAD_MOB,
+    maxLevel = 15,
+    skillType = ActiveSkillType.MAGIC,
+    targetType = SkillTargetType.DEAD_NPC,
     reuseDelay = 20_000,
     castTime = 1500,
     castRange = 400,
     effectRange = 900,
-    maxSkillLevel = 15,
+    consumesToStart = SkillConsumablesTemplate(
+        mp = listOf(7, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13, 13, 14, 14)
+    ),
     consumes = SkillConsumablesTemplate(
-        mpToStart = listOf(7, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13, 13, 14, 14),
         mp = listOf(28, 30, 33, 35, 38, 40, 43, 44, 46, 48, 49, 51, 52, 53, 55)
     ),
     skillAction = CorpseDrainSkillAction(

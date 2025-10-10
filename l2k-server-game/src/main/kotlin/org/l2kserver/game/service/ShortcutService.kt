@@ -10,14 +10,12 @@ import org.l2kserver.game.model.actor.character.ShortcutType
 import org.l2kserver.game.network.session.send
 import org.l2kserver.game.network.session.sessionContext
 import org.l2kserver.game.repository.ShortcutRepository
-import org.l2kserver.game.repository.SkillRepository
 import org.springframework.stereotype.Service
 
 @Service
 class ShortcutService(
     override val gameObjectRepository: GameObjectRepository,
-    private val shortcutRepository: ShortcutRepository,
-    private val skillRepository: SkillRepository
+    private val shortcutRepository: ShortcutRepository
 ) : AbstractService() {
 
     override val log = logger()
@@ -30,9 +28,7 @@ class ShortcutService(
         )?.delete()
 
         val actionLevel = if (request.type == ShortcutType.SKILL)
-            skillRepository.findBy(
-                request.shortcutActionId, character.id, character.activeSubclass
-            ).skillLevel
+            character.skillsAndMagic[request.shortcutActionId].skillLevel
         else 1
 
         val newShortcut = shortcutRepository.create(

@@ -13,54 +13,54 @@ import kotlin.collections.asSequence
 @Component
 class GameObjectRepository {
 
-    private val objectMap = ConcurrentHashMap<Int, GameWorldObject>()
-    private val charactersMap = ConcurrentHashMap<Int, PlayerCharacter>()
-    private val npcMap = ConcurrentHashMap<Int, Npc>()
+    private val objects = ConcurrentHashMap<Int, GameWorldObject>()
+    private val characters = ConcurrentHashMap<Int, PlayerCharacter>()
+    private val npcs = ConcurrentHashMap<Int, Npc>()
 
     /**
      * Loads character to game world
      * @return loaded Character
      */
     fun loadCharacter(character: PlayerCharacter): PlayerCharacter {
-        charactersMap[character.id] = character
+        characters[character.id] = character
         return character
     }
 
     fun <T: GameWorldObject> save(gameObject: T?) = if (gameObject == null) null else {
         when (gameObject) {
-            is PlayerCharacter -> charactersMap[gameObject.id] = gameObject
-            is Npc -> npcMap[gameObject.id] = gameObject
-            else -> objectMap[gameObject.id] = gameObject
+            is PlayerCharacter -> characters[gameObject.id] = gameObject
+            is Npc -> npcs[gameObject.id] = gameObject
+            else -> objects[gameObject.id] = gameObject
         }
 
         gameObject
     }
 
-    fun findByIdOrNull(id: Int) = charactersMap[id] ?: npcMap[id] ?: objectMap[id]
+    fun findByIdOrNull(id: Int) = characters[id] ?: npcs[id] ?: objects[id]
 
-    fun findById(id: Int) = requireNotNull(charactersMap[id] ?:objectMap[id]) {
+    fun findById(id: Int) = requireNotNull(characters[id] ?:objects[id]) {
         "No GameObject found by id=$id"
     }
 
-    fun findActorByIdOrNull(id: Int) = npcMap[id] ?: charactersMap[id]
+    fun findActorByIdOrNull(id: Int) = npcs[id] ?: characters[id]
 
-    fun findActorById(id: Int) = requireNotNull(npcMap[id] ?: charactersMap[id]) {
+    fun findActorById(id: Int) = requireNotNull(npcs[id] ?: characters[id]) {
         "No actor found by id = '$id'"
     }
 
-    fun findCharacterByIdOrNull(id: Int) = charactersMap[id]
+    fun findCharacterByIdOrNull(id: Int) = characters[id]
 
-    fun findCharacterById(id: Int) = requireNotNull(charactersMap[id]) {
+    fun findCharacterById(id: Int) = requireNotNull(characters[id]) {
         "No character found by id=$id"
     }
 
     fun findCharacterByName(characterName: String) =
-        requireNotNull(charactersMap.values.find { it.name == characterName }) {
+        requireNotNull(characters.values.find { it.name == characterName }) {
             "No character found by name '$characterName'"
         }
 
     fun findAllNear(gameObject: GameWorldObject) =
-        sequenceOf(objectMap.values, charactersMap.values, npcMap.values)
+        sequenceOf(objects.values, characters.values, npcs.values)
             .flatten()
             .filter {
                 it.position.isCloseTo(gameObject.position, VISION_RANGE) && it.id != gameObject.id
@@ -72,7 +72,7 @@ class GameObjectRepository {
      */
     fun findAllActorsNear(
         gameObject: GameWorldObject, distance: Int = VISION_RANGE
-    ) = sequenceOf(charactersMap.values, npcMap.values)
+    ) = sequenceOf(characters.values, npcs.values)
         .flatten()
         .filter { it.position.isCloseTo(gameObject.position, distance) && it.id != gameObject.id }
 
@@ -82,7 +82,7 @@ class GameObjectRepository {
      */
     fun findAllCharactersNear(
         gameObject: GameWorldObject, distance: Int = VISION_RANGE
-    ) = charactersMap.values.asSequence().filter {
+    ) = characters.values.asSequence().filter {
         it.position.isCloseTo(gameObject.position, distance) && it.id != gameObject.id
     }
 
@@ -93,35 +93,37 @@ class GameObjectRepository {
     @Suppress("UNCHECKED_CAST")
     fun findAllCharactersNear(
         position: Position, distance: Int = VISION_RANGE
-    ) = charactersMap.values.asSequence().filter {
+    ) = characters.values.asSequence().filter {
         it.position.isCloseTo(position, distance)
     }
 
     /** Finds all the characters in game */
-    fun findAllCharacters() = charactersMap.values.asSequence()
+    fun findAllCharacters() = characters.values.asSequence()
 
     /** Finds all the actors in game */
-    fun findAllActors() = sequenceOf(npcMap.values + charactersMap.values).flatten()
+    fun findAllActors() = sequenceOf(npcs.values + characters.values).flatten()
 
     /** Finds all the NPCs in game */
-    fun findAllNpc() = npcMap.values.asSequence()
+    fun findAllNpc() = npcs.values.asSequence()
 
-    fun existsById(id: Int) = objectMap.containsKey(id) || charactersMap.containsKey(id) || npcMap.containsKey(id)
+    fun existsById(id: Int) = objects.containsKey(id) || characters.containsKey(id) || npcs.containsKey(id)
 
+
+    /** Tries to remove gameObject. If removed - returns removed object */
     @Suppress("UNCHECKED_CAST")
     fun <T: GameWorldObject> delete(gameObject: T): T? = when (gameObject) {
-        is PlayerCharacter -> charactersMap.remove(gameObject.id)
-        is Npc -> npcMap.remove(gameObject.id)
-        else -> objectMap.remove(gameObject.id)
+        is PlayerCharacter -> characters.remove(gameObject.id)
+        is Npc -> npcs.remove(gameObject.id)
+        else -> objects.remove(gameObject.id)
     } as T?
 
     fun deleteById(id: Int) =
-        charactersMap.remove(id) ?: npcMap.remove(id) ?: objectMap.remove(id)
+        characters.remove(id) ?: npcs.remove(id) ?: objects.remove(id)
 
     fun deleteAll() {
-        charactersMap.clear()
-        npcMap.clear()
-        objectMap.clear()
+        characters.clear()
+        npcs.clear()
+        objects.clear()
     }
 
 }

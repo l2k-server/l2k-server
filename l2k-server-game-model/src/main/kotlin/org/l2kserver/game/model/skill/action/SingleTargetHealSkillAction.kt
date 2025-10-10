@@ -6,6 +6,11 @@ import org.l2kserver.game.model.skill.effect.effects
 import org.l2kserver.game.model.skill.effect.heal
 import kotlin.math.roundToInt
 
+/**
+ * Heals single target
+ *
+ * @property power Array of effect power per effect level (0 based)
+ */
 class SingleTargetHealSkillAction(
     val power: List<Int>
 ): SingleTargetMagicSkillAction {

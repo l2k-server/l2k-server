@@ -33,7 +33,7 @@ class Soulshot(
     override val isExchangeable = itemTemplate.isExchangeable
     override val isStackable = itemTemplate.isStackable
 
-    override val category = itemTemplate.category
+    override val popUpHintType = itemTemplate.popupHintType
     override val group = ItemGroup.ETC
 }
 
@@ -58,7 +58,7 @@ class Spiritshot(
     override val isExchangeable = itemTemplate.isExchangeable
     override val isStackable = itemTemplate.isStackable
 
-    override val category = itemTemplate.category
+    override val popUpHintType = itemTemplate.popupHintType
     override val group = ItemGroup.ETC
 
     val spiritshotType = itemTemplate.spiritshotType

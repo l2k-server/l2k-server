@@ -6,7 +6,8 @@ import org.l2kserver.game.extensions.putUTF16String
 import org.l2kserver.game.extensions.putUByte
 import org.l2kserver.game.model.item.Ss
 import org.l2kserver.game.model.item.instance.ItemInstance
-import org.l2kserver.game.model.skill.Skill
+import org.l2kserver.game.model.skill.ActiveSkill
+import org.l2kserver.game.model.skill.instance.SkillInstance
 
 private const val SYSTEM_MESSAGE_RESPONSE_PACKET_ID: UByte = 100u
 
@@ -114,11 +115,11 @@ open class SystemMessageResponse private constructor(
     data object AttackFailed: SystemMessageResponse(systemMessageId = 158)
 
     /** Message: "[targetName] has resisted your [skill]." */
-    data class HasResisted(val targetName:String, val skill: Skill): SystemMessageResponse(
+    data class HasResisted(val targetName:String, val skill: ActiveSkill): SystemMessageResponse(
         systemMessageId = 139, targetName, skill)
 
     /** Message: "You use [skill]" */
-    data class YouUse(val skill: Skill): SystemMessageResponse(systemMessageId = 46, skill)
+    data class YouUse(val skill: ActiveSkill): SystemMessageResponse(systemMessageId = 46, skill)
 
     /** Message: "You have earned [earnedExp] experience and [earnedSp] SP" */
     data class YouHaveEarnedExpAndSp(
@@ -193,7 +194,7 @@ open class SystemMessageResponse private constructor(
     )
 
     /** Message: [skill] is not available at this time: being prepared for reuse. */
-    data class IsBeingPreparedForReuse(val skill: Skill): SystemMessageResponse(
+    data class IsBeingPreparedForReuse(val skill: SkillInstance): SystemMessageResponse(
         systemMessageId = 48, skill
     )
 
@@ -245,6 +246,9 @@ open class SystemMessageResponse private constructor(
         healerName, value
     )
 
+    /** Message: You have learned [skill] */
+    data class LearnedSkill(val skill: SkillInstance): SystemMessageResponse(systemMessageId = 277, skill)
+
     override val data = littleEndianByteArray {
         putUByte(SYSTEM_MESSAGE_RESPONSE_PACKET_ID)
         putInt(systemMessageId)
@@ -267,7 +271,7 @@ open class SystemMessageResponse private constructor(
                     putInt(it.templateId)
                 }
 
-                is Skill -> {
+                is SkillInstance -> {
                     putInt(PlaceholderType.SKILL)
                     putInt(it.skillId)
                     putInt(it.skillLevel)

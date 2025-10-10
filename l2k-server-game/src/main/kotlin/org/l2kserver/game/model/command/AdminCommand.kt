@@ -16,6 +16,7 @@ sealed class AdminCommand : NoOpCliktCommand() {
                 "enchant" -> EnchantCommand()
                 "give" -> GiveCommand()
                 "restore" -> RestoreCommand()
+                "learn" -> LearnCommand()
 
                 else -> throw IllegalArgumentException("Unknown command $commandName")
             }

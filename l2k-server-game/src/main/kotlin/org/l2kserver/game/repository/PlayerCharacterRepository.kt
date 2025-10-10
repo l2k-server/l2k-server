@@ -8,6 +8,7 @@ import org.jetbrains.exposed.sql.transactions.transaction
 import org.l2kserver.game.domain.ItemEntity
 import org.l2kserver.game.domain.PlayerCharacterEntity
 import org.l2kserver.game.domain.PlayerCharacterTable
+import org.l2kserver.game.domain.SkillEntity
 import org.l2kserver.game.extensions.logger
 import org.l2kserver.game.model.actor.PlayerCharacter
 import org.l2kserver.game.model.actor.character.CharacterRace
@@ -23,8 +24,7 @@ private const val DEFAULT_TITLE = ""
 
 @Component
 class PlayerCharacterRepository(
-    private val shortcutRepository: ShortcutRepository,
-    private val skillRepository: SkillRepository
+    private val shortcutRepository: ShortcutRepository
 ) {
 
     private val log = logger()
@@ -64,11 +64,18 @@ class PlayerCharacterRepository(
         }
 
         val characterLevel = LevelUtils.getLevelByExp(characterEntity.exp)
+
         for ((requiredLevel, skillsToLearn) in characterClass.skillTree) {
             if (requiredLevel > characterLevel) continue
 
-            val learnableSkills = skillsToLearn.filter { it.autoLearn }
-            skillRepository.saveAll(characterEntity.id.value, 0 , learnableSkills)
+            skillsToLearn.filter { it.autoLearn }.forEach {
+                SkillEntity.new {
+                    this.characterId = characterEntity.id.value
+                    this.subclassIndex = characterEntity.activeSubclass
+                    this.skillId = it.skillId
+                    this.skillLevel = it.skillLevel
+                }
+            }
         }
 
         ItemEntity.createAllFrom(characterEntity.id.value, characterTemplate.items)

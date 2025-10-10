@@ -52,20 +52,25 @@ class NpcService(
     }
 
     /** Handles [npc]'s death - schedules corpse disappearing and respawn */
-    suspend fun handleNpcDeath(npc: Npc) = CoroutineScope(Dispatchers.Default).launch {
-        //Delete corpse from game world after delay
-        delay(CORPSE_DISAPPEARANCE_DELAY_MS)
+    suspend fun handleNpcDeath(npc: Npc) {
+        CoroutineScope(Dispatchers.Default).launch {
+            //Delete corpse from game world after delay
+            delay(CORPSE_DISAPPEARANCE_DELAY_MS)
+            remove(npc)
+        }
+        CoroutineScope(Dispatchers.Default).launch {
+            //Respawn this NPC after delay
+            val template = NpcTemplateRegistry.findByIdOrNull(npc.templateId)!!
+            delay(template.spawn.respawnDelay)
 
-        broadcastAround(npc) { DeleteObjectResponse(npc.id) }
-        gameObjectRepository.delete(npc)
+            //Spawn NPC at position or zone, depending on what is present
+            npc.spawnedAt.spawnPosition?.let { spawnAtPosition(template, it) }
+            npc.spawnedAt.spawnZone?.let { spawnAtZone(template, it) }
+        }
+    }
 
-        //Respawn this NPC after delay
-        val template = NpcTemplateRegistry.findByIdOrNull(npc.templateId)!!
-        delay(template.spawn.respawnDelay)
-
-        //Spawn NPC at position or zone, depending on what is present
-        npc.spawnedAt.spawnPosition?.let { spawnAtPosition(template, it) }
-        npc.spawnedAt.spawnZone?.let { spawnAtZone(template, it) }
+    suspend fun remove(npc: Npc) = gameObjectRepository.delete(npc)?.let {
+        broadcastAround(it) { DeleteObjectResponse(it.id) }
     }
 
     /**

@@ -48,7 +48,7 @@ data class UpdateItemsResponse private constructor(
                 putInt(it.item.id)
                 putInt(it.item.templateId)
                 putInt(it.item.amount)
-                putShort(it.item.category.id.toShort())
+                putShort(it.item.popUpHintType.id.toShort())
                 putShort(0)
                 putShort(if (it.item.isEquipped) 1 else 0)
                 putInt(it.item.type.availableSlots.firstOrNull()?.id ?: 0)

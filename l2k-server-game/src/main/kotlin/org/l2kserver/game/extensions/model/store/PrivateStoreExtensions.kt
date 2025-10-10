@@ -87,7 +87,7 @@ fun PrivateStore.toInfoResponse(storeOwner: PlayerCharacter, storeCustomer: Play
                     ItemOnSale(
                         itemId = customerItem?.id ?: 0,
                         templateId = itemInWishList.templateId,
-                        categoryId = itemInWishList.categoryId,
+                        categoryId = itemInWishList.popupHintId,
                         amount = minOf(customerItem?.amount ?: 0, itemInWishList.amount),
                         enchantLevel = itemInWishList.enchantLevel,
                         equippableAt = itemInWishList.equippableAt,

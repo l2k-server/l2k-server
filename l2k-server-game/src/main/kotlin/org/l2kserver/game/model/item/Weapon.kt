@@ -66,7 +66,7 @@ class Weapon(
     val manaCost = itemTemplate.manaCost
     val consumes = itemTemplate.consumes
 
-    override val category = itemTemplate.category
+    override val popUpHintType = itemTemplate.popupHintType
     override val group = ItemGroup.WEAPON_OR_JEWELRY
 
     override fun toString() = "Weapon(name=$name id=$id enchantLevel=$enchantLevel)"

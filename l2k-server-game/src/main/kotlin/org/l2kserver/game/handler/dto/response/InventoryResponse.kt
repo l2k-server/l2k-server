@@ -21,7 +21,7 @@ data class InventoryResponse(
             putInt(it.id)
             putInt(it.templateId)
             putInt(it.amount)
-            putShort(it.category.id.toShort())
+            putShort(it.popUpHintType.id.toShort())
             putShort(0) // Custom Type (?)
             putShort(if (it.isEquipped) 1 else 0)
             putInt(it.type.availableSlots.firstOrNull()?.id ?: 0)
