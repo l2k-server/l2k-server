@@ -19,14 +19,12 @@ import org.l2kserver.game.handler.dto.response.StartMovingToAttackResponse
 import org.l2kserver.game.handler.dto.response.StartRotationResponse
 import org.l2kserver.game.handler.dto.response.StopRotationResponse
 import org.l2kserver.game.handler.dto.response.TeleportResponse
-import org.l2kserver.game.handler.dto.response.ValidatePositionResponse
 import org.l2kserver.game.model.actor.ActorInstance
 import org.l2kserver.game.model.actor.CollisionBox
 import org.l2kserver.game.model.actor.position.Position
 import org.l2kserver.game.model.actor.GameWorldObject
 import org.l2kserver.game.model.actor.MoveType
 import org.l2kserver.game.model.actor.MutableActorInstance
-import org.l2kserver.game.model.actor.PlayerCharacter
 import org.l2kserver.game.network.session.send
 import org.l2kserver.game.network.session.sendTo
 import org.l2kserver.game.network.session.sessionContext
@@ -36,6 +34,7 @@ import org.springframework.stereotype.Service
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.coroutines.coroutineContext
 import kotlin.math.hypot
+import kotlin.math.roundToInt
 
 private const val ROTATE_SPEED_PER_SEC = 65536
 
@@ -97,16 +96,9 @@ class MoveService(
 
         val character = gameObjectRepository.findCharacterById(characterId)
 
-        if (character.position.isCloseTo(request.position)) {
-            log.trace("Difference is too small, modifying position at server side")
-            character.position = request.position
-
-            //CRUTCH If this response is not sent - character becomes stuck
-            send { ActionFailedResponse }
-        } else {
-            log.trace("Difference is too big, modifying position at client side")
-            send { ValidatePositionResponse(character.id, character.position, character.heading) }
-        }
+        character.position = request.position
+        //CRUTCH If this response is not sent - character becomes stuck
+        send { ActionFailedResponse }
     }
 
     suspend fun startRotation(request: StartRotationRequest) {
@@ -142,6 +134,7 @@ class MoveService(
 
         //If actor is already at destination point - no need to do anything else
         if (actor.position.isCloseTo(target.position, requiredDistance)) {
+            //This needed to show red target frame
             send { StartMovingToAttackResponse(actor, target.id, requiredDistance) }
             return@newSuspendedTransaction
         }
@@ -190,7 +183,7 @@ class MoveService(
                 //Update objects only each 10 move iterations (~1 second) - it is very heavy operation
                 val updateObjects = (moveIterations % 10) == 0
 
-                updatePosition(actor,destination!!, moveDistance, updateObjects)
+                updatePosition(actor, destination!!, moveDistance, updateObjects)
                 moveTimestamp = System.currentTimeMillis()
 
                 //Sleep for 1 tick minus time of updating operation
@@ -253,7 +246,6 @@ class MoveService(
 
         // Imitate teleporting process. Client validates position after disappearance animation ends,
         // so it will break if position will change immediately
-        delay(1000)
 
         newSuspendedTransaction { actor.position = fixedPosition }
         updateObjectsAround(actor)
@@ -280,23 +272,15 @@ class MoveService(
 
         // minOf prevents jumping around destination point if speed is too big
         // and moving is greater than way to go
-        val newX = (minOf(moveDistance, distanceXY) * cos).toInt() + actor.position.x
-        val newY = (minOf(moveDistance, distanceXY) * sin).toInt() + actor.position.y
+        val newX = (minOf(moveDistance, distanceXY) * cos).roundToInt() + actor.position.x
+        val newY = (minOf(moveDistance, distanceXY) * sin).roundToInt() + actor.position.y
         val newZ = geoDataService.getNearestZ(newX, newY, actor.position.z)
 
         val newPosition = actor.position.copy(x = newX, y = newY, z = newZ)
 
         actor.position = newPosition
         log.trace("Updated position of actor '{}' to '{}'", actor, newPosition)
-
         if (updateObjects) updateObjectsAround(actor, destination)
-
-        //CRUTCH
-        // If Z becomes lower too fast, send ValidatePositionResponse with actual position,
-        // to prevent falling under the textures on client side
-        if (actor is PlayerCharacter && actor.position.deltaZ(newPosition) < -Position.ACCEPTABLE_DELTA) {
-            send { ValidatePositionResponse(actor.id, newPosition, actor.heading) }
-        }
     }
 
     private fun GameWorldObject.exists() = if (this is DestinationPoint) true

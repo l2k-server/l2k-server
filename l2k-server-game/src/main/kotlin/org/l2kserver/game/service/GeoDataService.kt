@@ -54,13 +54,11 @@ class GeoDataService(
         var lastPoint = Triple(geoXStart, geoYStart, startZ)
 
         for ((x, y) in iterator) {
-            val z = geoDriver.getNearestZ(x, y, startPosition.z)
+            val z = geoDriver.getNearestZ(x, y, lastPoint.third)
             if (geoDriver.hasGeoPos(lastPoint.first, lastPoint.second)) {
                 val nswe = getNSWE(lastPoint.first, lastPoint.second, x, y)
                 if (!checkAntiCornerCut(lastPoint.first, lastPoint.second, lastPoint.third, nswe)) break
             }
-
-//            if (z - lastPoint.third > MAX_MOVABLE_DELTA_Z) break
 
             lastPoint = Triple(x, y, z)
         }

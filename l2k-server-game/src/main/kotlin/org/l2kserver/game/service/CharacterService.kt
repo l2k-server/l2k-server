@@ -292,6 +292,10 @@ class CharacterService(
         log.info("Player {} has entered world with character {}", accountName, character.name)
     }
 
+    suspend fun sendCharacterInfo() = send {
+        FullCharacterResponse(gameObjectRepository.findCharacterById(sessionContext().getCharacterId()))
+    }
+
     suspend fun respawnCharacter(request: RespawnRequest) {
         val context = sessionContext()
         val character = gameObjectRepository.findCharacterById(context.getCharacterId())

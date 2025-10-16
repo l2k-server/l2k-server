@@ -30,6 +30,7 @@ fun RequestPacket(data: ByteArray): RequestPacket {
         BASIC_ACTION_REQUEST_PACKET_ID -> BasicActionRequest(buffer)
         SOCIAL_ACTION_REQUEST_PACKET_ID -> SocialActionRequest(buffer)
 
+        APPEAR_REQUEST_PACKET_ID -> AppearRequest
         RESPAWN_REQUEST_PACKET_ID -> RespawnRequest(buffer)
 
         USE_ITEM_REQUEST_PACKET_ID -> UseItemRequest(buffer)
@@ -74,10 +75,7 @@ fun RequestPacket(data: ByteArray): RequestPacket {
 
         EXTENDED_PACKET -> ExtendedRequestPacket(buffer)
 
-        else -> {
-            System.err.println("Unknown packet type $requestPacketId")
-            throw IllegalArgumentException("Unknown packet type '$requestPacketId'")
-        }
+        else -> throw IllegalArgumentException("Unknown packet type '$requestPacketId'")
     }
 }
 
