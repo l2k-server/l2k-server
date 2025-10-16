@@ -220,7 +220,7 @@ class ItemService(
 
         val enoughCloseToPickUp = character.position.isCloseTo(
             other = scatteredItem.position,
-            distance = character.collisionBox.radius.roundToInt() + Position.ACCEPTABLE_DELTA
+            distance = character.collisionBox.radius.roundToInt() + Position.GEO_CELL_SIZE
         )
 
         if (!enoughCloseToPickUp) return@launchAction

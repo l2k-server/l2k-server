@@ -19,8 +19,8 @@ data class Position(
 ) {
 
     companion object {
-        const val ACCEPTABLE_DELTA = 16 //Equal to geodata cell size
-        const val TILE_SIZE = 32768 // Side length of one geodata tile
+        const val GEO_CELL_SIZE = 16
+        const val GEO_TILE_SIZE = 32768
         const val MAP_MIN_X = -131072
         const val MAP_MIN_Y = -262144
         const val MAP_MAX_X = 229376
@@ -59,7 +59,7 @@ data class Position(
      * Returns true if the distance between positions is lesser than provided
      */
     fun isCloseTo(other: Position?, distance: Int = 0) = other?.let {
-        this.distanceTo(it) <= distance + ACCEPTABLE_DELTA
+        this.distanceTo(it) <= distance + GEO_CELL_SIZE
     } ?: false
 
     /**

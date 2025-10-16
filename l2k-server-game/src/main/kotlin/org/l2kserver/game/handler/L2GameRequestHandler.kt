@@ -19,6 +19,7 @@ import org.l2kserver.game.handler.dto.request.RestoreCharacterRequest
 import org.l2kserver.game.handler.dto.request.SelectCharacterRequest
 import org.l2kserver.game.handler.dto.request.ActionRequest
 import org.l2kserver.game.handler.dto.request.AdminCommandRequest
+import org.l2kserver.game.handler.dto.request.AppearRequest
 import org.l2kserver.game.handler.dto.request.AttackRequest
 import org.l2kserver.game.handler.dto.request.AutoUseSsRequest
 import org.l2kserver.game.handler.dto.request.BasicActionRequest
@@ -100,6 +101,7 @@ class L2GameRequestHandler(
             is LogoutRequest -> characterService.exitGame()
             is RestartRequest -> characterService.exitToCharactersMenu()
             is RespawnRequest -> characterService.respawnCharacter(request)
+            is AppearRequest -> characterService.sendCharacterInfo()
 
             is ManorListRequest -> send { ManorListResponse }
 

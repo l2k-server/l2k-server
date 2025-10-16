@@ -62,7 +62,6 @@ val DAGGER = WeaponTemplate(
         pAtk = 5,
         mAtk = 5
     ),
-    fixedBonusStats = CombatStats(speed = 225),
     crystalCount = 0,
     soulshotUsed = 1,
     spiritshotUsed = 1
