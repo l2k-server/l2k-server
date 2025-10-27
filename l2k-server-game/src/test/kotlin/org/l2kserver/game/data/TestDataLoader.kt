@@ -34,7 +34,9 @@ import org.l2kserver.game.data.item.weapons.WILLOW_STAFF
 import org.l2kserver.game.data.npc.GRAND_MAGISTER_GALLINT
 import org.l2kserver.game.data.npc.GRAND_MASTER_ROIEN
 import org.l2kserver.game.data.npc.GREMLIN
+import org.l2kserver.game.data.skill.DEFENSE_AURA
 import org.l2kserver.game.data.skill.LIFE_SCAVENGE
+import org.l2kserver.game.data.skill.MIGHT
 import org.l2kserver.game.data.skill.MORTAL_BLOW
 import org.l2kserver.game.data.skill.POWER_SHOT
 import org.l2kserver.game.data.skill.POWER_STRIKE
@@ -143,9 +145,11 @@ class TestDataLoader(
             MORTAL_BLOW,
             POWER_SHOT,
             LIFE_SCAVENGE,
+            DEFENSE_AURA,
             WIND_STRIKE,
             SELF_HEAL,
-            SPELLCRAFT
+            SPELLCRAFT,
+            MIGHT
         )
     }
 
@@ -170,6 +174,12 @@ class TestDataLoader(
         testFighter.skillsAndMagic.learn(skillId = MORTAL_BLOW.id, skillLevel = 1)
         testFighter.skillsAndMagic.learn(skillId = POWER_STRIKE.id, skillLevel = 1)
         testFighter.skillsAndMagic.learn(skillId = POWER_SHOT.id, skillLevel = 1)
+        testFighter.skillsAndMagic.learn(skillId = DEFENSE_AURA.id, skillLevel = 1)
+        testFighter.skillsAndMagic.learn(skillId = MIGHT.id, skillLevel = 1)
+
+        testFighter.currentCp = testFighter.stats.maxCp
+        testFighter.currentHp = testFighter.stats.maxHp
+        testFighter.currentMp = testFighter.stats.maxMp
 
         shortcutRepository.create(
             testFighter.id,
@@ -179,11 +189,6 @@ class TestDataLoader(
             POWER_STRIKE.id,
             5
         )
-
-        testFighter.currentCp = testFighter.stats.maxCp
-        testFighter.currentHp = testFighter.stats.maxHp
-        testFighter.currentMp = testFighter.stats.maxMp
-
 
         val testMystic = playerCharacterRepository.create(
             accountName = TEST_CHARACTER_ACCOUNT_NAME,

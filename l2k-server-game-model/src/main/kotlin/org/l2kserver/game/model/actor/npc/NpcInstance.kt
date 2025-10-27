@@ -14,6 +14,7 @@ import org.l2kserver.game.model.reward.Reward
 import org.l2kserver.game.model.stats.BasicStats
 import org.l2kserver.game.model.stats.CombatStats
 import org.l2kserver.game.model.zone.SpawnZone
+import java.time.Instant
 
 /**
  * Non-player character
@@ -23,17 +24,23 @@ import org.l2kserver.game.model.zone.SpawnZone
 interface NpcInstance: ActorInstance {
     override val id: Int
     override val name: String
+    val title: String?
+
     val templateId: Int
     override val level: Int
-    val title: String?
+
     val isEnemy: Boolean
     val race: NpcRace
+
     override val heading: Heading
     override val position: Position
+
     override val stats: CombatStats
     override val basicStats: BasicStats
+
     val reward: Reward
     val spawnedAt: SpawnedAt
+    val disappearanceTime: Instant?
     val replica: String?
     override val collisionBox: CollisionBox
     override val currentHp: Int

@@ -33,7 +33,10 @@ class SessionContext(val sessionId: Int) : CoroutineContext.Element, Closeable {
             "No session exist by id $sessionId"
         }
 
-        fun clear() = sessionsMap.clear()
+        fun clear() {
+            sessionsMap.clear()
+            inGameSessionsMap.clear()
+        }
     }
 
     init {

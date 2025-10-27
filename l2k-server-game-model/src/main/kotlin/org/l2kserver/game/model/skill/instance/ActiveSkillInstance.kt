@@ -42,6 +42,7 @@ interface ActiveSkillInstance: SkillInstance {
 }
 
 /** Skill type - active, magic, passive or toggle */
+//TODO Separate Instance classes??
 enum class ActiveSkillType {
     ACTIVE,
     MAGIC

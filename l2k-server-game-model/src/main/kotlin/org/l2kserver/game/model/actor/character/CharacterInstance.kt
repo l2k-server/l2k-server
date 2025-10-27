@@ -10,6 +10,7 @@ import org.l2kserver.game.model.item.instance.ItemInstance
 import org.l2kserver.game.model.stats.BasicStats
 import org.l2kserver.game.model.stats.CombatStats
 import org.l2kserver.game.model.item.template.WeaponType
+import org.l2kserver.game.model.skill.effect.AbnormalEffect
 import org.l2kserver.game.model.skill.instance.SkillInstance
 
 /**
@@ -49,7 +50,8 @@ interface CharacterInstance: ActorInstance {
     override val heading: Heading
 
     val inventory: Collection<ItemInstance>
-    val skillsAndMagic: Map<Int, SkillInstance>
+    val skillsAndMagic: Collection<SkillInstance>
+    override val abnormalEffects: Collection<AbnormalEffect>
 
     override val isImmobilized: Boolean
     override val isParalyzed: Boolean
@@ -59,7 +61,6 @@ interface CharacterInstance: ActorInstance {
     override val isMoving: Boolean
     override val targetId: Int?
     override val targetedBy: Set<ActorInstance>
-
 
     override val collisionBox: CollisionBox
     override val stats: CombatStats

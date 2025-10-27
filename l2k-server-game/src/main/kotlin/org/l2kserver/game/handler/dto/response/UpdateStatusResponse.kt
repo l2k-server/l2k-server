@@ -83,6 +83,7 @@ enum class StatusAttribute(val id: Int) {
     M_ATK(23),
     CAST_SPD(24),
     M_DEF(25),
+
     PVP_FLAG(26),
     KARMA(27),
 

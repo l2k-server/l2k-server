@@ -87,16 +87,16 @@ val GREMLIN = NpcTemplate(
         //Uncomment this to enable GREMLINOCALYPSE at talking island
 //        zones = listOf(SpawnZone(
 //            name = "Talking Island",
-//            npcAmount = 80_000,
+//            npcAmount = 250_000,
 //            zMin = -3748,
 //            zMax = -3032,
 //            vertices = listOf(
 //                Point(Position.MAP_MIN_X, Position.MAP_MAX_Y),
-//                Point(Position.MAP_MIN_X, Position.MAP_MAX_Y - Position.TILE_SIZE * 2),
-//                Point(Position.MAP_MIN_X + Position.TILE_SIZE, Position.MAP_MAX_Y - Position.TILE_SIZE * 2),
-//                Point(Position.MAP_MIN_X + Position.TILE_SIZE, Position.MAP_MAX_Y - Position.TILE_SIZE),
-//                Point(Position.MAP_MIN_X + Position.TILE_SIZE * 2, Position.MAP_MAX_Y - Position.TILE_SIZE),
-//                Point(Position.MAP_MIN_X + Position.TILE_SIZE * 2, Position.MAP_MAX_Y)
+//                Point(Position.MAP_MIN_X, Position.MAP_MAX_Y - Position.GEO_TILE_SIZE * 2),
+//                Point(Position.MAP_MIN_X + Position.GEO_TILE_SIZE, Position.MAP_MAX_Y - Position.GEO_TILE_SIZE * 2),
+//                Point(Position.MAP_MIN_X + Position.GEO_TILE_SIZE, Position.MAP_MAX_Y - Position.GEO_TILE_SIZE),
+//                Point(Position.MAP_MIN_X + Position.GEO_TILE_SIZE * 2, Position.MAP_MAX_Y - Position.GEO_TILE_SIZE),
+//                Point(Position.MAP_MIN_X + Position.GEO_TILE_SIZE * 2, Position.MAP_MAX_Y)
 //            )
 //        ))
     ),

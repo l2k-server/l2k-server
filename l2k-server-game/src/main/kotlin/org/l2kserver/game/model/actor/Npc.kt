@@ -1,17 +1,18 @@
 package org.l2kserver.game.model.actor
 
+import org.l2kserver.game.domain.AbnormalEffects
+import org.l2kserver.game.extensions.model.stats.applyAbnormalsOf
 import org.l2kserver.game.model.actor.npc.NpcInstance
 import java.util.concurrent.ConcurrentHashMap
 import org.l2kserver.game.model.actor.position.Position
-import org.l2kserver.game.model.actor.npc.NpcRace
+import org.l2kserver.game.model.actor.npc.NpcTemplate
 import org.l2kserver.game.model.actor.npc.SpawnedAt
 import org.l2kserver.game.model.actor.position.Heading
-import org.l2kserver.game.model.actor.npc.ai.Ai
 import org.l2kserver.game.model.item.template.ArmorTemplate
+import org.l2kserver.game.model.item.template.ItemTemplateRegistry
 import org.l2kserver.game.model.item.template.WeaponTemplate
-import org.l2kserver.game.model.reward.Reward
-import org.l2kserver.game.model.stats.BasicStats
-import org.l2kserver.game.model.stats.CombatStats
+import org.l2kserver.game.utils.IdUtils
+import java.time.Instant
 
 /**
  * NPC data
@@ -37,29 +38,44 @@ import org.l2kserver.game.model.stats.CombatStats
  * @property ai AI script for this NPC
  */
 class Npc(
-    override val id: Int,
-    override val name: String,
-    override val templateId: Int,
-    override val level: Int,
-    override val title: String?,
-    override val isEnemy: Boolean,
-    override val race: NpcRace,
-    override var heading: Heading,
-    override var position: Position,
-    override val stats: CombatStats,
-    override val basicStats: BasicStats,
-    override val reward: Reward,
+    private val template: NpcTemplate,
     override val spawnedAt: SpawnedAt,
-    override val replica: String?,
-    override val collisionBox: CollisionBox,
-    override var currentHp: Int,
-    override var currentMp: Int,
-    override var moveType: MoveType,
-    override val ai: Ai?,
-
-    override var equippedWeaponTemplate: WeaponTemplate? = null,
-    override var equippedShieldTemplate: ArmorTemplate? = null
+    override var position: Position,
+    override var heading: Heading
 ): MutableActorInstance(), NpcInstance {
+
+    override val id = IdUtils.getNextNpcId()
+    override val name = template.name
+    override val title = template.title
+
+    override val templateId = template.id
+    override val level = template.level
+    override val isEnemy = template.isEnemy
+    override val race = template.race
+
+    override val stats get() = template.stats.applyAbnormalsOf(this)
+    override val basicStats = template.basicStats
+
+    override val reward = template.reward
+
+    override var disappearanceTime: Instant? = null
+
+    override val replica = template.replica
+    override val collisionBox = template.collisionBox
+
+    override var currentHp = template.stats.maxHp
+    override var currentMp = template.stats.maxMp
+
+    override var moveType = MoveType.WALK
+    override val ai = template.ai
+
+    override var equippedWeaponTemplate = template.equippedWeaponTemplateId?.let {
+        ItemTemplateRegistry.findByIdOrNull(it) as? WeaponTemplate
+    }
+
+    override var equippedShieldTemplate: ArmorTemplate? = template.equippedShieldTemplateId?.let {
+        ItemTemplateRegistry.findByIdOrNull(it) as? ArmorTemplate
+    }
 
     /**
      * How much damage had the opponents dealt to this NPC
@@ -79,6 +95,7 @@ class Npc(
 
     override var targetId: Int? = null
     override val targetedBy: MutableSet<ActorInstance> = ConcurrentHashMap.newKeySet(0)
+    override val abnormalEffects = AbnormalEffects()
 
     override val weaponType = equippedWeaponTemplate?.type
     override val hasShield = equippedShieldTemplate != null

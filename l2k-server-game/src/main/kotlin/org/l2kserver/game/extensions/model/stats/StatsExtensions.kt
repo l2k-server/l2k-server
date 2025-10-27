@@ -4,10 +4,13 @@ import org.l2kserver.game.model.actor.ActorInstance
 import org.l2kserver.game.model.actor.PlayerCharacter
 import org.l2kserver.game.model.actor.Posture
 import org.l2kserver.game.model.actor.character.CharacterClass
+import org.l2kserver.game.model.actor.npc.NpcInstance
 import org.l2kserver.game.model.item.template.Slot
-import org.l2kserver.game.model.skill.effect.StatsEffect
+import org.l2kserver.game.model.skill.abnormal.StatsAbnormal
 import org.l2kserver.game.model.stats.CombatStats
 import org.l2kserver.game.model.stats.CombatStatsMultipliers
+import kotlin.collections.fold
+import kotlin.collections.plus
 import kotlin.math.pow
 import kotlin.math.roundToInt
 
@@ -26,8 +29,10 @@ private const val REGENERATION_MULTIPLIER_ON_RUNNING = 0.7
 fun CombatStats.applyEquipmentOf(character: PlayerCharacter): CombatStats {
     var result = this + (character.inventory.weapon?.stats ?: character.characterClass.emptySlotStats[Slot.RIGHT_HAND])
 
-    val upperBodyStats = character.inventory[Slot.UPPER_BODY]?.stats ?: character.characterClass.emptySlotStats[Slot.UPPER_BODY]
-    val lowerBodyStats = character.inventory[Slot.LOWER_BODY]?.stats ?: character.characterClass.emptySlotStats[Slot.LOWER_BODY]
+    val upperBodyStats =
+        character.inventory[Slot.UPPER_BODY]?.stats ?: character.characterClass.emptySlotStats[Slot.UPPER_BODY]
+    val lowerBodyStats =
+        character.inventory[Slot.LOWER_BODY]?.stats ?: character.characterClass.emptySlotStats[Slot.LOWER_BODY]
 
     result += character.inventory[Slot.UPPER_AND_LOWER_BODY]?.stats ?: (upperBodyStats?.plus(lowerBodyStats))
 
@@ -53,15 +58,17 @@ fun CombatStats.applyModifiersOf(character: PlayerCharacter): CombatStats {
     val characterClass = character.characterClass
     val basicStats = character.basicStats
 
-    val multipliers = character.skillsAndMagic.passives()
-        .map { it.skillAction.apply(character, it.skillLevel) }
+    val effects = character.skillsAndMagic.passives()
+        .map { it.skillAction.affect(character, it.skillLevel) }
         .flatten()
-        .filterIsInstance<StatsEffect>()
-        .fold(CombatStatsMultipliers()) { acc, statsEffect ->
-            statsEffect.combatStatsMultipliers?.let { acc * it } ?: acc
+        .filterIsInstance<StatsAbnormal>() + character.abnormalEffects
+        .map { it.abnormalAction.affect(character, it.effectLevel) }
+        .flatten()
+        .filterIsInstance<StatsAbnormal>()
 
-        }
-    //TODO Buffs multipliers
+    val multipliers = effects.fold(CombatStatsMultipliers()) { acc, statsEffect ->
+        statsEffect.combatStatsMultipliers?.let { acc * it } ?: acc
+    }
 
     val levelModifier = (character.level + 89) / 100.0
 
@@ -109,13 +116,18 @@ fun CombatStats.applyModifiersOf(character: PlayerCharacter): CombatStats {
 fun CombatStats.applyFixedBonusStatsOf(character: PlayerCharacter): CombatStats {
     val itemsFixedBonusStats = character.inventory.findAllEquipped().mapNotNull { it.fixedBonusStats }
     val passivesFixedBonusStats = character.skillsAndMagic.passives()
-        .map { it.skillAction.apply(character, it.skillLevel) }
+        .map { it.skillAction.affect(character, it.skillLevel) }
         .flatten()
-        .filterIsInstance<StatsEffect>()
+        .filterIsInstance<StatsAbnormal>()
         .mapNotNull { it.bonusCombatStats }
-    //TODO Buffs fixed stats
 
-    return this + (itemsFixedBonusStats + passivesFixedBonusStats)
+    val buffFixedBonusStats = character.abnormalEffects
+        .map { it.abnormalAction.affect(character, it.effectLevel) }
+        .flatten()
+        .filterIsInstance<StatsAbnormal>()
+        .mapNotNull { it.bonusCombatStats }
+
+    return this + (itemsFixedBonusStats + passivesFixedBonusStats + buffFixedBonusStats)
         .fold(CombatStats()) { acc, stats -> acc + stats }
 }
 
@@ -140,9 +152,25 @@ fun CombatStats.applyLimitations(): CombatStats = this.copy(
     critRate = minOf(this.critRate, MAX_CRIT_RATE)
 )
 
-private fun hpRegenLevelModifier(characterClass: CharacterClass, level: Int) = characterClass.hpRegenPer10Levels[level/10]
-private fun mpRegenLevelModifier(characterClass: CharacterClass, level: Int) = characterClass.mpRegenPer10Levels[level/10]
-private fun cpRegenLevelModifier(characterClass: CharacterClass, level: Int) = hpRegenLevelModifier(characterClass, level)
+/** Calculates stats after applying buffs, debuffs and passives */
+fun CombatStats.applyAbnormalsOf(npc: NpcInstance): CombatStats {
+    val buffFixedBonusStats = npc.abnormalEffects
+        .map { it.abnormalAction.affect(npc, it.effectLevel) }
+        .flatten()
+        .filterIsInstance<StatsAbnormal>()
+        .mapNotNull { it.bonusCombatStats }
+
+    return this + buffFixedBonusStats.fold(CombatStats()) { acc, stats -> acc + stats }
+}
+
+private fun hpRegenLevelModifier(characterClass: CharacterClass, level: Int) =
+    characterClass.hpRegenPer10Levels[level / 10]
+
+private fun mpRegenLevelModifier(characterClass: CharacterClass, level: Int) =
+    characterClass.mpRegenPer10Levels[level / 10]
+
+private fun cpRegenLevelModifier(characterClass: CharacterClass, level: Int) =
+    hpRegenLevelModifier(characterClass, level)
 
 /**
  * Calculate CP, HP pr MP level bonus

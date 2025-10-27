@@ -20,6 +20,7 @@ enum class UserCommand(private val ids: Set<Int>) {
     UNSTUCK(setOf(52)),
     MOUNT(setOf(61)),
     DISMOUNT(setOf(62)),
+    DELAY(setOf(76)),
     TIME(setOf(77)),
     PARTY_INFO(setOf(81)),
     CLAN_WAR_LIST(setOf(88, 89, 90)), //TODO check if all of them are used

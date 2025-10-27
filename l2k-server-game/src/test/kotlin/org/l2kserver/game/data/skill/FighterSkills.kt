@@ -1,5 +1,7 @@
 package org.l2kserver.game.data.skill
 
+import org.l2kserver.game.model.actor.ActorInstance
+import org.l2kserver.game.model.item.template.SpiritshotType
 import org.l2kserver.game.model.skill.action.SingleTargetPhysicalDamageSkillAction
 import org.l2kserver.game.model.item.template.WeaponType
 import org.l2kserver.game.model.skill.template.SkillConsumablesTemplate
@@ -9,6 +11,13 @@ import org.l2kserver.game.model.skill.template.ActiveSkillTemplate
 import org.l2kserver.game.model.skill.instance.ActiveSkillType
 import org.l2kserver.game.model.skill.action.BlowSkillAction
 import org.l2kserver.game.model.skill.action.CorpseDrainSkillAction
+import org.l2kserver.game.model.skill.action.SingleTargetMagicSkillAction
+import org.l2kserver.game.model.skill.effect.AbnormalType
+import org.l2kserver.game.model.skill.abnormal.StatsAbnormal
+import org.l2kserver.game.model.skill.effect.applyAbnormal
+import org.l2kserver.game.model.skill.effect.effects
+import org.l2kserver.game.model.stats.CombatStatsMultipliers
+import java.time.Duration
 
 val POWER_STRIKE = ActiveSkillTemplate(
     id = 3,
@@ -85,6 +94,32 @@ val POWER_SHOT = ActiveSkillTemplate(
         ),
         ignoresShield = true
     )
+)
+
+val DEFENSE_AURA = ActiveSkillTemplate(
+    id = 91,
+    skillName = "Defense Aura",
+    maxLevel = 2,
+    skillType = ActiveSkillType.ACTIVE,
+    targetType = SkillTargetType.SELF,
+    reuseDelay = 6_000,
+    castTime = 4_000,
+    consumesToStart = SkillConsumablesTemplate(mp = listOf(1, 2)),
+    consumes = SkillConsumablesTemplate(mp = listOf(4, 8)),
+    skillAction = object : SingleTargetMagicSkillAction {
+        private val power = listOf(1.08, 1.12)
+        override fun apply(
+            target: ActorInstance, caster: ActorInstance, actionLevel: Int, usedSpiritshotType: SpiritshotType?
+        ) = effects {
+            applyAbnormal(target, 91, Duration.ofMinutes(2), actionLevel, AbnormalType.PD_UP) {
+                add(StatsAbnormal(combatStatsMultipliers = CombatStatsMultipliers(
+                    pDef = power.getOrElse(actionLevel - 1) {
+                        error("Skill 'Defence Aura' has no level '$actionLevel'")
+                    }
+                )))
+            }
+        }
+    }
 )
 
 val LIFE_SCAVENGE = ActiveSkillTemplate(

@@ -15,7 +15,7 @@ import org.l2kserver.game.handler.dto.request.ValidatePositionRequest
 import org.l2kserver.game.handler.dto.response.ActionFailedResponse
 import org.l2kserver.game.handler.dto.response.ArrivedResponse
 import org.l2kserver.game.handler.dto.response.StartMovingResponse
-import org.l2kserver.game.handler.dto.response.StartMovingToAttackResponse
+import org.l2kserver.game.handler.dto.response.StartMovingToTargetResponse
 import org.l2kserver.game.handler.dto.response.StartRotationResponse
 import org.l2kserver.game.handler.dto.response.StopRotationResponse
 import org.l2kserver.game.handler.dto.response.TeleportResponse
@@ -34,7 +34,6 @@ import org.springframework.stereotype.Service
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.coroutines.coroutineContext
 import kotlin.math.hypot
-import kotlin.math.roundToInt
 
 private const val ROTATE_SPEED_PER_SEC = 65536
 
@@ -83,11 +82,7 @@ class MoveService(
         }
     }
 
-    /**
-     * Handles position validation request.
-     * If character position at client side differs from value at the client side insignificantly -
-     * modifies character position at server side, otherwise - sends ValidatePositionResponse with actual position
-     */
+    /** Handles position validation request. At the moment validates position by client */
     suspend fun validatePosition(request: ValidatePositionRequest) = newSuspendedTransaction {
         val characterId = sessionContext().getCharacterIdOrNull() ?: run {
             log.warn("Player '{}' has not selected character", sessionContext().getAccountNameOrNull())
@@ -116,11 +111,7 @@ class MoveService(
         }
     }
 
-    /**
-     * Moves [actor] to [position]
-     *
-     * This suspending function is `cancellable`
-     */
+    /** Moves [actor] to [position] */
     suspend fun move(actor: MutableActorInstance, position: Position) {
         move(actor, DestinationPoint(position))
     }
@@ -129,13 +120,16 @@ class MoveService(
     suspend fun move(
         actor: MutableActorInstance, target: GameWorldObject, requiredDistance: Int = 0
     ) = newSuspendedTransaction {
-        //Actor should turn to target anyway
+        //If target of moving is actor himself (f.e. if he casts target skill on self) - do nothing
+        if (actor == target) return@newSuspendedTransaction
+
+        //Actor should turn to target even if he is enough close
         var turningJob = launchTurning(actor, target.position)
 
         //If actor is already at destination point - no need to do anything else
         if (actor.position.isCloseTo(target.position, requiredDistance)) {
             //This needed to show red target frame
-            send { StartMovingToAttackResponse(actor, target.id, requiredDistance) }
+            send { StartMovingToTargetResponse(actor, target.id, requiredDistance) }
             return@newSuspendedTransaction
         }
 
@@ -160,11 +154,14 @@ class MoveService(
                     previousTargetPosition = target.position
                     destination = geoDataService.getAvailableTargetPosition(
                         startPosition = actor.position,
-                        targetPosition = actor.position.positionBetween(target.position, requiredDistance)
+                        targetPosition = actor.position.positionBetween(
+                            target.position,
+                            requiredDistance
+                        )
                     )
 
                     broadcastAround(actor.position) { StartMovingResponse(actor, target.position) }
-                    send { StartMovingToAttackResponse(actor, target.id, requiredDistance) }
+                    send { StartMovingToTargetResponse(actor, target.id, requiredDistance) }
                     turningJob.cancelAndJoin()
                     turningJob = launchTurning(actor, target.position)
                 }
@@ -230,9 +227,7 @@ class MoveService(
             log.trace("Successfully turned actor '{}' to target position '{}'", actor, targetPosition)
         }
 
-    /**
-     * Teleports [actor] to [targetPosition]
-     */
+    /** Teleports [actor] to [targetPosition] */
     suspend fun teleport(actor: MutableActorInstance, targetPosition: Position) = newSuspendedTransaction {
         log.debug("Teleporting '{}' to '{}'", actor, targetPosition)
         asyncTaskService.cancelActionByActorId(actor.id)
@@ -272,9 +267,9 @@ class MoveService(
 
         // minOf prevents jumping around destination point if speed is too big
         // and moving is greater than way to go
-        val newX = (minOf(moveDistance, distanceXY) * cos).roundToInt() + actor.position.x
-        val newY = (minOf(moveDistance, distanceXY) * sin).roundToInt() + actor.position.y
-        val newZ = geoDataService.getNearestZ(newX, newY, actor.position.z)
+        val newX = (minOf(moveDistance, distanceXY) * cos).toInt() + actor.position.x
+        val newY = (minOf(moveDistance, distanceXY) * sin).toInt() + actor.position.y
+        val newZ = geoDataService.getFloorZ(newX, newY, actor.position.z)
 
         val newPosition = actor.position.copy(x = newX, y = newY, z = newZ)
 
@@ -283,7 +278,8 @@ class MoveService(
         if (updateObjects) updateObjectsAround(actor, destination)
     }
 
-    private fun GameWorldObject.exists() = if (this is DestinationPoint) true
-    else (gameObjectRepository.existsById(this.id))
+    private fun GameWorldObject.exists() =
+        if (this is DestinationPoint) true
+        else (gameObjectRepository.existsById(this.id))
 
 }

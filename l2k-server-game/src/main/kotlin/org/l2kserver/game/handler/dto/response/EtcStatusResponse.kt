@@ -3,6 +3,7 @@ package org.l2kserver.game.handler.dto.response
 import org.l2kserver.game.extensions.littleEndianByteArray
 
 private const val ETC_STATUS_RESPONSE_PACKET_ID: UByte = 243u
+
 data class EtcStatusResponse(
     val chargeLevel: Int,
     val weightPenaltyLevel: Int,

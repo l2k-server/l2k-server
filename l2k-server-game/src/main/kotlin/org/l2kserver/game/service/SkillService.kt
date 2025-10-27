@@ -7,8 +7,14 @@ import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransacti
 import org.l2kserver.game.model.skill.instance.SkillTargetType
 import org.l2kserver.game.model.skill.instance.ActiveSkillType
 import org.l2kserver.game.extensions.logger
+import org.l2kserver.game.extensions.model.actor.hasEnoughConsumableItemFor
+import org.l2kserver.game.extensions.model.actor.hasEnoughHpToCast
+import org.l2kserver.game.extensions.model.actor.hasEnoughMpToCast
+import org.l2kserver.game.extensions.model.isOnCooldown
 import org.l2kserver.game.handler.dto.request.UseSkillRequest
+import org.l2kserver.game.handler.dto.response.AbnormalsListResponse
 import org.l2kserver.game.handler.dto.response.ActionFailedResponse
+import org.l2kserver.game.handler.dto.response.FullCharacterResponse
 import org.l2kserver.game.handler.dto.response.PlaySoundResponse
 import org.l2kserver.game.handler.dto.response.GaugeColor
 import org.l2kserver.game.handler.dto.response.GaugeResponse
@@ -23,6 +29,7 @@ import org.l2kserver.game.model.actor.ActorInstance
 import org.l2kserver.game.model.actor.MutableActorInstance
 import org.l2kserver.game.model.actor.Npc
 import org.l2kserver.game.model.actor.PlayerCharacter
+import org.l2kserver.game.model.actor.character.CharacterInstance
 import org.l2kserver.game.model.actor.npc.NpcInstance
 import org.l2kserver.game.model.extensions.forEachInstance
 import org.l2kserver.game.model.item.template.SpiritshotType
@@ -31,6 +38,7 @@ import org.l2kserver.game.model.skill.PassiveSkill
 import org.l2kserver.game.model.skill.ToggleSkill
 import org.l2kserver.game.model.skill.action.SingleTargetMagicSkillAction
 import org.l2kserver.game.model.skill.action.SingleTargetPhysicalSkillAction
+import org.l2kserver.game.model.skill.effect.AbnormalEffect
 import org.l2kserver.game.model.skill.effect.DamageEffect
 import org.l2kserver.game.model.skill.effect.HealEffect
 import org.l2kserver.game.model.skill.instance.ActiveSkillInstance
@@ -57,6 +65,7 @@ class SkillService(
     private val itemService: ItemService,
     private val asyncTaskService: AsyncTaskService,
     private val npcService: NpcService,
+    private val actorStateService: ActorStateService,
 
     override val gameObjectRepository: GameObjectRepository
 ) : AbstractService() {
@@ -66,7 +75,7 @@ class SkillService(
     /** Sends a full list of skills to the player in the current session */
     suspend fun getSkillList() = newSuspendedTransaction {
         val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
-        send { SkillListResponse(character.skillsAndMagic.values) }
+        send { SkillListResponse(character.skillsAndMagic) }
 
         log.info("Successfully sent skill list to character {}", character)
     }
@@ -80,14 +89,14 @@ class SkillService(
 
         val learnedSkill = character.skillsAndMagic.learn(skillId, skillLevel)
 
-        sendTo(character.id) { SkillListResponse(character.skillsAndMagic.values) }
+        sendTo(character.id) { SkillListResponse(character.skillsAndMagic) }
         sendTo(character.id) { SystemMessageResponse.LearnedSkill(learnedSkill) }
     }
 
     /** Handles request to use skill */
     suspend fun useSkill(request: UseSkillRequest): Unit = newSuspendedTransaction {
         val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
-        val skill = character.skillsAndMagic[request.skillId]
+        val skill = character.skillsAndMagic.findById(request.skillId)
 
         useSkill(character, skill, request.forced, request.holdPosition)
     }
@@ -125,9 +134,19 @@ class SkillService(
     ) {
         //TODO Check if actor is already casting
 
-        val target =
-            if (skill.targetType == SkillTargetType.SELF) actor
-            else actor.targetId?.let { gameObjectRepository.findActorByIdOrNull(it) }
+        val target = when {
+            skill.targetType == SkillTargetType.SELF -> actor
+            actor.targetId == null -> {
+                send { SystemMessageResponse.YouMustSelectTarget }
+                send { PlaySoundResponse(Sound.ITEMSOUND_SYS_IMPOSSIBLE) }
+                return
+            }
+            else -> actor.targetId?.let { gameObjectRepository.findActorByIdOrNull(it) } ?: run {
+                send { SystemMessageResponse.TargetCannotBeFound }
+                send { PlaySoundResponse(Sound.ITEMSOUND_SYS_IMPOSSIBLE) }
+                return
+            }
+        }
 
         //TODO Introduce parameter - if target is enemy, but "friendly" skill used - fail using or use it on yourself
         // https://github.com/orgs/l2k-server/projects/1/views/3?pane=issue&itemId=124732573&issue=l2k-server%7Cl2k-server%7C47
@@ -137,7 +156,7 @@ class SkillService(
             if (skill.targetType != SkillTargetType.SELF) {
                 //canUseSkill method also checks that target exists, so here we can use unsafe call
                 val requiredDistance =
-                    skill.castRange + (actor.collisionBox.radius + target!!.collisionBox.radius).roundToInt()
+                    skill.castRange + (actor.collisionBox.radius + target.collisionBox.radius).roundToInt()
                 if (!holdPosition) moveService.move(actor, target, requiredDistance)
 
                 //Check if movement was interrupted or stopped at some obstacle
@@ -152,7 +171,7 @@ class SkillService(
 
             // Casting animation
             // All skills that do not require a target are essentially cast on yourself
-            actor.castSkillOn(skill, target ?: actor)
+            actor.castSkillOn(skill, target)
         }
     }
 
@@ -225,10 +244,24 @@ class SkillService(
             //Time, needed to cast a skill
             delay(castTime.toLong())
 
-            skill.applyEffects(this@castSkillOn, target)
+            applyEffects(skill, this@castSkillOn, target)
 
-            if (skill.targetType == SkillTargetType.DEAD_NPC) npcService.remove(target as Npc)
             this@castSkillOn.spendResources(skill.consumes)
+
+            when (skill.targetType) {
+                SkillTargetType.ENEMY -> {
+                    actorStateService.activateCombatState(this@castSkillOn)
+                    actorStateService.activateCombatState(target)
+                    if (this@castSkillOn is PlayerCharacter && target is PlayerCharacter && target.karma == 0) {
+                        actorStateService.activatePvpState(this@castSkillOn)
+                    }
+                }
+                SkillTargetType.FRIEND -> (this@castSkillOn as? PlayerCharacter)?.let { character ->
+                    if (target.isEnemyOf(character)) actorStateService.activatePvpState(character)
+                }
+                SkillTargetType.DEAD_NPC -> npcService.remove(target as Npc)
+                else -> {}
+            }
 
             //Time to finish cast animation
             delay(repriseTime.toLong())
@@ -245,9 +278,13 @@ class SkillService(
      * @return true - if actor can use [skill], false if not
      */
     private suspend fun ActorInstance.canUseSkill(
-        skill: ActiveSkillInstance, target: ActorInstance?, forced: Boolean
+        skill: ActiveSkillInstance, target: ActorInstance, forced: Boolean
     ): Boolean = when {
-        this.isParalyzed || this.isDead() -> false //TODO Physical/Magical silence
+        //TODO Physical/Magical silence
+        this.isParalyzed || this.isDead() -> {
+            send { ActionFailedResponse }
+            false
+        }
 
         skill.requires?.weaponTypes?.contains(this.weaponType) == false -> {
             send { PlaySoundResponse(Sound.ITEMSOUND_SYS_IMPOSSIBLE) }
@@ -255,20 +292,20 @@ class SkillService(
             false
         }
 
-        Instant.now().isBefore(skill.nextUsageTime) -> {
+        skill.isOnCooldown() -> {
             send { SystemMessageResponse.IsBeingPreparedForReuse(skill) }
             send { ActionFailedResponse }
             false
         }
 
-        (skill.consumes?.hp ?: 0) + (skill.consumesToStart?.hp ?: 0) > this.currentHp -> {
+        !this.hasEnoughHpToCast(skill) -> {
             send { PlaySoundResponse(Sound.ITEMSOUND_SYS_IMPOSSIBLE) }
             send { SystemMessageResponse.NotEnoughHp }
             send { ActionFailedResponse }
             false
         }
 
-        (skill.consumes?.mp ?: 0) + (skill.consumesToStart?.mp ?: 0) > this.currentMp -> {
+        !this.hasEnoughMpToCast(skill) -> {
             send { PlaySoundResponse(Sound.ITEMSOUND_SYS_IMPOSSIBLE) }
             send { SystemMessageResponse.NotEnoughMp }
             send { ActionFailedResponse }
@@ -289,41 +326,32 @@ class SkillService(
             false
         }
 
-        skill.targetType != SkillTargetType.SELF && target == null -> {
-            send { SystemMessageResponse.TargetCannotBeFound }
-            send { PlaySoundResponse(Sound.ITEMSOUND_SYS_IMPOSSIBLE) }
-            send { ActionFailedResponse }
-            false
-        }
-
-        skill.targetType != SkillTargetType.FRIEND && this.targetId == this.id -> {
+        skill.targetType !in listOf(SkillTargetType.SELF, SkillTargetType.FRIEND) && this == target -> {
             send { SystemMessageResponse.CannotUseThisOnYourself }
             send { PlaySoundResponse(Sound.ITEMSOUND_SYS_IMPOSSIBLE) }
             send { ActionFailedResponse }
             false
         }
 
-        skill.targetType == SkillTargetType.ENEMY && target?.isEnemyOf(this) == false && !forced -> {
-            send { ActionFailedResponse }
-            false
-        }
-
-        skill.targetType in listOf(
-            SkillTargetType.DEAD_NPC,
-            SkillTargetType.DEAD_PLAYER
-        ) && target?.isDead() != true -> {
+        skill.targetType == SkillTargetType.FRIEND && (target.isDead() || target.isEnemyOf(this) && !forced) -> {
             send { SystemMessageResponse.IncorrectTarget }
             send { ActionFailedResponse }
             false
         }
 
-        skill.targetType == SkillTargetType.DEAD_NPC && (target?.isDead() == false || target !is NpcInstance) -> {
+        skill.targetType == SkillTargetType.DEAD_NPC && (!target.isDead() || target !is NpcInstance) -> {
             send { SystemMessageResponse.IncorrectTarget }
             send { ActionFailedResponse }
             false
         }
 
-        skill.targetType == SkillTargetType.DEAD_PLAYER && (target?.isDead() == false || target !is PlayerCharacter) -> {
+        skill.targetType == SkillTargetType.DEAD_PLAYER && (!target.isDead() || target !is CharacterInstance) -> {
+            send { SystemMessageResponse.IncorrectTarget }
+            send { ActionFailedResponse }
+            false
+        }
+
+        skill.targetType == SkillTargetType.ENEMY && (target.isDead() || (!target.isEnemyOf(this) && !forced)) -> {
             send { SystemMessageResponse.IncorrectTarget }
             send { ActionFailedResponse }
             false
@@ -334,35 +362,15 @@ class SkillService(
         else -> true
     }
 
-    /** Checks if PlayerCharacter has enough consumable item in the inventory */
-    private fun PlayerCharacter.hasEnoughConsumableItemFor(skill: ActiveSkillInstance?): Boolean {
-        val consumableToStart = skill?.consumesToStart?.item
-        val consumable = skill?.consumes?.item
-
-        return when {
-            consumableToStart == null && consumable == null -> true
-
-            consumableToStart?.id == consumable?.id -> this.inventory.existsByIdAndAmount(
-                consumable!!.id,
-                consumable!!.amount + consumableToStart!!.amount
-            )
-
-            else -> {
-                consumableToStart?.let { this.inventory.existsByIdAndAmount(it.id, it.amount) } != false
-                        && consumable?.let { this.inventory.existsByIdAndAmount(it.id, it.amount) } != false
-            }
-        }
-    }
-
-    /** Applies cast by [caster] skill effects on [target] */
-    private suspend fun ActiveSkill.applyEffects(
-        caster: MutableActorInstance, target: MutableActorInstance
+    /** Applies cast by [caster] [skill] effects on [target] */
+    private suspend fun applyEffects(
+        skill: ActiveSkill, caster: MutableActorInstance, target: MutableActorInstance
     ) = newSuspendedTransaction {
         val effects = try {
-            when (val action = this@applyEffects.skillAction) {
+            when (val action = skill.skillAction) {
                 is SingleTargetPhysicalSkillAction -> {
                     val soulshotUsed = (caster as? PlayerCharacter)?.inventory?.weapon?.soulshotCharged ?: false
-                    action.apply(target, caster, this@applyEffects.skillLevel, soulshotUsed)
+                    action.apply(target, caster, skill.skillLevel, soulshotUsed)
                         .also {
                             if (soulshotUsed) caster.inventory.weapon?.soulshotCharged = false
 
@@ -375,7 +383,7 @@ class SkillService(
 
                 is SingleTargetMagicSkillAction -> {
                     val usedSpiritshotType = (caster as? PlayerCharacter)?.inventory?.weapon?.spiritshotChargedType
-                    action.apply(target, caster, this@applyEffects.skillLevel, usedSpiritshotType).also {
+                    action.apply(target, caster, skill.skillLevel, usedSpiritshotType).also {
                         if (usedSpiritshotType != null) caster.inventory.weapon?.spiritshotChargedType = null
 
                         //Enable SS if auto-use spiritshot enabled
@@ -388,18 +396,16 @@ class SkillService(
                 else -> emptyList()
             }
         } catch (e: Exception) {
-            log.error("An error occurred while trying to apply effect {}", this@applyEffects.skillAction, e)
+            log.error("An error occurred while trying to apply effect {}", skill.skillAction, e)
             emptyList()
         }
 
         effects.forEach { effect ->
+            //TODO Only damage effect of skill should be applied if casting player is not enemy of target player
             when (effect) {
-                is DamageEffect -> combatService.applyDamageEffect(
-                    caster, effect, this@applyEffects, overhitPossible
-                )
-
+                is DamageEffect -> combatService.applyDamageEffect(caster, effect, skill)
                 is HealEffect -> applyHealEffect(caster, effect)
-                else -> {}
+                is AbnormalEffect -> applyAbnormalEffect(effect)
             }
         }
     }
@@ -417,6 +423,16 @@ class SkillService(
 
         if (target is NpcInstance) target.targetedBy.forEachInstance<PlayerCharacter> {
             sendTo(it.id) { updateStatusResponse }
+        }
+    }
+
+    private suspend fun applyAbnormalEffect(effect: AbnormalEffect) = newSuspendedTransaction {
+        val target = gameObjectRepository.findActorByIdOrNull(effect.targetId) ?: return@newSuspendedTransaction
+        if (target.abnormalEffects.add(effect) && target is PlayerCharacter) {
+            sendTo(target.id) { FullCharacterResponse(target) }
+            sendTo(target.id) { AbnormalsListResponse(target.abnormalEffects) }
+            //TODO Summon abnormals must be shown to master
+            //TODO Party notification
         }
     }
 

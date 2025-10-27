@@ -22,7 +22,6 @@ class CorpseDrainSkillAction(
         }
 
         //TODO Heal effectiveness buffs/debuffs (like Prayer or Touch of Death)
-
         heal(caster.id, restoredHp.roundToInt())
     }
 

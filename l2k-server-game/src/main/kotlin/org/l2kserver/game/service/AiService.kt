@@ -30,15 +30,12 @@ class AiService(
     override val log = logger()
 
     @EventListener(ApplicationReadyEvent::class)
-    fun init() = asyncTaskService.launchTask("AI_JOB") {
-        while (isActive) {
-            gameObjectRepository.findAllNpc().forEach { npc ->
-                if (!npc.isDead()) performAiAction(npc)
-            }
-
-            //TODO Idle actions should be performed less frequently, but what if the npc is fighting?
-            delay(GameTime.MILLIS_IN_TICK * 10)
+    fun init() = asyncTaskService.launchRepeated("AI_JOB", GameTime.MILLIS_IN_TICK * 10) {
+        gameObjectRepository.findAllNpc().forEach { npc ->
+            if (!npc.isDead()) performAiAction(npc)
         }
+
+        //TODO Idle actions should be performed less frequently, but what if the npc is fighting?
     }
 
     private suspend fun performAiAction(npc: Npc) = try {
