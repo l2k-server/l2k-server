@@ -23,7 +23,7 @@ data class DamageEffect(
 ): Effect
 
 /** Applies the event of dealing damage */
-fun SkillEffects.hit(
+fun Effects.hit(
     targetId: Int,
     damage: Int,
     isCritical: Boolean = false,
@@ -44,4 +44,4 @@ fun SkillEffects.hit(
 )
 
 /** Applies the event of missing target */
-fun SkillEffects.miss(targetId: Int) = add(DamageEffect(targetId = targetId, isAvoided = true))
+fun Effects.miss(targetId: Int) = add(DamageEffect(targetId = targetId, isAvoided = true))

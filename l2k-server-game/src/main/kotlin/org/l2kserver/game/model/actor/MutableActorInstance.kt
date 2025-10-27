@@ -2,6 +2,7 @@ package org.l2kserver.game.model.actor
 
 import org.l2kserver.game.model.actor.position.Heading
 import org.l2kserver.game.model.actor.position.Position
+import org.l2kserver.game.model.skill.effect.AbnormalEffect
 
 /** Same as Actor, but with some mutable fields and stuff to be proceeded by server core */
 sealed class MutableActorInstance: ActorInstance {
@@ -14,4 +15,5 @@ sealed class MutableActorInstance: ActorInstance {
     abstract override var isMoving: Boolean
     abstract override var targetId: Int?
     abstract override val targetedBy: MutableSet<ActorInstance>
+    abstract override val abnormalEffects: MutableCollection<AbnormalEffect>
 }

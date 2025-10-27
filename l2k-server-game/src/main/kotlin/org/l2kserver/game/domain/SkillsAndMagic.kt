@@ -15,7 +15,7 @@ import org.l2kserver.game.model.skill.template.SkillTemplateRegistry
 import org.l2kserver.game.model.skill.template.ToggleSkillTemplate
 import java.util.concurrent.ConcurrentHashMap
 
-class SkillsAndMagic(val character: PlayerCharacter) : Map<Int, SkillInstance> {
+class SkillsAndMagic(val character: PlayerCharacter) : Collection<SkillInstance> {
     private val skills: MutableMap<Int, SkillInstance> = ConcurrentHashMap()
 
     init {
@@ -40,6 +40,10 @@ class SkillsAndMagic(val character: PlayerCharacter) : Map<Int, SkillInstance> {
         return@transaction SkillEntity.wrapRow(queryResult.first()).toSkill().also { skills[it.skillId] = it }
     }
 
+    fun findById(skillId: Int) = requireNotNull(skills[skillId]) {
+        "Skill '$skillId' was not learnt or does not exist"
+    }
+
     /** Finds all the passive skills of [SkillsAndMagic.character] learned with current subclass */
     fun passives() = skills.values.asSequence().filterIsInstance<PassiveSkillInstance>()
 
@@ -51,18 +55,11 @@ class SkillsAndMagic(val character: PlayerCharacter) : Map<Int, SkillInstance> {
             ).map { it.skillId to it.toSkill() })
     }
 
-    override val entries by skills::entries
-    override val keys by skills::keys
     override val size by skills::size
-    override val values by skills::values
-
-    override fun containsKey(key: Int) = skills.containsKey(key)
-    override fun containsValue(value: SkillInstance) = skills.containsValue(value)
-    override fun get(key: Int) = requireNotNull(skills[key]) {
-        "Skill '$key' was not learnt or does not exist"
-    }
-
+    override fun contains(element: SkillInstance) = skills.values.contains(element)
+    override fun containsAll(elements: Collection<SkillInstance>) = skills.values.containsAll(elements)
     override fun isEmpty() = skills.isEmpty()
+    override fun iterator() = skills.values.iterator()
 
     override fun toString() = "SkillsAndMagic(character=$character, skills=$skills)"
 }

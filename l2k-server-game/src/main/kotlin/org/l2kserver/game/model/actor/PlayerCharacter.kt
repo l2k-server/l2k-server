@@ -1,5 +1,6 @@
 package org.l2kserver.game.model.actor
 
+import org.l2kserver.game.domain.AbnormalEffects
 import java.util.concurrent.ConcurrentHashMap
 import org.l2kserver.game.domain.Inventory
 import org.l2kserver.game.model.actor.position.Position
@@ -167,6 +168,7 @@ class PlayerCharacter(
 
     override val basicStats: BasicStats get() = characterClass.basicStats //TODO + Henna, set bonuses, augmentations
 
+    //TODO Cache?
     override val stats: CombatStats get() = characterClass.combatStats
         .applyEquipmentOf(this)
         .applyModifiersOf(this)
@@ -190,8 +192,14 @@ class PlayerCharacter(
 
     val knownGameWorldObjects: MutableSet<GameWorldObject> = ConcurrentHashMap.newKeySet()
 
+    override val abnormalEffects = AbnormalEffects()
+
     //TODO Siege and clan relations
-    override fun isEnemyOf(other: ActorInstance) = karma > 0 || pvpState != PvpState.NOT_IN_PVP
+    override fun isEnemyOf(other: ActorInstance): Boolean {
+        if (other == this) return false
+
+        return karma > 0 || pvpState != PvpState.NOT_IN_PVP
+    }
 
     override fun toString() = "Character(name=$name id=$id gender=$gender race=$race)"
 }

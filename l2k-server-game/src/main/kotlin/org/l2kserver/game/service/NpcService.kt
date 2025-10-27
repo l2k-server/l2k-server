@@ -5,7 +5,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.l2kserver.game.extensions.logger
-import org.l2kserver.game.extensions.model.actor.toNpc
 import org.l2kserver.game.handler.dto.response.NpcChatWindowResponse
 import org.l2kserver.game.model.actor.Npc
 import org.l2kserver.game.repository.GameObjectRepository
@@ -18,10 +17,10 @@ import org.l2kserver.game.model.actor.position.SpawnPosition
 import org.l2kserver.game.utils.getNoTextMessage
 import org.l2kserver.game.model.zone.SpawnZone
 import org.l2kserver.game.network.session.send
-import org.l2kserver.game.utils.IdUtils
 import org.springframework.boot.context.event.ApplicationReadyEvent
 import org.springframework.context.event.EventListener
 import org.springframework.stereotype.Service
+import java.time.Instant
 import kotlin.random.Random
 import kotlin.random.nextInt
 
@@ -39,7 +38,7 @@ class NpcService(
     override val log = logger()
 
     @EventListener(ApplicationReadyEvent::class)
-    fun init() = asyncTaskService.launchTask("INITIAL_SPAWN_TASK") {
+    fun init() = asyncTaskService.launchOnce {
         NpcTemplateRegistry.forEach { template ->
             template.spawn.positions?.forEach { spawnAtPosition(template, it) }
             template.spawn.zones?.forEach { zone -> repeat(zone.npcAmount) { spawnAtZone(template, zone) }}
@@ -61,6 +60,7 @@ class NpcService(
         CoroutineScope(Dispatchers.Default).launch {
             //Respawn this NPC after delay
             val template = NpcTemplateRegistry.findByIdOrNull(npc.templateId)!!
+            npc.disappearanceTime = Instant.now().plusMillis(template.spawn.respawnDelay)
             delay(template.spawn.respawnDelay)
 
             //Spawn NPC at position or zone, depending on what is present
@@ -80,13 +80,7 @@ class NpcService(
      */
     suspend fun spawnAtPosition(template: NpcTemplate, spawnPosition: SpawnPosition): Npc {
         val (position, heading) = spawnPosition.toPositionAndHeading()
-        val npc = template.toNpc(
-            IdUtils.getNextNpcId(),
-            position,
-            heading,
-            SpawnedAt(spawnPosition)
-        )
-
+        val npc = Npc(template, SpawnedAt(spawnPosition), position, heading)
         spawnNpc(npc)
 
         log.info("Spawned {} at {}", npc, position)
@@ -101,13 +95,9 @@ class NpcService(
      */
     suspend fun spawnAtZone(template: NpcTemplate, zone: SpawnZone): Npc {
         val position = geoDataService.getRandomSpawnPosition(template.collisionBox, zone)
+        val heading = Heading(Random.nextInt(0..65535))
 
-        val npc = template.toNpc(
-            IdUtils.getNextNpcId(),
-            position,
-            Heading(Random.nextInt(0..65535)),
-            SpawnedAt(zone)
-        )
+        val npc = Npc(template, SpawnedAt(zone), position, heading)
         spawnNpc(npc)
 
         log.info("Spawned {} at {} inside of {}", npc, position, zone)

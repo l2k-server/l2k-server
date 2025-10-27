@@ -3,6 +3,7 @@ package org.l2kserver.game.model.actor
 import org.l2kserver.game.model.actor.position.Heading
 import org.l2kserver.game.model.actor.position.Position
 import org.l2kserver.game.model.item.template.WeaponType
+import org.l2kserver.game.model.skill.effect.AbnormalEffect
 import org.l2kserver.game.model.stats.BasicStats
 import org.l2kserver.game.model.stats.CombatStats
 
@@ -25,6 +26,7 @@ import org.l2kserver.game.model.stats.CombatStats
  * @property isMoving Is this actor running
  * @property targetId This actor's target id
  * @property targetedBy IDs of actors, who target this actor
+ * @property abnormalEffects Buffs and debuffs, applied to this actor
  */
 interface ActorInstance: GameWorldObject {
     override val id: Int
@@ -46,6 +48,7 @@ interface ActorInstance: GameWorldObject {
     val isMoving: Boolean
     val targetId: Int?
     val targetedBy: Set<ActorInstance>
+    val abnormalEffects: Collection<AbnormalEffect>
 
     /** Checks if actor can be attacked by [other] without forcing */
     fun isEnemyOf(other: ActorInstance): Boolean

@@ -28,8 +28,11 @@ abstract class GameDataRegistry<T: GameData>: Collection<T> {
 
     /** Saves [gameData] to storage and returns it */
     fun register(gameData: T): T {
-        gameDataStorage[gameData.id] = gameData
-        log.info("Successfully registered '{}'", gameData)
+        val prevData = gameDataStorage.put(gameData.id, gameData)
+
+        if (prevData == null) log.info("Successfully registered '{}'", gameData)
+        else log.warn("{} was overridden with {}", prevData, gameData)
+
         return gameData
     }
 

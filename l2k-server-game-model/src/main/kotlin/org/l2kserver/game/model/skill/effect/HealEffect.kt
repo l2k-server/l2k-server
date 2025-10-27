@@ -10,4 +10,4 @@ data class HealEffect(
     val value: Int
 ): Effect
 
-fun SkillEffects.heal(targetId: Int, value: Int) = this.add(HealEffect(targetId, value))
+fun Effects.heal(targetId: Int, value: Int) = this.add(HealEffect(targetId, value))

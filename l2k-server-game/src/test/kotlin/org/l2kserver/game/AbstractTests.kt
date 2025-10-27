@@ -28,7 +28,6 @@ import org.l2kserver.game.network.session.SessionContext
 import org.l2kserver.game.repository.PlayerCharacterRepository
 import org.l2kserver.game.service.ActorStateService
 import org.l2kserver.game.service.AsyncTaskService
-import org.l2kserver.game.service.REGENERATION_JOB
 import org.l2kserver.game.utils.IdUtils
 import org.l2kserver.game.utils.getPrivateProperty
 import org.springframework.beans.factory.annotation.Autowired
@@ -68,7 +67,7 @@ abstract class AbstractTests {
         SessionContext.clear()
         gameObjectRepository.deleteAll()
         actorStateService.flushStates()
-        asyncTaskService.cancelTask(REGENERATION_JOB)
+        asyncTaskService.cancelTask("REGENERATION_JOB")
         NpcTemplateRegistry.flush()
     }
 
@@ -138,7 +137,7 @@ abstract class AbstractTests {
         val fightingActors: MutableMap<Int, Long> = this.getPrivateProperty("fightingActors")!!
         fightingActors.clear()
 
-        val charactersInPvpState: MutableMap<Int, Long> = this.getPrivateProperty("fightingActors")!!
+        val charactersInPvpState: MutableMap<Int, Long> = this.getPrivateProperty("charactersInPvpState")!!
         charactersInPvpState.clear()
     }
 

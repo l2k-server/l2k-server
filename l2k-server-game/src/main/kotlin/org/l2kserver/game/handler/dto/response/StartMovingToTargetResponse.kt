@@ -6,7 +6,7 @@ import org.l2kserver.game.model.actor.ActorInstance
 
 private const val START_MOVING_TO_TARGET_RESPONSE_PACKET_ID: UByte = 96u
 
-data class StartMovingToAttackResponse(
+data class StartMovingToTargetResponse(
     val actor: ActorInstance,
     val targetId: Int,
     val distance: Int

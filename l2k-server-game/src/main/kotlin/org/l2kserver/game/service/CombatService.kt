@@ -109,6 +109,13 @@ class CombatService(
                                     performSimpleAttacks(attacker, attacked, 1)
                             }
 
+                            // Activate combat stance and pvp state (if fighters are characters)
+                            actorStateService.activateCombatState(attacker)
+                            actorStateService.activateCombatState(attacked)
+                            if (attacker is PlayerCharacter && attacked is PlayerCharacter && attacked.karma == 0) {
+                                actorStateService.activatePvpState(attacker)
+                            }
+
                             //Enable SS if auto-use soulshot enabled
                             (attacker as? PlayerCharacter)?.autoUsesSoulshot?.let {
                                 itemService.useSoulshot(attacker, it)
@@ -123,7 +130,7 @@ class CombatService(
     }
 
     suspend fun applyDamageEffect(
-        attacker: MutableActorInstance, effect: DamageEffect, skill: ActiveSkill? = null, overhitPossible: Boolean = false
+        attacker: MutableActorInstance, effect: DamageEffect, skill: ActiveSkill? = null
     ) {
         val attacked = gameObjectRepository.findActorByIdOrNull(effect.targetId) ?: return
 
@@ -131,12 +138,6 @@ class CombatService(
         if (attacked.isDead()) return
 
         log.debug("{} has dealt {} damage to {}", attacker, effect.damage, attacked)
-
-        actorStateService.activateCombatState(attacker)
-        actorStateService.activateCombatState(attacked)
-        if (attacker is PlayerCharacter && attacked is PlayerCharacter && attacked.karma == 0) {
-            actorStateService.activatePvpState(attacker)
-        }
 
         if (effect.isAvoided) {
             send { SystemMessageResponse.YouMissed }
@@ -148,7 +149,7 @@ class CombatService(
 
         // Calculate overhit damage.
         // "mob had 10 HP left, over-hit skill did 50 damage total, over-hit damage is 40" (c) l2jserver
-        val overhitDamage = if (overhitPossible && attacked is Npc)
+        val overhitDamage = if (skill?.overhitPossible == true && attacked is Npc)
             maxOf(effect.damage - attacked.currentHp, 0)
         else 0
 

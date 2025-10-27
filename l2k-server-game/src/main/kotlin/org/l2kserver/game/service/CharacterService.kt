@@ -1,8 +1,6 @@
 package org.l2kserver.game.service
 
 import kotlinx.coroutines.NonCancellable
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
 import org.l2kserver.game.extensions.logger
 import org.l2kserver.game.handler.dto.request.CreateCharacterRequest
@@ -84,23 +82,22 @@ class CharacterService(
      * is sent to him every minute to update deleting time on client side and delete deleted characters
      */
     @EventListener(ApplicationReadyEvent::class)
-    fun init() = asyncTaskService.launchTask("UPDATE_CHARACTERS_INFO_JOB") {
-        while (isActive) {
-            val deletedPlayerCharacterOwners = playerCharacterRepository.deleteAllWithExpiredDeletionDate()
-                .map { it.accountName }
+    fun init() = asyncTaskService.launchRepeated(
+        "UPDATE_CHARACTERS_INFO_JOB",
+        CHARACTERS_INFO_UPDATE_DELAY
+    ) {
+        val deletedPlayerCharacterOwners = playerCharacterRepository.deleteAllWithExpiredDeletionDate()
+            .map { it.accountName }
 
-            SessionContext.forEach { withContext(NonCancellable) {
-                if (it.inCharacterMenu()) {
-                    val hasDeletingCharacters = playerCharacterRepository
-                        .existDeletingByAccountName(it.getAccountName())
-                    val hasDeletedCharacters = deletedPlayerCharacterOwners.contains(it.getAccountName())
+        SessionContext.forEach { withContext(NonCancellable) {
+            if (it.inCharacterMenu()) {
+                val hasDeletingCharacters = playerCharacterRepository
+                    .existDeletingByAccountName(it.getAccountName())
+                val hasDeletedCharacters = deletedPlayerCharacterOwners.contains(it.getAccountName())
 
-                    if (hasDeletingCharacters || hasDeletedCharacters) sendCharactersList(it.sessionId)
-                }
-            }}
-
-            delay(CHARACTERS_INFO_UPDATE_DELAY)
-        }
+                if (hasDeletingCharacters || hasDeletedCharacters) sendCharactersList(it.sessionId)
+            }
+        }}
     }
 
     /**
@@ -282,7 +279,7 @@ class CharacterService(
 
         send { FullCharacterResponse(character) }
         send { InventoryResponse(character.inventory) }
-        send { SkillListResponse(character.skillsAndMagic.values) }
+        send { SkillListResponse(character.skillsAndMagic) }
         send { ShortcutPanelResponse(shortcuts) }
         send { SystemMessageResponse.Welcome }
 

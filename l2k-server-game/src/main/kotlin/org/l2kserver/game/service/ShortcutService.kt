@@ -28,7 +28,7 @@ class ShortcutService(
         )?.delete()
 
         val actionLevel = if (request.type == ShortcutType.SKILL)
-            character.skillsAndMagic[request.shortcutActionId].skillLevel
+            character.skillsAndMagic.findById(request.shortcutActionId).skillLevel
         else 1
 
         val newShortcut = shortcutRepository.create(

@@ -6,7 +6,7 @@ import org.l2kserver.game.model.item.ConsumableItem
 import org.l2kserver.game.model.item.template.ArmorType
 import org.l2kserver.game.model.item.template.WeaponType
 import org.l2kserver.game.model.skill.action.ActiveSkillAction
-import org.l2kserver.game.model.skill.action.AbnormalSkillAction
+import org.l2kserver.game.model.skill.effect.AbnormalAction
 import org.l2kserver.game.model.skill.instance.SkillTargetType
 import org.l2kserver.game.model.skill.instance.ActiveSkillType
 
@@ -65,7 +65,7 @@ data class PassiveSkillTemplate(
     override val id: Int,
     override val skillName: String,
     override val maxLevel: Int,
-    val skillAction: AbnormalSkillAction
+    val skillAction: AbnormalAction
 ): SkillTemplate
 
 /**

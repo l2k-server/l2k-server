@@ -2,11 +2,11 @@ package org.l2kserver.game.service
 
 import java.lang.System.currentTimeMillis
 import java.util.concurrent.ConcurrentHashMap
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.l2kserver.game.extensions.logger
+import org.l2kserver.game.handler.dto.response.AbnormalsListResponse
 import org.l2kserver.game.handler.dto.response.ChangeMoveTypeResponse
+import org.l2kserver.game.handler.dto.response.FullCharacterResponse
 import org.l2kserver.game.handler.dto.response.PvPStatusResponse
 import org.l2kserver.game.handler.dto.response.StartFightingResponse
 import org.l2kserver.game.handler.dto.response.StatusAttribute
@@ -18,30 +18,31 @@ import org.l2kserver.game.model.actor.PlayerCharacter
 import org.l2kserver.game.model.actor.MoveType
 import org.l2kserver.game.model.actor.MutableActorInstance
 import org.l2kserver.game.model.actor.character.PvpState
+import org.l2kserver.game.network.session.sendTo
 import org.l2kserver.game.repository.GameObjectRepository
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.context.event.ApplicationReadyEvent
 import org.springframework.context.event.EventListener
 import org.springframework.stereotype.Service
+import java.time.Instant
 import kotlin.math.roundToInt
 
 private const val COMBAT_TIME_MS = 15_000
 
-const val ACTOR_STATE_JOB = "ACTOR_STATE_JOB"
-const val REGENERATION_JOB = "REGENERATION_JOB"
+private const val ACTOR_STATE_JOB = "ACTOR_STATE_JOB"
+private const val REGENERATION_JOB = "REGENERATION_JOB"
+private const val UPDATE_ABNORMALS_JOB = "UPDATE_ABNORMALS_JOB"
 
-private const val REGENERATION_TASK_DELAY_MS = 3_000L // 5 minutes for doors
+private const val REGENERATION_TASK_DELAY_MS = 3_000L //TODO 5 minutes for doors
+private const val UPDATE_ABNORMALS_DELAY_MS = 1_000L
 
 @Service
 class ActorStateService(
     private val asyncTaskService: AsyncTaskService,
     override val gameObjectRepository: GameObjectRepository,
 
-    @Value("\${pvp.pvpFlagTimeMs}")
-    private val pvpFlagTimeMs: Int,
-
-    @Value("\${pvp.pvpFlagEndingTimeMs}")
-    private val pvpFlagEndingTimeMs: Int
+    @Value("\${pvp.pvpFlagTimeMs}") private val pvpFlagTimeMs: Int,
+    @Value("\${pvp.pvpFlagEndingTimeMs}") private val pvpFlagEndingTimeMs: Int
 ) : AbstractService() {
     override val log = logger()
 
@@ -57,24 +58,17 @@ class ActorStateService(
 
     @EventListener(ApplicationReadyEvent::class)
     fun init() {
-        asyncTaskService.launchTask(ACTOR_STATE_JOB) {
-            while (isActive) {
-                try {
-                    updateActorsFightingState()
-                    updateCharactersPvpState()
-                } catch (e: Throwable) {
-                    log.error("An error occurred while updating actor states, ", e)
-                }
-
-                delay(1_000)
-            }
+        asyncTaskService.launchRepeated(ACTOR_STATE_JOB, 1_000) {
+            updateActorsFightingState()
+            updateCharactersPvpState()
         }
 
-        asyncTaskService.launchTask(REGENERATION_JOB) {
-            while (isActive) {
-                regenerate()
-                delay(REGENERATION_TASK_DELAY_MS)
-            }
+       asyncTaskService.launchRepeated(REGENERATION_JOB, REGENERATION_TASK_DELAY_MS) {
+            regenerate()
+        }
+
+        asyncTaskService.launchRepeated(UPDATE_ABNORMALS_JOB, UPDATE_ABNORMALS_DELAY_MS) {
+            updateAbnormals()
         }
     }
 
@@ -202,6 +196,20 @@ class ActorStateService(
 
             if (updatedStatuses.isNotEmpty())
                 this@ActorStateService.broadcastAround(actor.position) { UpdateStatusResponse(actor.id, updatedStatuses) }
+        }
+    }
+
+    private suspend fun updateAbnormals() = gameObjectRepository.findAllActors().forEach { actor ->
+        val outdatedEffects = actor.abnormalEffects.filter { it.expiresAt.isBefore(Instant.now()) }
+
+        if (outdatedEffects.isNotEmpty()) {
+            if (actor.abnormalEffects.removeAll(outdatedEffects)) newSuspendedTransaction {
+                log.debug("Successfully removed '{}' from '{}'", outdatedEffects, actor)
+                if (actor is PlayerCharacter) {
+                    sendTo(actor.id) { FullCharacterResponse(actor) }
+                    sendTo(actor.id) { AbnormalsListResponse(actor.abnormalEffects) }
+                }
+            }
         }
     }
 

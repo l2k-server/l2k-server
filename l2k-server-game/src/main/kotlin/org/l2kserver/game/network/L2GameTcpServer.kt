@@ -90,6 +90,7 @@ class L2GameTcpServer(
                             .onFailure { log.error("An error occurred on decoding request", it) }
                             .getOrNull()
 
+                        log.trace("Got request {}", request)
                         l2GameRequestHandler.handle(gameCrypt.initialKey, request)
                     }
                 } catch (_: ClosedReceiveChannelException) {
@@ -126,7 +127,7 @@ class L2GameTcpServer(
         log.debug("Started response sending job for session {}", sessionId)
         val context = sessionContext()
         for (responsePacket in context.responseChannel) {
-            log.debug("Sending response '{}'", responsePacket)
+            log.trace("Sending response '{}'", responsePacket)
             val responseData = gameCrypt.encrypt(responsePacket.data)
 
             //L2 uses LittleEndian byte order

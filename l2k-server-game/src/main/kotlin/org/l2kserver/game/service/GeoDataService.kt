@@ -38,6 +38,12 @@ class GeoDataService(
         z
     )
 
+    fun getFloorZ(x: Int, y: Int, z: Int) = geoDriver.getNextLowerZ(
+        geoDriver.getGeoX(x),
+        geoDriver.getGeoY(y),
+        z + Position.GEO_CELL_SIZE
+    )
+
     /**
      * Returns the closest position to the target that the character can move to
      * (If there is an obstacle between position, returns the point just before obstacle)
