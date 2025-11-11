@@ -1,10 +1,14 @@
 package org.l2kserver.game.repository
 
-import org.jetbrains.exposed.sql.SortOrder
-import org.jetbrains.exposed.sql.and
-import org.jetbrains.exposed.sql.deleteReturning
-import org.jetbrains.exposed.sql.selectAll
-import org.jetbrains.exposed.sql.transactions.transaction
+import org.jetbrains.exposed.v1.core.SortOrder
+import org.jetbrains.exposed.v1.core.and
+import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.lessEq
+import org.jetbrains.exposed.v1.core.neq
+import org.jetbrains.exposed.v1.jdbc.deleteReturning
+import org.jetbrains.exposed.v1.jdbc.select
+import org.jetbrains.exposed.v1.jdbc.selectAll
+import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.l2kserver.game.domain.ItemEntity
 import org.l2kserver.game.domain.PlayerCharacterEntity
 import org.l2kserver.game.domain.PlayerCharacterTable
@@ -121,7 +125,9 @@ class PlayerCharacterRepository(
     fun existDeletingByAccountName(accountName: String) = transaction {
         PlayerCharacterTable
             .select(listOf(PlayerCharacterTable.id))
-            .where { (PlayerCharacterTable.accountName eq accountName) and (PlayerCharacterTable.deletionDate neq null) }
+            .where {
+                (PlayerCharacterTable.accountName eq accountName) and (PlayerCharacterTable.deletionDate neq null)
+            }
             .count() > 0
     }
 

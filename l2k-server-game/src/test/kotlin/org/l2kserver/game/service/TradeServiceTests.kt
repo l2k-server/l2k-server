@@ -2,7 +2,7 @@ package org.l2kserver.game.service
 
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
-import org.jetbrains.exposed.sql.transactions.transaction
+import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.junit.jupiter.api.assertThrows
 import org.l2kserver.game.AbstractTests
 import org.l2kserver.game.data.item.arrows.BONE_ARROW
@@ -57,7 +57,7 @@ import kotlin.test.assertTrue
 
 @Suppress("LargeClass")
 class TradeServiceTests(
-    @Autowired private val tradeService: TradeService
+    @param:Autowired private val tradeService: TradeService
 ): AbstractTests() {
 
     @Test
@@ -191,7 +191,9 @@ class TradeServiceTests(
         assertEquals(Posture.STANDING, standUpResponse.posture)
         assertIs<FullCharacterResponse>(context.responseChannel.receive())
 
-        val itemsForPrivateStoreSellResponse = assertIs<ItemListForPrivateStoreSellResponse>(context.responseChannel.receive())
+        val itemsForPrivateStoreSellResponse = assertIs<ItemListForPrivateStoreSellResponse>(
+            context.responseChannel.receive()
+        )
 
         assertTrue(itemsForPrivateStoreSellResponse.packageSale, "packageSale must be 'true'")
 
@@ -395,6 +397,7 @@ class TradeServiceTests(
     }
 
     @Test
+    @Suppress("LongMethod")
     fun shouldSuccessfullyBuyItemsFromPrivateStore(): Unit = runBlocking {
         // Create seller
         val sellerContext = createTestSessionContext()
@@ -854,7 +857,8 @@ class TradeServiceTests(
         assertEquals(Posture.STANDING, standUpResponse.posture)
         assertIs<FullCharacterResponse>(context.responseChannel.receive())
 
-        val itemsForPrivateStoreBuyResponse = assertIs<ItemListForPrivateStoreBuyResponse>(context.responseChannel.receive())
+        val itemsForPrivateStoreBuyResponse = assertIs<ItemListForPrivateStoreBuyResponse>(
+            context.responseChannel.receive())
 
         assertEquals(1, itemsForPrivateStoreBuyResponse.itemsInInventory.size)
         val woodenArrowInInventory = assertNotNull(
@@ -923,6 +927,7 @@ class TradeServiceTests(
     }
 
     @Test
+    @Suppress("LongMethod")
     fun shouldSuccessfullySellItemsToPrivateStore(): Unit = runBlocking {
         // Create store owner
         val storeOwnerContext = createTestSessionContext()
@@ -960,8 +965,20 @@ class TradeServiceTests(
             tradeService.sellToPrivateStore(SellToPrivateStoreRequest(
                 storeOwnerId = storeOwner.id,
                 items = listOf(
-                    RequestedToSellToPrivateStoreItem(woodenArrow.id, woodenArrow.templateId, 0, arrowsToSellAmount, arrowPrice),
-                    RequestedToSellToPrivateStoreItem(demonSplinter.id, demonSplinter.templateId, 0, 1, demonSplinterPrice)
+                    RequestedToSellToPrivateStoreItem(
+                        woodenArrow.id,
+                        woodenArrow.templateId,
+                        0,
+                        arrowsToSellAmount,
+                        arrowPrice
+                    ),
+                    RequestedToSellToPrivateStoreItem(
+                        demonSplinter.id,
+                        demonSplinter.templateId,
+                        0,
+                        1,
+                        demonSplinterPrice
+                    )
                 )
             ))
         }
@@ -1032,7 +1049,9 @@ class TradeServiceTests(
         assertEquals(UpdateItemOperation.ADD, storeOwnerArrowOperation.operation)
         assertEquals(arrowsToSellAmount, storeOwnerArrowOperation.item.amount)
 
-        val storeOwnerSplinterOperation = storeOwnerUpdateItems.operations.find { it.item.templateId == DEMON_SPLINTER.id }
+        val storeOwnerSplinterOperation = storeOwnerUpdateItems.operations.find {
+            it.item.templateId == DEMON_SPLINTER.id
+        }
         assertNotNull(storeOwnerSplinterOperation)
         assertEquals(UpdateItemOperation.ADD, storeOwnerSplinterOperation.operation)
         assertEquals(1, storeOwnerSplinterOperation.item.amount)
@@ -1102,7 +1121,14 @@ class TradeServiceTests(
         withContext(sellerContext) {
             tradeService.sellToPrivateStore(SellToPrivateStoreRequest(
                 storeOwnerId = storeOwner.id,
-                items = listOf(RequestedToSellToPrivateStoreItem(woodenArrow.id, woodenArrow.templateId, 0, 1, arrowPrice))
+                items = listOf(
+                    RequestedToSellToPrivateStoreItem(
+                        woodenArrow.id,
+                        woodenArrow.templateId,
+                        0,
+                        1,
+                        arrowPrice
+                    ))
             ))
         }
 

@@ -1,30 +1,30 @@
 package org.l2kserver.game.domain
 
-import org.jetbrains.exposed.dao.IntEntity
-import org.jetbrains.exposed.dao.IntEntityClass
-import org.jetbrains.exposed.dao.id.EntityID
-import org.jetbrains.exposed.dao.id.IntIdTable
-import org.jetbrains.exposed.sql.javatime.datetime
+import org.jetbrains.exposed.v1.core.dao.id.EntityID
+import org.jetbrains.exposed.v1.core.dao.id.IntIdTable
+import org.jetbrains.exposed.v1.dao.IntEntity
+import org.jetbrains.exposed.v1.dao.IntEntityClass
+import org.jetbrains.exposed.v1.javatime.datetime
 import org.l2kserver.game.model.actor.character.CharacterRace
 import org.l2kserver.game.model.actor.character.Gender
 import java.time.LocalDateTime
 
 object PlayerCharacterTable: IntIdTable("characters") {
-    val accountName = varchar("account_name", 16)
-    val name = varchar("name", 16).uniqueIndex()
-    val title = varchar("title", 16).default("")
-    val clanId = integer("clan_id").default(0)
+    val accountName = varchar("account_name", length = 16)
+    val name = varchar("name", length = 16).uniqueIndex()
+    val title = varchar("title", length = 16).default("")
+    val clanId = integer("clan_id").default(defaultValue = 0)
     val gender = postgresEnumeration<Gender>("gender", "GENDER")
     val race = postgresEnumeration<CharacterRace>("race", "RACE")
     val classId = integer("class_id")
     val currentHp = integer("current_hp")
     val currentMp = integer("current_mp")
     val currentCp = integer("current_cp")
-    val sp = integer("sp").default(0)
-    val exp = long("exp").default(0)
-    val karma = integer("karma").default(0)
-    val pvpCount = integer("pvp_count").default(0)
-    val pkCount = integer("pk_count").default(0)
+    val sp = integer("sp").default(defaultValue =0)
+    val exp = long("exp").default(defaultValue =0)
+    val karma = integer("karma").default(defaultValue =0)
+    val pvpCount = integer("pvp_count").default(defaultValue =0)
+    val pkCount = integer("pk_count").default(defaultValue =0)
     val hairStyle = integer("hair_style")
     val hairColor = integer("hair_color")
     val faceType = integer("face_type")
@@ -35,7 +35,7 @@ object PlayerCharacterTable: IntIdTable("characters") {
     val z = integer("z")
     val nameColor = integer("name_color")
     val titleColor = integer("title_color")
-    val activeSubclass = integer("active_subclass").default(0)
+    val activeSubclass = integer("active_subclass").default(defaultValue =0)
     val accessLevel = postgresEnumeration<AccessLevel>("access_level", "ACCESS_LEVEL").default(AccessLevel.PLAYER)
 }
 

@@ -83,6 +83,7 @@ class L2GameRequestHandler(
     private val tradeService: TradeService
 ) {
 
+    @Suppress("CyclomaticComplexMethod")
     suspend fun handle(key: ByteArray, request: RequestPacket?) = when (request) {
         is InitialRequest -> authorizationService.checkProtocolVersion(request, key)
         is AuthorizationRequest -> authorizationService.authorize(request)

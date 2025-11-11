@@ -9,6 +9,7 @@ import org.l2kserver.game.model.actor.MoveType
 
 private const val CHARACTER_INFO_RESPONSE_PACKET_ID: UByte = 4u
 
+private const val MAX_ENCHANTMENT_EFFECT_VALUE = 16
 /**
  * Full character info, which is sent to a player who plays this character
  */
@@ -176,7 +177,8 @@ data class FullCharacterResponse(
         putInt(playerCharacter.stats.maxCp)
         putInt(playerCharacter.currentCp)
 
-        put(minOf(16, playerCharacter.inventory.weapon?.enchantLevel ?: 0).toByte()) //TODO if mounted - 0
+        put(minOf(MAX_ENCHANTMENT_EFFECT_VALUE, playerCharacter.inventory.weapon?.enchantLevel ?: 0)
+            .toByte()) //TODO if mounted - 0
 
         put(0) //TODO team circle around feet 1 = Blue, 2 = red
 

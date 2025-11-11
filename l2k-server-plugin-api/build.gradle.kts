@@ -1,7 +1,7 @@
 plugins {
     id("jvm-toolchains")
     kotlin("jvm")
-    id("io.gitlab.arturbosch.detekt")
+    id("dev.detekt")
 }
 
 group = "org.l2kserver"
@@ -14,7 +14,7 @@ repositories {
 
 dependencies {
     implementation(project(":l2k-server-game-model"))
-    implementation("com.google.devtools.ksp:symbol-processing-api:1.9.0-1.0.13")
+    implementation("com.google.devtools.ksp:symbol-processing-api:2.2.20-2.0.4")
 
     testImplementation(kotlin("test"))
     testImplementation(gradleTestKit())

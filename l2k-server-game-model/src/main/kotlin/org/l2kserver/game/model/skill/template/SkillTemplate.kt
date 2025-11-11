@@ -2,29 +2,44 @@ package org.l2kserver.game.model.skill.template
 
 import org.l2kserver.game.model.GameData
 import org.l2kserver.game.model.GameDataRegistry
+import org.l2kserver.game.model.actor.ActorInstance
 import org.l2kserver.game.model.item.ConsumableItem
 import org.l2kserver.game.model.item.template.ArmorType
 import org.l2kserver.game.model.item.template.WeaponType
-import org.l2kserver.game.model.skill.action.ActiveSkillAction
-import org.l2kserver.game.model.skill.effect.AbnormalAction
+import org.l2kserver.game.model.skill.context.SkillContext
+import org.l2kserver.game.model.skill.effect.Effects
+import org.l2kserver.game.model.skill.effect.AbnormalEffect
 import org.l2kserver.game.model.skill.instance.SkillTargetType
-import org.l2kserver.game.model.skill.instance.ActiveSkillType
 
 /** Stores all the skill templates */
 object SkillTemplateRegistry: GameDataRegistry<SkillTemplate>()
 
+/**
+ * Interface, representing skill template
+ *
+ * @property id Skill identifier
+ * @property skillName Skill name (eng)
+ * @property maxLevel Maximum level of skill, available to learn
+ */
 sealed interface SkillTemplate: GameData {
     val skillName: String
     val maxLevel: Int
 }
 
+interface PassiveSkillTemplate: SkillTemplate {
+    /** Calculates abnormal effects, applied by this skill */
+    fun effect(actor: ActorInstance, actionLevel: Int): AbnormalEffect
+}
+
+interface ToggleSkillTemplate: SkillTemplate {
+    /** Requirements to use this skill */
+    val requires: SkillRequirements?
+}
+
 /**
- * Data class representing active (physical) skill
+ * Skill, that can be caster
  *
- * @property id Skill identifier
- * @property skillName Skill name (eng)
- * @property maxLevel - maximum level of this skill
- * @property skillType - Skill type - active or magic
+ * @property targetType - Type of target to cast this skill on
  * @property reuseDelay - Base cooldown of this skill
  * @property castTime - Base casting time of this skill
  * @property repriseTime - Time to return to the starting position after skill casting
@@ -32,56 +47,27 @@ sealed interface SkillTemplate: GameData {
  * @property effectRange - TODO
  * @property requires - Requirements to use this skill
  * @property consumes - Skill consumables - mp, items, etc.
- * @property skillAction - Actions, performed by this skill
  */
-data class ActiveSkillTemplate(
-    override val id: Int,
-    override val skillName: String,
-    override val maxLevel: Int,
-    val skillType: ActiveSkillType,
-    val targetType: SkillTargetType,
-    val reuseDelay: Int,
-    val castTime: Int,
-    val repriseTime: Int = 0,
-    val castRange: Int = 0,
-    val effectRange: Int = 0,
-    val requires: SkillRequirements? = null,
-    val consumesToStart: SkillConsumablesTemplate? = null,
-    val consumes: SkillConsumablesTemplate? = null,
-    val overhitPossible: Boolean = false,
-    val lethalStrikePossible: Boolean = false,
-    val skillAction: ActiveSkillAction
-): SkillTemplate
+sealed interface CastableSkillTemplate: SkillTemplate {
+    val targetType: SkillTargetType
+    val reuseDelay: Int
+    val castTime: Int
+    val repriseTime: Int get() = 0
+    val castRange: Int get() = 0
+    val effectRange: Int get() = 0
+    val requires: SkillRequirements? get() = null
+    val consumesToStart: SkillConsumablesTemplate? get() = null
+    val consumes: SkillConsumablesTemplate? get() = null
+    val overhitPossible: Boolean get() = false
 
-/**
- * Data class representing passive skill
- *
- * @property id Skill identifier
- * @property skillName Skill name (eng)
- * @property maxLevel - maximum level of this skill
- * @property skillAction Actions, performed by this skill
- */
-data class PassiveSkillTemplate(
-    override val id: Int,
-    override val skillName: String,
-    override val maxLevel: Int,
-    val skillAction: AbnormalAction
-): SkillTemplate
+    fun affect(context: SkillContext): Effects
+}
 
-/**
- * Data class representing toggle skill
- *
- * @property id Skill identifier
- * @property skillName Skill name (eng)
- * @property maxLevel - maximum level of this skill
- * @property requires - Requirements to use this skill
- */
-data class ToggleSkillTemplate(
-    override val id: Int,
-    override val skillName: String,
-    override val maxLevel: Int,
-    val requires: SkillRequirements?,
-): SkillTemplate
+/** Active (physical) skill template */
+interface ActiveSkillTemplate: CastableSkillTemplate
+
+/** Magic skill template */
+interface MagicSkillTemplate: CastableSkillTemplate
 
 /**
  * Skill requirements - conditions to use this skill
@@ -96,10 +82,10 @@ data class SkillRequirements(
 
 /**
  * Skill consumables
+ *
+ * @property hp - How much HP is spent to cast skill on each skill level
  * (Note: skill level starts with 1)
- * @property hp - How much HP is spent to cast skill on each skill level. Consumed AFTER skill casting
- * (Note: skill level starts with 1)
- * @property mp - How much mana is spent to cast skill on each skill level. Consumed AFTER skill casting
+ * @property mp - How much mana is spent to cast skill on each skill level
  * (Note: skill level starts with 1)
  * @property item - Which item is spent to cast skill on each skill level
  * (Note: skill level starts with 1)

@@ -13,7 +13,6 @@ import org.l2kserver.game.model.actor.npc.ai.MoveIntent
 import org.l2kserver.game.model.actor.npc.ai.SayIntent
 import org.l2kserver.game.model.actor.npc.ai.WaitIntent
 import org.l2kserver.game.repository.GameObjectRepository
-import org.l2kserver.game.model.time.GameTime
 import org.springframework.boot.context.event.ApplicationReadyEvent
 import org.springframework.context.event.EventListener
 import org.springframework.stereotype.Service
@@ -30,25 +29,18 @@ class AiService(
     override val log = logger()
 
     @EventListener(ApplicationReadyEvent::class)
-    fun init() = asyncTaskService.launchRepeated("AI_JOB", GameTime.MILLIS_IN_TICK * 10) {
+    fun init() = asyncTaskService.launchRepeated("AI_JOB", 1000) {
         gameObjectRepository.findAllNpc().forEach { npc ->
-            if (!npc.isDead()) performAiAction(npc)
+            if (!npc.isDead()) runCatching { launchOnIdleAction(npc) }
+                .onFailure { log.error("An error occurred when handling {}'s ai", npc, it) }
         }
 
         //TODO Idle actions should be performed less frequently, but what if the npc is fighting?
     }
 
-    private suspend fun performAiAction(npc: Npc) = try {
-        npc.ai?.let { ai ->
-             launchOnIdleAction(npc, ai::onIdle)
-        }
-    } catch (e: Throwable) {
-        log.error("An error occurred when handling {}'s ai", npc, e)
-    }
-
-    private suspend fun launchOnIdleAction(npc: Npc, action: (it: Npc) -> AiIntents) {
-        val intents = action(npc)
-        if (!asyncTaskService.hasActionByActorId(npc.id) && intents.isNotEmpty()) {
+    private suspend fun launchOnIdleAction(npc: Npc) {
+        val intents = npc.onIdle()
+        if (!asyncTaskService.hasActionByActorId(npc.id) && !intents.isNullOrEmpty()) {
             asyncTaskService.launchAction(npc.id) { performIntendedActions(intents, npc) }
         }
     }

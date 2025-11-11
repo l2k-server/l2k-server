@@ -1,6 +1,6 @@
 package org.l2kserver.game.service
 
-import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
+import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
 import org.l2kserver.game.model.extensions.forEachInstanceMatching
 import org.l2kserver.game.extensions.logger
 import org.l2kserver.game.extensions.model.item.toScatteredItem
@@ -168,16 +168,24 @@ class ItemService(
                 return
             }
             !item.isStackable && request.amount > 1 -> {
-                throw IllegalArgumentException("'${character}' tried to drop '${request.amount}' non-stackable items '$item')!")
+                throw IllegalArgumentException(
+                    "'${character}' tried to drop '${request.amount}' non-stackable items '$item')!"
+                )
             }
             request.amount > item.amount -> {
                 send { SystemMessageResponse.NotEnoughItems }
                 return
             }
             else -> {
-                val scatteredItemPosition = geoDataService.getAvailableTargetPosition(character.position, request.position)
-                val scatteredItem = gameObjectRepository.save(item.toScatteredItem(scatteredItemPosition, request.amount))!!
-                this@ItemService.broadcastAround(character.position) { DroppedItemResponse(character.id, scatteredItem) }
+                val scatteredItemPosition = geoDataService.getAvailableTargetPosition(
+                    character.position, request.position
+                )
+                val scatteredItem = gameObjectRepository.save(
+                    item.toScatteredItem(scatteredItemPosition, request.amount)
+                )!!
+                this@ItemService.broadcastAround(character.position) {
+                    DroppedItemResponse(character.id, scatteredItem)
+                }
                 deleteItem(item, request.amount, character)
                 log.info("Character '{}' has dropped item '{}'", character.name, item)
             }
@@ -198,17 +206,22 @@ class ItemService(
         val itemsInStackAmount = if (template.isStackable) item.amount.random() else 1
 
         val scatteredItems = List(scatteredItemsAmount) {
-            val dropX = ((dropper.position.x - DROP_REWARD_DISTANCE)..(dropper.position.x + DROP_REWARD_DISTANCE)).random()
-            val dropY = ((dropper.position.y - DROP_REWARD_DISTANCE)..(dropper.position.y + DROP_REWARD_DISTANCE)).random()
+            val dropX = ((dropper.position.x - DROP_REWARD_DISTANCE)..(dropper.position.x + DROP_REWARD_DISTANCE))
+                .random()
+            val dropY = ((dropper.position.y - DROP_REWARD_DISTANCE)..(dropper.position.y + DROP_REWARD_DISTANCE))
+                .random()
 
             val calculatedPosition = Position(dropX, dropY, dropper.position.z)
-            val dropPosition = geoDataService.getAvailableTargetPosition(dropper.position, calculatedPosition)
+            val dropPosition = geoDataService.getAvailableTargetPosition(
+                dropper.position, calculatedPosition)
 
             gameObjectRepository.save(item.toScatteredItem(dropPosition, itemsInStackAmount))
         }.filterNotNull()
 
         scatteredItems.forEach { scatteredItem ->
-            this@ItemService.broadcastAround(dropper.position) { DroppedItemResponse(dropper.id, scatteredItem) }
+            this@ItemService.broadcastAround(dropper.position) {
+                DroppedItemResponse(dropper.id, scatteredItem)
+            }
         }
     }
 
@@ -252,7 +265,7 @@ class ItemService(
     /** Creates new item(s) in [itemReceiver]'s inventory */
     suspend fun giveItem(
         itemReceiver: PlayerCharacter, itemTemplateId: Int, amount: Int, enchantLevel: Int
-    ) = newSuspendedTransaction {
+    ) = suspendTransaction {
         val existingItem = itemReceiver.inventory.findAllByTemplateId(itemTemplateId).firstOrNull()
         val itemTemplate = ItemTemplateRegistry.findById(itemTemplateId)
 
@@ -282,7 +295,7 @@ class ItemService(
 
         log.info("Character '{}' has received item '{}'", itemReceiver.name, items)
 
-        return@newSuspendedTransaction items
+        return@suspendTransaction items
     }
 
     /**
@@ -292,12 +305,12 @@ class ItemService(
      * @param amount Amount of items to delete
      * @param owner Owner of this [item]
      */
-    suspend fun deleteItem(item: ItemInstance, amount: Int, owner: PlayerCharacter) = newSuspendedTransaction {
+    suspend fun deleteItem(item: ItemInstance, amount: Int, owner: PlayerCharacter) = suspendTransaction {
         require(item.isStackable || amount == 1) { "Cannot remove '$amount' of non-stackable '$item' of '${owner}'!" }
 
         if (amount > item.amount) {
             sendTo(owner.id) { SystemMessageResponse.NotEnoughItems }
-            return@newSuspendedTransaction
+            return@suspendTransaction
         }
 
         if (amount < item.amount) {
@@ -442,10 +455,10 @@ class ItemService(
      * @param character Character, that tries to equip/take off item
      * @param item Item, that will be equipped/taken off
      */
-    @Suppress("NestedBlockDepth") //TODO Refactor?
+    @Suppress("NestedBlockDepth", "CyclomaticComplexMethod") //TODO Refactor?
     private suspend fun equipOrDisarmItem(character: PlayerCharacter, item: EquippableItemInstance) {
         val updatedItems = ArrayList<ItemInstance>(3)
-        newSuspendedTransaction {
+        suspendTransaction {
             val paperDoll = character.inventory
 
             if (item.isEquipped) updatedItems.add(paperDoll.disarmItem(item))
@@ -544,10 +557,11 @@ class ItemService(
             updatedItems += equipAndDisarmArrows(updatedItems, character)
         }
 
-        newSuspendedTransaction {
+        suspendTransaction {
             updatedItems.forEach {
                 if (it.isEquipped) {
-                    //CRUTCH: Server must send SystemMessage -> CharacterResponse -> UpdatedItemResponse -> CharacterResponse
+                    //CRUTCH: Server must send
+                    //SystemMessage -> CharacterResponse -> UpdatedItemResponse -> CharacterResponse
                     //otherwise jewellery sucks
                     send { SystemMessageResponse.EquipItem(it) }
                     send { FullCharacterResponse(character) }

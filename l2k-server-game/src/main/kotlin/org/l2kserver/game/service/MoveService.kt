@@ -6,7 +6,7 @@ import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
+import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
 import org.l2kserver.game.extensions.logger
 import org.l2kserver.game.handler.dto.request.MoveRequest
 import org.l2kserver.game.handler.dto.request.StartRotationRequest
@@ -30,6 +30,7 @@ import org.l2kserver.game.network.session.sendTo
 import org.l2kserver.game.network.session.sessionContext
 import org.l2kserver.game.repository.GameObjectRepository
 import org.l2kserver.game.model.time.GameTime
+import org.l2kserver.game.utils.time.withDelay
 import org.springframework.stereotype.Service
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.coroutines.coroutineContext
@@ -83,10 +84,10 @@ class MoveService(
     }
 
     /** Handles position validation request. At the moment validates position by client */
-    suspend fun validatePosition(request: ValidatePositionRequest) = newSuspendedTransaction {
+    suspend fun validatePosition(request: ValidatePositionRequest) = suspendTransaction {
         val characterId = sessionContext().getCharacterIdOrNull() ?: run {
             log.warn("Player '{}' has not selected character", sessionContext().getAccountNameOrNull())
-            return@newSuspendedTransaction
+            return@suspendTransaction
         }
 
         val character = gameObjectRepository.findCharacterById(characterId)
@@ -119,9 +120,9 @@ class MoveService(
     /** Moves [actor] to [target] by specified [requiredDistance] */
     suspend fun move(
         actor: MutableActorInstance, target: GameWorldObject, requiredDistance: Int = 0
-    ) = newSuspendedTransaction {
+    ) = suspendTransaction {
         //If target of moving is actor himself (f.e. if he casts target skill on self) - do nothing
-        if (actor == target) return@newSuspendedTransaction
+        if (actor == target) return@suspendTransaction
 
         //Actor should turn to target even if he is enough close
         var turningJob = launchTurning(actor, target.position)
@@ -130,7 +131,7 @@ class MoveService(
         if (actor.position.isCloseTo(target.position, requiredDistance)) {
             //This needed to show red target frame
             send { StartMovingToTargetResponse(actor, target.id, requiredDistance) }
-            return@newSuspendedTransaction
+            return@suspendTransaction
         }
 
         log.trace("Start moving actor '{}' to target '{}'", actor, target)
@@ -141,12 +142,10 @@ class MoveService(
             var destination: Position? = null
 
             var moveIterations = 0
-            while (coroutineContext.isActive && target.exists() && !actor.position.isCloseTo(destination)) {
-                val startUpdatingPositionTimestamp = System.currentTimeMillis()
-
+            while (coroutineContext.isActive && target.exists() && !actor.position.isCloseTo(destination)) withDelay {
                 if (actor.isImmobilized) {
                     log.trace("Actor '{}' is immobilized", actor)
-                    return@newSuspendedTransaction
+                    return@suspendTransaction
                 }
 
                 //If target position changed, destination must be recalculated
@@ -182,9 +181,6 @@ class MoveService(
 
                 updatePosition(actor, destination!!, moveDistance, updateObjects)
                 moveTimestamp = System.currentTimeMillis()
-
-                //Sleep for 1 tick minus time of updating operation
-                delay(GameTime.MILLIS_IN_TICK - (System.currentTimeMillis() - startUpdatingPositionTimestamp))
             }
             turningJob.join()
             log.trace("Actor '{}' has arrived to target '{}' on distance '{}'", actor, target, requiredDistance)
@@ -212,7 +208,7 @@ class MoveService(
             val newHeading = actor.position.headingTo(targetPosition)
 
             while (isActive && actor.heading != newHeading) {
-                newSuspendedTransaction {
+                suspendTransaction {
                     val deltaHeading = (newHeading - actor.heading).toShort().toInt()
 
                     val rotation = if (deltaHeading > 0)
@@ -228,7 +224,7 @@ class MoveService(
         }
 
     /** Teleports [actor] to [targetPosition] */
-    suspend fun teleport(actor: MutableActorInstance, targetPosition: Position) = newSuspendedTransaction {
+    suspend fun teleport(actor: MutableActorInstance, targetPosition: Position) = suspendTransaction {
         log.debug("Teleporting '{}' to '{}'", actor, targetPosition)
         asyncTaskService.cancelActionByActorId(actor.id)
 
@@ -242,7 +238,7 @@ class MoveService(
         // Imitate teleporting process. Client validates position after disappearance animation ends,
         // so it will break if position will change immediately
 
-        newSuspendedTransaction { actor.position = fixedPosition }
+        actor.position = fixedPosition
         updateObjectsAround(actor)
     }
 

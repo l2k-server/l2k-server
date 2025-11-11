@@ -10,6 +10,7 @@ private const val EXTENDED_PACKET: UByte = 208u
 sealed interface RequestPacket
 sealed interface ExtendedRequestPacket: RequestPacket
 
+@Suppress("CyclomaticComplexMethod")
 fun RequestPacket(data: ByteArray): RequestPacket {
     val buffer = littleEndianByteBuffer(data)
 

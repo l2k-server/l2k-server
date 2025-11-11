@@ -79,25 +79,46 @@ class Weapon(
                 else -> WEAPON_D_GRADE_PER_ENCHANT_P_ATK_BONUS to WEAPON_D_GRADE_PER_ENCHANT_M_ATK_BONUS
             }
             Grade.C, Grade.B -> when (type) {
-                WeaponType.DAGGER, WeaponType.SWORD_ONE_HANDED, WeaponType.BLUNT_ONE_HANDED, WeaponType.POLE, WeaponType.ETC ->
+                WeaponType.DAGGER,
+                WeaponType.SWORD_ONE_HANDED,
+                WeaponType.BLUNT_ONE_HANDED,
+                WeaponType.POLE,
+                WeaponType.ETC ->
                     ONE_HANDED_WEAPON_C_B_GRADE_PER_ENCHANT_P_ATK_BONUS to WEAPON_C_B_GRADE_PER_ENCHANT_M_ATK_BONUS
-                WeaponType.SWORD_TWO_HANDED, WeaponType.BLUNT_TWO_HANDED, WeaponType.DOUBLE_BLADES, WeaponType.FIST ->
+                WeaponType.SWORD_TWO_HANDED,
+                WeaponType.BLUNT_TWO_HANDED,
+                WeaponType.DOUBLE_BLADES,
+                WeaponType.FIST ->
                     TWO_HANDED_WEAPON_C_B_GRADE_PER_ENCHANT_P_ATK_BONUS to WEAPON_C_B_GRADE_PER_ENCHANT_M_ATK_BONUS
                 WeaponType.BOW ->
                     BOW_C_B_GRADE_PER_ENCHANT_P_ATK_BONUS to WEAPON_C_B_GRADE_PER_ENCHANT_M_ATK_BONUS
             }
             Grade.A -> when (type) {
-                WeaponType.DAGGER, WeaponType.SWORD_ONE_HANDED, WeaponType.BLUNT_ONE_HANDED, WeaponType.POLE, WeaponType.ETC ->
+                WeaponType.DAGGER,
+                WeaponType.SWORD_ONE_HANDED,
+                WeaponType.BLUNT_ONE_HANDED,
+                WeaponType.POLE,
+                WeaponType.ETC ->
                     ONE_HANDED_WEAPON_A_GRADE_PER_ENCHANT_P_ATK_BONUS to WEAPON_A_GRADE_PER_ENCHANT_M_ATK_BONUS
-                WeaponType.SWORD_TWO_HANDED, WeaponType.BLUNT_TWO_HANDED, WeaponType.DOUBLE_BLADES, WeaponType.FIST ->
+                WeaponType.SWORD_TWO_HANDED,
+                WeaponType.BLUNT_TWO_HANDED,
+                WeaponType.DOUBLE_BLADES,
+                WeaponType.FIST ->
                     TWO_HANDED_WEAPON_A_GRADE_PER_ENCHANT_P_ATK_BONUS to WEAPON_A_GRADE_PER_ENCHANT_M_ATK_BONUS
                 WeaponType.BOW ->
                     BOW_A_GRADE_PER_ENCHANT_P_ATK_BONUS to WEAPON_A_GRADE_PER_ENCHANT_M_ATK_BONUS
             }
             Grade.S -> when (type) {
-                WeaponType.DAGGER, WeaponType.SWORD_ONE_HANDED, WeaponType.BLUNT_ONE_HANDED, WeaponType.POLE, WeaponType.ETC ->
+                WeaponType.DAGGER,
+                WeaponType.SWORD_ONE_HANDED,
+                WeaponType.BLUNT_ONE_HANDED,
+                WeaponType.POLE,
+                WeaponType.ETC ->
                     ONE_HANDED_WEAPON_S_GRADE_PER_ENCHANT_P_ATK_BONUS to WEAPON_S_GRADE_PER_ENCHANT_M_ATK_BONUS
-                WeaponType.SWORD_TWO_HANDED, WeaponType.BLUNT_TWO_HANDED, WeaponType.DOUBLE_BLADES, WeaponType.FIST ->
+                WeaponType.SWORD_TWO_HANDED,
+                WeaponType.BLUNT_TWO_HANDED,
+                WeaponType.DOUBLE_BLADES,
+                WeaponType.FIST ->
                     TWO_HANDED_WEAPON_S_GRADE_PER_ENCHANT_P_ATK_BONUS to WEAPON_S_GRADE_PER_ENCHANT_M_ATK_BONUS
                 WeaponType.BOW ->
                     BOW_S_GRADE_PER_ENCHANT_P_ATK_BONUS to WEAPON_S_GRADE_PER_ENCHANT_M_ATK_BONUS
@@ -109,9 +130,9 @@ class Weapon(
         val unsafeEnchantLevel = maxOf(enchantLevel - WEAPON_SAFE_ENCHANT_LEVEL, 0)
 
         return initialStats.copy(
-            pAtk = initialStats.pAtk + safeEnchantLevel * pAtkPerEnchantBonus + 
+            pAtk = initialStats.pAtk + safeEnchantLevel * pAtkPerEnchantBonus +
                     unsafeEnchantLevel * pAtkPerEnchantBonus * WEAPON_UNSAFE_ENCHANT_BONUS_MULTIPLIER,
-            mAtk = initialStats.mAtk + safeEnchantLevel * mAtkPerEnchantBonus + 
+            mAtk = initialStats.mAtk + safeEnchantLevel * mAtkPerEnchantBonus +
                     unsafeEnchantLevel * mAtkPerEnchantBonus * WEAPON_UNSAFE_ENCHANT_BONUS_MULTIPLIER
         )
     }

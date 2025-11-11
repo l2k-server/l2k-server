@@ -186,36 +186,34 @@ data class CombatStats(
         cpRegen = this.cpRegen + other.cpRegen
     )
 
-    override fun toString(): String {
-        val statList = buildList {
-            if (maxCp != 0) add("maxCp=$maxCp")
-            if (maxHp != 0) add("maxHp=$maxHp")
-            if (maxMp != 0) add("maxMp=$maxMp")
+    @Suppress("CyclomaticComplexMethod")
+    override fun toString() = buildList {
+        if (maxCp != 0) add("maxCp=$maxCp")
+        if (maxHp != 0) add("maxHp=$maxHp")
+        if (maxMp != 0) add("maxMp=$maxMp")
 
-            if (pAtk != 0) add("pAtk=$pAtk")
-            if (pDef != 0) add("pDef=$pDef")
-            if (accuracy != 0) add("accuracy=$accuracy")
-            if (critRate != 0) add("critRate=$critRate")
-            if (atkSpd != 0) add("atkSpd=$atkSpd")
-            if (mAtk != 0) add("mAtk=$mAtk")
-            if (mDef != 0) add("mDef=$mDef")
-            if (evasion != 0) add("evasion=$evasion")
-            if (speed != 0) add("speed=$speed")
-            if (castingSpd != 0) add("castingSpd=$castingSpd")
+        if (pAtk != 0) add("pAtk=$pAtk")
+        if (pDef != 0) add("pDef=$pDef")
+        if (accuracy != 0) add("accuracy=$accuracy")
+        if (critRate != 0) add("critRate=$critRate")
+        if (atkSpd != 0) add("atkSpd=$atkSpd")
+        if (mAtk != 0) add("mAtk=$mAtk")
+        if (mDef != 0) add("mDef=$mDef")
+        if (evasion != 0) add("evasion=$evasion")
+        if (speed != 0) add("speed=$speed")
+        if (castingSpd != 0) add("castingSpd=$castingSpd")
 
-            if (shieldDef != 0) add("shieldDef=$shieldDef")
-            if (shieldDefRate != 0) add("shieldDefRate=$shieldDefRate")
+        if (shieldDef != 0) add("shieldDef=$shieldDef")
+        if (shieldDefRate != 0) add("shieldDefRate=$shieldDefRate")
 
-            if (critDamage != 0) add("critDamage=$critDamage")
-            if (attackRange != 0) add("attackRange=$attackRange")
+        if (critDamage != 0) add("critDamage=$critDamage")
+        if (attackRange != 0) add("attackRange=$attackRange")
 
-            if (mCritRate != 0) add("mCritRate=$mCritRate")
+        if (mCritRate != 0) add("mCritRate=$mCritRate")
 
-            if (hpRegen != 0.0) add("hpRegen=$hpRegen")
-            if (mpRegen != 0.0) add("mpRegen=$mpRegen")
-            if (cpRegen != 0.0) add("cpRegen=$cpRegen")
-        }
+        if (hpRegen != 0.0) add("hpRegen=$hpRegen")
+        if (mpRegen != 0.0) add("mpRegen=$mpRegen")
+        if (cpRegen != 0.0) add("cpRegen=$cpRegen")
+    }.joinToString(",", "CombatStats(", ")")
 
-        return statList.joinToString(",", "CombatStats(", ")")
-    }
 }

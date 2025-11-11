@@ -154,7 +154,9 @@ abstract class AbstractService {
         }
     }
 
-    private suspend fun PlayerCharacter.addToKnownListAndNotify(gameObject: GameWorldObject, movementDestination: Position?) {
+    private suspend fun PlayerCharacter.addToKnownListAndNotify(
+        gameObject: GameWorldObject, movementDestination: Position?
+    ) {
         this.knownGameWorldObjects.add(gameObject)
         send { gameObject.toInfoResponse() }
 

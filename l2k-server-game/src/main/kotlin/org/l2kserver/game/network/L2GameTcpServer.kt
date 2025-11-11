@@ -39,11 +39,12 @@ private const val MIN_PACKET_SIZE = 3
 private const val MAX_PACKET_SIZE = 65535
 
 @Component
+@Suppress("unused")
 class L2GameTcpServer(
     private val l2GameRequestHandler: L2GameRequestHandler,
 
-    @Value("\${server.port}") private val port: Int,
-    @Value("\${server.readTimeout}") private val readTimeout: Long
+    @param:Value($$"${server.port}") private val port: Int,
+    @param:Value($$"${server.readTimeout}") private val readTimeout: Long
 ) {
 
     private val log = logger()
@@ -100,7 +101,7 @@ class L2GameTcpServer(
                     log.info("Disconnected {}", socket.remoteAddress)
                     l2GameRequestHandler.handleDisconnect()
 
-                    delay(2000) // wait for 2 seconds to send remaining packets
+                    delay(timeMillis = 2000) // wait for 2 seconds to send remaining packets
                     sendingJob.cancel()
                     socket.close()
                 }

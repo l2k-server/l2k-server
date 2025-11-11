@@ -1,8 +1,8 @@
 plugins {
     id("jvm-toolchains")
-    kotlin("jvm")
-    kotlin("plugin.spring")
-    id("io.gitlab.arturbosch.detekt")
+    kotlin("jvm") version "2.2.20"
+    kotlin("plugin.spring") version "2.2.20"
+    id("dev.detekt")
     id("org.springframework.boot")
     id("io.spring.dependency-management")
 }
@@ -16,11 +16,14 @@ repositories {
 }
 
 dependencies {
+    // Kotlin
+    implementation("org.jetbrains.kotlin:kotlin-stdlib")
+
     // Spring
     implementation("org.springframework.boot:spring-boot-starter")
 
     // Ktor
-    implementation("io.ktor:ktor-network:3.2.3")
+    implementation("io.ktor:ktor-network-jvm:3.3.2")
 
     //Jackson
     implementation("com.fasterxml.jackson.core:jackson-core")
@@ -33,12 +36,12 @@ dependencies {
     implementation("com.hazelcast:hazelcast:5.5.0")
 
     // Database
-    implementation("org.jetbrains.exposed:exposed-spring-boot-starter:0.61.0")
-    implementation("org.jetbrains.exposed:exposed-java-time:0.61.0")
+    implementation("org.jetbrains.exposed:exposed-spring-boot-starter:1.0.0-rc-3")
+    implementation("org.jetbrains.exposed:exposed-java-time:1.0.0-rc-3")
     runtimeOnly("org.postgresql:postgresql")
 
-    implementation("org.flywaydb:flyway-core:11.13.1")
-    runtimeOnly("org.flywaydb:flyway-database-postgresql:11.13.1")
+    implementation("org.flywaydb:flyway-core:11.16.0")
+    runtimeOnly("org.flywaydb:flyway-database-postgresql:11.16.0")
 
     // Test
     testImplementation(kotlin("test"))

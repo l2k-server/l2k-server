@@ -1,21 +1,24 @@
 package org.l2kserver.game.domain
 
-import org.jetbrains.exposed.sql.and
-import org.jetbrains.exposed.sql.transactions.transaction
-import org.jetbrains.exposed.sql.upsertReturning
+import org.jetbrains.exposed.v1.core.and
+import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import org.jetbrains.exposed.v1.jdbc.upsertReturning
 import org.l2kserver.game.model.actor.PlayerCharacter
 import org.l2kserver.game.model.skill.ActiveSkill
+import org.l2kserver.game.model.skill.MagicSkill
 import org.l2kserver.game.model.skill.PassiveSkill
 import org.l2kserver.game.model.skill.ToggleSkill
 import org.l2kserver.game.model.skill.instance.PassiveSkillInstance
 import org.l2kserver.game.model.skill.instance.SkillInstance
 import org.l2kserver.game.model.skill.template.ActiveSkillTemplate
+import org.l2kserver.game.model.skill.template.MagicSkillTemplate
 import org.l2kserver.game.model.skill.template.PassiveSkillTemplate
 import org.l2kserver.game.model.skill.template.SkillTemplateRegistry
 import org.l2kserver.game.model.skill.template.ToggleSkillTemplate
 import java.util.concurrent.ConcurrentHashMap
 
-class SkillsAndMagic(val character: PlayerCharacter) : Collection<SkillInstance> {
+class SkillsAndMagic(val character: PlayerCharacter): Collection<SkillInstance> {
     private val skills: MutableMap<Int, SkillInstance> = ConcurrentHashMap()
 
     init {
@@ -70,6 +73,7 @@ private fun SkillEntity.Companion.findAllByCharacterIdAndSubclassIndex(
 
 private fun SkillEntity.toSkill() = when (val template = SkillTemplateRegistry.findById(this.skillId)) {
     is ActiveSkillTemplate -> ActiveSkill(this, template)
+    is MagicSkillTemplate -> MagicSkill(this, template)
     is PassiveSkillTemplate -> PassiveSkill(this, template)
     is ToggleSkillTemplate -> ToggleSkill()
 }

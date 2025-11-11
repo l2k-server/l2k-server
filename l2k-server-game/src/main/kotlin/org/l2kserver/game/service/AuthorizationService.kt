@@ -15,7 +15,7 @@ class AuthorizationService(
     private val characterService: CharacterService,
     private val loggedInUsersRepository: LoggedInUsersRepository,
 
-    @Value("\${server.protocolVersion}")
+    @param:Value($$"${server.protocolVersion}")
     private val acceptableProtocolVersion: Int
 ) {
 

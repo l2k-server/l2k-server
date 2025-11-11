@@ -1,10 +1,10 @@
 package org.l2kserver.game.service
 
+import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
 import java.lang.System.currentTimeMillis
 import java.util.concurrent.ConcurrentHashMap
-import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.l2kserver.game.extensions.logger
-import org.l2kserver.game.handler.dto.response.AbnormalsListResponse
+import org.l2kserver.game.handler.dto.response.TemporalEffectsResponse
 import org.l2kserver.game.handler.dto.response.ChangeMoveTypeResponse
 import org.l2kserver.game.handler.dto.response.FullCharacterResponse
 import org.l2kserver.game.handler.dto.response.PvPStatusResponse
@@ -33,16 +33,17 @@ private const val ACTOR_STATE_JOB = "ACTOR_STATE_JOB"
 private const val REGENERATION_JOB = "REGENERATION_JOB"
 private const val UPDATE_ABNORMALS_JOB = "UPDATE_ABNORMALS_JOB"
 
-private const val REGENERATION_TASK_DELAY_MS = 3_000L //TODO 5 minutes for doors
-private const val UPDATE_ABNORMALS_DELAY_MS = 1_000L
+private const val UPDATE_COMBAT_STATE_DELAY_MS = 1000L
+private const val REGENERATION_TASK_DELAY_MS = 3000L //TODO 5 minutes for doors
+private const val UPDATE_ABNORMALS_DELAY_MS = 1000L
 
 @Service
 class ActorStateService(
     private val asyncTaskService: AsyncTaskService,
     override val gameObjectRepository: GameObjectRepository,
 
-    @Value("\${pvp.pvpFlagTimeMs}") private val pvpFlagTimeMs: Int,
-    @Value("\${pvp.pvpFlagEndingTimeMs}") private val pvpFlagEndingTimeMs: Int
+    @param:Value($$"${pvp.pvpFlagTimeMs}") private val pvpFlagTimeMs: Int,
+    @param:Value($$"${pvp.pvpFlagEndingTimeMs}") private val pvpFlagEndingTimeMs: Int
 ) : AbstractService() {
     override val log = logger()
 
@@ -58,7 +59,7 @@ class ActorStateService(
 
     @EventListener(ApplicationReadyEvent::class)
     fun init() {
-        asyncTaskService.launchRepeated(ACTOR_STATE_JOB, 1_000) {
+        asyncTaskService.launchRepeated(ACTOR_STATE_JOB, UPDATE_COMBAT_STATE_DELAY_MS) {
             updateActorsFightingState()
             updateCharactersPvpState()
         }
@@ -135,7 +136,9 @@ class ActorStateService(
             //TODO This is part of AI, not combat service
             if (actor is Npc) {
                 actor.moveType = MoveType.WALK
-                this@ActorStateService.broadcastAround(actor.position) { ChangeMoveTypeResponse(actor.id, actor.moveType) }
+                this@ActorStateService.broadcastAround(actor.position) {
+                    ChangeMoveTypeResponse(actor.id, actor.moveType)
+                }
             }
 
             disableCombatState(actor)
@@ -145,14 +148,14 @@ class ActorStateService(
     private suspend fun updateCharactersPvpState() = charactersInPvpState.forEach { (character, pvpStateEndsTime) ->
         val pvpTimeLeft = pvpStateEndsTime - currentTimeMillis()
         when {
-            pvpTimeLeft <= 0 -> newSuspendedTransaction {
+            pvpTimeLeft <= 0 -> suspendTransaction {
                 character.pvpState = PvpState.NOT_IN_PVP
                 this@ActorStateService.broadcastAround(character.position) { PvPStatusResponse(character) }
                 charactersInPvpState.remove(character)
                 log.debug("'{}' is now not in PVP", character)
             }
 
-            pvpTimeLeft <= pvpFlagEndingTimeMs -> newSuspendedTransaction {
+            pvpTimeLeft <= pvpFlagEndingTimeMs -> suspendTransaction {
                 character.pvpState = PvpState.PVP_ENDING
                 this@ActorStateService.broadcastAround(character.position) { PvPStatusResponse(character) }
                 log.debug("Switched PVP state of '{}' to '{}'", character, character.pvpState)
@@ -161,8 +164,8 @@ class ActorStateService(
     }
 
     private suspend fun regenerate() = gameObjectRepository.findAllActors().forEach { actor ->
-        newSuspendedTransaction {
-            if (actor.isDead()) return@newSuspendedTransaction
+        suspendTransaction {
+            if (actor.isDead()) return@suspendTransaction
 
             val updatedStatuses = mutableMapOf<StatusAttribute, Int>()
 
@@ -195,19 +198,21 @@ class ActorStateService(
             }
 
             if (updatedStatuses.isNotEmpty())
-                this@ActorStateService.broadcastAround(actor.position) { UpdateStatusResponse(actor.id, updatedStatuses) }
+                this@ActorStateService.broadcastAround(actor.position) {
+                    UpdateStatusResponse(actor.id, updatedStatuses)
+                }
         }
     }
 
     private suspend fun updateAbnormals() = gameObjectRepository.findAllActors().forEach { actor ->
-        val outdatedEffects = actor.abnormalEffects.filter { it.expiresAt.isBefore(Instant.now()) }
+        val outdatedEffects = actor.temporalEffects.filter { it.expiresAt.isBefore(Instant.now()) }
 
         if (outdatedEffects.isNotEmpty()) {
-            if (actor.abnormalEffects.removeAll(outdatedEffects)) newSuspendedTransaction {
+            if (actor.temporalEffects.removeAll(outdatedEffects)) suspendTransaction {
                 log.debug("Successfully removed '{}' from '{}'", outdatedEffects, actor)
                 if (actor is PlayerCharacter) {
                     sendTo(actor.id) { FullCharacterResponse(actor) }
-                    sendTo(actor.id) { AbnormalsListResponse(actor.abnormalEffects) }
+                    sendTo(actor.id) { TemporalEffectsResponse(actor.temporalEffects) }
                 }
             }
         }

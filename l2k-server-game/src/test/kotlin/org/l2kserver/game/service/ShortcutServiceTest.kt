@@ -2,7 +2,7 @@ package org.l2kserver.game.service
 
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
-import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
+import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.l2kserver.game.AbstractTests
 import org.l2kserver.game.handler.dto.request.CreateShortcutRequest
 import org.l2kserver.game.handler.dto.response.CreateShortcutResponse
@@ -15,8 +15,8 @@ import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 
 class ShortcutServiceTest(
-    @Autowired private val shortcutService: ShortcutService,
-    @Autowired private val shortcutRepository: ShortcutRepository,
+    @param:Autowired private val shortcutService: ShortcutService,
+    @param:Autowired private val shortcutRepository: ShortcutRepository,
 ): AbstractTests() {
 
     @Test
@@ -42,7 +42,7 @@ class ShortcutServiceTest(
         assertEquals(testIndex, response.shortcut.index)
         assertEquals(testActionId, response.shortcut.shortcutActionId)
 
-        newSuspendedTransaction {
+        transaction {
             val savedShortcut = assertNotNull(shortcutRepository.findBy(
                 testIndex, character.id, character.activeSubclass
             ))
@@ -80,7 +80,7 @@ class ShortcutServiceTest(
         assertEquals(testActionId, response.shortcut.shortcutActionId)
         assertEquals(testSkillLevel, response.shortcut.actionLevel)
 
-        newSuspendedTransaction {
+        transaction {
             val savedShortcut = assertNotNull(shortcutRepository.findBy(
                 testIndex,
                 character.id,

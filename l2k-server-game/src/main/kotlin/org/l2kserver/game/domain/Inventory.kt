@@ -1,8 +1,8 @@
 package org.l2kserver.game.domain
 
-import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
-import org.jetbrains.exposed.sql.deleteWhere
-import org.jetbrains.exposed.sql.transactions.transaction
+import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.jdbc.deleteWhere
+import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.l2kserver.game.extensions.model.item.toItemInstance
 import org.l2kserver.game.model.actor.PlayerCharacter
 import org.l2kserver.game.model.extensions.filterIsInstanceAnd
@@ -121,7 +121,8 @@ class Inventory(val owner: PlayerCharacter): Collection<ItemInstance> {
     /**
      * Reduces [ItemInstance.amount] on provided [value]. If [value] is equal to [ItemInstance.amount] - deletes item
      *
-     * @throws IllegalArgumentException if [value] is greater than [ItemInstance.amount] or there is no item by [itemId] in this inventory
+     * @throws IllegalArgumentException if [value] is greater than [ItemInstance.amount]
+     * or there is no item by [itemId] in this inventory
      * @return Updated item if amount was reduced, null if item was fully deleted
      */
     fun reduceAmount(itemId: Int, value: Int) = transaction {
@@ -198,5 +199,6 @@ class Inventory(val owner: PlayerCharacter): Collection<ItemInstance> {
     override fun isEmpty() = items.isEmpty()
     override fun iterator() = items.values.iterator()
 
-    override fun toString() = "Inventory(ownerId=${owner.id}, items=${items.values}, equippedItems=$equippedItems, size=$size)"
+    override fun toString() =
+        "Inventory(ownerId=${owner.id}, items=${items.values}, equippedItems=$equippedItems, size=$size)"
 }

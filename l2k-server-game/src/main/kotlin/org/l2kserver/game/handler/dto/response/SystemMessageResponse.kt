@@ -6,7 +6,7 @@ import org.l2kserver.game.extensions.putUTF16String
 import org.l2kserver.game.extensions.putUByte
 import org.l2kserver.game.model.item.Ss
 import org.l2kserver.game.model.item.instance.ItemInstance
-import org.l2kserver.game.model.skill.ActiveSkill
+import org.l2kserver.game.model.skill.instance.CastableSkillInstance
 import org.l2kserver.game.model.skill.instance.SkillInstance
 
 private const val SYSTEM_MESSAGE_RESPONSE_PACKET_ID: UByte = 100u
@@ -115,11 +115,12 @@ open class SystemMessageResponse private constructor(
     data object AttackFailed: SystemMessageResponse(systemMessageId = 158)
 
     /** Message: "[targetName] has resisted your [skill]." */
-    data class HasResisted(val targetName:String, val skill: ActiveSkill): SystemMessageResponse(
+    data class HasResisted(val targetName:String, val skill: CastableSkillInstance): SystemMessageResponse(
         systemMessageId = 139, targetName, skill)
 
     /** Message: "You use [skill]" */
-    data class YouUse(val skill: ActiveSkill): SystemMessageResponse(systemMessageId = 46, skill)
+    data class YouUse(val skill: CastableSkillInstance): SystemMessageResponse(
+        systemMessageId = 46, skill)
 
     /** Message: "You have earned [earnedExp] experience and [earnedSp] SP" */
     data class YouHaveEarnedExpAndSp(
@@ -164,9 +165,9 @@ open class SystemMessageResponse private constructor(
     )
 
     /** Message: "[customerName] purchased [amount] [item]." */
-    data class OtherHasPurchasedStackable(val customerName: String, val item: ItemInstance, val amount: Int): SystemMessageResponse(
-        systemMessageId = 380, customerName, item, amount
-    )
+    data class OtherHasPurchasedStackable(
+        val customerName: String, val item: ItemInstance, val amount: Int
+    ): SystemMessageResponse(systemMessageId = 380, customerName, item, amount)
 
     /** Message: "You have purchased [item] from [sellerName]."*/
     data class YouHavePurchasedNonStackable(val sellerName: String, val item: ItemInstance): SystemMessageResponse(
@@ -179,9 +180,9 @@ open class SystemMessageResponse private constructor(
     )
 
     /** Message: "You have purchased [amount] [item] from [sellerName]."*/
-    data class YouHavePurchasedStackable(val sellerName: String, val item: ItemInstance, val amount: Int): SystemMessageResponse(
-        systemMessageId = 561, sellerName, item, amount
-    )
+    data class YouHavePurchasedStackable(
+        val sellerName: String, val item: ItemInstance, val amount: Int
+    ): SystemMessageResponse(systemMessageId = 561, sellerName, item, amount)
 
     /**
      * If item was not enchanted before - message: "Your [item] has been successfully enchanted.",

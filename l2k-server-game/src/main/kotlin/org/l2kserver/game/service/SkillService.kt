@@ -3,16 +3,15 @@ package org.l2kserver.game.service
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
-import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
+import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
 import org.l2kserver.game.model.skill.instance.SkillTargetType
-import org.l2kserver.game.model.skill.instance.ActiveSkillType
 import org.l2kserver.game.extensions.logger
 import org.l2kserver.game.extensions.model.actor.hasEnoughConsumableItemFor
 import org.l2kserver.game.extensions.model.actor.hasEnoughHpToCast
 import org.l2kserver.game.extensions.model.actor.hasEnoughMpToCast
 import org.l2kserver.game.extensions.model.isOnCooldown
 import org.l2kserver.game.handler.dto.request.UseSkillRequest
-import org.l2kserver.game.handler.dto.response.AbnormalsListResponse
+import org.l2kserver.game.handler.dto.response.TemporalEffectsResponse
 import org.l2kserver.game.handler.dto.response.ActionFailedResponse
 import org.l2kserver.game.handler.dto.response.FullCharacterResponse
 import org.l2kserver.game.handler.dto.response.PlaySoundResponse
@@ -32,23 +31,27 @@ import org.l2kserver.game.model.actor.PlayerCharacter
 import org.l2kserver.game.model.actor.character.CharacterInstance
 import org.l2kserver.game.model.actor.npc.NpcInstance
 import org.l2kserver.game.model.extensions.forEachInstance
+import org.l2kserver.game.model.extensions.safePlus
 import org.l2kserver.game.model.item.template.SpiritshotType
-import org.l2kserver.game.model.skill.ActiveSkill
-import org.l2kserver.game.model.skill.PassiveSkill
-import org.l2kserver.game.model.skill.ToggleSkill
-import org.l2kserver.game.model.skill.action.SingleTargetMagicSkillAction
-import org.l2kserver.game.model.skill.action.SingleTargetPhysicalSkillAction
-import org.l2kserver.game.model.skill.effect.AbnormalEffect
+import org.l2kserver.game.model.skill.context.SkillContext
 import org.l2kserver.game.model.skill.effect.DamageEffect
+import org.l2kserver.game.model.skill.effect.Effect
+import org.l2kserver.game.model.skill.effect.EffectOnTimeAbnormalEffect
 import org.l2kserver.game.model.skill.effect.HealEffect
+import org.l2kserver.game.model.skill.effect.TemporalAbnormalEffect
 import org.l2kserver.game.model.skill.instance.ActiveSkillInstance
+import org.l2kserver.game.model.skill.instance.CastableSkillInstance
+import org.l2kserver.game.model.skill.instance.MagicSkillInstance
+import org.l2kserver.game.model.skill.instance.PassiveSkillInstance
 import org.l2kserver.game.model.skill.instance.SkillConsumables
 import org.l2kserver.game.model.skill.instance.SkillInstance
+import org.l2kserver.game.model.skill.instance.ToggleSkillInstance
 import org.l2kserver.game.model.skill.template.SkillTemplateRegistry
 import org.l2kserver.game.network.session.send
 import org.l2kserver.game.network.session.sendTo
 import org.l2kserver.game.network.session.sessionContext
 import org.l2kserver.game.repository.GameObjectRepository
+import org.l2kserver.game.utils.time.withDelay
 import org.springframework.stereotype.Service
 import java.time.Instant
 import kotlin.collections.contains
@@ -73,18 +76,19 @@ class SkillService(
     override val log = logger()
 
     /** Sends a full list of skills to the player in the current session */
-    suspend fun getSkillList() = newSuspendedTransaction {
+    suspend fun getSkillList() = suspendTransaction {
         val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
         send { SkillListResponse(character.skillsAndMagic) }
 
         log.info("Successfully sent skill list to character {}", character)
     }
 
-    suspend fun learnSkill(character: PlayerCharacter, skillId: Int, skillLevel: Int) = newSuspendedTransaction {
+    suspend fun learnSkill(character: PlayerCharacter, skillId: Int, skillLevel: Int) = suspendTransaction {
         //TODO checks if skill can be learned by this class, etc.
         val skillTemplate = SkillTemplateRegistry.findById(skillId)
         require(skillLevel in 0..skillTemplate.maxLevel) {
-            "Cannot learn skill ${skillTemplate.skillName} on level $skillLevel- it's max level is ${skillTemplate.maxLevel}"
+            "Cannot learn skill ${skillTemplate.skillName} on level $skillLevel " +
+                    "- it's max level is ${skillTemplate.maxLevel}"
         }
 
         val learnedSkill = character.skillsAndMagic.learn(skillId, skillLevel)
@@ -94,7 +98,7 @@ class SkillService(
     }
 
     /** Handles request to use skill */
-    suspend fun useSkill(request: UseSkillRequest): Unit = newSuspendedTransaction {
+    suspend fun useSkill(request: UseSkillRequest): Unit = suspendTransaction {
         val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
         val skill = character.skillsAndMagic.findById(request.skillId)
 
@@ -110,16 +114,14 @@ class SkillService(
     ) {
         log.debug("'{}' tries to use skill '{}'", actor, skill)
         when (skill) {
-            is ActiveSkill -> useActiveSkill(actor, skill, forced, holdPosition)
-            is PassiveSkill -> send { ActionFailedResponse }
-            is ToggleSkill -> {
+            is CastableSkillInstance -> useActiveSkill(actor, skill, forced, holdPosition)
+            is PassiveSkillInstance -> send { ActionFailedResponse }
+            is ToggleSkillInstance -> {
                 //TODO Toggle skills
                 send { SystemMessageResponse("Toggle skills are not implemented yet") }
                 send { PlaySoundResponse(Sound.ITEMSOUND_SYS_SHORTAGE) }
                 send { ActionFailedResponse }
             }
-
-            else -> throw IllegalArgumentException("Unknown type of skill '$skill'")
         }
     }
 
@@ -130,7 +132,7 @@ class SkillService(
      * @param holdPosition actor won't move closer to use skill
      */
     suspend fun useActiveSkill(
-        actor: MutableActorInstance, skill: ActiveSkill, forced: Boolean, holdPosition: Boolean
+        actor: MutableActorInstance, skill: CastableSkillInstance, forced: Boolean, holdPosition: Boolean
     ) {
         //TODO Check if actor is already casting
 
@@ -176,7 +178,9 @@ class SkillService(
     }
 
     /** Subtract HP, MP or items, required to use skill */
-    private suspend fun MutableActorInstance.spendResources(consumables: SkillConsumables?) = newSuspendedTransaction {
+    private suspend fun MutableActorInstance.spendResources(
+        consumables: SkillConsumables?
+    ) = suspendTransaction {
         val actor = this@spendResources
 
         var statusUpdated = false
@@ -204,18 +208,18 @@ class SkillService(
 
     /** Cast [skill] and apply cooldown */
     private suspend fun MutableActorInstance.castSkillOn(
-        skill: ActiveSkill, target: MutableActorInstance
+        skill: CastableSkillInstance, target: MutableActorInstance
     ) {
-        val castingSpeed = when (skill.skillType) {
-            ActiveSkillType.ACTIVE -> this.stats.atkSpd
-            ActiveSkillType.MAGIC -> this.stats.castingSpd
+        val castingSpeed = when (skill) {
+            is MagicSkillInstance -> this.stats.castingSpd
+            else -> this.stats.atkSpd
         }
 
         val blessedSpiritshotCharged = (this as? PlayerCharacter)
             ?.inventory?.weapon?.spiritshotChargedType == SpiritshotType.BLESSED_SPIRITSHOT
 
         val blessedSpiritshotCastSpeedBonus =
-            if (skill.skillType == ActiveSkillType.MAGIC && blessedSpiritshotCharged) 1.5
+            if (skill is MagicSkillInstance && blessedSpiritshotCharged) 1.5
             else 1.0
 
         val castTime = skill.castTime * CAST_TIME_COEFFICIENT / castingSpeed / blessedSpiritshotCastSpeedBonus
@@ -277,8 +281,9 @@ class SkillService(
      * @param forced Is this skill forced to use (ctrl pressed)
      * @return true - if actor can use [skill], false if not
      */
+    @Suppress("CyclomaticComplexMethod")
     private suspend fun ActorInstance.canUseSkill(
-        skill: ActiveSkillInstance, target: ActorInstance, forced: Boolean
+        skill: CastableSkillInstance, target: ActorInstance, forced: Boolean
     ): Boolean = when {
         //TODO Physical/Magical silence
         this.isParalyzed || this.isDead() -> {
@@ -364,75 +369,97 @@ class SkillService(
 
     /** Applies cast by [caster] [skill] effects on [target] */
     private suspend fun applyEffects(
-        skill: ActiveSkill, caster: MutableActorInstance, target: MutableActorInstance
-    ) = newSuspendedTransaction {
+        skill: CastableSkillInstance, caster: MutableActorInstance, target: MutableActorInstance
+    ) = suspendTransaction {
+        val context = SkillContext(
+            caster = caster,
+            mainTarget = target,
+            skillLevel = skill.skillLevel,
+            additionalEnemyTargets = emptyList(), //TODO
+            additionalFriendlyTargets = emptyList(), //TODO
+            usedSoulshot = (caster as? PlayerCharacter)?.inventory?.weapon?.soulshotCharged ?: false,
+            usedSpiritshotType = (caster as? PlayerCharacter)?.inventory?.weapon?.spiritshotChargedType
+        )
+
         val effects = try {
-            when (val action = skill.skillAction) {
-                is SingleTargetPhysicalSkillAction -> {
-                    val soulshotUsed = (caster as? PlayerCharacter)?.inventory?.weapon?.soulshotCharged ?: false
-                    action.apply(target, caster, skill.skillLevel, soulshotUsed)
-                        .also {
-                            if (soulshotUsed) caster.inventory.weapon?.soulshotCharged = false
-
-                            //Enable SS if auto-use soulshot enabled
-                            (caster as? PlayerCharacter)?.autoUsesSoulshot?.let {
-                                itemService.useSoulshot(caster, it)
-                            }
+            when (skill) {
+                is ActiveSkillInstance -> skill.affect(context).also {
+                    if (context.usedSoulshot && caster is PlayerCharacter) {
+                        caster.inventory.weapon?.soulshotCharged = false
+                        //Enable SS if auto-use soulshot enabled
+                        caster.autoUsesSoulshot?.let {
+                            itemService.useSoulshot(caster, it)
                         }
+                    }
                 }
-
-                is SingleTargetMagicSkillAction -> {
-                    val usedSpiritshotType = (caster as? PlayerCharacter)?.inventory?.weapon?.spiritshotChargedType
-                    action.apply(target, caster, skill.skillLevel, usedSpiritshotType).also {
-                        if (usedSpiritshotType != null) caster.inventory.weapon?.spiritshotChargedType = null
-
+                is MagicSkillInstance -> skill.affect(context).also {
+                    if (context.usedSpiritshotType != null && caster is PlayerCharacter) {
+                        caster.inventory.weapon?.spiritshotChargedType = null
                         //Enable SS if auto-use spiritshot enabled
-                        (caster as? PlayerCharacter)?.autoUsesSpiritshot?.let {
+                        caster.autoUsesSpiritshot?.let {
                             itemService.useSpiritshot(caster, it)
                         }
                     }
                 }
-
                 else -> emptyList()
             }
         } catch (e: Exception) {
-            log.error("An error occurred while trying to apply effect {}", skill.skillAction, e)
+            log.error("An error occurred while trying to apply effect of {}", skill, e)
             emptyList()
         }
 
-        effects.forEach { effect ->
-            //TODO Only damage effect of skill should be applied if casting player is not enemy of target player
-            when (effect) {
-                is DamageEffect -> combatService.applyDamageEffect(caster, effect, skill)
-                is HealEffect -> applyHealEffect(caster, effect)
-                is AbnormalEffect -> applyAbnormalEffect(effect)
-            }
+        applyEffects(effects, caster, skill)
+    }
+
+    private suspend fun applyEffects(
+        effects: Iterable<Effect>, caster: MutableActorInstance, skill: CastableSkillInstance
+    ) = effects.forEach { effect ->
+        //TODO Only damage effect of skill should be applied if casting player is not enemy of target player
+        when (effect) {
+            is DamageEffect -> combatService.applyDamageEffect(caster, effect, skill)
+            is HealEffect -> applyHealEffect(caster, effect)
+            is TemporalAbnormalEffect -> applyAbnormalEffect(caster, effect, skill)
         }
     }
 
-    private suspend fun applyHealEffect(caster: MutableActorInstance, effect: HealEffect) {
-        val target = gameObjectRepository.findActorByIdOrNull(effect.targetId) ?: return
+    private suspend fun applyHealEffect(caster: MutableActorInstance, effect: HealEffect) = suspendTransaction {
+        val target = gameObjectRepository.findActorByIdOrNull(effect.targetId) ?: return@suspendTransaction
 
-        target.currentHp = minOf(target.currentHp + effect.value, target.stats.maxHp)
+        target.currentHp = minOf(target.currentHp safePlus effect.value, target.stats.maxHp)
         val healerName = if (caster == target) null else caster.name
 
         val updateStatusResponse by lazy { UpdateStatusResponse.hpMpCpOf(target) }
 
-        send { updateStatusResponse }
-        send { SystemMessageResponse.HpRestored(effect.value, healerName) }
+        sendTo(target.id) { updateStatusResponse }
+        sendTo(target.id) { SystemMessageResponse.HpRestored(effect.value, healerName) }
 
         if (target is NpcInstance) target.targetedBy.forEachInstance<PlayerCharacter> {
             sendTo(it.id) { updateStatusResponse }
         }
     }
 
-    private suspend fun applyAbnormalEffect(effect: AbnormalEffect) = newSuspendedTransaction {
-        val target = gameObjectRepository.findActorByIdOrNull(effect.targetId) ?: return@newSuspendedTransaction
-        if (target.abnormalEffects.add(effect) && target is PlayerCharacter) {
+    private suspend fun applyAbnormalEffect(
+        caster: MutableActorInstance, effect: TemporalAbnormalEffect, skill: CastableSkillInstance
+    ): Unit = suspendTransaction {
+        val target = gameObjectRepository.findActorByIdOrNull(effect.targetId) ?: return@suspendTransaction
+        if (target.temporalEffects.add(effect) && target is PlayerCharacter) {
             sendTo(target.id) { FullCharacterResponse(target) }
-            sendTo(target.id) { AbnormalsListResponse(target.abnormalEffects) }
+            sendTo(target.id) { TemporalEffectsResponse(target.temporalEffects) }
             //TODO Summon abnormals must be shown to master
             //TODO Party notification
+        }
+
+        if (effect is EffectOnTimeAbnormalEffect) asyncTaskService.launchOnce {
+            while (target.temporalEffects.contains(effect)) withDelay(effect.frequency) {
+                val context = SkillContext(
+                    caster = caster,
+                    mainTarget = target,
+                    skillLevel = effect.effectLevel,
+                    additionalEnemyTargets = emptyList(),
+                    additionalFriendlyTargets = emptyList()
+                )
+                applyEffects(effect.effects(context), caster, skill)
+            }
         }
     }
 

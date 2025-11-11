@@ -13,6 +13,7 @@ import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import org.l2kserver.game.extensions.logger
+import org.l2kserver.game.utils.time.withDelay
 import java.time.Duration
 import java.time.Instant
 import java.time.temporal.Temporal
@@ -32,7 +33,9 @@ class AsyncTaskService {
     /** Storage for action jobs, performed by actors */
     private val actionJobMap = ConcurrentHashMap<Int, Job>()
 
-    /** Cancels previous action job of actor with provided [actorId], waits for its completion and launches new [action] */
+    /**
+     * Cancels previous action job of actor with provided [actorId], waits for its completion and launches new [action]
+     */
     suspend fun launchAction(actorId: Int, action: suspend CoroutineScope.() -> Unit): Job {
         actionJobMap[actorId]?.cancelAndJoin()
         val job = CoroutineScope(Dispatchers.Default + coroutineContext).launch { action() }
@@ -69,15 +72,13 @@ class AsyncTaskService {
      * Launches a task that will be repeated.
      *
      * @param taskName Name of starting task
-     * @param interval Time between iterations
-     * @param action Action that will be repeated with [interval]
+     * @param millis Ticks between iterations
+     * @param action Action that will be repeated with [millis] interval
      */
-    fun launchRepeated(taskName: String, interval: Long, action: suspend CoroutineScope.() -> Unit) {
+    fun launchRepeated(taskName: String, millis: Long, action: suspend CoroutineScope.() -> Unit) {
         taskJobMap[taskName] = CoroutineScope(Dispatchers.Default + CoroutineName(taskName)).launch {
-            while (isActive) {
-                val actionStartTime = System.currentTimeMillis()
+            while (isActive) withDelay(millis) {
                 action()
-                delay(interval - (System.currentTimeMillis() - actionStartTime))
             }
         }
         log.info("Started $taskName")
@@ -86,6 +87,7 @@ class AsyncTaskService {
     fun cancelTask(taskName: String) = taskJobMap[taskName]?.cancel()
 
     @PreDestroy
+    @Suppress("unused")
     fun shutdown() {
         taskJobMap.forEach { name, task ->
             log.info("Cancelling $name}")
