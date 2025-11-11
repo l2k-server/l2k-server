@@ -1,6 +1,6 @@
 package org.l2kserver.game.extensions.model
 
-import org.l2kserver.game.model.skill.instance.ActiveSkillInstance
+import org.l2kserver.game.model.skill.instance.CastableSkillInstance
 import java.time.Instant
 
-fun ActiveSkillInstance.isOnCooldown() = Instant.now().isBefore(this.nextUsageTime)
+fun CastableSkillInstance.isOnCooldown() = Instant.now().isBefore(this.nextUsageTime)

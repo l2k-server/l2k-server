@@ -6,6 +6,9 @@ fun Boolean.toByte(): Byte = if (this) 1 else 0
 /** Transforms Boolean to Int. True = 1, False = 0 */
 fun Boolean.toInt() = if (this) 1 else 0
 
+/** Adds [other] to this. If result is greater than [Int.MAX_VALUE] returns [Int.MAX_VALUE] */
+infix fun Int.safePlus(other: Int) = minOf(this.toLong() + other.toLong(), Int.MAX_VALUE.toLong()).toInt()
+
 /** Performs given [action] on each element if it is not null */
 inline fun <T> Array<T>.forEachNotNull(action: (T) -> Unit) = forEach {
     if (it != null) action(it)

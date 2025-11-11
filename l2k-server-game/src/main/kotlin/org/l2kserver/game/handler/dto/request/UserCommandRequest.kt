@@ -16,19 +16,19 @@ data class UserCommandRequest(
 }
 
 enum class UserCommand(private val ids: Set<Int>) {
-    LOC(setOf(0)),
-    UNSTUCK(setOf(52)),
-    MOUNT(setOf(61)),
-    DISMOUNT(setOf(62)),
-    DELAY(setOf(76)),
-    TIME(setOf(77)),
-    PARTY_INFO(setOf(81)),
-    CLAN_WAR_LIST(setOf(88, 89, 90)), //TODO check if all of them are used
-    CHANNEL_DELETE(setOf(93)),
-    CHANNEL_LEAVE(setOf(96)),
-    CHANNEL_LIST_UPDATE(setOf(97)),
-    CLAN_PENALTY(setOf(100)),
-    OLYMPIAD_STAT(setOf(109));
+    LOC(ids = setOf(0)),
+    UNSTUCK(ids = setOf(52)),
+    MOUNT(ids = setOf(61)),
+    DISMOUNT(ids = setOf(62)),
+    DELAY(ids = setOf(76)),
+    TIME(ids = setOf(77)),
+    PARTY_INFO(ids = setOf(81)),
+    CLAN_WAR_LIST(ids = setOf(88, 89, 90)), //TODO check if all of them are used
+    CHANNEL_DELETE(ids = setOf(93)),
+    CHANNEL_LEAVE(ids = setOf(96)),
+    CHANNEL_LIST_UPDATE(ids = setOf(97)),
+    CLAN_PENALTY(ids = setOf(100)),
+    OLYMPIAD_STAT(ids = setOf(109));
 
     companion object {
         fun byId(id: Int) = requireNotNull(entries.find { it.ids.contains(id) }) { "Invalid command id '$id'" }

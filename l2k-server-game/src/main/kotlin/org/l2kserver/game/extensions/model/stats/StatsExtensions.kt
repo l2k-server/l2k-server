@@ -6,7 +6,6 @@ import org.l2kserver.game.model.actor.Posture
 import org.l2kserver.game.model.actor.character.CharacterClass
 import org.l2kserver.game.model.actor.npc.NpcInstance
 import org.l2kserver.game.model.item.template.Slot
-import org.l2kserver.game.model.skill.abnormal.StatsAbnormal
 import org.l2kserver.game.model.stats.CombatStats
 import org.l2kserver.game.model.stats.CombatStatsMultipliers
 import kotlin.collections.fold
@@ -50,24 +49,20 @@ fun CombatStats.applyEquipmentOf(character: PlayerCharacter): CombatStats {
     return result
 }
 
-/**
- * Calculate stats after applying base stats and level modifiers
- */
+/** Calculate stats after applying base stats and level modifiers */
 fun CombatStats.applyModifiersOf(character: PlayerCharacter): CombatStats {
     val level = character.level
     val characterClass = character.characterClass
     val basicStats = character.basicStats
 
-    val effects = character.skillsAndMagic.passives()
-        .map { it.skillAction.affect(character, it.skillLevel) }
-        .flatten()
-        .filterIsInstance<StatsAbnormal>() + character.abnormalEffects
-        .map { it.abnormalAction.affect(character, it.effectLevel) }
-        .flatten()
-        .filterIsInstance<StatsAbnormal>()
+    val passiveEffects = character.skillsAndMagic.passives()
+        .mapNotNull { it.effect(character).getCombatStatsMultipliers(character) }
 
-    val multipliers = effects.fold(CombatStatsMultipliers()) { acc, statsEffect ->
-        statsEffect.combatStatsMultipliers?.let { acc * it } ?: acc
+    val temporalEffects = character.temporalEffects
+        .mapNotNull { it.getCombatStatsMultipliers(character) }
+
+    val multipliers = (passiveEffects + temporalEffects).fold(CombatStatsMultipliers()) { acc, multipliers ->
+        acc * multipliers
     }
 
     val levelModifier = (character.level + 89) / 100.0
@@ -102,32 +97,34 @@ fun CombatStats.applyModifiersOf(character: PlayerCharacter): CombatStats {
         castingSpd = (this.castingSpd * basicStats.wit.castingSpdModifier * multipliers.castingSpd).toInt(),
 
         shieldDef = (this.shieldDef * multipliers.shieldDef).toInt(),
-        shieldDefRate = (this.shieldDefRate * basicStats.dex.shieldBlockRateModifier * multipliers.shieldDefRate).toInt(),
+        shieldDefRate = (this.shieldDefRate * basicStats.dex.shieldBlockRateModifier * multipliers.shieldDefRate)
+            .toInt(),
 
         mCritRate = this.mCritRate + (basicStats.wit.magicCritChanceBonus * 10 * multipliers.mCritRate).roundToInt(),
 
-        hpRegen = (this.hpRegen + hpRegenLevelModifier(characterClass, level)) * basicStats.con.hpRegenModifier * multipliers.hpRegen,
-        mpRegen = (this.mpRegen + mpRegenLevelModifier(characterClass, level)) * basicStats.men.mpRegenModifier * multipliers.mpRegen,
-        cpRegen = (this.cpRegen + cpRegenLevelModifier(characterClass, level)) * basicStats.con.cpRegenModifier * multipliers.cpRegen
+        hpRegen = (this.hpRegen + hpRegenLevelModifier(characterClass, level))
+                * basicStats.con.hpRegenModifier
+                * multipliers.hpRegen,
+        mpRegen = (this.mpRegen + mpRegenLevelModifier(characterClass, level))
+                * basicStats.men.mpRegenModifier
+                * multipliers.mpRegen,
+        cpRegen = (this.cpRegen + cpRegenLevelModifier(characterClass, level))
+                * basicStats.con.cpRegenModifier
+                * multipliers.cpRegen
     )
 }
 
 /** Applies fixed bonus of items, buffs and passives */
 fun CombatStats.applyFixedBonusStatsOf(character: PlayerCharacter): CombatStats {
     val itemsFixedBonusStats = character.inventory.findAllEquipped().mapNotNull { it.fixedBonusStats }
+
     val passivesFixedBonusStats = character.skillsAndMagic.passives()
-        .map { it.skillAction.affect(character, it.skillLevel) }
-        .flatten()
-        .filterIsInstance<StatsAbnormal>()
-        .mapNotNull { it.bonusCombatStats }
+        .mapNotNull { it.effect(character).getFixedBonusStats(character) }
 
-    val buffFixedBonusStats = character.abnormalEffects
-        .map { it.abnormalAction.affect(character, it.effectLevel) }
-        .flatten()
-        .filterIsInstance<StatsAbnormal>()
-        .mapNotNull { it.bonusCombatStats }
+    val temporalEffectsFixedBonusStats = character.temporalEffects
+        .mapNotNull { it.getFixedBonusStats(character) }
 
-    return this + (itemsFixedBonusStats + passivesFixedBonusStats + buffFixedBonusStats)
+    return this + (itemsFixedBonusStats + passivesFixedBonusStats + temporalEffectsFixedBonusStats)
         .fold(CombatStats()) { acc, stats -> acc + stats }
 }
 
@@ -154,12 +151,7 @@ fun CombatStats.applyLimitations(): CombatStats = this.copy(
 
 /** Calculates stats after applying buffs, debuffs and passives */
 fun CombatStats.applyAbnormalsOf(npc: NpcInstance): CombatStats {
-    val buffFixedBonusStats = npc.abnormalEffects
-        .map { it.abnormalAction.affect(npc, it.effectLevel) }
-        .flatten()
-        .filterIsInstance<StatsAbnormal>()
-        .mapNotNull { it.bonusCombatStats }
-
+    val buffFixedBonusStats = npc.temporalEffects.map { it.getFixedBonusStats(npc) }
     return this + buffFixedBonusStats.fold(CombatStats()) { acc, stats -> acc + stats }
 }
 

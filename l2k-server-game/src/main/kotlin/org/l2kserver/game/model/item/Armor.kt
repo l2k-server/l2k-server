@@ -47,8 +47,10 @@ class Armor(
         if (grade == Grade.NO_GRADE) return itemTemplate.stats
 
         val initialStats = this.itemTemplate.stats
-        val safeEnchantBonus = minOf(enchantLevel, ARMOR_SAFE_ENCHANT_LEVEL) * ARMOR_PER_SAFE_ENCHANT_P_DEF_BONUS
-        val unsafeEnchantBonus = maxOf(enchantLevel - ARMOR_SAFE_ENCHANT_LEVEL, 0) * ARMOR_PER_UNSAFE_ENCHANT_P_DEF_BONUS
+        val safeEnchantBonus = minOf(enchantLevel, ARMOR_SAFE_ENCHANT_LEVEL) *
+                ARMOR_PER_SAFE_ENCHANT_P_DEF_BONUS
+        val unsafeEnchantBonus = maxOf(enchantLevel - ARMOR_SAFE_ENCHANT_LEVEL, 0) *
+                ARMOR_PER_UNSAFE_ENCHANT_P_DEF_BONUS
 
         return if (this.type == ArmorType.SHIELD)
             initialStats.copy(shieldDef = initialStats.shieldDef + safeEnchantBonus + unsafeEnchantBonus)

@@ -1,6 +1,6 @@
 package org.l2kserver.game.service
 
-import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
+import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
 import org.l2kserver.game.domain.AccessLevel
 import org.l2kserver.game.extensions.logger
 import org.l2kserver.game.handler.dto.request.AdminCommandRequest
@@ -74,7 +74,8 @@ class AdminCommandService(
     }
 
     /**
-     * Handles teleport command. Teleports character with [TeleportCommand.name] to requested [TeleportCommand.position].
+     * Handles teleport command.
+     * Teleports character with [TeleportCommand.name] to requested [TeleportCommand.position].
      * If [TeleportCommand.name] is null, character who called this command will be teleported
      */
     private suspend fun handleTeleportCommand(command: TeleportCommand) {
@@ -91,7 +92,8 @@ class AdminCommandService(
      * if no [EnchantCommand.characterName] was provided, by [EnchantCommand.enchantLevel]
      */
     private suspend fun handleEnchantCommand(command: EnchantCommand) {
-        val characterToEnchant = command.characterName?.let { gameObjectRepository.findCharacterByName(it) }
+        val characterToEnchant = command.characterName
+            ?.let { gameObjectRepository.findCharacterByName(it) }
             ?: gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
 
         log.debug(
@@ -128,7 +130,7 @@ class AdminCommandService(
             return
         }
 
-        newSuspendedTransaction {
+        suspendTransaction {
             item.enchantLevel = command.enchantLevel
             send { SystemMessageResponse.YourItemHasBeenSuccessfullyEnchanted(item) }
             send { UpdateItemsResponse().wasModified(item) }
@@ -159,7 +161,7 @@ class AdminCommandService(
      * of character with [RestoreCommand.name]
      * If [RestoreCommand.name] is null, restore stats of character who called this command
      */
-    private suspend fun handleRestoreCommand(command: RestoreCommand) = newSuspendedTransaction {
+    private suspend fun handleRestoreCommand(command: RestoreCommand) = suspendTransaction {
         val healer = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
         val character = command.name?.let { gameObjectRepository.findCharacterByName(it) } ?: healer
 

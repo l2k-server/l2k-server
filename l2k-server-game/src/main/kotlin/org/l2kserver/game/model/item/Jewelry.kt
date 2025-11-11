@@ -45,8 +45,10 @@ class Jewelry(
         if (grade == Grade.NO_GRADE) return itemTemplate.stats
 
         val initialStats = itemTemplate.stats
-        val safeEnchantBonus = minOf(enchantLevel, JEWELRY_SAFE_ENCHANT_LEVEL) * JEWELRY_PER_SAFE_ENCHANT_P_DEF_BONUS
-        val unsafeEnchantBonus = maxOf(enchantLevel - JEWELRY_SAFE_ENCHANT_LEVEL, 0) * JEWELRY_PER_UNSAFE_ENCHANT_P_DEF_BONUS
+        val safeEnchantBonus = minOf(enchantLevel, JEWELRY_SAFE_ENCHANT_LEVEL) *
+                JEWELRY_PER_SAFE_ENCHANT_P_DEF_BONUS
+        val unsafeEnchantBonus = maxOf(enchantLevel - JEWELRY_SAFE_ENCHANT_LEVEL, 0) *
+                JEWELRY_PER_UNSAFE_ENCHANT_P_DEF_BONUS
 
         return initialStats.copy(mDef = initialStats.mDef + safeEnchantBonus + unsafeEnchantBonus)
     }

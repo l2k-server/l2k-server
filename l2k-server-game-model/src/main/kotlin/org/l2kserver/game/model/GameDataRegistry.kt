@@ -6,7 +6,7 @@ import java.util.concurrent.ConcurrentHashMap
 /**
  * Common class for game entity templates.
  *
- * @property id Template identifies
+ * @property id Template identifier
  */
 interface GameData {
     val id: Int

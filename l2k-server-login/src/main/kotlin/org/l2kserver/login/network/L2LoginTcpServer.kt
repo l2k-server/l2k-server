@@ -34,12 +34,13 @@ import java.security.interfaces.RSAPublicKey
 import java.util.concurrent.Executors
 
 @Component
+@Suppress("unused")
 class L2LoginTcpServer(
     private val handler: L2LoginHandler,
     private val sessionRepository: SessionRepository,
 
-    @Value("\${server.port}") private val port: Int,
-    @Value("\${server.readTimeout}") private val readTimeout: Long
+    @param:Value($$"${server.port}") private val port: Int,
+    @param:Value($$"${server.readTimeout}") private val readTimeout: Long
 ) {
     private val log = logger()
 

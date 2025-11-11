@@ -2,7 +2,7 @@ plugins {
     id("jvm-toolchains")
     id("java")
     kotlin("jvm")
-    id("io.gitlab.arturbosch.detekt")
+    id("dev.detekt")
 }
 
 group = "org.l2kserver"
@@ -14,11 +14,6 @@ repositories {
 
 dependencies {
     implementation("org.slf4j:slf4j-api:2.0.17")
-    testImplementation(kotlin("test"))
-}
-
-tasks.test {
-    useJUnitPlatform()
 }
 
 detekt {

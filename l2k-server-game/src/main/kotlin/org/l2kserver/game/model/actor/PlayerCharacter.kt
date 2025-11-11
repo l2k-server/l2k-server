@@ -1,6 +1,7 @@
 package org.l2kserver.game.model.actor
 
-import org.l2kserver.game.domain.AbnormalEffects
+import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import org.l2kserver.game.domain.TemporalEffects
 import java.util.concurrent.ConcurrentHashMap
 import org.l2kserver.game.domain.Inventory
 import org.l2kserver.game.model.actor.position.Position
@@ -136,8 +137,8 @@ class PlayerCharacter(
     val accessLevel by entity::accessLevel
 
     override var position: Position
-        get() = Position(entity.x, entity.y, entity.z)
-        set(newPosition) {
+        get() = transaction { Position(entity.x, entity.y, entity.z) }
+        set(newPosition) = transaction {
             entity.x = newPosition.x
             entity.y = newPosition.y
             entity.z = newPosition.z
@@ -192,7 +193,7 @@ class PlayerCharacter(
 
     val knownGameWorldObjects: MutableSet<GameWorldObject> = ConcurrentHashMap.newKeySet()
 
-    override val abnormalEffects = AbnormalEffects()
+    override val temporalEffects = TemporalEffects()
 
     //TODO Siege and clan relations
     override fun isEnemyOf(other: ActorInstance): Boolean {

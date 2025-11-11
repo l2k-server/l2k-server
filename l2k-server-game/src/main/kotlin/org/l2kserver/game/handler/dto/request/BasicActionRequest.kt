@@ -28,10 +28,10 @@ data class BasicActionRequest(
 }
 
 enum class BasicAction(val id: Int) {
-    TOGGLE_SIT_STAND(0),
+    TOGGLE_SIT_STAND(id = 0),
     //TODO summon actions
-    TOGGLE_WALK_RUN(1),
-    GENERAL_MANUFACTURE(51);
+    TOGGLE_WALK_RUN(id = 1),
+    GENERAL_MANUFACTURE(id = 51);
 
     companion object {
         private val entities = entries.associateBy { it.id }

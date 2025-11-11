@@ -22,7 +22,8 @@ class EnchantCommand: AdminCommand() {
                 "Example: //enchant weapon -of Nagibator777 -by 16"
     }
 
-    override fun toString() = "EnchantCommand(itemToEnchant=$itemToEnchant, name=$characterName, enchantLevel=$enchantLevel)"
+    override fun toString() =
+        "EnchantCommand(itemToEnchant=$itemToEnchant, name=$characterName, enchantLevel=$enchantLevel)"
 }
 
 enum class ItemToEnchant {

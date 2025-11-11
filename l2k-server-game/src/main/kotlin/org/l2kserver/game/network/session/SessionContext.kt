@@ -65,7 +65,9 @@ class SessionContext(val sessionId: Int) : CoroutineContext.Element, Closeable {
      * @return authorization key
      * @throws IllegalStateException if player is not authorized
      */
-    fun getAuthorizationKey() = checkNotNull(authorizationKey) { "No authorization key found in session. Is user authorized?" }
+    fun getAuthorizationKey() = checkNotNull(authorizationKey) {
+        "No authorization key found in session. Is user authorized?"
+    }
 
     /** Set authorization key */
     fun setAuthorizationKey(value: AuthorizationKey) { authorizationKey = value }
@@ -115,6 +117,6 @@ suspend inline fun send(response:() -> ResponsePacket) = coroutineContext[Sessio
     ?.responseChannel
     ?.send(response())
 
-/** Sends `this` to character with id = [addresseeCharacterId]. If no characters session found, does nothing */
+/** Sends [response] to character with id = [addresseeCharacterId]. If no characters session found, does nothing */
 suspend fun sendTo(addresseeCharacterId: Int, response:() -> ResponsePacket) = inGameSessionsMap[addresseeCharacterId]
     ?.responseChannel?.send(response())

@@ -14,20 +14,20 @@ package org.l2kserver.game.handler.dto
  * @property ANNOUNCEMENT
  */
 enum class ChatTab(val id: Int) {
-    GENERAL(0),
-    SHOUT(1),
-    WHISPER(2),
-    PARTY(3),
-    CLAN(4),
-    GM(5),
-    PETITION_PLAYER(6),
-    PETITION_GM(7),
-    TRADE(8),
-    ALLIANCE(9),
-    ANNOUNCEMENT(10),
-    PARTY_ROOM_COMMANDER(15),
-    PARTY_ROOM(16),
-    HERO(17);
+    GENERAL(id = 0),
+    SHOUT(id = 1),
+    WHISPER(id = 2),
+    PARTY(id = 3),
+    CLAN(id = 4),
+    GM(id = 5),
+    PETITION_PLAYER(id = 6),
+    PETITION_GM(id = 7),
+    TRADE(id = 8),
+    ALLIANCE(id = 9),
+    ANNOUNCEMENT(id = 10),
+    PARTY_ROOM_COMMANDER(id = 15),
+    PARTY_ROOM(id = 16),
+    HERO(id = 17);
 
     companion object {
         fun byId(id: Int) = requireNotNull(entries.find { it.id == id }) {

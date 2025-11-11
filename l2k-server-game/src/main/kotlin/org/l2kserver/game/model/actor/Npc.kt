@@ -1,6 +1,6 @@
 package org.l2kserver.game.model.actor
 
-import org.l2kserver.game.domain.AbnormalEffects
+import org.l2kserver.game.domain.TemporalEffects
 import org.l2kserver.game.extensions.model.stats.applyAbnormalsOf
 import org.l2kserver.game.model.actor.npc.NpcInstance
 import java.util.concurrent.ConcurrentHashMap
@@ -35,7 +35,6 @@ import java.time.Instant
  * @property currentMp NPC's current mana
  * @property moveType NPC's current move type
  * @property hasShield Can this NPC block attacks by shield
- * @property ai AI script for this NPC
  */
 class Npc(
     private val template: NpcTemplate,
@@ -67,7 +66,6 @@ class Npc(
     override var currentMp = template.stats.maxMp
 
     override var moveType = MoveType.WALK
-    override val ai = template.ai
 
     override var equippedWeaponTemplate = template.equippedWeaponTemplateId?.let {
         ItemTemplateRegistry.findByIdOrNull(it) as? WeaponTemplate
@@ -95,10 +93,12 @@ class Npc(
 
     override var targetId: Int? = null
     override val targetedBy: MutableSet<ActorInstance> = ConcurrentHashMap.newKeySet(0)
-    override val abnormalEffects = AbnormalEffects()
+    override val temporalEffects = TemporalEffects()
 
     override val weaponType = equippedWeaponTemplate?.type
     override val hasShield = equippedShieldTemplate != null
 
     override fun toString() = "Npc(name=$name id=$id)"
+
+    override fun onIdle() = template.ai?.onIdle(this)
 }

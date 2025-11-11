@@ -2,14 +2,14 @@ package org.l2kserver.game.model.skill.effect
 
 @JvmInline
 value class Effects private constructor(
-    private val effectList: MutableList<Effect>
+    private val effectList: MutableList<Effect> = ArrayList()
 ): Iterable<Effect> by effectList {
-    constructor(): this(ArrayList<Effect>())
 
-    fun add(effect: Effect) {
-        effectList.add(effect)
+    constructor(vararg effects: Effect): this() {
+        effectList.addAll(effects)
     }
 
+    fun add(effect: Effect) = effectList.add(effect)
 }
 
 sealed interface Effect

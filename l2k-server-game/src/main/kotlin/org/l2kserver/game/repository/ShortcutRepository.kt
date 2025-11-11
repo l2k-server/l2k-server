@@ -1,10 +1,10 @@
 package org.l2kserver.game.repository
 
-import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
-import org.jetbrains.exposed.sql.and
-import org.jetbrains.exposed.sql.deleteWhere
-import org.jetbrains.exposed.sql.insertAndGetId
-import org.jetbrains.exposed.sql.transactions.transaction
+import org.jetbrains.exposed.v1.core.and
+import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.jdbc.deleteWhere
+import org.jetbrains.exposed.v1.jdbc.insertAndGetId
+import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.l2kserver.game.domain.Shortcut
 import org.l2kserver.game.domain.ShortcutTable
 import org.l2kserver.game.model.actor.PlayerCharacter
@@ -23,7 +23,7 @@ class ShortcutRepository {
         shortcutType: ShortcutType,
         shortcutActionId: Int,
         shortcutActionLevel: Int
-    ): Shortcut  = transaction {
+    ): Shortcut = transaction {
         val shortcutId = ShortcutTable.insertAndGetId {
             it[ShortcutTable.characterId] = characterId
             it[ShortcutTable.subclassIndex] = subclassIndex

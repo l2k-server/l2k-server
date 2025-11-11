@@ -1,6 +1,6 @@
 package org.l2kserver.game.service
 
-import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
+import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
 import org.l2kserver.game.extensions.logger
 import org.l2kserver.game.handler.dto.request.DeleteShortcutRequest
 import org.l2kserver.game.handler.dto.request.CreateShortcutRequest
@@ -20,7 +20,7 @@ class ShortcutService(
 
     override val log = logger()
 
-    suspend fun registerShortcut(request: CreateShortcutRequest) = newSuspendedTransaction {
+    suspend fun registerShortcut(request: CreateShortcutRequest) = suspendTransaction {
         val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
 
         shortcutRepository.findBy(
@@ -44,7 +44,7 @@ class ShortcutService(
         log.info("Registered new shortcut '{}'", newShortcut)
     }
 
-    suspend fun deleteShortcut(request: DeleteShortcutRequest) = newSuspendedTransaction {
+    suspend fun deleteShortcut(request: DeleteShortcutRequest) = suspendTransaction {
         val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
         shortcutRepository.deleteBy(character.id, character.activeSubclass, request.index)
 

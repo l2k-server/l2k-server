@@ -19,8 +19,7 @@ import java.time.LocalDateTime
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import org.awaitility.kotlin.await
-import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
-import org.jetbrains.exposed.sql.transactions.transaction
+import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.junit.jupiter.api.assertThrows
 import org.l2kserver.game.data.character.classes.HUMAN_FIGHTER
 import org.l2kserver.game.domain.ItemEntity
@@ -42,8 +41,8 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class CharacterServiceTests(
-    @Autowired private val characterService: CharacterService,
-    @Autowired private val shortcutRepository: ShortcutRepository
+    @param:Autowired private val characterService: CharacterService,
+    @param:Autowired private val shortcutRepository: ShortcutRepository
 ) : AbstractTests() {
 
     @Test
@@ -149,11 +148,11 @@ class CharacterServiceTests(
         val context = createTestSessionContext()
         val characterToDelete = createTestCharacter()
 
-        newSuspendedTransaction { characterToDelete.deletionDate = LocalDateTime.now().plusDays(7) }
+        transaction { characterToDelete.deletionDate = LocalDateTime.now().plusDays(7) }
 
         withContext(context) { characterService.restoreCharacter(RestoreCharacterRequest(0)) }
 
-        assertNull(newSuspendedTransaction { playerCharacterRepository.findById(characterToDelete.id)!!.deletionDate })
+        assertNull(playerCharacterRepository.findById(characterToDelete.id)!!.deletionDate)
     }
 
     @Test
@@ -173,7 +172,7 @@ class CharacterServiceTests(
         //Create character
         val character = createTestCharacter(enterGame = false)
         //Set character's deletion date to NOW
-        newSuspendedTransaction {
+        transaction {
             val characterEntity = PlayerCharacterEntity.findById(character.id)!!
             characterEntity.deletionDate = LocalDateTime.now()
         }

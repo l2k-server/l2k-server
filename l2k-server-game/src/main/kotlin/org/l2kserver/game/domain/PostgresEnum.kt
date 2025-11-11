@@ -1,6 +1,6 @@
 package org.l2kserver.game.domain
 
-import org.jetbrains.exposed.sql.Table
+import org.jetbrains.exposed.v1.core.Table
 import org.postgresql.util.PGobject
 
 class PostgresEnum<T : Enum<T>>(enumTypeName: String, enumValue: T?) : PGobject() {

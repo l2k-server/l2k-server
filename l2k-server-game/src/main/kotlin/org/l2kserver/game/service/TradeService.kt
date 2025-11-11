@@ -2,7 +2,7 @@ package org.l2kserver.game.service
 
 import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.sync.withLock
-import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
+import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
 import org.l2kserver.game.model.extensions.allUniqueBy
 import org.l2kserver.game.extensions.logger
 import org.l2kserver.game.extensions.model.item.toItemInstance
@@ -66,7 +66,7 @@ class TradeService(
     /**
      * Start exchanging with [ExchangeRequest.targetId]
      */
-    @Suppress("unused")
+    @Suppress("unused", "MaxLineLength")
     suspend fun startExchanging(request: ExchangeRequest) {
         TODO("https://github.com/orgs/l2kserver/projects/1/views/3?pane=issue&itemId=103187674&issue=l2kserver%7Cl2kserver-game%7C16")
     }
@@ -74,7 +74,7 @@ class TradeService(
     /**
      * Stops private store
      */
-    suspend fun stopPrivateStore() = newSuspendedTransaction {
+    suspend fun stopPrivateStore() = suspendTransaction {
         val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
         if (character.privateStore != null) {
             log.debug("Cancelling private store of character '{}'", character)
@@ -89,14 +89,14 @@ class TradeService(
     }
 
     /** Handles request to get items for private store (sell) */
-    suspend fun getItemsForPrivateStoreSell() = newSuspendedTransaction {
+    suspend fun getItemsForPrivateStoreSell() = suspendTransaction {
         val context = sessionContext()
         val character = gameObjectRepository.findCharacterById(context.getCharacterId())
 
         //Check that player has no private store, or it's private store is PrivateStore.Sell
         if (character.privateStore !is PrivateStore.Sell?) {
             send { ActionFailedResponse }
-            return@newSuspendedTransaction
+            return@suspendTransaction
         }
 
         val privateStore = character.privateStore as? PrivateStore.Sell
@@ -108,8 +108,10 @@ class TradeService(
             .mapNotNull { item ->
                 val itemOnSale = privateStore?.items[item.id]
 
-                if (item.isEquipped || !item.isSellable || (itemOnSale != null && itemOnSale.amount >= item.amount)) null
-                else item.toItemInInventory(item.amount - (itemOnSale?.amount ?: 0))
+                if (item.isEquipped || !item.isSellable || (itemOnSale != null && itemOnSale.amount >= item.amount))
+                    null
+                else
+                    item.toItemInInventory(item.amount - (itemOnSale?.amount ?: 0))
             }
 
         val adenaAmount = character.inventory.adena?.amount ?: 0
@@ -133,21 +135,21 @@ class TradeService(
     }
 
     /** Start private store (sell) */
-    suspend fun startPrivateStoreSell(request: PrivateStoreSellStartRequest) = newSuspendedTransaction {
+    suspend fun startPrivateStoreSell(request: PrivateStoreSellStartRequest) = suspendTransaction {
         val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
         log.debug("Starting private store by request '{}' of character '{}'", request, character)
 
         if (request.items.isEmpty()) {
             log.warn("{} is trying to start private store (sell), but without items", character)
             send { ActionFailedResponse }
-            return@newSuspendedTransaction
+            return@suspendTransaction
         }
 
         if (character.tradeAndInventoryStats.privateStoreSize < request.items.size) {
             send { SystemMessageResponse.YouHaveExceededPrivateStoreQuantity }
 
             getItemsForPrivateStoreSell()
-            return@newSuspendedTransaction
+            return@suspendTransaction
         }
 
         val itemsOnSale = request.items.map { it.toItemOnSale(character) }
@@ -170,7 +172,9 @@ class TradeService(
         val seller = gameObjectRepository.findCharacterById(request.storeOwnerId)
         log.debug("Start purchasing items='{}' from '{}' by '{}'", request.items, customer, seller)
 
-        val requiredDistance = INTERACTION_DISTANCE + (customer.collisionBox.radius + seller.collisionBox.radius).roundToInt()
+        val requiredDistance = INTERACTION_DISTANCE +
+                (customer.collisionBox.radius + seller.collisionBox.radius).roundToInt()
+
         if (!customer.position.isCloseTo(seller.position, requiredDistance)) {
             log.debug("StoreOwner is too far to buy")
             send { PlaySoundResponse(Sound.ITEMSOUND_SYS_SHORTAGE) }
@@ -187,14 +191,14 @@ class TradeService(
         //Lock store for transaction time
         privateStore.mutex.withLock {
             var itemsOnSale = privateStore.items
-            newSuspendedTransaction(transactionIsolation = Connection.TRANSACTION_SERIALIZABLE) {
+            suspendTransaction(transactionIsolation = Connection.TRANSACTION_SERIALIZABLE) {
                 if (!checkAllPresent(privateStore.items, request.items, seller)) {
                     log.debug(
                         "[SELL] '{}' or '{}' inventory does not contain all required items from request '{}'",
                         privateStore, seller, request
                     )
                     send { ActionFailedResponse }
-                    return@newSuspendedTransaction
+                    return@suspendTransaction
                 }
                 val totalPrice = calculateTotalPrice(privateStore.items, request.items)
 
@@ -203,7 +207,7 @@ class TradeService(
                 if ((customerAdena?.amount ?: 0) < totalPrice) {
                     send { SystemMessageResponse.NotEnoughAdena }
                     send { ActionFailedResponse }
-                    return@newSuspendedTransaction
+                    return@suspendTransaction
                 }
 
                 //Transfer adena
@@ -265,14 +269,14 @@ class TradeService(
     }
 
     /** Sends to the client items, suitable for private store (Buy) */
-    suspend fun getItemsForPrivateStoreBuy(): Unit = newSuspendedTransaction {
+    suspend fun getItemsForPrivateStoreBuy(): Unit = suspendTransaction {
         val context = sessionContext()
         val character = gameObjectRepository.findCharacterById(context.getCharacterId())
 
         //Check that player has no private store, or it's private store is PrivateStore.Buy
         if (character.privateStore !is PrivateStore.Buy?) {
             send { ActionFailedResponse }
-            return@newSuspendedTransaction
+            return@suspendTransaction
         }
 
         val privateStore = character.privateStore as? PrivateStore.Buy
@@ -304,20 +308,20 @@ class TradeService(
     }
 
     /** Start private store (buy) */
-    suspend fun startPrivateStoreBuy(request: PrivateStoreBuyStartRequest): Unit = newSuspendedTransaction {
+    suspend fun startPrivateStoreBuy(request: PrivateStoreBuyStartRequest): Unit = suspendTransaction {
         val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
         log.debug("Starting private store (Buy) by request '{}' of character '{}'", request, character)
 
         if (request.items.isEmpty()) {
             log.warn("{} is trying to start private store (buy), but without items", character)
             send { ActionFailedResponse }
-            return@newSuspendedTransaction
+            return@suspendTransaction
         }
 
         if (character.tradeAndInventoryStats.privateStoreSize < request.items.size) {
             send { SystemMessageResponse.YouHaveExceededPrivateStoreQuantity }
             getItemsForPrivateStoreBuy()
-            return@newSuspendedTransaction
+            return@suspendTransaction
         }
 
         val characterAdenaAmount = character.inventory.adena?.amount ?: 0
@@ -326,7 +330,7 @@ class TradeService(
         if (characterAdenaAmount < totalPrice) {
             send { SystemMessageResponse.NotEnoughAdena }
             getItemsForPrivateStoreBuy()
-            return@newSuspendedTransaction
+            return@suspendTransaction
         }
 
         val tradedItems = request.items.map { it.toItemInWishList(character.id) }
@@ -346,7 +350,9 @@ class TradeService(
         val storeOwner = gameObjectRepository.findCharacterById(request.storeOwnerId)
         log.debug("Start selling items='{}' from '{}' by '{}'", request.items, seller, storeOwner)
 
-        val requiredDistance = INTERACTION_DISTANCE + (seller.collisionBox.radius + storeOwner.collisionBox.radius).roundToInt()
+        val requiredDistance = INTERACTION_DISTANCE +
+                (seller.collisionBox.radius + storeOwner.collisionBox.radius).roundToInt()
+
         if (!seller.position.isCloseTo(storeOwner.position, requiredDistance)) {
             log.debug("StoreOwner is too far to sell")
             send { PlaySoundResponse(Sound.ITEMSOUND_SYS_SHORTAGE) }
@@ -363,14 +369,14 @@ class TradeService(
         //Lock store for transaction time
         privateStore.mutex.withLock {
             var itemsInWishList = privateStore.items
-            newSuspendedTransaction(transactionIsolation = Connection.TRANSACTION_SERIALIZABLE) {
+            suspendTransaction(transactionIsolation = Connection.TRANSACTION_SERIALIZABLE) {
                 if (!checkAllPresent(privateStore.items, request.items, seller)) {
                     log.debug(
                         "[BUY] '{}' or '{}' inventory does not contain all required items from request '{}'",
                         privateStore, seller, request
                     )
                     send { ActionFailedResponse }
-                    return@newSuspendedTransaction
+                    return@suspendTransaction
                 }
 
                 val totalPrice = calculateTotalPrice(privateStore.items, request.items)
@@ -378,7 +384,7 @@ class TradeService(
 
                 if ((storeOwnerAdena?.amount ?: 0) < totalPrice) {
                     send { ActionFailedResponse }
-                    return@newSuspendedTransaction
+                    return@suspendTransaction
                 }
 
                 //Transfer adena

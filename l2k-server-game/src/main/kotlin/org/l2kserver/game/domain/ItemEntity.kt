@@ -1,12 +1,12 @@
 package org.l2kserver.game.domain
 
-import org.jetbrains.exposed.dao.IntEntity
-import org.jetbrains.exposed.dao.IntEntityClass
-import org.jetbrains.exposed.dao.id.EntityID
-import org.jetbrains.exposed.dao.id.IntIdTable
-import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
-import org.jetbrains.exposed.sql.and
-import org.jetbrains.exposed.sql.deleteWhere
+import org.jetbrains.exposed.v1.core.and
+import org.jetbrains.exposed.v1.core.dao.id.EntityID
+import org.jetbrains.exposed.v1.core.dao.id.IntIdTable
+import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.dao.IntEntity
+import org.jetbrains.exposed.v1.dao.IntEntityClass
+import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.l2kserver.game.model.actor.character.InitialItem
 import org.l2kserver.game.model.item.template.ItemTemplateRegistry
 import org.l2kserver.game.model.item.template.Slot
@@ -34,7 +34,10 @@ class ItemEntity(id: EntityID<Int>): IntEntity(id) {
 
     companion object: IntEntityClass<ItemEntity>(ItemTable) {
 
-        /** Creates new items from provided [initialItems] and assigns it to owner with given [ownerId]. Saves new items to DB */
+        /**
+         * Creates new items from provided [initialItems] and assigns it to owner with given [ownerId].
+         * Saves new items to DB
+         */
         fun createAllFrom(ownerId: Int, initialItems: List<InitialItem>) = initialItems.mapNotNull {
             val itemTemplate = ItemTemplateRegistry.findByIdOrNull(it.id)
 

@@ -1,7 +1,8 @@
 package org.l2kserver.game.data
 
-import org.jetbrains.exposed.sql.transactions.transaction
-import org.jetbrains.exposed.sql.update
+import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import org.jetbrains.exposed.v1.jdbc.update
 import org.l2kserver.game.data.character.classes.HUMAN_FIGHTER
 import org.l2kserver.game.data.character.classes.HUMAN_MYSTIC
 import org.l2kserver.game.data.item.armor.APPRENTICE_STOCKINGS
@@ -34,15 +35,16 @@ import org.l2kserver.game.data.item.weapons.WILLOW_STAFF
 import org.l2kserver.game.data.npc.GRAND_MAGISTER_GALLINT
 import org.l2kserver.game.data.npc.GRAND_MASTER_ROIEN
 import org.l2kserver.game.data.npc.GREMLIN
-import org.l2kserver.game.data.skill.DEFENSE_AURA
-import org.l2kserver.game.data.skill.LIFE_SCAVENGE
-import org.l2kserver.game.data.skill.MIGHT
-import org.l2kserver.game.data.skill.MORTAL_BLOW
-import org.l2kserver.game.data.skill.POWER_SHOT
-import org.l2kserver.game.data.skill.POWER_STRIKE
-import org.l2kserver.game.data.skill.SELF_HEAL
-import org.l2kserver.game.data.skill.SPELLCRAFT
-import org.l2kserver.game.data.skill.WIND_STRIKE
+import org.l2kserver.game.data.skill.DefenseAura
+import org.l2kserver.game.data.skill.GreaterHeal
+import org.l2kserver.game.data.skill.LifeScavenge
+import org.l2kserver.game.data.skill.Might
+import org.l2kserver.game.data.skill.MortalBlow
+import org.l2kserver.game.data.skill.PowerShot
+import org.l2kserver.game.data.skill.PowerStrike
+import org.l2kserver.game.data.skill.SelfHeal
+import org.l2kserver.game.data.skill.Spellcraft
+import org.l2kserver.game.data.skill.WindStrike
 import org.l2kserver.game.domain.AccessLevel
 import org.l2kserver.game.domain.PlayerCharacterTable
 import org.l2kserver.game.model.actor.character.Gender
@@ -66,6 +68,7 @@ private const val TEST_MYSTIC_CHARACTER_NAME = "TesterWoman"
 
 /** Loads data for LIVE test. Don't use it for integration testing */
 @Component
+@Suppress("unused")
 class TestDataLoader(
     private val playerCharacterRepository: PlayerCharacterRepository,
     private val shortcutRepository: ShortcutRepository,
@@ -141,15 +144,16 @@ class TestDataLoader(
         )
 
         SkillTemplateRegistry.register(
-            POWER_STRIKE,
-            MORTAL_BLOW,
-            POWER_SHOT,
-            LIFE_SCAVENGE,
-            DEFENSE_AURA,
-            WIND_STRIKE,
-            SELF_HEAL,
-            SPELLCRAFT,
-            MIGHT
+            PowerStrike,
+            MortalBlow,
+            PowerShot,
+            LifeScavenge,
+            DefenseAura,
+            WindStrike,
+            SelfHeal,
+            GreaterHeal,
+            Spellcraft,
+            Might
         )
     }
 
@@ -165,17 +169,18 @@ class TestDataLoader(
             faceType = 3
         )
 
-        testFighter.exp = LevelUtils.getRequiredExpForLevel(3)
+        testFighter.exp = LevelUtils.getRequiredExpForLevel(10)
         PlayerCharacterTable.update({ PlayerCharacterTable.id eq testFighter.id }) {
             it[accessLevel] = AccessLevel.GAME_MASTER
         }
 
-        testFighter.skillsAndMagic.learn(skillId = LIFE_SCAVENGE.id, skillLevel = 1)
-        testFighter.skillsAndMagic.learn(skillId = MORTAL_BLOW.id, skillLevel = 1)
-        testFighter.skillsAndMagic.learn(skillId = POWER_STRIKE.id, skillLevel = 1)
-        testFighter.skillsAndMagic.learn(skillId = POWER_SHOT.id, skillLevel = 1)
-        testFighter.skillsAndMagic.learn(skillId = DEFENSE_AURA.id, skillLevel = 1)
-        testFighter.skillsAndMagic.learn(skillId = MIGHT.id, skillLevel = 1)
+        testFighter.skillsAndMagic.learn(skillId = LifeScavenge.id, skillLevel = 1)
+        testFighter.skillsAndMagic.learn(skillId = MortalBlow.id, skillLevel = 1)
+        testFighter.skillsAndMagic.learn(skillId = PowerStrike.id, skillLevel = 1)
+        testFighter.skillsAndMagic.learn(skillId = PowerShot.id, skillLevel = 1)
+        testFighter.skillsAndMagic.learn(skillId = DefenseAura.id, skillLevel = 1)
+        testFighter.skillsAndMagic.learn(skillId = Might.id, skillLevel = 1)
+        testFighter.skillsAndMagic.learn(skillId = GreaterHeal.id, skillLevel = 1)
 
         testFighter.currentCp = testFighter.stats.maxCp
         testFighter.currentHp = testFighter.stats.maxHp
@@ -186,7 +191,7 @@ class TestDataLoader(
             0,
             1,
             ShortcutType.SKILL,
-            POWER_STRIKE.id,
+            PowerStrike.id,
             5
         )
 

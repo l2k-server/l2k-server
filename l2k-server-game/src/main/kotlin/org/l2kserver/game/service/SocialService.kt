@@ -21,7 +21,7 @@ import org.springframework.stereotype.Service
 class SocialService(
     override val gameObjectRepository: GameObjectRepository,
 
-    @Value("\${chat.general_chat_range}") private val generalChatRange: Int,
+    @param:Value($$"${chat.general_chat_range}") private val generalChatRange: Int,
 ): AbstractService() {
 
     override val log = logger()

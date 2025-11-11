@@ -1,7 +1,7 @@
 package org.l2kserver.game.service
 
 import kotlinx.coroutines.isActive
-import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
+import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
 import org.l2kserver.game.extensions.logger
 import org.l2kserver.game.handler.dto.request.ActionRequest
 import org.l2kserver.game.handler.dto.request.AttackRequest
@@ -72,7 +72,8 @@ class ActionService(
             target is PlayerCharacter && target.isEnemyOf(character) -> combatService.launchAttack(character, target)
             target is PlayerCharacter -> send { ActionFailedResponse } //TODO https://github.com/l2k-server/l2k-server/issues/21
             target == null -> {
-                log.warn("Character '{}' tries to set target to non-existent target with id = '{}'", character, request.targetId)
+                log.warn("Character '{}' tries to set target to non-existent target with id = '{}'",
+                    character, request.targetId)
                 send { ActionFailedResponse }
             }
         }
@@ -103,7 +104,7 @@ class ActionService(
                 if (character.posture == Posture.STANDING) character.sitDown()
                 else character.standUp()
             }
-            BasicAction.TOGGLE_WALK_RUN -> newSuspendedTransaction {
+            BasicAction.TOGGLE_WALK_RUN -> suspendTransaction {
                 log.debug("Got request to toggle walk/run")
 
                 if (character.moveType == MoveType.RUN) character.moveType = MoveType.WALK
@@ -162,9 +163,9 @@ class ActionService(
         targeted.targetedBy.add(this)
 
         when (targeted) {
-            is PlayerCharacter -> send {SetTargetResponse(targeted.id) }
+            is PlayerCharacter -> send { SetTargetResponse(targeted.id) }
             is Npc -> {
-                send{ SetTargetResponse(targeted.id, this.level - targeted.level) }
+                send { SetTargetResponse(targeted.id, this.level - targeted.level) }
                 send {
                     UpdateStatusResponse(
                         targeted.id,

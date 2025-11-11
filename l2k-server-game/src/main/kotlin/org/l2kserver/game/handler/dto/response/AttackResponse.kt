@@ -17,12 +17,12 @@ private const val ATTACK_RESPONSE_PACKET_ID: UByte = 5u
  */
 data class AttackResponse(
     val attacker: ActorInstance,
-    val attacks: List<Attack>,
+    val attacks: List<DamageEffect>,
     val usedSoulshot: Boolean
 ): ResponsePacket {
     
     constructor(
-        attacker: ActorInstance, attack: Attack, usedSoulshot: Boolean
+        attacker: ActorInstance, attack: DamageEffect, usedSoulshot: Boolean
     ): this(attacker, listOf(attack), usedSoulshot)
 
     init {
@@ -47,24 +47,7 @@ data class AttackResponse(
 
 }
 
-data class Attack (
-    val targetId: Int,
-    val damage: Int,
-
-    val isCritical: Boolean,
-    val isBlocked: Boolean,
-    val isAvoided: Boolean,
-)
-
-fun DamageEffect.toAttack() = Attack(
-    targetId = this.targetId,
-    damage = this.damage,
-    isCritical = this.isCritical,
-    isBlocked = this.isBlocked,
-    isAvoided = this.isAvoided
-)
-
-private fun Attack.toByteArray(usedSoulshot: Boolean, weaponGrade: Grade) = littleEndianByteArray {
+private fun DamageEffect.toByteArray(usedSoulshot: Boolean, weaponGrade: Grade) = littleEndianByteArray {
     putInt(targetId)
     putInt(damage)
 

@@ -21,7 +21,7 @@ import org.springframework.stereotype.Service
 import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
 import kotlinx.coroutines.cancel
-import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
+import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
 import org.l2kserver.game.domain.AccessLevel
 import org.l2kserver.game.handler.dto.request.RespawnAt
 import org.l2kserver.game.handler.dto.request.RespawnRequest
@@ -52,7 +52,7 @@ import kotlin.coroutines.coroutineContext
 import kotlin.math.roundToInt
 
 private const val CHARACTERS_MAX_AMOUNT = 7
-private const val CHARACTERS_INFO_UPDATE_DELAY = 60_000L
+private const val CHARACTERS_INFO_UPDATE_DELAY_MS = 60_000L
 
 @Service
 class CharacterService(
@@ -64,12 +64,12 @@ class CharacterService(
     private val shortcutRepository: ShortcutRepository,
     override val gameObjectRepository: GameObjectRepository,
 
-    @Value("\${characters.newCharacterNameRegexp}") private val newCharacterNameRegexp: String,
-    @Value("\${characters.deletionTimeMs}") private val characterDeletionTime: Long,
-    @Value("\${characters.newCharacterDeletionTimeMs}") private val newCharacterDeletionTime: Long,
-    @Value("\${characters.respawnCpRate}") private val respawnCpRate: Double,
-    @Value("\${characters.respawnHpRate}") private val respawnHpRate: Double,
-    @Value("\${characters.respawnMpRate}") private val respawnMpRate: Double,
+    @param:Value($$"${characters.newCharacterNameRegexp}") private val newCharacterNameRegexp: String,
+    @param:Value($$"${characters.deletionTimeMs}") private val characterDeletionTime: Long,
+    @param:Value($$"${characters.newCharacterDeletionTimeMs}") private val newCharacterDeletionTime: Long,
+    @param:Value($$"${characters.respawnCpRate}") private val respawnCpRate: Double,
+    @param:Value($$"${characters.respawnHpRate}") private val respawnHpRate: Double,
+    @param:Value($$"${characters.respawnMpRate}") private val respawnMpRate: Double,
 ): AbstractService() {
 
     override val log = logger()
@@ -83,8 +83,7 @@ class CharacterService(
      */
     @EventListener(ApplicationReadyEvent::class)
     fun init() = asyncTaskService.launchRepeated(
-        "UPDATE_CHARACTERS_INFO_JOB",
-        CHARACTERS_INFO_UPDATE_DELAY
+        "UPDATE_CHARACTERS_INFO_JOB", CHARACTERS_INFO_UPDATE_DELAY_MS
     ) {
         val deletedPlayerCharacterOwners = playerCharacterRepository.deleteAllWithExpiredDeletionDate()
             .map { it.accountName }
@@ -106,7 +105,7 @@ class CharacterService(
      *
      * @param sessionId User session identifier
      */
-    suspend fun sendCharactersList(sessionId: Int? = null) = newSuspendedTransaction {
+    suspend fun sendCharactersList(sessionId: Int? = null) = suspendTransaction {
         val context = sessionId?.let { SessionContext.getById(it) } ?: sessionContext()
 
         try {
@@ -131,7 +130,7 @@ class CharacterService(
     /**
      * Creates character using info got in [request]
      */
-    suspend fun createCharacter(request: CreateCharacterRequest) = newSuspendedTransaction {
+    suspend fun createCharacter(request: CreateCharacterRequest) = suspendTransaction {
         val accountName = sessionContext().getAccountName()
 
         try {
@@ -178,7 +177,7 @@ class CharacterService(
 
         log.debug("Deleting character at slot '{}' of user '{}'...", request.characterSlot, accountName)
 
-        newSuspendedTransaction {
+        suspendTransaction {
             val playerCharacter = playerCharacterRepository.findAllByAccountName(accountName)
                 .getOrNull(request.characterSlot)
 
@@ -212,7 +211,7 @@ class CharacterService(
      * Cancels deletion of character at selected slot
      */
     suspend fun restoreCharacter(request: RestoreCharacterRequest) {
-        newSuspendedTransaction {
+        suspendTransaction {
             val accountName = sessionContext().getAccountName()
 
             log.debug("Restoring character at slot '{}' of user '{}'", request.characterSlot, accountName)
@@ -234,7 +233,7 @@ class CharacterService(
     /**
      * Select character to enter game with
      */
-    suspend fun selectCharacter(request: SelectCharacterRequest) = newSuspendedTransaction {
+    suspend fun selectCharacter(request: SelectCharacterRequest) = suspendTransaction {
         val context = sessionContext()
         val accountName = context.getAccountName()
 
@@ -262,7 +261,7 @@ class CharacterService(
      * For some Korean reasons server must get EnterWorldRequest after
      * character selection instead of entering world immediately ¯\_(ツ)_/¯
      */
-    suspend fun enterWorld() = newSuspendedTransaction {
+    suspend fun enterWorld() = suspendTransaction {
         val context = sessionContext()
         val accountName = context.getAccountName()
         val characterId = context.getCharacterId()
@@ -394,7 +393,7 @@ class CharacterService(
         moveService.teleport(character, position)
         broadcastAround(character.position) { ReviveResponse(character.id) }
 
-        newSuspendedTransaction {
+        suspendTransaction {
             character.currentCp = (character.stats.maxCp * respawnCpRate).roundToInt()
             character.currentHp = (character.stats.maxHp * respawnHpRate).roundToInt()
             character.currentMp = (character.stats.maxMp * respawnMpRate).roundToInt()

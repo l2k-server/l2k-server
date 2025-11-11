@@ -33,7 +33,9 @@ data class UpdateStatusResponse(
 
     companion object {
 
-        /** Create UpdateStatusResponse for updating actor's HP, MP and CP (if actor is PlayerCharacter) on client side */
+        /**
+         * Create UpdateStatusResponse for updating actor's HP, MP and CP (if actor is PlayerCharacter) on client side
+         */
         fun hpMpCpOf(actor: ActorInstance): UpdateStatusResponse {
             val attributes = mutableMapOf(
                 StatusAttribute.CUR_HP to actor.currentHp,
@@ -54,39 +56,39 @@ data class UpdateStatusResponse(
 }
 
 enum class StatusAttribute(val id: Int) {
-    LEVEL(1),
-    EXP(2),
+    LEVEL(id = 1),
+    EXP(id = 2),
 
-    STR(3),
-    DEX(4),
-    CON(5),
-    INT(6),
-    WIT(7),
-    MEN(8),
+    STR(id = 3),
+    DEX(id = 4),
+    CON(id = 5),
+    INT(id = 6),
+    WIT(id = 7),
+    MEN(id = 8),
 
-    CUR_HP(9),
-    MAX_HP(10),
-    CUR_MP(11),
-    MAX_MP(12),
+    CUR_HP(id = 9),
+    MAX_HP(id = 10),
+    CUR_MP(id = 11),
+    MAX_MP(id = 12),
 
-    SP(13),
+    SP(id = 13),
 
-    CUR_LOAD(14),
-    MAX_LOAD(15),
+    CUR_LOAD(id = 14),
+    MAX_LOAD(id = 15),
 
-    P_ATK(17),
-    ATK_SPD(18),
-    P_DEF(19),
-    EVASION(20),
-    ACCURACY(21),
-    CRITICAL(22),
-    M_ATK(23),
-    CAST_SPD(24),
-    M_DEF(25),
+    P_ATK(id = 17),
+    ATK_SPD(id = 18),
+    P_DEF(id = 19),
+    EVASION(id = 20),
+    ACCURACY(id = 21),
+    CRITICAL(id = 22),
+    M_ATK(id = 23),
+    CAST_SPD(id = 24),
+    M_DEF(id = 25),
 
-    PVP_FLAG(26),
-    KARMA(27),
+    PVP_FLAG(id = 26),
+    KARMA(id = 27),
 
-    CUR_CP(33),
-    MAX_CP(34),
+    CUR_CP(id = 33),
+    MAX_CP(id = 34),
 }

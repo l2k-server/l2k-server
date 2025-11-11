@@ -4,9 +4,9 @@ import org.l2kserver.game.data.item.armor.APPRENTICE_STOCKINGS
 import org.l2kserver.game.data.item.armor.APPRENTICE_TUNIC
 import org.l2kserver.game.data.item.book.TUTORIAL_GUIDE
 import org.l2kserver.game.data.item.weapons.APPRENTICE_WAND
-import org.l2kserver.game.data.skill.SELF_HEAL
-import org.l2kserver.game.data.skill.SPELLCRAFT
-import org.l2kserver.game.data.skill.WIND_STRIKE
+import org.l2kserver.game.data.skill.SelfHeal
+import org.l2kserver.game.data.skill.WindStrike
+import org.l2kserver.game.data.skill.Spellcraft
 import org.l2kserver.game.model.actor.CollisionBox
 import org.l2kserver.game.model.actor.character.CharacterClass
 import org.l2kserver.game.model.actor.character.CharacterTemplate
@@ -67,18 +67,18 @@ val HUMAN_MYSTIC = CharacterClass(
         ),
         shortcuts = listOf(
             InitialShortcut(0, ShortcutType.ACTION, 2),
-            InitialShortcut(1, ShortcutType.SKILL, WIND_STRIKE.id),
+            InitialShortcut(1, ShortcutType.SKILL, WindStrike.id),
             InitialShortcut(3, ShortcutType.ACTION, 5),
-            InitialShortcut(10, ShortcutType.SKILL, SELF_HEAL.id),
+            InitialShortcut(10, ShortcutType.SKILL, SelfHeal.id),
             InitialShortcut(11, type = ShortcutType.ITEM, TUTORIAL_GUIDE.id)
         ),
         collisionBox = CollisionBox(7.5, 22.8)
     ),
     skillTree = mapOf(
         1 to listOf(
-            SkillToLearn(WIND_STRIKE.id, 1, autoLearn = true),
-            SkillToLearn(SELF_HEAL.id, 1, autoLearn = true),
-            SkillToLearn(SPELLCRAFT.id, 1, autoLearn = true)
+            SkillToLearn(WindStrike.id, 1, autoLearn = true),
+            SkillToLearn(SelfHeal.id, 1, autoLearn = true),
+            SkillToLearn(Spellcraft.id, 1, autoLearn = true)
         )
     )
 )

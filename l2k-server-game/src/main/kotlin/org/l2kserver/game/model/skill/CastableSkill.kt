@@ -1,9 +1,14 @@
 package org.l2kserver.game.model.skill
 
 import org.l2kserver.game.domain.SkillEntity
+import org.l2kserver.game.model.skill.context.SkillContext
 import org.l2kserver.game.model.skill.instance.ActiveSkillInstance
+import org.l2kserver.game.model.skill.instance.CastableSkillInstance
+import org.l2kserver.game.model.skill.instance.MagicSkillInstance
 import org.l2kserver.game.model.skill.instance.SkillConsumables
 import org.l2kserver.game.model.skill.template.ActiveSkillTemplate
+import org.l2kserver.game.model.skill.template.CastableSkillTemplate
+import org.l2kserver.game.model.skill.template.MagicSkillTemplate
 import org.l2kserver.game.model.skill.template.SkillConsumablesTemplate
 import java.time.Instant
 import java.util.concurrent.ConcurrentHashMap
@@ -12,7 +17,7 @@ import java.util.concurrent.ConcurrentHashMap
 private val cooldowns = ConcurrentHashMap<Int, Instant>()
 
 /**
- * Skill instance
+ * Skill, that can be cast
  *
  * @property skillId Skill identifier
  * @property skillName Skill name (eng)
@@ -24,12 +29,11 @@ private val cooldowns = ConcurrentHashMap<Int, Instant>()
  * @property effectRange TODO
  * @property requires Requirements to use this skill
  * @property consumes Skill consumables - mp, items, etc.
- * @property skillAction Effects, dealt by this skill
  */
-class ActiveSkill(
+sealed class CastableSkill(
     private val entity: SkillEntity,
-    private val template: ActiveSkillTemplate
-) : ActiveSkillInstance {
+    private val template:  CastableSkillTemplate
+) : CastableSkillInstance {
     companion object;
 
     private val skillEntityId = entity.id.value
@@ -37,7 +41,6 @@ class ActiveSkill(
     override val skillId = entity.skillId
     override val skillName = template.skillName
     override val skillLevel by entity::skillLevel
-    override val skillType = template.skillType
     override val targetType = template.targetType
 
     override val reuseDelay: Int = template.reuseDelay
@@ -46,10 +49,9 @@ class ActiveSkill(
     override val castRange = template.castRange
     override val effectRange = template.effectRange
     override val requires = template.requires
-    override val consumesToStart: SkillConsumables? get() = template.consumesToStart?.toSkillConsumables()
-    override val consumes: SkillConsumables? get() = template.consumes?.toSkillConsumables()
+    override val consumesToStart: SkillConsumables? get() = template.consumesToStart?.toSkillConsumables(skillLevel)
+    override val consumes: SkillConsumables? get() = template.consumes?.toSkillConsumables(skillLevel)
     override val overhitPossible = template.overhitPossible
-    override val skillAction = template.skillAction
 
     override var nextUsageTime: Instant
         get() = cooldowns[skillEntityId] ?: Instant.MIN
@@ -57,23 +59,33 @@ class ActiveSkill(
             cooldowns[skillEntityId] = value
         }
 
-    private fun SkillConsumablesTemplate.toSkillConsumables() = SkillConsumables(
-        hp = this.hp?.let {
-            requireNotNull(it.getOrNull(skillLevel - 1)) {
-                "No data about hp consumption at skill level = '$skillLevel' found"
-            }
-        } ?: 0,
-        mp = this.mp?.let {
-            requireNotNull(it.getOrNull(skillLevel - 1)) {
-                "No data about mp consumption at skill level = '$skillLevel' found"
-            }
-        } ?: 0,
-        item = this.item?.let {
-            requireNotNull(it.getOrNull(skillLevel - 1)) {
-                "No data about item consumption at skill level = '$skillLevel' found"
-            }
-        },
-    )
+    override fun affect(context: SkillContext) = template.affect(context)
 
     override fun toString() = "ActiveSkill(id=$skillId name=$skillName level=$skillLevel)"
 }
+
+class ActiveSkill(
+    entity: SkillEntity, template: ActiveSkillTemplate
+): ActiveSkillInstance, CastableSkill(entity, template)
+
+class MagicSkill(
+    entity: SkillEntity, template: MagicSkillTemplate
+): MagicSkillInstance, CastableSkill(entity, template)
+
+private fun SkillConsumablesTemplate.toSkillConsumables(skillLevel: Int) = SkillConsumables(
+    hp = this.hp?.let {
+        requireNotNull(it.getOrNull(skillLevel - 1)) {
+            "No data about hp consumption at skill level = '$skillLevel' found"
+        }
+    } ?: 0,
+    mp = this.mp?.let {
+        requireNotNull(it.getOrNull(skillLevel - 1)) {
+            "No data about mp consumption at skill level = '$skillLevel' found"
+        }
+    } ?: 0,
+    item = this.item?.let {
+        requireNotNull(it.getOrNull(skillLevel - 1)) {
+            "No data about item consumption at skill level = '$skillLevel' found"
+        }
+    },
+)

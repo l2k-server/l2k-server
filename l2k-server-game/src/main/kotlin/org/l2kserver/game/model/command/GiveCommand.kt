@@ -23,9 +23,11 @@ class GiveCommand: AdminCommand() {
         .check("Enchant level must be from 0 to 65535") { it in 0..UShort.MAX_VALUE.toInt() }
 
     companion object : CommandDescription {
-        override val manual = "'give' - Gives some amount (default 1) of item with provided ID to provided character. " +
+        override val manual =
+            "'give' - Gives some amount (default 1) of item with provided ID to provided character. " +
                 "If you don't provide a character name, it will give item to your current character.\n" +
-                "Usage: //give <characterName> -item <itemTemplateId> -amount <itemAmount> -enchantedBy <enchantLevel>\n" +
+                "Usage: //give <characterName> -item <itemTemplateId> " +
+                    "-amount <itemAmount> -enchantedBy <enchantLevel>\n" +
                 "Example: //give Nagibator777 -item 6372 -amount 10\n" +
                 "Example to give current character 1 item: //give -item 6372"
     }

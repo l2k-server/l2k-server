@@ -1,8 +1,8 @@
 package org.l2kserver.game
 
 import kotlinx.coroutines.runBlocking
-import org.jetbrains.exposed.sql.deleteAll
-import org.jetbrains.exposed.sql.transactions.transaction
+import org.jetbrains.exposed.v1.jdbc.deleteAll
+import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.junit.jupiter.api.BeforeEach
 import org.l2kserver.game.configuration.HazelcastInstanceTestConfiguration
 import org.l2kserver.game.data.character.classes.HUMAN_FIGHTER

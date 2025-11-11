@@ -6,7 +6,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
-import org.jetbrains.exposed.sql.transactions.transaction
+import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import kotlin.test.Test
 import org.l2kserver.game.AbstractTests
 import org.l2kserver.game.data.item.arrows.WOODEN_ARROW
@@ -37,8 +37,8 @@ import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 class CombatServiceTest(
-    @Autowired private val combatService: CombatService,
-    @Autowired private val itemService: ItemService
+    @param:Autowired private val combatService: CombatService,
+    @param:Autowired private val itemService: ItemService
 ) : AbstractTests() {
 
     @Test

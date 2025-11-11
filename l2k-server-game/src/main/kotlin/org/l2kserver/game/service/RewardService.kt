@@ -1,6 +1,6 @@
 package org.l2kserver.game.service
 
-import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
+import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
 import org.l2kserver.game.extensions.logger
 import org.l2kserver.game.handler.dto.response.FullCharacterResponse
 import org.l2kserver.game.handler.dto.response.PvPStatusResponse
@@ -30,13 +30,13 @@ class RewardService(
     private val itemService: ItemService,
     override val gameObjectRepository: GameObjectRepository,
 
-    @Value("\${pvp.karmaBaseAmount}") private val karmaBaseAmount: Int,
-    @Value("\${pvp.karmaMaxAmount}") private val karmaMaxAmount: Int,
-    @Value("\${pvp.karmaExpDivider}") private val karmaExpDivider: Int,
-    @Value("\${pvp.karmaLostMin}") private val karmaLostMin: Int,
-    @Value("\${reward.minLevelDifferenceForPenalty}") private val minLevelDifferenceForPenalty: Int,
-    @Value("\${reward.maxLevelDifferenceForPenalty}") private val maxLevelDifferenceForPenalty: Int,
-    @Value("\${reward.levelPenaltyBaseValue}") private val levelPenaltyBaseValue: Double
+    @param:Value($$"${pvp.karmaBaseAmount}") private val karmaBaseAmount: Int,
+    @param:Value($$"${pvp.karmaMaxAmount}") private val karmaMaxAmount: Int,
+    @param:Value($$"${pvp.karmaExpDivider}") private val karmaExpDivider: Int,
+    @param:Value($$"${pvp.karmaLostMin}") private val karmaLostMin: Int,
+    @param:Value($$"${reward.minLevelDifferenceForPenalty}") private val minLevelDifferenceForPenalty: Int,
+    @param:Value($$"${reward.maxLevelDifferenceForPenalty}") private val maxLevelDifferenceForPenalty: Int,
+    @param:Value($$"${reward.levelPenaltyBaseValue}") private val levelPenaltyBaseValue: Double
 ) : AbstractService() {
 
     override val log = logger()
@@ -123,7 +123,7 @@ class RewardService(
                 calculateOverhitExp(expShare.roundToInt(), overhitDamage, killed.stats.maxHp)
             else 0
 
-            newSuspendedTransaction {
+            suspendTransaction {
                 attacker.exp += (expShare.roundToLong() + overhitExp)
                 attacker.sp += spShare.roundToInt()
 

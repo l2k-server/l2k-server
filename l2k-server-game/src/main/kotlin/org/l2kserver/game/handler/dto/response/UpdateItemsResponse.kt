@@ -63,9 +63,9 @@ data class UpdateItemsResponse private constructor(
 }
 
 enum class UpdateItemOperation(val id: Int) {
-    ADD(1),
-    MODIFY(2),
-    REMOVE(3)
+    ADD(id = 1),
+    MODIFY(id = 2),
+    REMOVE(id = 3)
 }
 
 inline val Pair<ItemInstance, UpdateItemOperation>.item: ItemInstance get() = this.first

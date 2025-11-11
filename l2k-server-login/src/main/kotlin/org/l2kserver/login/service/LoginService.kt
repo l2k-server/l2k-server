@@ -39,9 +39,9 @@ class LoginService(
     private val loggedInUsersRepository: LoggedInUsersRepository,
     private val registeredGameservers: List<RegisteredGameserver>,
 
-    @Value("\${server.automaticRegistrationEnabled}")
+    @param:Value($$"${server.automaticRegistrationEnabled}")
     private val autoRegistrationEnabled: Boolean,
-    @Value("\${server.connectToGameServerTimeout}")
+    @param:Value($$"${server.connectToGameServerTimeout}")
     private val connectionToGameServerTimeout: Long
 ) {
 

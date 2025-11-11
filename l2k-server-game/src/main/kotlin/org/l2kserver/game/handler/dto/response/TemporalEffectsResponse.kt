@@ -2,12 +2,12 @@ package org.l2kserver.game.handler.dto.response
 
 import org.l2kserver.game.extensions.littleEndianByteArray
 import org.l2kserver.game.extensions.putUByte
-import org.l2kserver.game.model.skill.effect.AbnormalEffect
+import org.l2kserver.game.model.skill.effect.TemporalAbnormalEffect
 
 private const val ABNORMALS_LIST_RESPONSE_PACKET_ID: UByte = 127u
 
-data class AbnormalsListResponse(
-    val abnormals: Collection<AbnormalEffect>
+data class TemporalEffectsResponse(
+    val abnormals: Collection<TemporalAbnormalEffect>
 ): ResponsePacket {
 
     override val data: ByteArray = littleEndianByteArray {

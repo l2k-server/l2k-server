@@ -9,7 +9,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
+import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
 import org.l2kserver.game.extensions.logger
 import org.l2kserver.game.extensions.model.actor.hit
 import org.l2kserver.game.handler.dto.response.ActionFailedResponse
@@ -21,14 +21,13 @@ import org.l2kserver.game.handler.dto.response.PlayerDiedResponse
 import org.l2kserver.game.handler.dto.response.SystemMessageResponse
 import org.l2kserver.game.handler.dto.response.UpdateItemsResponse
 import org.l2kserver.game.handler.dto.response.UpdateStatusResponse
-import org.l2kserver.game.handler.dto.response.toAttack
 import org.l2kserver.game.model.actor.ActorInstance
 import org.l2kserver.game.model.actor.MutableActorInstance
 import org.l2kserver.game.model.actor.Npc
 import org.l2kserver.game.model.actor.PlayerCharacter
 import org.l2kserver.game.model.item.template.WeaponType
-import org.l2kserver.game.model.skill.ActiveSkill
 import org.l2kserver.game.model.skill.effect.DamageEffect
+import org.l2kserver.game.model.skill.instance.CastableSkillInstance
 import org.l2kserver.game.network.session.send
 import org.l2kserver.game.network.session.sendTo
 import org.l2kserver.game.repository.GameObjectRepository
@@ -95,7 +94,7 @@ class CombatService(
                     continue
                 }
 
-                newSuspendedTransaction {
+                suspendTransaction {
                     // Player character must spend mana and arrows for attack (if weapon requires)
                     if ((attacker as? PlayerCharacter)?.spendResources() != false)
                         //Already launched attack must not be cancelled TODO STUN??
@@ -130,21 +129,21 @@ class CombatService(
     }
 
     suspend fun applyDamageEffect(
-        attacker: MutableActorInstance, effect: DamageEffect, skill: ActiveSkill? = null
-    ) {
-        val attacked = gameObjectRepository.findActorByIdOrNull(effect.targetId) ?: return
+        attacker: MutableActorInstance, effect: DamageEffect, skill: CastableSkillInstance? = null
+    ) = suspendTransaction {
+        val attacked = gameObjectRepository.findActorByIdOrNull(effect.targetId) ?: return@suspendTransaction
 
         //For double weapon, if target was killed by first hit, or if actor is already killed by smth else
-        if (attacked.isDead()) return
+        if (attacked.isDead()) return@suspendTransaction
 
         log.debug("{} has dealt {} damage to {}", attacker, effect.damage, attacked)
 
         if (effect.isAvoided) {
-            send { SystemMessageResponse.YouMissed }
+            sendTo(attacker.id) { SystemMessageResponse.YouMissed }
             sendTo(attacked.id) {
                 SystemMessageResponse.YouHaveAvoidedAttackOf(attacker.name)
             }
-            return
+            return@suspendTransaction
         }
 
         // Calculate overhit damage.
@@ -168,18 +167,17 @@ class CombatService(
         } else attacked.currentHp = maxOf(0, attacked.currentHp - effect.damage)
 
         if (effect.isCritical)
-            send { SystemMessageResponse.CriticalHit }
+            sendTo(attacker.id) { SystemMessageResponse.CriticalHit }
         if (effect.isMagicCritical)
-            send { SystemMessageResponse.MagicCriticalHit }
+            sendTo(attacker.id) { SystemMessageResponse.MagicCriticalHit }
         if (effect.isHalfSuccessful)
-            send { SystemMessageResponse.AttackFailed }
+            sendTo(attacker.id) { SystemMessageResponse.AttackFailed }
         if (skill != null && effect.isFailed)
-            send { SystemMessageResponse.HasResisted(attacked.name, skill) }
-        if (effect.isBlocked) sendTo(attacked.id) {
-            SystemMessageResponse.ShieldDefenceSuccessful
-        }
+            sendTo(attacker.id) { SystemMessageResponse.HasResisted(attacked.name, skill) }
+        if (effect.isBlocked)
+            sendTo(attacked.id) { SystemMessageResponse.ShieldDefenceSuccessful }
 
-        send { SystemMessageResponse.YouHit(effect.damage) }
+        sendTo(attacker.id) { SystemMessageResponse.YouHit(effect.damage) }
         sendTo(attacked.id) {
             SystemMessageResponse.YouWereHitBy(attacker.name, effect.damage)
         }
@@ -224,8 +222,9 @@ class CombatService(
 
         val delayBeforeHit = attackDuration / (1 + hitAmount)
 
-        val attacks = hits.flatten().map { it.toAttack() }
-        broadcastAround(attacker.position) { AttackResponse(attacker, attacks, soulshotUsed) }
+        broadcastAround(attacker.position) {
+            AttackResponse(attacker, hits.flatten(), soulshotUsed)
+        }
 
         //Delay for the time between start of the attack animation and the hit
         delay(delayBeforeHit)
@@ -259,7 +258,7 @@ class CombatService(
 
         send { GaugeResponse(GaugeColor.RED, (attackDuration + reuseDelay).toInt()) }
         broadcastAround(attacker.position) {
-            AttackResponse(attacker, damageEffect.toAttack(), usedSoulshot)
+            AttackResponse(attacker, damageEffect, usedSoulshot)
         }
 
         //Delay before launching an arrow
@@ -269,7 +268,7 @@ class CombatService(
         CoroutineScope(coroutineContext + NonCancellable).launch {
             //Delay for time it takes for the arrow to reach the target
             delay((attacker.position.distanceTo(attacked.position) / ARROW_SPEED_PER_MS).toLong())
-            newSuspendedTransaction { applyDamageEffect(attacker, damageEffect) }
+            suspendTransaction { applyDamageEffect(attacker, damageEffect) }
         }
 
         //Delay for the time between the hit and the end of the attack animation
