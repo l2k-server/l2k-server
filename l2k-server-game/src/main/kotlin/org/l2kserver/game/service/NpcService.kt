@@ -8,8 +8,8 @@ import org.l2kserver.game.extensions.logger
 import org.l2kserver.game.handler.dto.response.NpcChatWindowResponse
 import org.l2kserver.game.model.actor.Npc
 import org.l2kserver.game.repository.GameObjectRepository
-import org.l2kserver.game.model.actor.npc.NpcTemplate
 import org.l2kserver.game.handler.dto.response.DeleteObjectResponse
+import org.l2kserver.game.model.actor.npc.NpcTemplate
 import org.l2kserver.game.model.actor.npc.NpcTemplateRegistry
 import org.l2kserver.game.model.actor.npc.SpawnedAt
 import org.l2kserver.game.model.actor.position.Heading
@@ -17,10 +17,10 @@ import org.l2kserver.game.model.actor.position.SpawnPosition
 import org.l2kserver.game.utils.getNoTextMessage
 import org.l2kserver.game.model.zone.SpawnZone
 import org.l2kserver.game.network.session.send
+import org.l2kserver.game.network.session.sessionContext
 import org.springframework.boot.context.event.ApplicationReadyEvent
 import org.springframework.context.event.EventListener
 import org.springframework.stereotype.Service
-import java.time.Instant
 import kotlin.random.Random
 import kotlin.random.nextInt
 
@@ -40,14 +40,17 @@ class NpcService(
     @EventListener(ApplicationReadyEvent::class)
     fun init() = asyncTaskService.launchOnce {
         NpcTemplateRegistry.forEach { template ->
-            template.spawn.positions?.forEach { spawnAtPosition(template, it) }
-            template.spawn.zones?.forEach { zone -> repeat(zone.npcAmount) { spawnAtZone(template, zone) }}
+            template.spawn?.positions?.forEach { spawnAtPosition(template, it) }
+            template.spawn?.zones?.forEach { zone -> repeat(zone.npcAmount) { spawnAtZone(template, zone) }}
         }
     }
 
     /** Opens chat window with [npc] */
     suspend fun talkTo(npc: Npc) = send {
-        NpcChatWindowResponse(npcId = npc.id, message = npc.replica ?: getNoTextMessage(npc.id, npc.name))
+        val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
+        val replica = npc.onTalkWith(character) ?: getNoTextMessage(npc.id, npc.name)
+
+        NpcChatWindowResponse(npcId = npc.id, message = replica )
     }
 
     /** Handles [npc]'s death - schedules corpse disappearing and respawn */
@@ -60,12 +63,14 @@ class NpcService(
         CoroutineScope(Dispatchers.Default).launch {
             //Respawn this NPC after delay
             val template = NpcTemplateRegistry.findByIdOrNull(npc.templateId)!!
-            npc.disappearanceTime = Instant.now().plusMillis(template.spawn.respawnDelay)
-            delay(template.spawn.respawnDelay)
 
-            //Spawn NPC at position or zone, depending on what is present
-            npc.spawnedAt.spawnPosition?.let { spawnAtPosition(template, it) }
-            npc.spawnedAt.spawnZone?.let { spawnAtZone(template, it) }
+            template.spawn?.let { spawn ->
+                delay(spawn.respawnDelay)
+
+                //Spawn NPC at position or zone, depending on what is present
+                npc.spawnedAt.spawnPosition?.let { spawnAtPosition(template, it) }
+                npc.spawnedAt.spawnZone?.let { spawnAtZone(template, it) }
+            }
         }
     }
 

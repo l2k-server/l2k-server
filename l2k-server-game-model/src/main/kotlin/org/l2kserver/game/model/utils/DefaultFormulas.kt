@@ -1,10 +1,13 @@
-@file:JvmName("Formulas")
+@file:JvmName("DefaultFormulas")
 package org.l2kserver.game.model.utils
 
 import org.l2kserver.game.model.actor.ActorInstance
+import org.l2kserver.game.model.item.template.SpiritshotType
 import org.l2kserver.game.model.item.template.WeaponType
+import org.l2kserver.game.model.skill.effect.Debuff
 import kotlin.math.pow
 import kotlin.math.roundToInt
+import kotlin.math.sqrt
 import kotlin.random.Random
 
 const val PHYSICAL_ATTACK_BASE = 70
@@ -12,6 +15,10 @@ const val PHYSICAL_DMG_FROM_SIDE_MODIFIER = 1.1
 const val PHYSICAL_DMG_FROM_BACK_MODIFIER = 1.2
 
 const val MAGIC_ATTACK_BASE = 91
+const val DEBUFF_CHANCE_BASE = 30
+const val MAGIC_DEBUFF_MULTIPLIER_BASE = 11
+const val DEBUFF_MIN_CHANCE = 0.05
+const val DEBUFF_MAX_CHANCE = 0.9
 
 const val ACCURACY_FROM_SIDE_MODIFIER = 1.1
 const val ACCURACY_FROM_BACK_MODIFIER = 1.3
@@ -77,4 +84,35 @@ fun calculateIsMagicSucceeded(attacked: ActorInstance, magicLevel: Int): Boolean
 fun calculateIsMagicCritical(attacker: ActorInstance): Boolean {
     val critRate = attacker.stats.mCritRate
     return critRate > Random.nextInt(0, 1000)
+}
+
+//FIXME This is Freya/HF formula, not sure that Interlude variant is the same
+fun calculateDebuffSuccess(
+    caster: ActorInstance,
+    target: ActorInstance,
+    debuff: Debuff,
+    isMagic: Boolean = false,
+    usedSpiritshotType: SpiritshotType? = null
+): Boolean {
+    val levelDifferenceBonus = minOf(debuff.magicLevel - target.level + 3, 0) * debuff.levelBonusRate
+    val basicProperty = target.basicStats[debuff.basicProperty]
+
+    var chance = DEBUFF_CHANCE_BASE + levelDifferenceBonus + debuff.activateRate - basicProperty
+
+    if (isMagic) {
+        val spiritshotBonus = when (usedSpiritshotType) {
+            null -> 1.0
+            SpiritshotType.SPIRITSHOT -> 2.0
+            SpiritshotType.BLESSED_SPIRITSHOT -> 4.0
+        }
+
+        chance *= MAGIC_DEBUFF_MULTIPLIER_BASE * sqrt(spiritshotBonus * caster.stats.mAtk) / target.stats.mDef
+    }
+
+    //TODO Resistance to debuff type
+    //TODO Common debuff resistance
+
+    chance = chance / 100
+    println("Calculated chance = $chance")
+    return Random.nextDouble() < chance.coerceIn(DEBUFF_MIN_CHANCE, DEBUFF_MAX_CHANCE)
 }

@@ -16,6 +16,15 @@ data class BasicStats(
     val men: MEN = MEN(0),
 ) {
 
+    operator fun get(key: BasicStat) = when (key) {
+        STR -> str.value
+        DEX -> dex.value
+        CON -> con.value
+        INT -> int.value
+        WIT -> wit.value
+        MEN -> men.value
+    }
+
     operator fun plus(other: BasicStats?) = if (other == null) this else BasicStats(
         str = this.str + other.str,
         dex = this.dex + other.dex,
@@ -43,7 +52,7 @@ data class BasicStats(
     }
 }
 
-sealed class BaseStat(modifierBase: Double, modifierPowBase: Double) {
+sealed class BasicStat(modifierBase: Double, modifierPowBase: Double) {
 
     private val modifiers = Array(100) { index ->
         floor(modifierBase.pow(index - modifierPowBase) * 100 + 0.5) / 100
@@ -65,7 +74,7 @@ private const val STR_MULTIPLIER_POW_BASE = 34.845
  */
 @JvmInline
 value class STR(val value: Int) {
-    companion object: BaseStat(STR_MULTIPLIER_BASE, STR_MULTIPLIER_POW_BASE)
+    companion object: BasicStat(STR_MULTIPLIER_BASE, STR_MULTIPLIER_POW_BASE)
 
     val pAtkModifier: Double get() = getModifier(value)
 
@@ -82,7 +91,7 @@ private const val DEX_MULTIPLIER_POW_BASE = 19.36
  */
 @JvmInline
 value class DEX(val value: Int) {
-    companion object: BaseStat(DEX_MULTIPLIER_BASE, DEX_MULTIPLIER_POW_BASE)
+    companion object: BasicStat(DEX_MULTIPLIER_BASE, DEX_MULTIPLIER_POW_BASE)
 
     val atkSpdModifier: Double get() = getModifier(value)
     val speedModifier: Double get() = getModifier(value)
@@ -105,7 +114,7 @@ value class DEX(val value: Int) {
 @JvmInline
 value class CON(val value: Int) {
 
-    companion object: BaseStat(modifierBase = 1.03, modifierPowBase = 27.632) {
+    companion object: BasicStat(modifierBase = 1.03, modifierPowBase = 27.632) {
         private const val MAX_WEIGHT_BASE = 1.029993928
         private const val MAX_WEIGHT_MULTIPLIER = 30495.627366
     }
@@ -134,7 +143,7 @@ value class CON(val value: Int) {
 @JvmInline
 value class INT(val value: Int) {
 
-    companion object: BaseStat(modifierBase = 1.02, modifierPowBase = 31.375)
+    companion object: BasicStat(modifierBase = 1.02, modifierPowBase = 31.375)
 
     val mAtkModifier: Double get() = getModifier(value)
     val debuffSuccessBonus: Int get() = TODO()
@@ -149,7 +158,7 @@ value class INT(val value: Int) {
 @JvmInline
 value class WIT(val value: Int) {
 
-    companion object: BaseStat(modifierBase = 1.05, modifierPowBase = 20.0)
+    companion object: BasicStat(modifierBase = 1.05, modifierPowBase = 20.0)
 
     val castingSpdModifier: Double get() = getModifier(value)
     val magicCritChanceBonus: Double get() = getModifier(value)
@@ -164,7 +173,7 @@ value class WIT(val value: Int) {
 @JvmInline
 value class MEN(val value: Int) {
 
-    companion object: BaseStat(modifierBase = 1.01, modifierPowBase = -0.060)
+    companion object: BasicStat(modifierBase = 1.01, modifierPowBase = -0.060)
 
     val mpModifier: Double get() = getModifier(value)
     val mpRegenModifier: Double get() = getModifier(value)

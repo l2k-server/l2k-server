@@ -52,6 +52,7 @@ sealed class CastableSkill(
     override val consumesToStart: SkillConsumables? get() = template.consumesToStart?.toSkillConsumables(skillLevel)
     override val consumes: SkillConsumables? get() = template.consumes?.toSkillConsumables(skillLevel)
     override val overhitPossible = template.overhitPossible
+    override val forcedUsageAllowed = template.forcedUsageAllowed
 
     override var nextUsageTime: Instant
         get() = cooldowns[skillEntityId] ?: Instant.MIN

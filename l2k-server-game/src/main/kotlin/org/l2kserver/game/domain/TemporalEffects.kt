@@ -5,7 +5,7 @@ import org.l2kserver.game.model.skill.effect.TemporalAbnormalEffect
 import java.util.Collections
 
 /** Contains buffs, debuffs, several other states of actor(like death penalty) */
-class TemporalEffects: MutableCollection<TemporalAbnormalEffect> {
+class TemporalEffects : MutableCollection<TemporalAbnormalEffect> {
 
     /** Key - abnormal type, value - abnormal effect */
     private val effects = Collections.synchronizedMap(LinkedHashMap<String, TemporalAbnormalEffect>())
@@ -52,8 +52,7 @@ class TemporalEffects: MutableCollection<TemporalAbnormalEffect> {
         if (effects[element.abnormalType] == element) {
             effects.remove(element.abnormalType)
             true
-        }
-        else false
+        } else false
     }
 
     /**
@@ -71,6 +70,10 @@ class TemporalEffects: MutableCollection<TemporalAbnormalEffect> {
         var result = false
         effects.values.forEach { if (!elements.contains(it)) result = result || remove(it) }
         result
+    }
+
+    val visible: Int get() = effects.values.fold(0) { acc, effect ->
+        acc or (effect.abnormalVisualEffect?.bit ?: 0)
     }
 
     override val size: Int get() = effects.size

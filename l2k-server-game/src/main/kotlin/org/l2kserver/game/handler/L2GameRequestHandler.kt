@@ -1,5 +1,7 @@
 package org.l2kserver.game.handler
 
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 import org.l2kserver.game.handler.dto.request.AuthorizationRequest
 import org.l2kserver.game.handler.dto.request.CancelActionRequest
 import org.l2kserver.game.handler.dto.request.CharacterTemplatesRequest
@@ -66,6 +68,7 @@ import org.l2kserver.game.service.SocialService
 import org.l2kserver.game.service.TradeService
 import org.l2kserver.game.service.UserCommandService
 import org.springframework.stereotype.Component
+import kotlin.coroutines.coroutineContext
 
 @Component
 class L2GameRequestHandler(
@@ -84,69 +87,71 @@ class L2GameRequestHandler(
 ) {
 
     @Suppress("CyclomaticComplexMethod")
-    suspend fun handle(key: ByteArray, request: RequestPacket?) = when (request) {
-        is InitialRequest -> authorizationService.checkProtocolVersion(request, key)
-        is AuthorizationRequest -> authorizationService.authorize(request)
+    suspend fun handleAsync(key: ByteArray, request: RequestPacket?) = CoroutineScope(coroutineContext).launch {
+        when (request) {
+            is InitialRequest -> authorizationService.checkProtocolVersion(request, key)
+            is AuthorizationRequest -> authorizationService.authorize(request)
 
-        is CharacterTemplatesRequest -> characterService.getCharacterTemplates()
-        is CreateCharacterRequest -> characterService.createCharacter(request)
-        is DeleteCharacterRequest -> characterService.deleteCharacter(request)
-        is RestoreCharacterRequest -> characterService.restoreCharacter(request)
-        is SelectCharacterRequest -> characterService.selectCharacter(request)
-        is EnterWorldRequest -> characterService.enterWorld()
-        is LogoutRequest -> characterService.exitGame()
-        is RestartRequest -> characterService.exitToCharactersMenu()
-        is RespawnRequest -> characterService.respawnCharacter(request)
-        is AppearRequest -> characterService.sendCharacterInfo()
+            is CharacterTemplatesRequest -> characterService.getCharacterTemplates()
+            is CreateCharacterRequest -> characterService.createCharacter(request)
+            is DeleteCharacterRequest -> characterService.deleteCharacter(request)
+            is RestoreCharacterRequest -> characterService.restoreCharacter(request)
+            is SelectCharacterRequest -> characterService.selectCharacter(request)
+            is EnterWorldRequest -> characterService.enterWorld()
+            is LogoutRequest -> characterService.exitGame()
+            is RestartRequest -> characterService.exitToCharactersMenu()
+            is RespawnRequest -> characterService.respawnCharacter(request)
+            is AppearRequest -> characterService.sendCharacterInfo()
 
-        is ManorListRequest -> send { ManorListResponse }
+            is ManorListRequest -> send { ManorListResponse }
 
-        is UseItemRequest -> itemService.useItem(request)
-        is TakeOffItemRequest -> itemService.takeOffItem(request)
-        is DeleteItemRequest -> itemService.deleteItem(request)
-        is DropItemRequest -> itemService.dropItem(request)
-        is AutoUseSsRequest -> itemService.toggleAutoUseSs(request)
+            is UseItemRequest -> itemService.useItem(request)
+            is TakeOffItemRequest -> itemService.takeOffItem(request)
+            is DeleteItemRequest -> itemService.deleteItem(request)
+            is DropItemRequest -> itemService.dropItem(request)
+            is AutoUseSsRequest -> itemService.toggleAutoUseSs(request)
 
-        is MoveRequest -> moveService.moveCharacter(request)
-        is ValidatePositionRequest -> moveService.validatePosition(request)
-        is StartRotationRequest -> moveService.startRotation(request)
-        is StopRotationRequest -> moveService.stopRotation(request)
+            is MoveRequest -> moveService.moveCharacter(request)
+            is ValidatePositionRequest -> moveService.validatePosition(request)
+            is StartRotationRequest -> moveService.startRotation(request)
+            is StopRotationRequest -> moveService.stopRotation(request)
 
-        is ActionRequest -> actionService.performAction(request)
-        is CancelActionRequest -> actionService.cancelAction()
-        is AttackRequest -> actionService.attackTarget(request)
-        is ShowMapRequest -> actionService.showMap()
+            is ActionRequest -> actionService.performAction(request)
+            is CancelActionRequest -> actionService.cancelAction()
+            is AttackRequest -> actionService.attackTarget(request)
+            is ShowMapRequest -> actionService.showMap()
 
-        is LinkRequest -> htmlCommandService.handleLinkRequest(request)
-        is BypassToServerRequest -> htmlCommandService.handleBypassRequest(request)
-        is AdminCommandRequest -> adminCommandService.handleAdminCommand(request)
-        is UserCommandRequest -> userCommandService.handleUserCommand(request)
+            is LinkRequest -> htmlCommandService.handleLinkRequest(request)
+            is BypassToServerRequest -> htmlCommandService.handleBypassRequest(request)
+            is AdminCommandRequest -> adminCommandService.handleAdminCommand(request)
+            is UserCommandRequest -> userCommandService.handleUserCommand(request)
 
-        is BasicActionRequest -> actionService.performBasicAction(request)
-        is SocialActionRequest -> actionService.performSocialAction(request)
-        is ChatMessageRequest -> socialService.handleChatMessageRequest(request)
+            is BasicActionRequest -> actionService.performBasicAction(request)
+            is SocialActionRequest -> actionService.performSocialAction(request)
+            is ChatMessageRequest -> socialService.handleChatMessageRequest(request)
 
-        is CreateShortcutRequest -> shortcutService.registerShortcut(request)
-        is DeleteShortcutRequest -> shortcutService.deleteShortcut(request)
+            is CreateShortcutRequest -> shortcutService.registerShortcut(request)
+            is DeleteShortcutRequest -> shortcutService.deleteShortcut(request)
 
-        is SkillListRequest -> skillService.getSkillList()
-        is UseSkillRequest -> skillService.useSkill(request)
+            is SkillListRequest -> skillService.getSkillList()
+            is UseSkillRequest -> skillService.useSkill(request)
 
-        is ExchangeRequest -> tradeService.startExchanging(request)
+            is ExchangeRequest -> tradeService.startExchanging(request)
 
-        is ItemListForPrivateStoreSellRequest -> tradeService.getItemsForPrivateStoreSell()
-        is PrivateStoreSellStartRequest -> tradeService.startPrivateStoreSell(request)
-        is PrivateStoreSellSetMessageRequest -> tradeService.setPrivateStoreSellMessage(request)
-        is BuyInPrivateStoreRequest -> tradeService.buyInPrivateStore(request)
+            is ItemListForPrivateStoreSellRequest -> tradeService.getItemsForPrivateStoreSell()
+            is PrivateStoreSellStartRequest -> tradeService.startPrivateStoreSell(request)
+            is PrivateStoreSellSetMessageRequest -> tradeService.setPrivateStoreSellMessage(request)
+            is BuyInPrivateStoreRequest -> tradeService.buyInPrivateStore(request)
 
-        is ItemListForPrivateStoreBuyRequest -> tradeService.getItemsForPrivateStoreBuy()
-        is PrivateStoreBuyStartRequest -> tradeService.startPrivateStoreBuy(request)
-        is PrivateStoreBuySetMessageRequest -> tradeService.setPrivateStoreBuyMessage(request)
-        is SellToPrivateStoreRequest -> tradeService.sellToPrivateStore(request)
+            is ItemListForPrivateStoreBuyRequest -> tradeService.getItemsForPrivateStoreBuy()
+            is PrivateStoreBuyStartRequest -> tradeService.startPrivateStoreBuy(request)
+            is PrivateStoreBuySetMessageRequest -> tradeService.setPrivateStoreBuyMessage(request)
+            is SellToPrivateStoreRequest -> tradeService.sellToPrivateStore(request)
 
-        is PrivateStoreSellStopRequest, is PrivateStoreBuyStopRequest -> tradeService.stopPrivateStore()
+            is PrivateStoreSellStopRequest, is PrivateStoreBuyStopRequest -> tradeService.stopPrivateStore()
 
-        null -> send { ActionFailedResponse }
+            null -> send { ActionFailedResponse }
+        }
     }
 
     suspend fun handleDisconnect() {

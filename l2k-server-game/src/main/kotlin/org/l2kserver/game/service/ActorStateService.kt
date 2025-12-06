@@ -6,7 +6,6 @@ import java.util.concurrent.ConcurrentHashMap
 import org.l2kserver.game.extensions.logger
 import org.l2kserver.game.handler.dto.response.TemporalEffectsResponse
 import org.l2kserver.game.handler.dto.response.ChangeMoveTypeResponse
-import org.l2kserver.game.handler.dto.response.FullCharacterResponse
 import org.l2kserver.game.handler.dto.response.PvPStatusResponse
 import org.l2kserver.game.handler.dto.response.StartFightingResponse
 import org.l2kserver.game.handler.dto.response.StatusAttribute
@@ -210,9 +209,11 @@ class ActorStateService(
         if (outdatedEffects.isNotEmpty()) {
             if (actor.temporalEffects.removeAll(outdatedEffects)) suspendTransaction {
                 log.debug("Successfully removed '{}' from '{}'", outdatedEffects, actor)
-                if (actor is PlayerCharacter) {
-                    sendTo(actor.id) { FullCharacterResponse(actor) }
-                    sendTo(actor.id) { TemporalEffectsResponse(actor.temporalEffects) }
+
+                if (outdatedEffects.any { it.abnormalVisualEffect != null }) broadcastActorInfo(actor)
+                //TODO Notify about summon and party members effects
+                if (actor is PlayerCharacter) sendTo(actor.id) {
+                    TemporalEffectsResponse(actor.temporalEffects)
                 }
             }
         }

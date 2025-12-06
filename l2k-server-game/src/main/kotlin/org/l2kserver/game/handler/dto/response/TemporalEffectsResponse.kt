@@ -16,6 +16,8 @@ data class TemporalEffectsResponse(
 
         abnormals.forEach {
             val durationSeconds = (it.expiresAt.toEpochMilli() - System.currentTimeMillis()) / 1000
+            //TODO -1 for effects with no expiration time (f.e. zone effects)
+
             putInt(it.skillId)
             putShort(it.effectLevel.toShort())
             putInt(durationSeconds.toInt())

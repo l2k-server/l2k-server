@@ -10,7 +10,7 @@ import kotlin.math.roundToInt
  * @property value How many HP is restored
  */
 data class HealEffect(
-    val targetId: Int,
+    override val targetId: Int,
     val value: Int
 ): Effect
 

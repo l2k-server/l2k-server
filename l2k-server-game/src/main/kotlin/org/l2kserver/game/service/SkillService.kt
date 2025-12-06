@@ -38,6 +38,7 @@ import org.l2kserver.game.model.skill.effect.DamageEffect
 import org.l2kserver.game.model.skill.effect.Effect
 import org.l2kserver.game.model.skill.effect.EffectOnTimeAbnormalEffect
 import org.l2kserver.game.model.skill.effect.HealEffect
+import org.l2kserver.game.model.skill.effect.ResistedEffect
 import org.l2kserver.game.model.skill.effect.TemporalAbnormalEffect
 import org.l2kserver.game.model.skill.instance.ActiveSkillInstance
 import org.l2kserver.game.model.skill.instance.CastableSkillInstance
@@ -107,14 +108,13 @@ class SkillService(
 
     /** Handles [actor]'s intent to use the [skill] */
     suspend fun useSkill(
-        actor: MutableActorInstance,
-        skill: SkillInstance,
-        forced: Boolean = false,
-        holdPosition: Boolean = false
+        actor: MutableActorInstance, skill: SkillInstance, forced: Boolean = false, holdPosition: Boolean = false
     ) {
         log.debug("'{}' tries to use skill '{}'", actor, skill)
         when (skill) {
-            is CastableSkillInstance -> useActiveSkill(actor, skill, forced, holdPosition)
+            is CastableSkillInstance -> useActiveSkill(
+                actor, skill, forced = forced && skill.forcedUsageAllowed, holdPosition
+            )
             is PassiveSkillInstance -> send { ActionFailedResponse }
             is ToggleSkillInstance -> {
                 //TODO Toggle skills
@@ -131,7 +131,7 @@ class SkillService(
      * @param forced Skill will be applied even to wrong target (if possible)
      * @param holdPosition actor won't move closer to use skill
      */
-    suspend fun useActiveSkill(
+    private suspend fun useActiveSkill(
         actor: MutableActorInstance, skill: CastableSkillInstance, forced: Boolean, holdPosition: Boolean
     ) {
         //TODO Check if actor is already casting
@@ -143,6 +143,7 @@ class SkillService(
                 send { PlaySoundResponse(Sound.ITEMSOUND_SYS_IMPOSSIBLE) }
                 return
             }
+
             else -> actor.targetId?.let { gameObjectRepository.findActorByIdOrNull(it) } ?: run {
                 send { SystemMessageResponse.TargetCannotBeFound }
                 send { PlaySoundResponse(Sound.ITEMSOUND_SYS_IMPOSSIBLE) }
@@ -247,7 +248,6 @@ class SkillService(
 
             //Time, needed to cast a skill
             delay(castTime.toLong())
-
             applyEffects(skill, this@castSkillOn, target)
 
             this@castSkillOn.spendResources(skill.consumes)
@@ -260,9 +260,11 @@ class SkillService(
                         actorStateService.activatePvpState(this@castSkillOn)
                     }
                 }
+
                 SkillTargetType.FRIEND -> (this@castSkillOn as? PlayerCharacter)?.let { character ->
                     if (target.isEnemyOf(character)) actorStateService.activatePvpState(character)
                 }
+
                 SkillTargetType.DEAD_NPC -> npcService.remove(target as Npc)
                 else -> {}
             }
@@ -382,30 +384,23 @@ class SkillService(
         )
 
         val effects = try {
-            when (skill) {
-                is ActiveSkillInstance -> skill.affect(context).also {
-                    if (context.usedSoulshot && caster is PlayerCharacter) {
-                        caster.inventory.weapon?.soulshotCharged = false
-                        //Enable SS if auto-use soulshot enabled
-                        caster.autoUsesSoulshot?.let {
-                            itemService.useSoulshot(caster, it)
-                        }
-                    }
-                }
-                is MagicSkillInstance -> skill.affect(context).also {
-                    if (context.usedSpiritshotType != null && caster is PlayerCharacter) {
-                        caster.inventory.weapon?.spiritshotChargedType = null
-                        //Enable SS if auto-use spiritshot enabled
-                        caster.autoUsesSpiritshot?.let {
-                            itemService.useSpiritshot(caster, it)
-                        }
-                    }
-                }
-                else -> emptyList()
-            }
+            skill.affect(context)
         } catch (e: Exception) {
             log.error("An error occurred while trying to apply effect of {}", skill, e)
             emptyList()
+        }
+
+        //Use SS and re-enable it if auto-use enabled
+        when (skill) {
+            is ActiveSkillInstance -> if (context.usedSoulshot && caster is PlayerCharacter) {
+                caster.inventory.weapon?.soulshotCharged = false
+                caster.autoUsesSoulshot?.let { itemService.useSoulshot(caster, it) }
+            }
+
+            is MagicSkillInstance -> if (context.usedSpiritshotType != null && caster is PlayerCharacter) {
+                caster.inventory.weapon?.spiritshotChargedType = null
+                caster.autoUsesSpiritshot?.let { itemService.useSpiritshot(caster, it) }
+            }
         }
 
         applyEffects(effects, caster, skill)
@@ -414,11 +409,21 @@ class SkillService(
     private suspend fun applyEffects(
         effects: Iterable<Effect>, caster: MutableActorInstance, skill: CastableSkillInstance
     ) = effects.forEach { effect ->
-        //TODO Only damage effect of skill should be applied if casting player is not enemy of target player
+        //TODO Abnormals should not show caster in system message (???)
+        val target = gameObjectRepository.findActorByIdOrNull(effect.targetId) ?: return@forEach
+
         when (effect) {
             is DamageEffect -> combatService.applyDamageEffect(caster, effect, skill)
             is HealEffect -> applyHealEffect(caster, effect)
             is TemporalAbnormalEffect -> applyAbnormalEffect(caster, effect, skill)
+            is ResistedEffect -> {
+                sendTo(caster.id) {
+                    SystemMessageResponse.HasResisted(target.name, skill)
+                }
+                sendTo(target.id) {
+                    SystemMessageResponse.YouHaveResistedMagic(caster.name)
+                }
+            }
         }
     }
 
@@ -450,7 +455,7 @@ class SkillService(
         }
 
         if (effect is EffectOnTimeAbnormalEffect) asyncTaskService.launchOnce {
-            while (target.temporalEffects.contains(effect)) withDelay(effect.frequency) {
+            while (target.exists() && target.temporalEffects.contains(effect)) withDelay(effect.frequency) {
                 val context = SkillContext(
                     caster = caster,
                     mainTarget = target,
@@ -461,6 +466,8 @@ class SkillService(
                 applyEffects(effect.effects(context), caster, skill)
             }
         }
+
+        if (effect.abnormalVisualEffect != null) broadcastActorInfo(target)
     }
 
 }

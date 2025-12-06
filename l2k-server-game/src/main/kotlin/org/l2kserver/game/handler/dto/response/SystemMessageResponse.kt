@@ -115,8 +115,13 @@ open class SystemMessageResponse private constructor(
     data object AttackFailed: SystemMessageResponse(systemMessageId = 158)
 
     /** Message: "[targetName] has resisted your [skill]." */
-    data class HasResisted(val targetName:String, val skill: CastableSkillInstance): SystemMessageResponse(
+    data class HasResisted(val targetName: String, val skill: CastableSkillInstance): SystemMessageResponse(
         systemMessageId = 139, targetName, skill)
+
+    /** Message: You have resisted [of]'s magic. */
+    data class YouHaveResistedMagic(val of: String): SystemMessageResponse(
+        systemMessageId = 159, of
+    )
 
     /** Message: "You use [skill]" */
     data class YouUse(val skill: CastableSkillInstance): SystemMessageResponse(

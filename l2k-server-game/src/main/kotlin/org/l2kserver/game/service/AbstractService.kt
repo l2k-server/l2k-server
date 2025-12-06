@@ -1,20 +1,25 @@
 package org.l2kserver.game.service
 
-import org.l2kserver.game.extensions.model.actor.toInfoResponse
 import org.l2kserver.game.extensions.model.store.toMessageResponse
 import org.l2kserver.game.handler.dto.response.ChangePostureResponse
+import org.l2kserver.game.handler.dto.response.CharacterInfoResponse
 import org.l2kserver.game.handler.dto.response.DeleteObjectResponse
 import org.l2kserver.game.handler.dto.response.FullCharacterResponse
+import org.l2kserver.game.handler.dto.response.NpcInfoResponse
 import org.l2kserver.game.handler.dto.response.PrivateStoreSellSetMessageResponse
 import org.l2kserver.game.handler.dto.response.ResponsePacket
+import org.l2kserver.game.handler.dto.response.ScatteredItemResponse
 import org.l2kserver.game.handler.dto.response.SetTargetResponse
 import org.l2kserver.game.handler.dto.response.StartMovingResponse
 import org.l2kserver.game.model.actor.position.Position
 import org.l2kserver.game.model.actor.ActorInstance
 import org.l2kserver.game.model.actor.GameWorldObject
 import org.l2kserver.game.model.actor.MutableActorInstance
+import org.l2kserver.game.model.actor.Npc
 import org.l2kserver.game.model.actor.PlayerCharacter
 import org.l2kserver.game.model.actor.Posture
+import org.l2kserver.game.model.actor.ScatteredItem
+import org.l2kserver.game.model.actor.character.CharacterInstance
 import org.l2kserver.game.model.actor.npc.NpcInstance
 import org.l2kserver.game.network.session.send
 import org.l2kserver.game.repository.GameObjectRepository
@@ -63,7 +68,9 @@ abstract class AbstractService {
      * Should be used only in SessionContext
      */
     protected suspend fun broadcastActorInfo(actor: ActorInstance) {
-        broadcastAround(actor) { actor.toInfoResponse() }
+        gameObjectRepository.findAllCharactersNear(actor, VISION_RANGE).forEach { addressee ->
+            sendTo(addressee.id) { actor.toInfoResponse(addressee) }
+        }
 
         if (actor is PlayerCharacter) {
             sendTo(actor.id) { FullCharacterResponse(actor) }
@@ -85,6 +92,8 @@ abstract class AbstractService {
         if (actor is NpcInstance) updateObjectsAroundNpc(actor, destination)
         if (actor is PlayerCharacter) updateObjectsAroundCharacter(actor, destination)
     }
+
+    protected fun ActorInstance.exists() = gameObjectRepository.existsById(this.id)
 
     /** Makes this character to sit down (if he is standing) */
     protected suspend fun PlayerCharacter.sitDown() {
@@ -110,7 +119,7 @@ abstract class AbstractService {
         npc: NpcInstance, movementDestination: Position?
     ) = gameObjectRepository.findAllCharactersNear(npc).forEach {
         if (it.knownGameWorldObjects.add(npc)) {
-            sendTo(it.id) { npc.toInfoResponse() }
+            sendTo(it.id) { npc.toInfoResponse(it) }
             if (movementDestination != null) sendTo(it.id) {
                 StartMovingResponse(npc, movementDestination)
             }
@@ -158,11 +167,11 @@ abstract class AbstractService {
         gameObject: GameWorldObject, movementDestination: Position?
     ) {
         this.knownGameWorldObjects.add(gameObject)
-        send { gameObject.toInfoResponse() }
+        send { gameObject.toInfoResponse(this) }
 
         if (gameObject is PlayerCharacter) {
             gameObject.knownGameWorldObjects.add(this)
-            sendTo(gameObject.id) { this.toInfoResponse() }
+            sendTo(gameObject.id) { this.toInfoResponse(gameObject) }
 
             movementDestination?.let { destination ->
                 sendTo(gameObject.id) { StartMovingResponse(this, destination) }
@@ -172,4 +181,11 @@ abstract class AbstractService {
             }
         }
     }
+}
+
+private fun GameWorldObject.toInfoResponse(sessionOwner: CharacterInstance): ResponsePacket = when(this) {
+    is Npc -> NpcInfoResponse(this, sessionOwner)
+    is PlayerCharacter -> CharacterInfoResponse(this)
+    is ScatteredItem -> ScatteredItemResponse(this)
+    else -> throw IllegalArgumentException("Unknown game object type ${this::class}")
 }

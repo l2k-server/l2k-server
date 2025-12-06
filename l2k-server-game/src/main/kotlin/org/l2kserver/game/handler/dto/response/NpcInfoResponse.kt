@@ -6,23 +6,20 @@ import org.l2kserver.game.extensions.putUByte
 import org.l2kserver.game.model.extensions.toByte
 import org.l2kserver.game.model.extensions.toInt
 import org.l2kserver.game.model.actor.MoveType
-import org.l2kserver.game.model.actor.npc.NpcInstance
+import org.l2kserver.game.model.actor.Npc
+import org.l2kserver.game.model.actor.character.CharacterInstance
 
 private const val NPC_INFO_RESPONSE_PACKET_ID: UByte = 22u
 
-/**
- * Info about NPC that should be sent to all players who see it
- */
-data class NpcInfoResponse(
-    val npc: NpcInstance
-): ResponsePacket {
+/** Info about NPC that should be sent to all players who see it */
+data class NpcInfoResponse(val npc: Npc, val sessionOwner: CharacterInstance): ResponsePacket {
 
     override val data = littleEndianByteArray {
         putUByte(NPC_INFO_RESPONSE_PACKET_ID)
 
         putInt(npc.id)
         putInt(npc.templateId)
-        putInt(npc.isEnemy.toInt())
+        putInt(npc.isEnemyOf(sessionOwner).toInt())
 
         putInt(npc.position.x)
         putInt(npc.position.y)
@@ -64,7 +61,7 @@ data class NpcInfoResponse(
         putInt(0) //isPvp :D 0 - false, 1 - true, 2 - pvp is ending(blinking)
         putInt(0) // Karma :D
 
-        putInt(0) // abnormalEffect
+        putInt(npc.temporalEffects.visible)
 
         putInt(0)
         putInt(0)

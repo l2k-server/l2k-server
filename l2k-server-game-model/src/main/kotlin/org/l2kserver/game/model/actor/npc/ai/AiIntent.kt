@@ -49,3 +49,10 @@ value class AiIntents private constructor(
     override fun isEmpty() = actions.isEmpty()
     override fun iterator() = actions.iterator()
 }
+
+inline fun aiIntents(action: AiIntents.() -> Unit): AiIntents {
+    val intents = AiIntents()
+    intents.action()
+
+    return intents
+}

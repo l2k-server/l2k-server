@@ -19,23 +19,26 @@ import kotlin.random.Random
  * Data class representing single target hit
  *
  * @property damage How many damage points has the attack dealt
- * @property isCritical is this attack critical
- * @property isBlocked is this attack blocked by shield
- * @property isAvoided is this attack avoided
- * @property isMagicCritical is this attack a magical crit
- * @property isHalfSuccessful is this attack half successful
- * @property isFailed is this attack failed
+ * @property isCritical Is this attack critical
+ * @property isBlocked Is this attack blocked by shield
+ * @property isAvoided Is this attack avoided
+ * @property isMagicCritical Is this attack a magical crit
+ * @property isHalfSuccessful Is this attack half successful
+ * @property isFailed Is this attack failed
+ * @property isDeathly Can this effect kill target. Default - true
  */
 data class DamageEffect(
-    val targetId: Int,
+    override val targetId: Int,
     val damage: Int = 0,
     val isCritical: Boolean = false,
     val isBlocked: Boolean = false,
     val isAvoided: Boolean = false,
     val isMagicCritical: Boolean = false,
     val isHalfSuccessful: Boolean = false,
-    val isFailed: Boolean = false
+    val isFailed: Boolean = false,
+    val isDeathly: Boolean = true
 ): Effect {
+
     companion object {
         /**
          * Calculates physical hit
@@ -85,7 +88,9 @@ data class DamageEffect(
             target: ActorInstance,
             power: Int,
             magicLevel: Int,
-            usedSpiritshotType: SpiritshotType? = null
+            usedSpiritshotType: SpiritshotType? = null,
+            canBeResisted: Boolean = true,
+            canBeCritical: Boolean = true
         ): DamageEffect {
             val spiritshotMultiplier = when(usedSpiritshotType) {
                 null -> 1
@@ -100,14 +105,14 @@ data class DamageEffect(
             //TODO Pvp bonus/resistance
             //TODO attribute bonus/resistance
 
-            return if (!calculateIsMagicSucceeded(target, magicLevel)) {
+            return if (canBeResisted && !calculateIsMagicSucceeded(target, magicLevel)) {
                 if (calculateIsMagicSucceeded(target, magicLevel) && (target.level - caster.level) <= 9) {
                     DamageEffect(target.id, damage = (damage / 2).roundToInt(), isHalfSuccessful = true)
                 } else {
                     DamageEffect(target.id, damage = 1, isFailed = true)
                 }
             }
-            else if (calculateIsMagicCritical(caster)) {
+            else if (canBeCritical && calculateIsMagicCritical(caster)) {
                 DamageEffect(targetId = target.id, damage = (damage * 4).roundToInt(), isMagicCritical = true)
             }
             else DamageEffect(targetId = target.id, damage.roundToInt())

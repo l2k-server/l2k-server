@@ -25,6 +25,7 @@ import org.l2kserver.game.model.actor.ActorInstance
 import org.l2kserver.game.model.actor.MutableActorInstance
 import org.l2kserver.game.model.actor.Npc
 import org.l2kserver.game.model.actor.PlayerCharacter
+import org.l2kserver.game.model.extensions.toInt
 import org.l2kserver.game.model.item.template.WeaponType
 import org.l2kserver.game.model.skill.effect.DamageEffect
 import org.l2kserver.game.model.skill.instance.CastableSkillInstance
@@ -159,12 +160,14 @@ class CombatService(
         }
 
         //If fighters are players, subtract fom CP first
-        if (attacker is PlayerCharacter && attacked is PlayerCharacter) {
+        val damageOnHp = if (attacker is PlayerCharacter && attacked is PlayerCharacter) {
             val hitOnHp = -minOf(attacked.currentCp - effect.damage, 0)
-
             attacked.currentCp = maxOf(0, attacked.currentCp - effect.damage)
-            attacked.currentHp = maxOf(0, attacked.currentHp - hitOnHp)
-        } else attacked.currentHp = maxOf(0, attacked.currentHp - effect.damage)
+            hitOnHp
+        } else effect.damage
+
+        val minHpAfterHit = (!effect.isDeathly).toInt()
+        attacked.currentHp = maxOf(minHpAfterHit, attacked.currentHp - damageOnHp)
 
         if (effect.isCritical)
             sendTo(attacker.id) { SystemMessageResponse.CriticalHit }
@@ -319,6 +322,9 @@ class CombatService(
         asyncTaskService.cancelActionByActorId(actor.id)
         actorStateService.disableCombatState(actor)
 
+        //TODO Noblesse Blessing
+        actor.temporalEffects.clear()
+
         when (actor) {
             is Npc -> {
                 broadcastAround(actor.position) { NpcDiedResponse(actor) }
@@ -344,8 +350,7 @@ class CombatService(
             false
         }
 
-        !gameObjectRepository.existsById(target.id)
-                || !this.position.isCloseTo(target.position, VISION_RANGE) -> {
+        !target.exists() || !this.position.isCloseTo(target.position, VISION_RANGE) -> {
             send { ActionFailedResponse }
             false
         }
@@ -359,7 +364,7 @@ class CombatService(
      * @return `true` if resources are spent and attack can be performed, `false` - if not
      */
     private suspend fun PlayerCharacter.spendResources(): Boolean {
-        val weapon = this.inventory.weapon!!
+        val weapon = this.inventory.weapon ?: return true
 
         //Check if player has enough mana
         if (this.currentMp < weapon.manaCost) {

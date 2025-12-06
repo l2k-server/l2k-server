@@ -1,10 +1,6 @@
 group = "org.l2kserver"
 version = "0.0.0"
 
-plugins {
-    kotlin("jvm") version "2.2.20" apply false
-}
-
 tasks.register<Exec>("launchTestLoginServer") {
     dependsOn(":l2k-server-login:bootTestRun")
     group = "l2k"

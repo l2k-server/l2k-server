@@ -108,8 +108,11 @@ class GameObjectRepository {
 
     fun existsById(id: Int) = objects.containsKey(id) || characters.containsKey(id) || npcs.containsKey(id)
 
-
-    /** Tries to remove gameObject. If removed - returns removed object */
+    /**
+     * Removes gameObject.
+     *
+     * @return removed object, or `null` if there was no such object
+     */
     @Suppress("UNCHECKED_CAST")
     fun <T: GameWorldObject> delete(gameObject: T): T? = when (gameObject) {
         is PlayerCharacter -> characters.remove(gameObject.id)

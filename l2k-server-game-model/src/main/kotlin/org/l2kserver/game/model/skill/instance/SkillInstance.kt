@@ -38,6 +38,8 @@ interface ToggleSkillInstance: SkillInstance
  * @property requires Requirements to use this skill
  * @property consumesToStart Consumables, required to START casting skill - consumed before casting start
  * @property consumes Skill consumables - mp, items, etc.
+ * @property overhitPossible Can this skill produce an over-hit
+ * @property forcedUsageAllowed Can this skill be used on incorrect target (CTRL pressed)
  */
 interface CastableSkillInstance: SkillInstance {
     val targetType: SkillTargetType
@@ -50,6 +52,7 @@ interface CastableSkillInstance: SkillInstance {
     val consumesToStart: SkillConsumables?
     val consumes: SkillConsumables?
     val overhitPossible: Boolean
+    val forcedUsageAllowed: Boolean
     var nextUsageTime: Instant
 
     fun affect(context: SkillContext): Effects

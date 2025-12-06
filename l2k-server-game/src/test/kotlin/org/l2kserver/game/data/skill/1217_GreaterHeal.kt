@@ -13,7 +13,7 @@ import org.l2kserver.game.model.skill.template.SkillConsumablesTemplate
 import java.time.Duration
 import kotlin.math.roundToInt
 
-data class GreaterHealEffect(
+class GreaterHealEffect(
     override val targetId: Int,
     override val effectLevel: Int
 ) : EffectOnTimeAbnormalEffect(Duration.ofSeconds(15)) {
