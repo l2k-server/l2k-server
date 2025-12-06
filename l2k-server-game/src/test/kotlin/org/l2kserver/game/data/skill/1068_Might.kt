@@ -12,7 +12,7 @@ import org.l2kserver.game.model.skill.template.SkillConsumablesTemplate
 import org.l2kserver.game.model.stats.CombatStatsMultipliers
 import java.time.Duration
 
-data class MightEffect(
+class MightEffect(
     override val targetId: Int,
     override val effectLevel: Int
 ): TemporalAbnormalEffect(Duration.ofMinutes(2)) {

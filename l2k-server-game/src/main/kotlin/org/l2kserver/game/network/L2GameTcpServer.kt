@@ -39,7 +39,6 @@ private const val MIN_PACKET_SIZE = 3
 private const val MAX_PACKET_SIZE = 65535
 
 @Component
-@Suppress("unused")
 class L2GameTcpServer(
     private val l2GameRequestHandler: L2GameRequestHandler,
 
@@ -92,7 +91,7 @@ class L2GameTcpServer(
                             .getOrNull()
 
                         log.trace("Got request {}", request)
-                        l2GameRequestHandler.handle(gameCrypt.initialKey, request)
+                        l2GameRequestHandler.handleAsync(gameCrypt.initialKey, request)
                     }
                 } catch (_: ClosedReceiveChannelException) {
                 } catch (e: Throwable) {

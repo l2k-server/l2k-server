@@ -82,6 +82,7 @@ class RewardService(
      * Calculates item drops
      */
     private suspend fun manageItemRewards(killed: Npc) {
+        if (killed.reward == null) return
         val mostValuableDamager = killed.opponents.maxBy { (_, damage) -> damage }.key
         if (mostValuableDamager is Npc) return
 
@@ -109,8 +110,8 @@ class RewardService(
             val killerLevel = attacker.level
 
             //TODO Manage exp gain of pets
-            var expShare = ((killed.reward.exp.toDouble() * damage) / allTheDamageReceived)
-            var spShare = ((killed.reward.sp.toDouble() * damage) / allTheDamageReceived)
+            var expShare = (((killed.reward?.exp?.toDouble() ?: 0.0) * damage) / allTheDamageReceived)
+            var spShare = (((killed.reward?.sp?.toDouble() ?: 0.0) * damage) / allTheDamageReceived)
 
             if (killerLevel - killed.level > minLevelDifferenceForPenalty) {
                 val levelDifferenceModifier = (5.0 / 6.0).pow(killerLevel - killed.level - minLevelDifferenceForPenalty)

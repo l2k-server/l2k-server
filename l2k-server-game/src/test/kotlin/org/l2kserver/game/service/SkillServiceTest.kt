@@ -7,7 +7,6 @@ import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.junit.jupiter.api.assertThrows
 import org.l2kserver.game.AbstractTests
-import org.l2kserver.game.data.npc.GREMLIN
 import org.l2kserver.game.data.skill.MortalBlow
 import org.l2kserver.game.data.skill.LifeScavenge
 import org.l2kserver.game.data.skill.PowerStrike
@@ -31,6 +30,7 @@ import org.l2kserver.game.handler.dto.response.SystemMessageResponse
 import org.l2kserver.game.handler.dto.response.UpdateStatusResponse
 import org.l2kserver.game.model.actor.npc.NpcTemplateRegistry
 import org.l2kserver.game.data.item.weapons.SQUIRES_SWORD
+import org.l2kserver.game.data.npc.FatDummyGremlin
 import org.l2kserver.game.data.skill.DefenseAura
 import org.l2kserver.game.data.skill.Might
 import org.l2kserver.game.data.skill.PowerShot
@@ -87,7 +87,7 @@ class SkillServiceTest(
 
         // Create our target
         val target = npcService.spawnAtPosition(
-            template = NpcTemplateRegistry.register(GREMLIN.copy(ai = null)),
+            template = NpcTemplateRegistry.register(FatDummyGremlin),
             spawnPosition = character.position.toSpawnPosition()
         )
         context.responseChannel.receive() //Skip NpcInfoResponse
@@ -111,7 +111,7 @@ class SkillServiceTest(
 
         // Create our target
         val target = npcService.spawnAtPosition(
-            template = NpcTemplateRegistry.register(GREMLIN.copy(ai = null)),
+            template = NpcTemplateRegistry.register(FatDummyGremlin),
             spawnPosition = character.position.toSpawnPosition()
         )
 
@@ -177,15 +177,9 @@ class SkillServiceTest(
         //Learn skill
         character.skillsAndMagic.learn(PowerStrike.id, 1)
 
-        val fatDummyGremlinTemplate = NpcTemplateRegistry.register(
-            GREMLIN.copy(
-                stats = GREMLIN.stats.copy(maxHp = 1000), ai = null
-            )
-        )
-
         // Create our target
         val target = npcService.spawnAtPosition(
-            template = fatDummyGremlinTemplate,
+            template = FatDummyGremlin,
             spawnPosition = character.position.toSpawnPosition()
         )
         context.responseChannel.receive() //Skip NpcInfoResponse
@@ -366,7 +360,7 @@ class SkillServiceTest(
         // Learn skill and create target
         character.skillsAndMagic.learn(PowerStrike.id, 1)
         val target = npcService.spawnAtPosition(
-            template = NpcTemplateRegistry.register(GREMLIN.copy(ai = null)),
+            template = NpcTemplateRegistry.register(FatDummyGremlin),
             spawnPosition = character.position.toSpawnPosition()
         )
         context.responseChannel.receive() // Skip NpcInfoResponse
@@ -409,7 +403,7 @@ class SkillServiceTest(
 
         // Spawn target far away so that castRange is insufficient
         val target = npcService.spawnAtPosition(
-            template = NpcTemplateRegistry.register(GREMLIN.copy(ai = null)),
+            template = NpcTemplateRegistry.register(FatDummyGremlin),
             spawnPosition = character.position.copy(x = character.position.x + 10_000).toSpawnPosition()
         )
 
@@ -430,7 +424,7 @@ class SkillServiceTest(
         character.skillsAndMagic.learn(PowerStrike.id, 1)
 
         val target = npcService.spawnAtPosition(
-            template = NpcTemplateRegistry.register(GREMLIN.copy(ai = null)),
+            template = NpcTemplateRegistry.register(FatDummyGremlin),
             spawnPosition = character.position.toSpawnPosition()
         )
         context.responseChannel.receive() // Skip NpcInfoResponse
@@ -456,7 +450,7 @@ class SkillServiceTest(
 
         // Spawn alive target
         val target = npcService.spawnAtPosition(
-            template = NpcTemplateRegistry.register(GREMLIN.copy(ai = null)),
+            template = NpcTemplateRegistry.register(FatDummyGremlin),
             spawnPosition = character.position.toSpawnPosition()
         )
         context.responseChannel.receive() // Skip NpcInfoResponse
@@ -483,7 +477,7 @@ class SkillServiceTest(
 
         // Create target
         val target = npcService.spawnAtPosition(
-            template = NpcTemplateRegistry.register(GREMLIN.copy(ai = null)),
+            template = NpcTemplateRegistry.register(FatDummyGremlin),
             spawnPosition = character.position.toSpawnPosition()
         )
         context.responseChannel.receive() // Skip NpcInfoResponse
@@ -619,7 +613,7 @@ class SkillServiceTest(
 
         // Create our target
         val target = npcService.spawnAtPosition(
-            template = NpcTemplateRegistry.register(GREMLIN.copy(ai = null)),
+            template = NpcTemplateRegistry.register(FatDummyGremlin),
             spawnPosition = character.position.toSpawnPosition()
         )
 
@@ -664,7 +658,7 @@ class SkillServiceTest(
 
         // Create our target
         val target = npcService.spawnAtPosition(
-            template = NpcTemplateRegistry.register(GREMLIN.copy(ai = null)),
+            template = NpcTemplateRegistry.register(FatDummyGremlin),
             spawnPosition = character.position.toSpawnPosition()
         )
 

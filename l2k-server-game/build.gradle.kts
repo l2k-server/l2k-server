@@ -34,15 +34,15 @@ dependencies {
     implementation("com.github.ajalt.clikt:clikt-jvm:5.0.3")
 
     // Database
-    implementation("org.jetbrains.exposed:exposed-spring-boot-starter:1.0.0-rc-3")
-    implementation("org.jetbrains.exposed:exposed-java-time:1.0.0-rc-3")
+    implementation("org.jetbrains.exposed:exposed-spring-boot-starter:1.0.0-rc-4")
+    implementation("org.jetbrains.exposed:exposed-java-time:1.0.0-rc-4")
     implementation("org.postgresql:postgresql")
 
-    implementation("org.flywaydb:flyway-core:11.16.0")
-    runtimeOnly("org.flywaydb:flyway-database-postgresql:11.16.0")
+    implementation("org.flywaydb:flyway-core:11.17.0")
+    runtimeOnly("org.flywaydb:flyway-database-postgresql:11.17.0")
 
     // Hazelcast (for sharing data with LoginServer)
-    implementation("com.hazelcast:hazelcast:5.5.0")
+    implementation("com.hazelcast:hazelcast:5.6.0")
 
     // L2J
     implementation("org.bitbucket.l2jserver:l2j-server-geo-driver:2.6.5.0")

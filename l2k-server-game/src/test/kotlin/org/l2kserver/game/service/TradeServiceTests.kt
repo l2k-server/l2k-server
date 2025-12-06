@@ -127,9 +127,9 @@ class TradeServiceTests(
         assertEquals(Posture.SITTING, changePostureResponse.posture)
 
         val characterResponse = assertIs<FullCharacterResponse>(context.responseChannel.receive())
-        assertNotNull(characterResponse.playerCharacter.privateStore)
+        assertNotNull(characterResponse.character.privateStore)
 
-        val store = assertIs<PrivateStore.Sell>(characterResponse.playerCharacter.privateStore!!)
+        val store = assertIs<PrivateStore.Sell>(characterResponse.character.privateStore!!)
         assertEquals(testStoreMessage, store.title)
 
         assertNotNull(store.items[heavensDivider.id])
@@ -153,8 +153,8 @@ class TradeServiceTests(
         assertEquals(Posture.SITTING, changePostureResponseForCustomer.posture)
 
         val characterResponseForCustomer = assertIs<CharacterInfoResponse>(customerContext.responseChannel.receive())
-        assertNotNull(characterResponseForCustomer.playerCharacter.privateStore)
-        assertIs<PrivateStore.Sell>(characterResponse.playerCharacter.privateStore!!)
+        assertNotNull(characterResponseForCustomer.character.privateStore)
+        assertIs<PrivateStore.Sell>(characterResponse.character.privateStore!!)
 
         val storeMessageResponseForCustomer =
             assertIs<PrivateStoreSellSetMessageResponse>(customerContext.responseChannel.receive())
@@ -356,7 +356,7 @@ class TradeServiceTests(
         assertEquals(Posture.STANDING, changePostureResponse.posture)
 
         val characterInfoResponse = assertIs<FullCharacterResponse>(context.responseChannel.receive())
-        assertNull(characterInfoResponse.playerCharacter.privateStore)
+        assertNull(characterInfoResponse.character.privateStore)
     }
 
     @Test
@@ -737,9 +737,9 @@ class TradeServiceTests(
         assertEquals(Posture.SITTING, changePostureResponse.posture)
 
         val characterResponse = assertIs<FullCharacterResponse>(context.responseChannel.receive())
-        assertNotNull(characterResponse.playerCharacter.privateStore)
+        assertNotNull(characterResponse.character.privateStore)
 
-        val store = assertIs<PrivateStore.Buy>(characterResponse.playerCharacter.privateStore!!)
+        val store = assertIs<PrivateStore.Buy>(characterResponse.character.privateStore!!)
         assertEquals(testStoreMessage, store.title)
 
         val wishedHeavensDivider = store.items.find { it.templateId == heavensDivider.templateId }
@@ -766,8 +766,8 @@ class TradeServiceTests(
         assertEquals(Posture.SITTING, changePostureResponseForCustomer.posture)
 
         val characterResponseForCustomer = assertIs<CharacterInfoResponse>(customerContext.responseChannel.receive())
-        assertNotNull(characterResponseForCustomer.playerCharacter.privateStore)
-        assertIs<PrivateStore.Buy>(characterResponse.playerCharacter.privateStore!!)
+        assertNotNull(characterResponseForCustomer.character.privateStore)
+        assertIs<PrivateStore.Buy>(characterResponse.character.privateStore!!)
 
         val storeMessageResponseForCustomer =
             assertIs<PrivateStoreBuySetMessageResponse>(customerContext.responseChannel.receive())

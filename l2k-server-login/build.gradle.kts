@@ -1,7 +1,7 @@
 plugins {
     id("jvm-toolchains")
-    kotlin("jvm") version "2.2.20"
-    kotlin("plugin.spring") version "2.2.20"
+    kotlin("jvm")
+    kotlin("plugin.spring")
     id("dev.detekt")
     id("org.springframework.boot")
     id("io.spring.dependency-management")
@@ -33,15 +33,15 @@ dependencies {
     implementation("org.bitbucket.l2jserver:l2j-server-commons:2.6.6.1")
 
     //Hazelcast
-    implementation("com.hazelcast:hazelcast:5.5.0")
+    implementation("com.hazelcast:hazelcast:5.6.0")
 
     // Database
-    implementation("org.jetbrains.exposed:exposed-spring-boot-starter:1.0.0-rc-3")
-    implementation("org.jetbrains.exposed:exposed-java-time:1.0.0-rc-3")
+    implementation("org.jetbrains.exposed:exposed-spring-boot-starter:1.0.0-rc-4")
+    implementation("org.jetbrains.exposed:exposed-java-time:1.0.0-rc-4")
     runtimeOnly("org.postgresql:postgresql")
 
-    implementation("org.flywaydb:flyway-core:11.16.0")
-    runtimeOnly("org.flywaydb:flyway-database-postgresql:11.16.0")
+    implementation("org.flywaydb:flyway-core:11.17.0")
+    runtimeOnly("org.flywaydb:flyway-database-postgresql:11.17.0")
 
     // Test
     testImplementation(kotlin("test"))

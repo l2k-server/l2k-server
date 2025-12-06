@@ -2,6 +2,7 @@ package org.l2kserver.game.model.skill.effect
 
 import org.l2kserver.game.model.actor.ActorInstance
 import org.l2kserver.game.model.skill.context.SkillContext
+import org.l2kserver.game.model.stats.BasicStat
 import org.l2kserver.game.model.stats.BasicStats
 import org.l2kserver.game.model.stats.CombatStats
 import org.l2kserver.game.model.stats.CombatStatsMultipliers
@@ -19,6 +20,15 @@ object AbnormalType {
 
     /** Dot heal (from potions and Greater Heal) */
     const val HP_RECOVER = "hp_recover"
+
+    /** Poison */
+    const val POISON = "poison"
+}
+
+/** Visible abnormal effects, like stun, root, poison, etc. */
+enum class AbnormalVisualEffect(val bit: Int) {
+    BLEED(bit  = 0b00000000_00000000_00000000_00000001),
+    POISON(bit = 0b00000000_00000000_00000000_00000010);
 }
 
 /**
@@ -28,6 +38,7 @@ object AbnormalType {
  */
 interface AbnormalEffect {
     val abnormalType: String
+    val abnormalVisualEffect: AbnormalVisualEffect? get() = null
 
     /** Fixed bonus combat stats, provided by this abnormal ('diff')*/
     fun getFixedBonusStats(actor: ActorInstance): CombatStats? = null
@@ -43,6 +54,21 @@ interface AbnormalEffect {
 }
 
 /**
+ * Skill, that provides negative temporal abnormal effect
+ *
+ * @property magicLevel Magic level of skill
+ * @property basicProperty Basic property, that provides resistance to this skill
+ * @property levelBonusRate How much does level difference affects success chance
+ * @property activateRate Basic chance of this debuff. Must be from 0 to 100
+ */
+interface Debuff: AbnormalEffect {
+    val magicLevel: Int
+    val basicProperty: BasicStat
+    val levelBonusRate: Double
+    val activateRate: Int
+}
+
+/**
  * Temporal abnormal effects (a.k.a. buffs and debuffs)
  *
  * @property targetId Target of this effect
@@ -52,12 +78,18 @@ interface AbnormalEffect {
  */
 abstract class TemporalAbnormalEffect(
     duration: Duration
-): AbnormalEffect, Effect {
-    abstract val targetId: Int
+) : AbnormalEffect, Effect {
     abstract val effectLevel: Int
     abstract val skillId: Int
 
     val expiresAt: Instant = Instant.now() + duration
+
+    override fun toString() = "${this::class.simpleName}(" +
+            "skillId=$skillId, " +
+            "effectLevel=$effectLevel, " +
+            "targetId=$targetId, " +
+            "expiresAt=$expiresAt, " +
+            "abnormalType=$abnormalType)"
 }
 
 /**
@@ -65,7 +97,7 @@ abstract class TemporalAbnormalEffect(
  *
  * @property frequency How often should the [effects] be applied (in millis). Default: 3000
  */
-abstract class EffectOnTimeAbnormalEffect(duration: Duration): TemporalAbnormalEffect(duration) {
+abstract class EffectOnTimeAbnormalEffect(duration: Duration) : TemporalAbnormalEffect(duration) {
     open val frequency = 3000L
     abstract fun effects(context: SkillContext): Effects
 }

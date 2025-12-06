@@ -235,9 +235,6 @@ class MoveService(
         //TODO Checks if player can teleport ???
         sendTo(actor.id) { TeleportResponse(actor.id, fixedPosition) }
 
-        // Imitate teleporting process. Client validates position after disappearance animation ends,
-        // so it will break if position will change immediately
-
         actor.position = fixedPosition
         updateObjectsAround(actor)
     }
@@ -274,6 +271,7 @@ class MoveService(
         if (updateObjects) updateObjectsAround(actor, destination)
     }
 
+    //TODO Refactor this crutch
     private fun GameWorldObject.exists() =
         if (this is DestinationPoint) true
         else (gameObjectRepository.existsById(this.id))

@@ -47,6 +47,8 @@ interface ToggleSkillTemplate: SkillTemplate {
  * @property effectRange - TODO
  * @property requires - Requirements to use this skill
  * @property consumes - Skill consumables - mp, items, etc.
+ * @property overhitPossible - Can this skill produce an over-hit
+ * @property forcedUsageAllowed - Can this skill be used to incorrect target with CTRL
  */
 sealed interface CastableSkillTemplate: SkillTemplate {
     val targetType: SkillTargetType
@@ -59,6 +61,7 @@ sealed interface CastableSkillTemplate: SkillTemplate {
     val consumesToStart: SkillConsumablesTemplate? get() = null
     val consumes: SkillConsumablesTemplate? get() = null
     val overhitPossible: Boolean get() = false
+    val forcedUsageAllowed: Boolean get() = true
 
     fun affect(context: SkillContext): Effects
 }

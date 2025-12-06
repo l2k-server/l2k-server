@@ -32,9 +32,10 @@ import org.l2kserver.game.data.item.weapons.SHORT_SPEAR
 import org.l2kserver.game.data.item.weapons.SQUIRES_SWORD
 import org.l2kserver.game.data.item.weapons.TALLUM_BLADE_DARK_LEGIONS_EDGE
 import org.l2kserver.game.data.item.weapons.WILLOW_STAFF
-import org.l2kserver.game.data.npc.GRAND_MAGISTER_GALLINT
-import org.l2kserver.game.data.npc.GRAND_MASTER_ROIEN
-import org.l2kserver.game.data.npc.GREMLIN
+import org.l2kserver.game.data.npc.GrandMagisterGallint
+import org.l2kserver.game.data.npc.GrandMasterRoien
+import org.l2kserver.game.data.npc.Gremlin
+import org.l2kserver.game.data.skill.CursePoison
 import org.l2kserver.game.data.skill.DefenseAura
 import org.l2kserver.game.data.skill.GreaterHeal
 import org.l2kserver.game.data.skill.LifeScavenge
@@ -86,16 +87,8 @@ class TestDataLoader(
     private fun registerTestData() {
         HtmlRegistry.loadResource("data/html")
 
-        NpcTemplateRegistry.register(
-            GRAND_MASTER_ROIEN,
-            GRAND_MAGISTER_GALLINT,
-            GREMLIN
-        )
-
-        CharacterClassRegistry.register(
-            HUMAN_FIGHTER,
-            HUMAN_MYSTIC
-        )
+        NpcTemplateRegistry.register(Gremlin, GrandMasterRoien, GrandMagisterGallint)
+        CharacterClassRegistry.register(HUMAN_FIGHTER, HUMAN_MYSTIC)
 
         ItemTemplateRegistry.register(
             TUTORIAL_GUIDE,
@@ -153,7 +146,8 @@ class TestDataLoader(
             SelfHeal,
             GreaterHeal,
             Spellcraft,
-            Might
+            Might,
+            CursePoison
         )
     }
 

@@ -15,7 +15,7 @@ private const val RESPONSE_CHANNEL_CAPACITY = 127
 private val sessionsMap = ConcurrentHashMap<Int, SessionContext>()
 
 /** Storage for sessions of players, who entered game. Key - character id, value - session context */
-private val inGameSessionsMap = ConcurrentHashMap<Int, SessionContext>()
+val inGameSessionsMap = ConcurrentHashMap<Int, SessionContext>()
 
 /**
  * Coroutine context with session data
@@ -118,5 +118,5 @@ suspend inline fun send(response:() -> ResponsePacket) = coroutineContext[Sessio
     ?.send(response())
 
 /** Sends [response] to character with id = [addresseeCharacterId]. If no characters session found, does nothing */
-suspend fun sendTo(addresseeCharacterId: Int, response:() -> ResponsePacket) = inGameSessionsMap[addresseeCharacterId]
+suspend inline fun sendTo(addresseeCharacterId: Int, response:() -> ResponsePacket) = inGameSessionsMap[addresseeCharacterId]
     ?.responseChannel?.send(response())

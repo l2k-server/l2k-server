@@ -3,6 +3,7 @@ package org.l2kserver.game.model.actor.character
 import org.l2kserver.game.model.GameData
 import org.l2kserver.game.model.GameDataRegistry
 import org.l2kserver.game.model.item.template.Slot
+import org.l2kserver.game.model.stats.AttackRange
 import org.l2kserver.game.model.stats.BasicStats
 import org.l2kserver.game.model.stats.CombatStats
 import org.l2kserver.game.model.stats.TradeAndInventoryStats
@@ -55,6 +56,7 @@ data class CharacterClass(
                 pAtk = 4,
                 mAtk = 6,
                 critRate = 44,
+                attackRange = AttackRange.MELEE_WEAPON_DEFAULT_ATTACK_RANGE,
                 atkSpd = 300,
             ),
 

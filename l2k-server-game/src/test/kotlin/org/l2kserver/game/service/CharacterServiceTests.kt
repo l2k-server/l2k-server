@@ -219,7 +219,7 @@ class CharacterServiceTests(
         withContext(context) { characterService.enterWorld() }
 
         val characterResponse = assertIs<FullCharacterResponse>(context.responseChannel.receive())
-        assertEquals(character.id, characterResponse.playerCharacter.id)
+        assertEquals(character.id, characterResponse.character.id)
         assertNotNull(gameObjectRepository.findByIdOrNull(character.id))
 
         assertIs<InventoryResponse>(context.responseChannel.receive())

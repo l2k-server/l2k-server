@@ -12,6 +12,8 @@ value class Effects private constructor(
     fun add(effect: Effect) = effectList.add(effect)
 }
 
-sealed interface Effect
+sealed interface Effect {
+    val targetId: Int
+}
 
 inline fun effects(builderFunction: Effects.() -> Unit) = Effects().apply { builderFunction() }

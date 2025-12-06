@@ -3,6 +3,7 @@ package org.l2kserver.game.model.actor.npc
 import org.l2kserver.game.model.actor.ActorInstance
 import org.l2kserver.game.model.actor.CollisionBox
 import org.l2kserver.game.model.actor.MoveType
+import org.l2kserver.game.model.actor.character.CharacterInstance
 import org.l2kserver.game.model.actor.position.Heading
 import org.l2kserver.game.model.actor.position.Position
 import org.l2kserver.game.model.actor.position.SpawnPosition
@@ -14,7 +15,6 @@ import org.l2kserver.game.model.reward.Reward
 import org.l2kserver.game.model.stats.BasicStats
 import org.l2kserver.game.model.stats.CombatStats
 import org.l2kserver.game.model.zone.SpawnZone
-import java.time.Instant
 
 /**
  * Non-player character
@@ -28,8 +28,6 @@ interface NpcInstance: ActorInstance {
 
     val templateId: Int
     override val level: Int
-
-    val isEnemy: Boolean
     val race: NpcRace
 
     override val heading: Heading
@@ -38,10 +36,9 @@ interface NpcInstance: ActorInstance {
     override val stats: CombatStats
     override val basicStats: BasicStats
 
-    val reward: Reward
+    val reward: Reward?
     val spawnedAt: SpawnedAt
-    val disappearanceTime: Instant?
-    val replica: String?
+
     override val collisionBox: CollisionBox
     override val currentHp: Int
     override val currentMp: Int
@@ -54,6 +51,7 @@ interface NpcInstance: ActorInstance {
     override val hasShield: Boolean get() = equippedShieldTemplate != null
 
     fun onIdle(): AiIntents? = null
+    fun onTalkWith(character: CharacterInstance): String? = null
 }
 
 /**

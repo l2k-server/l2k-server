@@ -10,136 +10,135 @@ import org.l2kserver.game.model.actor.MoveType
 private const val CHARACTER_INFO_RESPONSE_PACKET_ID: UByte = 4u
 
 private const val MAX_ENCHANTMENT_EFFECT_VALUE = 16
-/**
- * Full character info, which is sent to a player who plays this character
- */
+
+/** Full character info, which is sent to a player who plays this character */
 data class FullCharacterResponse(
-    val playerCharacter: PlayerCharacter
+    val character: PlayerCharacter
 ): ResponsePacket {
 
     @Suppress("LongMethod")
     override val data = littleEndianByteArray {
         // Speed multiplier. Client needs it for proper animations
-        val speedMultiplier = playerCharacter.stats.speed.toDouble() / playerCharacter.characterClass.baseSpeed
+        val speedMultiplier = character.stats.speed.toDouble() / character.characterClass.baseSpeed
         // Attack speed multiplier. Client needs it for proper animations
-        val atkSpeedMultiplier = playerCharacter.stats.atkSpd.toDouble() / playerCharacter.characterClass.baseAtkSpd
+        val atkSpeedMultiplier = character.stats.atkSpd.toDouble() / character.characterClass.baseAtkSpd
 
         putUByte(CHARACTER_INFO_RESPONSE_PACKET_ID)
 
-        putInt(playerCharacter.position.x)
-        putInt(playerCharacter.position.y)
-        putInt(playerCharacter.position.z)
-        putInt(playerCharacter.heading.toInt())
+        putInt(character.position.x)
+        putInt(character.position.y)
+        putInt(character.position.z)
+        putInt(character.heading.toInt())
 
-        putInt(playerCharacter.id)
-        putUTF16String(playerCharacter.name)
-        putInt(playerCharacter.race.ordinal)
-        putInt(playerCharacter.gender.ordinal)
-        putInt(playerCharacter.characterClass.baseClassId)
+        putInt(character.id)
+        putUTF16String(character.name)
+        putInt(character.race.ordinal)
+        putInt(character.gender.ordinal)
+        putInt(character.characterClass.baseClassId)
 
-        putInt(playerCharacter.level)
-        putLong(playerCharacter.exp)
+        putInt(character.level)
+        putLong(character.exp)
 
-        putInt(playerCharacter.basicStats.str.value)
-        putInt(playerCharacter.basicStats.dex.value)
-        putInt(playerCharacter.basicStats.con.value)
-        putInt(playerCharacter.basicStats.int.value)
-        putInt(playerCharacter.basicStats.wit.value)
-        putInt(playerCharacter.basicStats.men.value)
+        putInt(character.basicStats.str.value)
+        putInt(character.basicStats.dex.value)
+        putInt(character.basicStats.con.value)
+        putInt(character.basicStats.int.value)
+        putInt(character.basicStats.wit.value)
+        putInt(character.basicStats.men.value)
 
-        putInt(playerCharacter.stats.maxHp)
-        putInt(playerCharacter.currentHp)
-        putInt(playerCharacter.stats.maxMp)
-        putInt(playerCharacter.currentMp)
+        putInt(character.stats.maxHp)
+        putInt(character.currentHp)
+        putInt(character.stats.maxMp)
+        putInt(character.currentMp)
 
-        putInt(playerCharacter.sp)
+        putInt(character.sp)
 
-        putInt(playerCharacter.inventory.weight)
-        putInt(playerCharacter.tradeAndInventoryStats.weightLimit)
+        putInt(character.inventory.weight)
+        putInt(character.tradeAndInventoryStats.weightLimit)
 
         putInt(40)
 
-        putInt(playerCharacter.inventory.twoSlotsAccessory?.id ?: 0)
-        putInt(playerCharacter.inventory.leftEarring?.id ?: 0)
-        putInt(playerCharacter.inventory.rightEarring?.id ?: 0)
-        putInt(playerCharacter.inventory.necklace?.id ?: 0)
-        putInt(playerCharacter.inventory.leftRing?.id ?: 0)
-        putInt(playerCharacter.inventory.rightRing?.id ?: 0)
-        putInt(playerCharacter.inventory.headgear?.id ?: 0)
-        putInt(playerCharacter.inventory.oneHanded?.id ?: 0)
-        putInt(playerCharacter.inventory.shield?.id ?: 0)
-        putInt(playerCharacter.inventory.gloves?.id ?: 0)
-        putInt(playerCharacter.inventory.upperBody?.id ?: 0)
-        putInt(playerCharacter.inventory.lowerBody?.id ?: 0)
-        putInt(playerCharacter.inventory.boots?.id ?: 0)
-        putInt(playerCharacter.inventory.underwear?.id ?: 0)
-        putInt(playerCharacter.inventory.twoHanded?.id ?: 0)
-        putInt(playerCharacter.inventory.hairAccessory?.id
-            ?: playerCharacter.inventory.twoSlotsAccessory?.id ?: 0)
-        putInt(playerCharacter.inventory.faceAccessory?.id ?: 0)
+        putInt(character.inventory.twoSlotsAccessory?.id ?: 0)
+        putInt(character.inventory.leftEarring?.id ?: 0)
+        putInt(character.inventory.rightEarring?.id ?: 0)
+        putInt(character.inventory.necklace?.id ?: 0)
+        putInt(character.inventory.leftRing?.id ?: 0)
+        putInt(character.inventory.rightRing?.id ?: 0)
+        putInt(character.inventory.headgear?.id ?: 0)
+        putInt(character.inventory.oneHanded?.id ?: 0)
+        putInt(character.inventory.shield?.id ?: 0)
+        putInt(character.inventory.gloves?.id ?: 0)
+        putInt(character.inventory.upperBody?.id ?: 0)
+        putInt(character.inventory.lowerBody?.id ?: 0)
+        putInt(character.inventory.boots?.id ?: 0)
+        putInt(character.inventory.underwear?.id ?: 0)
+        putInt(character.inventory.twoHanded?.id ?: 0)
+        putInt(character.inventory.hairAccessory?.id
+            ?: character.inventory.twoSlotsAccessory?.id ?: 0)
+        putInt(character.inventory.faceAccessory?.id ?: 0)
 
-        putInt(playerCharacter.inventory.twoSlotsAccessory?.templateId ?: 0)
-        putInt(playerCharacter.inventory.leftEarring?.templateId ?: 0)
-        putInt(playerCharacter.inventory.rightEarring?.templateId ?: 0)
-        putInt(playerCharacter.inventory.necklace?.templateId ?: 0)
-        putInt(playerCharacter.inventory.leftRing?.templateId ?: 0)
-        putInt(playerCharacter.inventory.rightRing?.templateId ?: 0)
-        putInt(playerCharacter.inventory.headgear?.templateId ?: 0)
-        putInt(playerCharacter.inventory.oneHanded?.templateId ?: 0)
-        putInt(playerCharacter.inventory.shield?.templateId ?: 0)
-        putInt(playerCharacter.inventory.gloves?.templateId ?: 0)
-        putInt(playerCharacter.inventory.upperBody?.templateId ?: 0)
-        putInt(playerCharacter.inventory.lowerBody?.templateId ?: 0)
-        putInt(playerCharacter.inventory.boots?.templateId ?: 0)
-        putInt(playerCharacter.inventory.underwear?.templateId ?: 0)
-        putInt(playerCharacter.inventory.twoHanded?.templateId ?: 0)
-        putInt(playerCharacter.inventory.hairAccessory?.templateId
-            ?: playerCharacter.inventory.twoSlotsAccessory?.templateId ?: 0)
-        putInt(playerCharacter.inventory.faceAccessory?.templateId ?: 0)
+        putInt(character.inventory.twoSlotsAccessory?.templateId ?: 0)
+        putInt(character.inventory.leftEarring?.templateId ?: 0)
+        putInt(character.inventory.rightEarring?.templateId ?: 0)
+        putInt(character.inventory.necklace?.templateId ?: 0)
+        putInt(character.inventory.leftRing?.templateId ?: 0)
+        putInt(character.inventory.rightRing?.templateId ?: 0)
+        putInt(character.inventory.headgear?.templateId ?: 0)
+        putInt(character.inventory.oneHanded?.templateId ?: 0)
+        putInt(character.inventory.shield?.templateId ?: 0)
+        putInt(character.inventory.gloves?.templateId ?: 0)
+        putInt(character.inventory.upperBody?.templateId ?: 0)
+        putInt(character.inventory.lowerBody?.templateId ?: 0)
+        putInt(character.inventory.boots?.templateId ?: 0)
+        putInt(character.inventory.underwear?.templateId ?: 0)
+        putInt(character.inventory.twoHanded?.templateId ?: 0)
+        putInt(character.inventory.hairAccessory?.templateId
+            ?: character.inventory.twoSlotsAccessory?.templateId ?: 0)
+        putInt(character.inventory.faceAccessory?.templateId ?: 0)
 
         put(ByteArray(28))
-        putInt(playerCharacter.inventory.weapon?.augmentationId ?: 0) //at l2j - right hand item augmentation
+        putInt(character.inventory.weapon?.augmentationId ?: 0) //at l2j - right hand item augmentation
         put(ByteArray(24))
-        putInt(playerCharacter.inventory.weapon?.augmentationId ?: 0) //at l2j - two-handed item augmentation
+        putInt(character.inventory.weapon?.augmentationId ?: 0) //at l2j - two-handed item augmentation
         put(ByteArray(8))
 
-        putInt(playerCharacter.stats.pAtk)
-        putInt(playerCharacter.stats.atkSpd)
-        putInt(playerCharacter.stats.pDef)
-        putInt(playerCharacter.stats.evasion)
-        putInt(playerCharacter.stats.accuracy)
-        putInt(playerCharacter.stats.critRate)
-        putInt(playerCharacter.stats.mAtk)
-        putInt(playerCharacter.stats.castingSpd)
-        putInt(playerCharacter.stats.atkSpd) //TODO ??? Twice?
-        putInt(playerCharacter.stats.mDef)
+        putInt(character.stats.pAtk)
+        putInt(character.stats.atkSpd)
+        putInt(character.stats.pDef)
+        putInt(character.stats.evasion)
+        putInt(character.stats.accuracy)
+        putInt(character.stats.critRate)
+        putInt(character.stats.mAtk)
+        putInt(character.stats.castingSpd)
+        putInt(character.stats.atkSpd) //TODO ??? Twice?
+        putInt(character.stats.mDef)
 
-        putInt(playerCharacter.pvpState.ordinal)
-        putInt(playerCharacter.karma)
+        putInt(character.pvpState.ordinal)
+        putInt(character.karma)
 
-        putInt((playerCharacter.stats.speed / speedMultiplier).toInt())
-        putInt((playerCharacter.stats.walkSpeed / speedMultiplier).toInt())
-        putInt((playerCharacter.stats.speed / speedMultiplier).toInt()) //TODO Swim run speed
-        putInt((playerCharacter.stats.speed / speedMultiplier).toInt()) //TODO Swim walk speed
-        putInt((playerCharacter.stats.speed / speedMultiplier).toInt()) //TODO fl (??) run speed
-        putInt((playerCharacter.stats.speed / speedMultiplier).toInt()) //TODO fl (??) walk speed
-        putInt((playerCharacter.stats.speed / speedMultiplier).toInt()) //TODO fly run speed
-        putInt((playerCharacter.stats.speed / speedMultiplier).toInt()) //TODO fly walk speed
+        putInt((character.stats.speed / speedMultiplier).toInt())
+        putInt((character.stats.walkSpeed / speedMultiplier).toInt())
+        putInt((character.stats.speed / speedMultiplier).toInt()) //TODO Swim run speed
+        putInt((character.stats.speed / speedMultiplier).toInt()) //TODO Swim walk speed
+        putInt((character.stats.speed / speedMultiplier).toInt()) //TODO fl (??) run speed
+        putInt((character.stats.speed / speedMultiplier).toInt()) //TODO fl (??) walk speed
+        putInt((character.stats.speed / speedMultiplier).toInt()) //TODO fly run speed
+        putInt((character.stats.speed / speedMultiplier).toInt()) //TODO fly walk speed
         putDouble(speedMultiplier)
         putDouble(atkSpeedMultiplier)
 
         //TODO Hitbox should be taken from pet if mounted
-        putDouble(playerCharacter.collisionBox.radius)
-        putDouble(playerCharacter.collisionBox.height)
+        putDouble(character.collisionBox.radius)
+        putDouble(character.collisionBox.height)
 
-        putInt(playerCharacter.hairStyle)
-        putInt(playerCharacter.hairColor)
-        putInt(playerCharacter.faceType)
+        putInt(character.hairStyle)
+        putInt(character.hairColor)
+        putInt(character.faceType)
 
-        putInt(playerCharacter.accessLevel.ordinal)
-        putUTF16String(playerCharacter.title)
+        putInt(character.accessLevel.ordinal)
+        putUTF16String(character.title)
 
-        putInt(playerCharacter.clanId)
+        putInt(character.clanId)
         putInt(0) //TODO Clan crest id
         putInt(0) //TODO Alliance id
         putInt(0) //TODO Alliance crest id
@@ -147,12 +146,12 @@ data class FullCharacterResponse(
 
         put(0) //TODO Mount type. 0 - none, 1 - strider, 2 - wyvern
 
-        put(playerCharacter.privateStore?.storeType?.toByte() ?: 0)
+        put(character.privateStore?.storeType?.toByte() ?: 0)
 
         put(0) //TODO Dwarven Craft
 
-        putInt(playerCharacter.pkCount)
-        putInt(playerCharacter.pvpCount)
+        putInt(character.pkCount)
+        putInt(character.pvpCount)
 
         //TODO Cubics - first goes cubics amount, then their ids
         putShort(0) //cubic amount
@@ -160,7 +159,7 @@ data class FullCharacterResponse(
 
         put(0)
 
-        putInt(0) //TODO Abnormal Effects - stunned, rooted, etc in .
+        putInt(character.temporalEffects.visible)
         put(0)
 
         putInt(0)// TODO clan privileges
@@ -171,13 +170,13 @@ data class FullCharacterResponse(
 
         putShort(100) //TODO Inventory limit
 
-        putInt(playerCharacter.characterClass.id)
+        putInt(character.characterClass.id)
         putInt(0) // special effects? circles around player... (c)L2J
 
-        putInt(playerCharacter.stats.maxCp)
-        putInt(playerCharacter.currentCp)
+        putInt(character.stats.maxCp)
+        putInt(character.currentCp)
 
-        put(minOf(MAX_ENCHANTMENT_EFFECT_VALUE, playerCharacter.inventory.weapon?.enchantLevel ?: 0)
+        put(minOf(MAX_ENCHANTMENT_EFFECT_VALUE, character.inventory.weapon?.enchantLevel ?: 0)
             .toByte()) //TODO if mounted - 0
 
         put(0) //TODO team circle around feet 1 = Blue, 2 = red
@@ -193,13 +192,13 @@ data class FullCharacterResponse(
         putInt(0) //TODO Fish Y
         putInt(0) //TODO Fish Z
 
-        putInt(playerCharacter.nameColor)
-        put((playerCharacter.moveType == MoveType.RUN).toByte())
+        putInt(character.nameColor)
+        put((character.moveType == MoveType.RUN).toByte())
 
         putInt(0) //TODO PledgeClass(?)
 
         putInt(0)
-        putInt(playerCharacter.titleColor)
+        putInt(character.titleColor)
         putInt(0)
     }
     

@@ -2,6 +2,7 @@ package org.l2kserver.game.model.actor
 
 import org.l2kserver.game.domain.TemporalEffects
 import org.l2kserver.game.extensions.model.stats.applyAbnormalsOf
+import org.l2kserver.game.model.actor.character.CharacterInstance
 import org.l2kserver.game.model.actor.npc.NpcInstance
 import java.util.concurrent.ConcurrentHashMap
 import org.l2kserver.game.model.actor.position.Position
@@ -12,7 +13,6 @@ import org.l2kserver.game.model.item.template.ArmorTemplate
 import org.l2kserver.game.model.item.template.ItemTemplateRegistry
 import org.l2kserver.game.model.item.template.WeaponTemplate
 import org.l2kserver.game.utils.IdUtils
-import java.time.Instant
 
 /**
  * NPC data
@@ -22,14 +22,12 @@ import java.time.Instant
  * @property templateId NPC template ID
  * @property level NPC level
  * @property title NPC title
- * @property isEnemy Can this NPC be attacked without forcing
  * @property race NPC's race
  * @property heading NPC's heading direction
  * @property position NPC's position in world
  * @property stats NPC's stats
  * @property reward Reward for killing this NPC
  * @property spawnedAt Where was this NPC spawned (position or zone)
- * @property replica NPC's chat replica
  * @property collisionBox NPC's collision box
  * @property currentHp NPC's current HP
  * @property currentMp NPC's current mana
@@ -49,7 +47,6 @@ class Npc(
 
     override val templateId = template.id
     override val level = template.level
-    override val isEnemy = template.isEnemy
     override val race = template.race
 
     override val stats get() = template.stats.applyAbnormalsOf(this)
@@ -57,9 +54,6 @@ class Npc(
 
     override val reward = template.reward
 
-    override var disappearanceTime: Instant? = null
-
-    override val replica = template.replica
     override val collisionBox = template.collisionBox
 
     override var currentHp = template.stats.maxHp
@@ -86,8 +80,6 @@ class Npc(
     override val isImmobilized: Boolean get() = isParalyzed //TODO check if rooted, stunned, paralyzed, casting, etc...
     override val isParalyzed: Boolean get() = false
 
-    override fun isEnemyOf(other: ActorInstance): Boolean = isEnemy
-
     override var isFighting = false
     override var isMoving = false
 
@@ -100,5 +92,7 @@ class Npc(
 
     override fun toString() = "Npc(name=$name id=$id)"
 
-    override fun onIdle() = template.ai?.onIdle(this)
+    override fun isEnemyOf(other: ActorInstance): Boolean = template.isEnemyOf(other)
+    override fun onTalkWith(character: CharacterInstance) = template.onTalkWith(character)
+    override fun onIdle() = template.onIdle(this)
 }
