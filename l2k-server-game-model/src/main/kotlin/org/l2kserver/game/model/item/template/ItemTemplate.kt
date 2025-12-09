@@ -21,12 +21,12 @@ object ItemTemplateRegistry: GameDataRegistry<ItemTemplate>()
  * @property isDestroyable If true, this item can be destroyed
  * @property isExchangeable If true, this item can be exchanged with other players
  */
-sealed interface ItemTemplate: GameData {
+interface ItemTemplate: GameData {
     override val id: Int
     val name: String
     val type: ItemType get() = NonEquippableItemType
     val popupHintType: PopupHintType get() = PopupHintType.OTHER
-    val grade: Grade
+    val grade: Grade //TODO Only for equippable items???
     val weight: Int
     val price: Int
     val isSellable: Boolean
@@ -41,7 +41,7 @@ sealed interface ItemTemplate: GameData {
  *
  * @property stats Stats that will be given to the character when equipping the item
  */
-sealed interface EquippableItemTemplate: ItemTemplate {
+interface EquippableItemTemplate: ItemTemplate {
     override val type: ItemType
     override val isStackable: Boolean get() = false
 
@@ -54,7 +54,7 @@ sealed interface EquippableItemTemplate: ItemTemplate {
  *
  * @property crystalCount How many crystals will be given for this item crystallization
  */
-sealed interface CrystallizableItemTemplate: ItemTemplate {
+interface CrystallizableItemTemplate: ItemTemplate {
     val crystalCount: Int
 }
 

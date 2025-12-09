@@ -23,7 +23,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter")
 
     // Ktor
-    implementation("io.ktor:ktor-network-jvm:3.3.2")
+    implementation("io.ktor:ktor-network-jvm:3.3.3")
 
     //Jackson
     implementation("com.fasterxml.jackson.core:jackson-core")
@@ -40,8 +40,8 @@ dependencies {
     implementation("org.jetbrains.exposed:exposed-java-time:1.0.0-rc-4")
     runtimeOnly("org.postgresql:postgresql")
 
-    implementation("org.flywaydb:flyway-core:11.17.0")
-    runtimeOnly("org.flywaydb:flyway-database-postgresql:11.17.0")
+    implementation("org.flywaydb:flyway-core:11.19.0")
+    runtimeOnly("org.flywaydb:flyway-database-postgresql:11.19.0")
 
     // Test
     testImplementation(kotlin("test"))

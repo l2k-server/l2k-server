@@ -2,22 +2,22 @@ package org.l2kserver.game.model.item.template
 
 import org.l2kserver.game.model.stats.CombatStats
 
-data class ArmorTemplate(
-    override val id: Int,
-    override val name: String,
-    override val grade: Grade,
-    override val weight: Int,
-    override val price: Int,
-    override val isSellable: Boolean,
-    override val isDroppable: Boolean,
-    override val isDestroyable: Boolean,
-    override val isExchangeable: Boolean,
-    override val type: ArmorType,
-    override val stats: CombatStats,
-    override val fixedBonusStats: CombatStats? = null,
-    override val crystalCount: Int
-): EquippableItemTemplate, CrystallizableItemTemplate {
-    override val popupHintType = PopupHintType.ARMOR
+abstract class ArmorTemplate: EquippableItemTemplate, CrystallizableItemTemplate {
+    abstract override val id: Int
+    abstract override val name: String
+    abstract override val grade: Grade
+    abstract override val weight: Int
+    abstract override val price: Int
+    abstract override val isSellable: Boolean
+    abstract override val isDroppable: Boolean
+    abstract override val isDestroyable: Boolean
+    abstract override val isExchangeable: Boolean
+    abstract override val type: ArmorType
+    abstract override val stats: CombatStats
+    override val fixedBonusStats: CombatStats? get() = null
+    abstract override val crystalCount: Int
+
+    final override val popupHintType = PopupHintType.ARMOR
 }
 
 /**

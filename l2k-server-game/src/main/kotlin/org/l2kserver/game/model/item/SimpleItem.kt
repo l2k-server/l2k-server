@@ -3,11 +3,11 @@ package org.l2kserver.game.model.item
 import org.l2kserver.game.domain.ItemEntity
 import org.l2kserver.game.model.item.instance.ItemInstance
 import org.l2kserver.game.model.item.template.ItemGroup
-import org.l2kserver.game.model.item.template.SimpleItemTemplate
+import org.l2kserver.game.model.item.template.ItemTemplate
 
 class SimpleItem(
     private val itemEntity: ItemEntity,
-    itemTemplate: SimpleItemTemplate
+    itemTemplate: ItemTemplate
 ): ItemInstance {
     override val id: Int = itemEntity.id.value
 
