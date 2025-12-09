@@ -1,130 +1,130 @@
 package org.l2kserver.game.data.item.weapons
 
-import org.l2kserver.game.data.item.arrows.WOODEN_ARROW
+import org.l2kserver.game.data.item.arrows.WoodenArrow
 import org.l2kserver.game.model.item.template.Grade
 import org.l2kserver.game.model.item.template.WeaponTemplate
 import org.l2kserver.game.model.item.template.WeaponType
 import org.l2kserver.game.model.item.of
 import org.l2kserver.game.model.stats.CombatStats
 
-val APPRENTICE_WAND = WeaponTemplate(
-    id = 6,
-    name = "Apprentice's Wand",
-    grade = Grade.NO_GRADE,
-    weight = 1350,
-    price = 138,
-    isSellable = true,
-    isDroppable = true,
-    isDestroyable = true,
-    isExchangeable = true,
-    type = WeaponType.BLUNT_ONE_HANDED,
-    stats = CombatStats.ofOneHandedBlunt(
+object ApprenticesWand: WeaponTemplate() {
+    override val id = 6
+    override val name = "Apprentice's Wand"
+    override val grade = Grade.NO_GRADE
+    override val weight = 1350
+    override val price = 138
+    override val isSellable = true
+    override val isDroppable = true
+    override val isDestroyable = true
+    override val isExchangeable = true
+    override val type = WeaponType.BLUNT_ONE_HANDED
+    override val stats = CombatStats.ofOneHandedBlunt(
         pAtk = 5,
         mAtk = 7
-    ),
-    crystalCount = 0,
-    soulshotUsed = 1,
-    spiritshotUsed = 1
-)
+    )
+    override val crystalCount = 0
+    override val soulshotUsed = 1
+    override val spiritshotUsed = 1
+}
 
-val WILLOW_STAFF = WeaponTemplate(
-    id = 8,
-    name = "Willow Staff",
-    grade = Grade.NO_GRADE,
-    weight = 1080,
-    price = 12500,
-    isSellable = true,
-    isDroppable = true,
-    isDestroyable = true,
-    isExchangeable = true,
-    type = WeaponType.BLUNT_TWO_HANDED,
-    stats = CombatStats.ofTwoHandedBlunt(
+object WillowStaff: WeaponTemplate() {
+    override val id = 8
+    override val name = "Willow Staff"
+    override val grade = Grade.NO_GRADE
+    override val weight = 1080
+    override val price = 12500
+    override val isSellable = true
+    override val isDroppable = true
+    override val isDestroyable = true
+    override val isExchangeable = true
+    override val type = WeaponType.BLUNT_TWO_HANDED
+    override val stats = CombatStats.ofTwoHandedBlunt(
         pAtk = 11,
         mAtk = 12
-    ),
-    crystalCount = 0,
-    soulshotUsed = 1,
-    spiritshotUsed = 1
-)
+    )
+    override val crystalCount = 0
+    override val soulshotUsed = 1
+    override val spiritshotUsed = 1
+}
 
-val DAGGER = WeaponTemplate(
-    id = 10,
-    name = "Dagger",
-    grade = Grade.NO_GRADE,
-    weight = 1160,
-    price = 138,
-    isSellable = false,
-    isDroppable = false,
-    isDestroyable = true,
-    isExchangeable = false,
-    type = WeaponType.DAGGER,
-    stats = CombatStats.ofDagger(
+object DAGGER: WeaponTemplate() {
+    override val id = 10
+    override val name = "Dagger"
+    override val grade = Grade.NO_GRADE
+    override val weight = 1160
+    override val price = 138
+    override val isSellable = false
+    override val isDroppable = false
+    override val isDestroyable = true
+    override val isExchangeable = false
+    override val type = WeaponType.DAGGER
+    override val stats = CombatStats.ofDagger(
         pAtk = 5,
         mAtk = 5
-    ),
-    crystalCount = 0,
-    soulshotUsed = 1,
-    spiritshotUsed = 1
-)
+    )
+    override val crystalCount = 0
+    override val soulshotUsed = 1
+    override val spiritshotUsed = 1
+}
 
-val BOW = WeaponTemplate(
-    id = 14,
-    name = "Bow",
-    grade = Grade.NO_GRADE,
-    weight = 1930,
-    price = 12500,
-    isSellable = true,
-    isDroppable = true,
-    isDestroyable = true,
-    isExchangeable = true,
-    type = WeaponType.BOW,
-    stats = CombatStats.ofBow(
+object Bow: WeaponTemplate() {
+    override val id = 14
+    override val name = "Bow"
+    override val grade = Grade.NO_GRADE
+    override val weight = 1930
+    override val price = 12500
+    override val isSellable = true
+    override val isDroppable = true
+    override val isDestroyable = true
+    override val isExchangeable = true
+    override val type = WeaponType.BOW
+    override val stats = CombatStats.ofBow(
         pAtk = 23,
         mAtk = 9
-    ),
-    crystalCount = 0,
-    soulshotUsed = 1,
-    spiritshotUsed = 1,
-    consumes = 1 of WOODEN_ARROW,
-    manaCost = 1
-)
+    )
+    override val crystalCount = 0
+    override val soulshotUsed = 1
+    override val spiritshotUsed = 1
+    override val consumes = 1 of WoodenArrow
+    override val manaCost = 1
+}
 
-val SHORT_SPEAR = WeaponTemplate(
-    id = 15,
-    name = "Short Spear",
-    grade = Grade.NO_GRADE,
-    weight = 2140,
-    price = 136_000,
-    isSellable = true,
-    isDroppable = true,
-    isDestroyable = true,
-    isExchangeable = true,
-    type = WeaponType.POLE,
-    stats = CombatStats.ofPole(
+object ShortSpear: WeaponTemplate() {
+    override val id = 15
+    override val name = "Short Spear"
+    override val grade = Grade.NO_GRADE
+    override val weight = 2140
+    override val price = 136_000
+    override val isSellable = true
+    override val isDroppable = true
+    override val isDestroyable = true
+    override val isExchangeable = true
+    override val type = WeaponType.POLE
+    override val stats = CombatStats.ofPole(
         pAtk = 24,
         mAtk = 17
-    ),
-    crystalCount = 0,
-    soulshotUsed = 2,
-    spiritshotUsed = 2
-)
+    )
+    override val crystalCount = 0
+    override val soulshotUsed = 2
+    override val spiritshotUsed = 2
+}
 
-val SQUIRES_SWORD = WeaponTemplate(
-    id = 2369,
-    name = "Squire's Sword",
-    grade = Grade.NO_GRADE,
-    weight = 1600,
-    price = 26,
-    isSellable = false,
-    isDroppable = false,
-    isDestroyable = true,
-    isExchangeable = false,
-    type = WeaponType.SWORD_ONE_HANDED,
-    stats = CombatStats.ofOneHandedSword(
+object SquiresSword: WeaponTemplate() {
+    override val id = 2369
+    override val name = "Squire's Sword"
+    override val grade = Grade.NO_GRADE
+    override val weight = 1600
+    override val price = 26
+    override val isSellable = false
+    override val isDroppable = false
+    override val isDestroyable = true
+    override val isExchangeable = false
+    override val type = WeaponType.SWORD_ONE_HANDED
+    override val stats = CombatStats.ofOneHandedSword(
         pAtk = 6,
         mAtk = 5
-    ),
-    crystalCount = 0,
-    soulshotUsed = 1,
-    spiritshotUsed = 1
-)
+    )
+    override val crystalCount = 0
+    override val soulshotUsed = 1
+    override val spiritshotUsed = 1
+}

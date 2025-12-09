@@ -8,16 +8,16 @@ import org.junit.jupiter.api.assertNull
 import kotlin.test.Test
 import org.junit.jupiter.api.assertThrows
 import org.l2kserver.game.AbstractTests
-import org.l2kserver.game.data.item.armor.LEATHER_SHIELD
-import org.l2kserver.game.data.item.arrows.BONE_ARROW
-import org.l2kserver.game.data.item.arrows.WOODEN_ARROW
-import org.l2kserver.game.data.item.etc.ADENA
+import org.l2kserver.game.data.item.armor.LeatherShield
+import org.l2kserver.game.data.item.arrows.BoneArrow
+import org.l2kserver.game.data.item.arrows.WoodenArrow
+import org.l2kserver.game.data.item.etc.Adena
 import org.l2kserver.game.data.item.weapons.DAGGER
-import org.l2kserver.game.data.item.weapons.HEAVENS_DIVIDER
-import org.l2kserver.game.data.item.weapons.SQUIRES_SWORD
-import org.l2kserver.game.data.item.weapons.WILLOW_STAFF
-import org.l2kserver.game.data.item.soulshot.SOULSHOT_NO_GRADE
-import org.l2kserver.game.data.item.soulshot.SOULSHOT_S_GRADE
+import org.l2kserver.game.data.item.weapons.HeavensDivider
+import org.l2kserver.game.data.item.weapons.SquiresSword
+import org.l2kserver.game.data.item.weapons.WillowStaff
+import org.l2kserver.game.data.item.soulshot.SoulshotNoGrade
+import org.l2kserver.game.data.item.soulshot.SoulshotSGrade
 import org.l2kserver.game.handler.dto.request.DeleteItemRequest
 import org.l2kserver.game.handler.dto.request.DropItemRequest
 import org.l2kserver.game.handler.dto.request.TakeOffItemRequest
@@ -82,7 +82,7 @@ class ItemServiceTests(
         val character = createTestCharacter()
         context.setCharacterId(character.id)
 
-        val itemId = createTestItem(SQUIRES_SWORD.id, owner = character, isEquipped = true).id
+        val itemId = createTestItem(SquiresSword.id, owner = character, isEquipped = true).id
 
         withContext(context) { itemService.deleteItem(DeleteItemRequest(itemId, 1)) }
 
@@ -109,7 +109,7 @@ class ItemServiceTests(
         val character = createTestCharacter()
         context.setCharacterId(character.id)
 
-        val itemId = createTestItem(ADENA.id, owner = character, amount = 10).id
+        val itemId = createTestItem(Adena.id, owner = character, amount = 10).id
 
         withContext(context) { itemService.deleteItem(DeleteItemRequest(itemId, 1)) }
 
@@ -150,7 +150,7 @@ class ItemServiceTests(
         val character = createTestCharacter()
         context.setCharacterId(character.id)
 
-        val itemId = createTestItem(SQUIRES_SWORD.id, owner = character, isEquipped = true).id
+        val itemId = createTestItem(SquiresSword.id, owner = character, isEquipped = true).id
 
         withContext(context) { itemService.useItem(UseItemRequest(itemId)) }
 
@@ -176,7 +176,7 @@ class ItemServiceTests(
         context.setCharacterId(character.id)
 
         suspendTransaction { ItemTable.deleteAll() }
-        val itemId = createTestItem(SQUIRES_SWORD.id, owner = character, isEquipped = true).id
+        val itemId = createTestItem(SquiresSword.id, owner = character, isEquipped = true).id
 
         character.inventory.reload()
 
@@ -206,7 +206,7 @@ class ItemServiceTests(
         val items = suspendTransaction {
             ItemTable.deleteAll() // Delete initial items
             listOf(
-                createTestItem(SQUIRES_SWORD.id, owner = character, isEquipped = true),
+                createTestItem(SquiresSword.id, owner = character, isEquipped = true),
                 createTestItem(DAGGER.id, owner = character)
             )
         }
@@ -243,9 +243,9 @@ class ItemServiceTests(
         val items = suspendTransaction {
             ItemTable.deleteAll() // Delete initial items
             listOf(
-                createTestItem(SQUIRES_SWORD.id, owner = character, isEquipped = true),
-                createTestItem(LEATHER_SHIELD.id, owner = character, isEquipped = true),
-                createTestItem(WILLOW_STAFF.id, owner = character)
+                createTestItem(SquiresSword.id, owner = character, isEquipped = true),
+                createTestItem(LeatherShield.id, owner = character, isEquipped = true),
+                createTestItem(WillowStaff.id, owner = character)
             )
         }
 
@@ -286,7 +286,7 @@ class ItemServiceTests(
         val character = createTestCharacter()
         context.setCharacterId(character.id)
 
-        val item = createTestItem(WILLOW_STAFF.id, character)
+        val item = createTestItem(WillowStaff.id, character)
 
         withContext(context) {
             itemService.dropItem(
@@ -325,7 +325,7 @@ class ItemServiceTests(
         val character = createTestCharacter()
         context.setCharacterId(character.id)
 
-        val itemId = createTestItem(WILLOW_STAFF.id, character, isEquipped = true).id
+        val itemId = createTestItem(WillowStaff.id, character, isEquipped = true).id
 
         withContext(context) {
             itemService.dropItem(
@@ -514,7 +514,7 @@ class ItemServiceTests(
         val character = createTestCharacter()
         context.setCharacterId(character.id)
 
-        val item = createTestItem(WILLOW_STAFF.id, character)
+        val item = createTestItem(WillowStaff.id, character)
 
         withContext(context) {
             itemService.dropItem(
@@ -541,7 +541,7 @@ class ItemServiceTests(
         context.setCharacterId(character.id)
 
         //Create store
-        val woodenArrow = createTestItem(WOODEN_ARROW.id, character, 100)
+        val woodenArrow = createTestItem(WoodenArrow.id, character, 100)
         character.inventory.reload()
 
         character.posture = Posture.SITTING
@@ -550,7 +550,7 @@ class ItemServiceTests(
             items = listOf(woodenArrow.toItemOnSale(woodenArrow.amount, 2)),
             packageSale = true
         )
-        val boneArrowId = createTestItem(BONE_ARROW.id, character, 100).id
+        val boneArrowId = createTestItem(BoneArrow.id, character, 100).id
 
         //Then
         withContext(context) { itemService.deleteItem(DeleteItemRequest(boneArrowId, 1)) }
@@ -567,7 +567,7 @@ class ItemServiceTests(
         context.setCharacterId(character.id)
 
         // Create store
-        val woodenArrow = createTestItem(WOODEN_ARROW.id, character, 100)
+        val woodenArrow = createTestItem(WoodenArrow.id, character, 100)
         character.inventory.reload()
 
         character.posture = Posture.SITTING
@@ -576,7 +576,7 @@ class ItemServiceTests(
             items = listOf(woodenArrow.toItemOnSale(woodenArrow.amount, 2)),
             packageSale = true
         )
-        val boneArrowId = createTestItem(BONE_ARROW.id, character, 100).id
+        val boneArrowId = createTestItem(BoneArrow.id, character, 100).id
 
         // Then
         withContext(context) { itemService.dropItem(DropItemRequest(boneArrowId, 1, character.position)) }
@@ -593,7 +593,7 @@ class ItemServiceTests(
         context.setCharacterId(character.id)
 
         // Create store
-        val heavensDivider = createTestItem(HEAVENS_DIVIDER.id, character)
+        val heavensDivider = createTestItem(HeavensDivider.id, character)
         character.inventory.reload()
 
         character.posture = Posture.SITTING
@@ -619,11 +619,11 @@ class ItemServiceTests(
         context.setCharacterId(character.id)
 
         //Create already existing item
-        val existingItem = createTestItem(HEAVENS_DIVIDER.id, character)
+        val existingItem = createTestItem(HeavensDivider.id, character)
 
         //Create scattered item
         val scatteredItem = createTestScatteredItem(
-            character.position, ItemTemplateRegistry.findByIdOrNull(HEAVENS_DIVIDER.id)!!)
+            character.position, ItemTemplateRegistry.findByIdOrNull(HeavensDivider.id)!!)
 
         //Pick up item!
         withContext(context) { itemService.launchPickUp(character, scatteredItem).join() }
@@ -640,7 +640,7 @@ class ItemServiceTests(
 
         val updateItemsResponse = assertIs<UpdateItemsResponse>(context.responseChannel.receive())
         assertEquals(UpdateItemOperation.ADD, updateItemsResponse.operations.first().operation)
-        assertEquals(HEAVENS_DIVIDER.id, updateItemsResponse.operations.first().first.templateId)
+        assertEquals(HeavensDivider.id, updateItemsResponse.operations.first().first.templateId)
         assertNotEquals(existingItem.id, updateItemsResponse.operations.first().item.id)
 
         assertIs<UpdateStatusResponse>(context.responseChannel.receive())
@@ -648,7 +648,7 @@ class ItemServiceTests(
         assertIs<SystemMessageResponse.YouHaveObtained>(context.responseChannel.receive())
         assertFalse(gameObjectRepository.existsById(scatteredItem.id), "Picked up item must disappear")
         suspendTransaction {
-            assertEquals(2, ItemEntity.findAllByOwnerIdAndTemplateId(character.id, HEAVENS_DIVIDER.id).toList().size)
+            assertEquals(2, ItemEntity.findAllByOwnerIdAndTemplateId(character.id, HeavensDivider.id).toList().size)
         }
     }
 
@@ -660,11 +660,11 @@ class ItemServiceTests(
         context.setCharacterId(character.id)
 
         //Create already existing item
-        createTestItem(WOODEN_ARROW.id, character, 100)
+        createTestItem(WoodenArrow.id, character, 100)
 
         //Create scattered item
         val scatteredItem = createTestScatteredItem(
-            character.position, ItemTemplateRegistry.findByIdOrNull(WOODEN_ARROW.id)!!, 100)
+            character.position, ItemTemplateRegistry.findByIdOrNull(WoodenArrow.id)!!, 100)
 
         //Pick up item!
         withContext(context) {
@@ -683,7 +683,7 @@ class ItemServiceTests(
 
         val updateItemsResponse = assertIs<UpdateItemsResponse>(context.responseChannel.receive())
         assertEquals(UpdateItemOperation.MODIFY, updateItemsResponse.operations.first().operation)
-        assertEquals(WOODEN_ARROW.id, updateItemsResponse.operations.first().first.templateId)
+        assertEquals(WoodenArrow.id, updateItemsResponse.operations.first().first.templateId)
 
         assertIs<UpdateStatusResponse>(context.responseChannel.receive())
 
@@ -691,7 +691,7 @@ class ItemServiceTests(
         assertFalse(gameObjectRepository.existsById(scatteredItem.id), "Picked up item must disappear")
 
         val arrows = suspendTransaction {
-            ItemEntity.findAllByOwnerIdAndTemplateId(character.id, WOODEN_ARROW.id).toList()
+            ItemEntity.findAllByOwnerIdAndTemplateId(character.id, WoodenArrow.id).toList()
         }
         assertEquals(1, arrows.size, "Should add new item to existing item stack")
         assertEquals(200, arrows.first().amount)
@@ -706,7 +706,7 @@ class ItemServiceTests(
 
         //Create soulshot (weapon is created with character)
         val soulshotAmount = 10
-        val soulshot = createTestItem(SOULSHOT_NO_GRADE.id, character, soulshotAmount)
+        val soulshot = createTestItem(SoulshotNoGrade.id, character, soulshotAmount)
 
         withContext(context) { itemService.useItem(UseItemRequest(soulshot.id)) }
 
@@ -737,7 +737,7 @@ class ItemServiceTests(
 
         //Create soulshot
         val testSoulshotAmount = 10
-        val soulshot = createTestItem(SOULSHOT_NO_GRADE.id, character, testSoulshotAmount)
+        val soulshot = createTestItem(SoulshotNoGrade.id, character, testSoulshotAmount)
 
         withContext(context) { itemService.useItem(UseItemRequest(soulshot.id)) }
 
@@ -756,7 +756,7 @@ class ItemServiceTests(
         val character = createTestCharacter()
         context.setCharacterId(character.id)
 
-        val soulshot = createTestItem(SOULSHOT_S_GRADE.id, character, 10)
+        val soulshot = createTestItem(SoulshotSGrade.id, character, 10)
 
         withContext(context) { itemService.useItem(UseItemRequest(soulshot.id)) }
 
@@ -781,7 +781,7 @@ class ItemServiceTests(
         context.setCharacterId(character.id)
 
         // Create weapon and soulshot
-        val soulshot = createTestItem(SOULSHOT_NO_GRADE.id, character, 10)
+        val soulshot = createTestItem(SoulshotNoGrade.id, character, 10)
 
         // Charge weapon
         character.inventory.weapon!!.soulshotCharged = true
@@ -804,7 +804,7 @@ class ItemServiceTests(
         val character = createTestCharacter()
         context.setCharacterId(character.id)
 
-        val soulshot = createTestItem(SOULSHOT_NO_GRADE.id, character, 1)
+        val soulshot = createTestItem(SoulshotNoGrade.id, character, 1)
 
         withContext(context) { itemService.useItem(UseItemRequest(soulshot.id)) }
 

@@ -17,7 +17,6 @@ import org.l2kserver.game.model.item.template.ArrowTemplate
 import org.l2kserver.game.model.item.template.BookTemplate
 import org.l2kserver.game.model.item.template.ItemTemplateRegistry
 import org.l2kserver.game.model.item.template.JewelryTemplate
-import org.l2kserver.game.model.item.template.SimpleItemTemplate
 import org.l2kserver.game.model.item.template.SoulshotTemplate
 import org.l2kserver.game.model.item.template.SpiritshotTemplate
 import org.l2kserver.game.model.item.template.WeaponTemplate
@@ -29,10 +28,10 @@ fun ItemEntity.toItemInstance(): ItemInstance? = when (val template = ItemTempla
     is ArmorTemplate -> Armor(this, template)
     is ArrowTemplate -> Arrow(this, template)
     is JewelryTemplate -> Jewelry(this, template)
-    is SimpleItemTemplate -> SimpleItem(this, template)
     is SoulshotTemplate -> Soulshot(this, template)
     is SpiritshotTemplate -> Spiritshot(this, template)
     is BookTemplate -> Book(this, template)
+    else -> SimpleItem(this, template)
 }
 
 fun ItemInstance.toScatteredItem(position: Position, amount: Int) = ScatteredItem(

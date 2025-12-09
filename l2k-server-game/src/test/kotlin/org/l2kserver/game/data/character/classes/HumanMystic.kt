@@ -1,9 +1,9 @@
 package org.l2kserver.game.data.character.classes
 
-import org.l2kserver.game.data.item.armor.APPRENTICE_STOCKINGS
-import org.l2kserver.game.data.item.armor.APPRENTICE_TUNIC
-import org.l2kserver.game.data.item.book.TUTORIAL_GUIDE
-import org.l2kserver.game.data.item.weapons.APPRENTICE_WAND
+import org.l2kserver.game.data.item.armor.ApprenticesStockings
+import org.l2kserver.game.data.item.armor.ApprenticeTunic
+import org.l2kserver.game.data.item.book.TutorialGuide
+import org.l2kserver.game.data.item.weapons.ApprenticesWand
 import org.l2kserver.game.data.skill.SelfHeal
 import org.l2kserver.game.data.skill.WindStrike
 import org.l2kserver.game.data.skill.Spellcraft
@@ -60,17 +60,17 @@ val HUMAN_MYSTIC = CharacterClass(
     characterTemplate = CharacterTemplate(
         position = Position(-90890, 248027, -3570),
         items = listOf(
-            InitialItem(APPRENTICE_TUNIC.id, isEquipped = true),
-            InitialItem(APPRENTICE_STOCKINGS.id, isEquipped = true),
-            InitialItem(APPRENTICE_WAND.id, isEquipped = true),
-            InitialItem(TUTORIAL_GUIDE.id, isEquipped = false)
+            InitialItem(ApprenticeTunic.id, isEquipped = true),
+            InitialItem(ApprenticesStockings.id, isEquipped = true),
+            InitialItem(ApprenticesWand.id, isEquipped = true),
+            InitialItem(TutorialGuide.id, isEquipped = false)
         ),
         shortcuts = listOf(
             InitialShortcut(0, ShortcutType.ACTION, 2),
             InitialShortcut(1, ShortcutType.SKILL, WindStrike.id),
             InitialShortcut(3, ShortcutType.ACTION, 5),
             InitialShortcut(10, ShortcutType.SKILL, SelfHeal.id),
-            InitialShortcut(11, type = ShortcutType.ITEM, TUTORIAL_GUIDE.id)
+            InitialShortcut(11, type = ShortcutType.ITEM, TutorialGuide.id)
         ),
         collisionBox = CollisionBox(7.5, 22.8)
     ),

@@ -3,26 +3,26 @@ package org.l2kserver.game.data.item.soulshot
 import org.l2kserver.game.model.item.template.Grade
 import org.l2kserver.game.model.item.template.SoulshotTemplate
 
-val SOULSHOT_NO_GRADE = SoulshotTemplate(
-    id = 1835,
-    name = "Soulshot: No Grade",
-    grade = Grade.NO_GRADE,
-    weight = 4,
-    price = 7,
-    isSellable = true,
-    isDroppable = true,
-    isDestroyable = true,
-    isExchangeable = true
-)
+object SoulshotNoGrade: SoulshotTemplate() {
+    override val id = 1835
+    override val name = "Soulshot: No Grade"
+    override val grade = Grade.NO_GRADE
+    override val weight = 4
+    override val price = 7
+    override val isSellable = true
+    override val isDroppable = true
+    override val isDestroyable = true
+    override val isExchangeable = true
+}
 
-val SOULSHOT_S_GRADE = SoulshotTemplate(
-    id = 1467,
-    name = "Soulshot: S-Grade",
-    grade = Grade.S,
-    weight = 2,
-    price = 100,
-    isSellable = true,
-    isDroppable = true,
-    isDestroyable = true,
-    isExchangeable = true
-)
+object SoulshotSGrade: SoulshotTemplate() {
+    override val id = 1467
+    override val name = "Soulshot: S-Grade"
+    override val grade = Grade.S
+    override val weight = 2
+    override val price = 100
+    override val isSellable = true
+    override val isDroppable = true
+    override val isDestroyable = true
+    override val isExchangeable = true
+}

@@ -29,7 +29,7 @@ import org.l2kserver.game.handler.dto.response.StatusAttribute
 import org.l2kserver.game.handler.dto.response.SystemMessageResponse
 import org.l2kserver.game.handler.dto.response.UpdateStatusResponse
 import org.l2kserver.game.model.actor.npc.NpcTemplateRegistry
-import org.l2kserver.game.data.item.weapons.SQUIRES_SWORD
+import org.l2kserver.game.data.item.weapons.SquiresSword
 import org.l2kserver.game.data.npc.FatDummyGremlin
 import org.l2kserver.game.data.skill.DefenseAura
 import org.l2kserver.game.data.skill.Might
@@ -473,7 +473,7 @@ class SkillServiceTest(
         character.skillsAndMagic.learn(PowerShot.id, 1)
 
         // Equip sword (not a bow)
-        createTestItem(templateId = SQUIRES_SWORD.id, owner = character, isEquipped = true)
+        createTestItem(templateId = SquiresSword.id, owner = character, isEquipped = true)
 
         // Create target
         val target = npcService.spawnAtPosition(

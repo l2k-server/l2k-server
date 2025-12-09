@@ -10,7 +10,7 @@ import org.springframework.context.annotation.Configuration
 
 @Configuration
 class HazelcastConfiguration(
-    @Value("\${server.name}") private val serverName: String
+    @param:Value($$"${server.name}") private val serverName: String
 ) {
     private val log = logger()
 

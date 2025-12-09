@@ -1,17 +1,17 @@
 package org.l2kserver.game.model.item.template
 
-data class SoulshotTemplate(
-    override val id: Int,
-    override val name: String,
-    override val grade: Grade,
-    override val weight: Int,
-    override val price: Int,
-    override val isSellable: Boolean,
-    override val isDroppable: Boolean,
-    override val isDestroyable: Boolean,
-    override val isExchangeable: Boolean
-): ItemTemplate {
-    override val isStackable = true
+abstract class SoulshotTemplate: ItemTemplate {
+    abstract override val id: Int
+    abstract override val name: String
+    abstract override val grade: Grade
+    abstract override val weight: Int
+    abstract override val price: Int
+    abstract override val isSellable: Boolean
+    abstract override val isDroppable: Boolean
+    abstract override val isDestroyable: Boolean
+    abstract override val isExchangeable: Boolean
+
+    final override val isStackable = true
 }
 
 enum class SpiritshotType {
@@ -19,17 +19,17 @@ enum class SpiritshotType {
     BLESSED_SPIRITSHOT
 }
 
-data class SpiritshotTemplate(
-    override val id: Int,
-    override val name: String,
-    override val grade: Grade,
-    override val weight: Int,
-    override val price: Int,
-    override val isSellable: Boolean,
-    override val isDroppable: Boolean,
-    override val isDestroyable: Boolean,
-    override val isExchangeable: Boolean,
-    val spiritshotType: SpiritshotType
-): ItemTemplate {
-    override val isStackable = true
+abstract class SpiritshotTemplate: ItemTemplate {
+    abstract override val id: Int
+    abstract override val name: String
+    abstract override val grade: Grade
+    abstract override val weight: Int
+    abstract override val price: Int
+    abstract override val isSellable: Boolean
+    abstract override val isDroppable: Boolean
+    abstract override val isDestroyable: Boolean
+    abstract override val isExchangeable: Boolean
+    abstract val spiritshotType: SpiritshotType
+
+    final override val isStackable: Boolean get() = true
 }

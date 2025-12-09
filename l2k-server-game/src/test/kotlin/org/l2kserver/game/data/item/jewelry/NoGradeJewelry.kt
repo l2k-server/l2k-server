@@ -5,87 +5,77 @@ import org.l2kserver.game.model.item.template.JewelryTemplate
 import org.l2kserver.game.model.item.template.JewelryType
 import org.l2kserver.game.model.stats.CombatStats
 
-val EARRING_OF_STRENGTH = JewelryTemplate(
-    id = 114,
-    name = "Earring of Strength",
-    grade = Grade.NO_GRADE,
-    weight = 150,
-    price = 3510,
-    isSellable = true,
-    isDroppable = true,
-    isDestroyable = true,
-    isExchangeable = true,
-    type = JewelryType.EARRING,
-    stats = CombatStats(
-        mDef = 16
-    ),
-    crystalCount = 0
-)
+object EarringOfStrength: JewelryTemplate() {
+    override val id = 114
+    override val name = "Earring of Strength"
+    override val grade = Grade.NO_GRADE
+    override val weight = 150
+    override val price = 3510
+    override val isSellable = true
+    override val isDroppable = true
+    override val isDestroyable = true
+    override val isExchangeable = true
+    override val type = JewelryType.EARRING
+    override val stats = CombatStats(mDef = 16)
+    override val crystalCount = 0
+}
 
-val EARRING_OF_WISDOM = JewelryTemplate(
-    id = 115,
-    name = "Earring of Wisdom",
-    grade = Grade.NO_GRADE,
-    weight = 150,
-    price = 3510,
-    isSellable = true,
-    isDroppable = true,
-    isDestroyable = true,
-    isExchangeable = true,
-    type = JewelryType.EARRING,
-    stats = CombatStats(
-        mDef = 16
-    ),
-    crystalCount = 0
-)
+object EarringOfWisdom: JewelryTemplate() {
+    override val id = 115
+    override val name = "Earring of Wisdom"
+    override val grade = Grade.NO_GRADE
+    override val weight = 150
+    override val price = 3510
+    override val isSellable = true
+    override val isDroppable = true
+    override val isDestroyable = true
+    override val isExchangeable = true
+    override val type = JewelryType.EARRING
+    override val stats = CombatStats(mDef = 16)
+    override val crystalCount = 0
+}
 
-val RING_OF_KNOWLEDGE = JewelryTemplate(
-    id = 875,
-    name = "Ring of Knowledge",
-    grade = Grade.NO_GRADE,
-    weight = 150,
-    price = 540,
-    isSellable = true,
-    isDroppable = true,
-    isDestroyable = true,
-    isExchangeable = true,
-    type = JewelryType.RING,
-    stats = CombatStats(
-        mDef = 9
-    ),
-    crystalCount = 0
-)
+object RingOfKnowledge: JewelryTemplate() {
+    override val id = 875
+    override val name = "Ring of Knowledge"
+    override val grade = Grade.NO_GRADE
+    override val weight = 150
+    override val price = 540
+    override val isSellable = true
+    override val isDroppable = true
+    override val isDestroyable = true
+    override val isExchangeable = true
+    override val type = JewelryType.RING
+    override val stats = CombatStats(mDef = 9)
+    override val crystalCount = 0
+}
 
-val RING_OF_ANGUISH = JewelryTemplate(
-    id = 876,
-    name = "Ring of Anguish",
-    grade = Grade.NO_GRADE,
-    weight = 150,
-    price = 2340,
-    isSellable = true,
-    isDroppable = true,
-    isDestroyable = true,
-    isExchangeable = true,
-    type = JewelryType.RING,
-    stats = CombatStats(
-        mDef = 11
-    ),
-    crystalCount = 0
-)
+object RingOfAnguish: JewelryTemplate() {
+    override val id = 876
+    override val name = "Ring of Anguish"
+    override val grade = Grade.NO_GRADE
+    override val weight = 150
+    override val price = 2340
+    override val isSellable = true
+    override val isDroppable = true
+    override val isDestroyable = true
+    override val isExchangeable = true
+    override val type = JewelryType.RING
+    override val stats = CombatStats(mDef = 11)
+    override val crystalCount = 0
+}
 
-val NECKLACE_OF_COURAGE = JewelryTemplate(
-    id = 1506,
-    name = "Necklace of Courage",
-    grade = Grade.NO_GRADE,
-    weight = 150,
-    price = 66,
-    isSellable = true,
-    isDroppable = true,
-    isDestroyable = true,
-    isExchangeable = true,
-    type = JewelryType.NECKLACE,
-    stats = CombatStats(
-        mDef = 15
-    ),
-    crystalCount = 0
-)
+object NecklaceOfCourage: JewelryTemplate() {
+    override val id = 1506
+    override val name = "Necklace of Courage"
+    override val grade = Grade.NO_GRADE
+    override val weight = 150
+    override val price = 66
+    override val isSellable = true
+    override val isDroppable = true
+    override val isDestroyable = true
+    override val isExchangeable = true
+    override val type = JewelryType.NECKLACE
+    override val stats = CombatStats(mDef = 15)
+    override val crystalCount = 0
+}

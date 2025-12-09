@@ -9,9 +9,9 @@ import kotlinx.coroutines.withTimeout
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import kotlin.test.Test
 import org.l2kserver.game.AbstractTests
-import org.l2kserver.game.data.item.arrows.WOODEN_ARROW
-import org.l2kserver.game.data.item.soulshot.SOULSHOT_NO_GRADE
-import org.l2kserver.game.data.item.weapons.BOW
+import org.l2kserver.game.data.item.arrows.WoodenArrow
+import org.l2kserver.game.data.item.soulshot.SoulshotNoGrade
+import org.l2kserver.game.data.item.weapons.Bow
 import org.l2kserver.game.extensions.receiveIgnoring
 import org.l2kserver.game.handler.dto.response.AttackResponse
 import org.l2kserver.game.handler.dto.response.GaugeResponse
@@ -122,7 +122,7 @@ class CombatServiceTest(
         val character = createTestCharacter()
         context.setCharacterId(character.id)
 
-        val soulshot = character.inventory.createItem(SOULSHOT_NO_GRADE.id, 10)
+        val soulshot = character.inventory.createItem(SoulshotNoGrade.id, 10)
 
         val targetContext = createTestSessionContext()
         val targetCharacter = createTestCharacter(name = "PunchingBag")
@@ -213,8 +213,8 @@ class CombatServiceTest(
         context.setCharacterId(character.id)
 
         transaction { ItemEntity.deleteAllByOwnerId(character.id) }
-        val arrowsId = createTestItem(WOODEN_ARROW.id, character).id
-        val bow = createTestItem(BOW.id, character, isEquipped = true) as Weapon
+        val arrowsId = createTestItem(WoodenArrow.id, character).id
+        val bow = createTestItem(Bow.id, character, isEquipped = true) as Weapon
         character.inventory.reload()
 
         //Create target
@@ -270,7 +270,7 @@ class CombatServiceTest(
 
         //Check arrow amount after attack
         val arrows = transaction {
-            ItemEntity.findAllByOwnerIdAndTemplateId(character.id, WOODEN_ARROW.id).toList()
+            ItemEntity.findAllByOwnerIdAndTemplateId(character.id, WoodenArrow.id).toList()
         }
         assertTrue(arrows.isEmpty(), "Arrows must be empty")
 

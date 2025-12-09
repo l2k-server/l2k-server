@@ -5,62 +5,62 @@ import org.l2kserver.game.model.item.template.WeaponTemplate
 import org.l2kserver.game.model.item.template.WeaponType
 import org.l2kserver.game.model.stats.CombatStats
 
-val DEMON_SPLINTER = WeaponTemplate(
-    id = 6371,
-    name = "Demon Splinter",
-    grade = Grade.S,
-    weight = 1350,
-    price = 48_800_000,
-    isSellable = true,
-    isDroppable = true,
-    isDestroyable = true,
-    isExchangeable = true,
-    type = WeaponType.FIST,
-    stats = CombatStats.ofFist(
+object DemonSplinter: WeaponTemplate() {
+    override val id = 6371
+    override val name = "Demon Splinter"
+    override val grade = Grade.S
+    override val weight = 1350
+    override val price = 48_800_000
+    override val isSellable = true
+    override val isDroppable = true
+    override val isDestroyable = true
+    override val isExchangeable = true
+    override val type = WeaponType.FIST
+    override val stats = CombatStats.ofFist(
         pAtk = 342,
         mAtk = 132
-    ),
-    crystalCount = 2_440,
-    soulshotUsed = 1,
-    spiritshotUsed = 1
-)
+    )
+    override val crystalCount = 2_440
+    override val soulshotUsed = 1
+    override val spiritshotUsed = 1
+}
 
-val HEAVENS_DIVIDER = WeaponTemplate(
-    id = 6372,
-    name = "Heaven's Divider",
-    grade = Grade.S,
-    weight = 1380,
-    price = 48_800_000,
-    isSellable = true,
-    isDroppable = true,
-    isDestroyable = true,
-    isExchangeable = true,
-    type = WeaponType.SWORD_TWO_HANDED,
-    stats = CombatStats.ofTwoHandedSword(
+object HeavensDivider: WeaponTemplate() {
+    override val id = 6372
+    override val name = "Heaven's Divider"
+    override val grade = Grade.S
+    override val weight = 1380
+    override val price = 48_800_000
+    override val isSellable = true
+    override val isDroppable = true
+    override val isDestroyable = true
+    override val isExchangeable = true
+    override val type = WeaponType.SWORD_TWO_HANDED
+    override val stats = CombatStats.ofTwoHandedSword(
         pAtk = 342,
         mAtk = 132
-    ),
-    crystalCount = 2_440,
-    soulshotUsed = 1,
-    spiritshotUsed = 1
-)
+    )
+    override val crystalCount = 2_440
+    override val soulshotUsed = 1
+    override val spiritshotUsed = 1
+}
 
-val TALLUM_BLADE_DARK_LEGIONS_EDGE = WeaponTemplate(
-    id = 6580,
-    name = "Tallum Blade*Dark Legion's Edge",
-    grade = Grade.S,
-    weight = 2080,
-    price = 48_800_000,
-    isSellable = true,
-    isDroppable = true,
-    isDestroyable = true,
-    isExchangeable = true,
-    type = WeaponType.DOUBLE_BLADES,
-    stats = CombatStats.ofDoubleBlades(
+object TallumBladeDarkLegionsEdge: WeaponTemplate() {
+    override val id = 6580
+    override val name = "Tallum Blade*Dark Legion's Edge"
+    override val grade = Grade.S
+    override val weight = 2080
+    override val price = 48_800_000
+    override val isSellable = true
+    override val isDroppable = true
+    override val isDestroyable = true
+    override val isExchangeable = true
+    override val type = WeaponType.DOUBLE_BLADES
+    override val stats = CombatStats.ofDoubleBlades(
         pAtk = 342,
         mAtk = 132
-    ),
-    crystalCount = 2_440,
-    soulshotUsed = 1,
-    spiritshotUsed = 1
-)
+    )
+    override val crystalCount = 2_440
+    override val soulshotUsed = 1
+    override val spiritshotUsed = 1
+}

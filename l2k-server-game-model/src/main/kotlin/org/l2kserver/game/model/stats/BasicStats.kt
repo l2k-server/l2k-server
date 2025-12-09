@@ -146,7 +146,6 @@ value class INT(val value: Int) {
     companion object: BasicStat(modifierBase = 1.02, modifierPowBase = 31.375)
 
     val mAtkModifier: Double get() = getModifier(value)
-    val debuffSuccessBonus: Int get() = TODO()
 
     operator fun plus(other: INT) = INT(this.value + other.value)
 }

@@ -5,33 +5,33 @@ import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.jetbrains.exposed.v1.jdbc.update
 import org.l2kserver.game.data.character.classes.HUMAN_FIGHTER
 import org.l2kserver.game.data.character.classes.HUMAN_MYSTIC
-import org.l2kserver.game.data.item.armor.APPRENTICE_STOCKINGS
-import org.l2kserver.game.data.item.armor.APPRENTICE_TUNIC
-import org.l2kserver.game.data.item.armor.LEATHER_SHIELD
-import org.l2kserver.game.data.item.armor.SQUIRES_PANTS
-import org.l2kserver.game.data.item.armor.SQUIRES_SHIRT
-import org.l2kserver.game.data.item.arrows.BONE_ARROW
-import org.l2kserver.game.data.item.arrows.WOODEN_ARROW
-import org.l2kserver.game.data.item.book.TUTORIAL_GUIDE
-import org.l2kserver.game.data.item.etc.ADENA
-import org.l2kserver.game.data.item.jewelry.EARRING_OF_STRENGTH
-import org.l2kserver.game.data.item.jewelry.EARRING_OF_WISDOM
-import org.l2kserver.game.data.item.jewelry.NECKLACE_OF_COURAGE
-import org.l2kserver.game.data.item.jewelry.RING_OF_ANGUISH
-import org.l2kserver.game.data.item.jewelry.RING_OF_KNOWLEDGE
-import org.l2kserver.game.data.item.soulshot.BLESSED_SPIRITSHOT_NO_GRADE
-import org.l2kserver.game.data.item.soulshot.SOULSHOT_NO_GRADE
-import org.l2kserver.game.data.item.soulshot.SOULSHOT_S_GRADE
-import org.l2kserver.game.data.item.soulshot.SPIRITSHOT_NO_GRADE
-import org.l2kserver.game.data.item.weapons.APPRENTICE_WAND
-import org.l2kserver.game.data.item.weapons.BOW
+import org.l2kserver.game.data.item.armor.ApprenticesStockings
+import org.l2kserver.game.data.item.armor.ApprenticeTunic
+import org.l2kserver.game.data.item.armor.LeatherShield
+import org.l2kserver.game.data.item.armor.SquiresPants
+import org.l2kserver.game.data.item.armor.SquiresShirt
+import org.l2kserver.game.data.item.arrows.BoneArrow
+import org.l2kserver.game.data.item.arrows.WoodenArrow
+import org.l2kserver.game.data.item.book.TutorialGuide
+import org.l2kserver.game.data.item.etc.Adena
+import org.l2kserver.game.data.item.jewelry.EarringOfStrength
+import org.l2kserver.game.data.item.jewelry.EarringOfWisdom
+import org.l2kserver.game.data.item.jewelry.NecklaceOfCourage
+import org.l2kserver.game.data.item.jewelry.RingOfAnguish
+import org.l2kserver.game.data.item.jewelry.RingOfKnowledge
+import org.l2kserver.game.data.item.soulshot.BlessedSpiritshotNoGrade
+import org.l2kserver.game.data.item.soulshot.SoulshotNoGrade
+import org.l2kserver.game.data.item.soulshot.SoulshotSGrade
+import org.l2kserver.game.data.item.soulshot.SpiritshotNoGrade
+import org.l2kserver.game.data.item.weapons.ApprenticesWand
+import org.l2kserver.game.data.item.weapons.Bow
 import org.l2kserver.game.data.item.weapons.DAGGER
-import org.l2kserver.game.data.item.weapons.DEMON_SPLINTER
-import org.l2kserver.game.data.item.weapons.HEAVENS_DIVIDER
-import org.l2kserver.game.data.item.weapons.SHORT_SPEAR
-import org.l2kserver.game.data.item.weapons.SQUIRES_SWORD
-import org.l2kserver.game.data.item.weapons.TALLUM_BLADE_DARK_LEGIONS_EDGE
-import org.l2kserver.game.data.item.weapons.WILLOW_STAFF
+import org.l2kserver.game.data.item.weapons.DemonSplinter
+import org.l2kserver.game.data.item.weapons.HeavensDivider
+import org.l2kserver.game.data.item.weapons.ShortSpear
+import org.l2kserver.game.data.item.weapons.SquiresSword
+import org.l2kserver.game.data.item.weapons.TallumBladeDarkLegionsEdge
+import org.l2kserver.game.data.item.weapons.WillowStaff
 import org.l2kserver.game.data.npc.GrandMagisterGallint
 import org.l2kserver.game.data.npc.GrandMasterRoien
 import org.l2kserver.game.data.npc.Gremlin
@@ -91,49 +91,49 @@ class TestDataLoader(
         CharacterClassRegistry.register(HUMAN_FIGHTER, HUMAN_MYSTIC)
 
         ItemTemplateRegistry.register(
-            TUTORIAL_GUIDE,
+            TutorialGuide,
 
             // No Grade weapons
-            WILLOW_STAFF,
+            WillowStaff,
             DAGGER,
-            BOW,
-            SHORT_SPEAR,
-            SQUIRES_SWORD,
-            APPRENTICE_WAND,
+            Bow,
+            ShortSpear,
+            SquiresSword,
+            ApprenticesWand,
 
             // S-Grade Weapons
-            DEMON_SPLINTER,
-            HEAVENS_DIVIDER,
-            TALLUM_BLADE_DARK_LEGIONS_EDGE,
+            DemonSplinter,
+            HeavensDivider,
+            TallumBladeDarkLegionsEdge,
 
             // Armor
-            APPRENTICE_TUNIC,
-            APPRENTICE_STOCKINGS,
-            SQUIRES_SHIRT,
-            SQUIRES_PANTS,
-            LEATHER_SHIELD,
+            ApprenticeTunic,
+            ApprenticesStockings,
+            SquiresShirt,
+            SquiresPants,
+            LeatherShield,
 
             //Jewelry
-            EARRING_OF_STRENGTH,
-            EARRING_OF_WISDOM,
-            RING_OF_ANGUISH,
-            RING_OF_KNOWLEDGE,
-            NECKLACE_OF_COURAGE,
+            EarringOfStrength,
+            EarringOfWisdom,
+            RingOfAnguish,
+            RingOfKnowledge,
+            NecklaceOfCourage,
 
             //ETC
-            ADENA,
+            Adena,
 
             // Arrows
-            WOODEN_ARROW,
-            BONE_ARROW,
+            WoodenArrow,
+            BoneArrow,
 
             //Soulshots
-            SOULSHOT_NO_GRADE,
-            SOULSHOT_S_GRADE,
+            SoulshotNoGrade,
+            SoulshotSGrade,
 
             //Spiritshots
-            SPIRITSHOT_NO_GRADE,
-            BLESSED_SPIRITSHOT_NO_GRADE
+            SpiritshotNoGrade,
+            BlessedSpiritshotNoGrade
         )
 
         SkillTemplateRegistry.register(

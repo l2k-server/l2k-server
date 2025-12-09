@@ -22,7 +22,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter")
 
     // Ktor
-    implementation("io.ktor:ktor-network-jvm:3.3.2")
+    implementation("io.ktor:ktor-network-jvm:3.3.3")
 
     // Kotlin
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-slf4j:1.10.2")
@@ -38,8 +38,8 @@ dependencies {
     implementation("org.jetbrains.exposed:exposed-java-time:1.0.0-rc-4")
     implementation("org.postgresql:postgresql")
 
-    implementation("org.flywaydb:flyway-core:11.17.0")
-    runtimeOnly("org.flywaydb:flyway-database-postgresql:11.17.0")
+    implementation("org.flywaydb:flyway-core:11.19.0")
+    runtimeOnly("org.flywaydb:flyway-database-postgresql:11.19.0")
 
     // Hazelcast (for sharing data with LoginServer)
     implementation("com.hazelcast:hazelcast:5.6.0")
