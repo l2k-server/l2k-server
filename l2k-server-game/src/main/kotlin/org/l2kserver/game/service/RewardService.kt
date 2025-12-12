@@ -12,6 +12,7 @@ import org.l2kserver.game.model.actor.ActorInstance
 import org.l2kserver.game.model.actor.Npc
 import org.l2kserver.game.model.actor.PlayerCharacter
 import org.l2kserver.game.model.actor.character.PvpState
+import org.l2kserver.game.model.utils.withChance
 import org.l2kserver.game.network.session.sendTo
 import org.l2kserver.game.repository.GameObjectRepository
 import org.springframework.beans.factory.annotation.Value
@@ -88,7 +89,7 @@ class RewardService(
 
         for (itemGroup in killed.reward.itemGroups) {
             if (isLvlDifferenceDropPenaltyApplied(killed.level, mostValuableDamager.level)) continue
-            if (Random.nextDouble() < itemGroup.chance) itemService.dropRewardItem(itemGroup.items.random(), killed)
+            withChance(itemGroup.chance) { itemService.dropRewardItem(itemGroup.items.random(), killed) }
         }
     }
 
