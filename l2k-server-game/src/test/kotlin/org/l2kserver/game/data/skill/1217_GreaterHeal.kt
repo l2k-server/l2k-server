@@ -32,7 +32,7 @@ class GreaterHealEffect(
     )
 }
 
-object GreaterHeal: MagicSkillTemplate {
+object GreaterHeal: MagicSkillTemplate() {
     override val id = 1217
     override val skillName = "Greater Heal"
     override val maxLevel = 3

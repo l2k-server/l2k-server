@@ -1,10 +1,14 @@
 package org.l2kserver.game.model.item.template
 
 import org.l2kserver.game.model.item.ConsumableItem
+import org.l2kserver.game.model.item.Crystallizable
+import org.l2kserver.game.model.skill.context.SkillContext
+import org.l2kserver.game.model.skill.effect.DamageEffect
+import org.l2kserver.game.model.skill.effect.Effects
 import org.l2kserver.game.model.stats.CombatStats
 import kotlin.random.Random
 
-abstract class WeaponTemplate: EquippableItemTemplate, CrystallizableItemTemplate {
+abstract class WeaponTemplate: EquippableItemTemplate, Crystallizable {
     abstract override val id: Int
     abstract override val name: String
     abstract override val grade: Grade
@@ -28,6 +32,14 @@ abstract class WeaponTemplate: EquippableItemTemplate, CrystallizableItemTemplat
     open val manaCost: Int get() = 0
 
     final override val popupHintType = PopupHintType.WEAPON
+
+    open fun affect(context: SkillContext) = Effects(
+        DamageEffect.physicalHit(
+            caster = context.caster,
+            target = context.mainTarget,
+            usedSoulshot = context.usedSoulshot
+        )
+    )
 }
 
 /**

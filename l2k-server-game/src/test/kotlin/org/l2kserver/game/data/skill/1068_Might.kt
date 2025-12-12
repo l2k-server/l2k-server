@@ -25,7 +25,7 @@ class MightEffect(
         pAtk = power.getOrElse(effectLevel - 1) { error("Skill 'Might' has no level '$effectLevel'") }
     )
 }
-object Might: MagicSkillTemplate {
+object Might: MagicSkillTemplate() {
     override val id = 1068
     override val skillName = "Might"
     override val maxLevel = 3

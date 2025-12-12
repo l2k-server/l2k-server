@@ -1,9 +1,9 @@
 package org.l2kserver.game.handler.dto.response
 
 import org.l2kserver.game.model.actor.PlayerCharacter
-import org.l2kserver.game.model.item.Soulshot
-import org.l2kserver.game.model.item.Spiritshot
-import org.l2kserver.game.model.item.Ss
+import org.l2kserver.game.model.item.instance.ShotInstance
+import org.l2kserver.game.model.item.instance.SoulshotInstance
+import org.l2kserver.game.model.item.instance.SpiritshotInstance
 import org.l2kserver.game.model.item.template.Grade
 
 private fun getSoulshotUsageSkillId(grade: Grade) = when(grade) {
@@ -25,12 +25,12 @@ private fun getSpiritshotUsageSkillId(grade: Grade) = when(grade) {
 }
 
 @Suppress("FunctionName")
-fun SsUsedResponse(user: PlayerCharacter, ss: Ss) = SkillUsedResponse(
+fun ShotUsedResponse(user: PlayerCharacter, shot: ShotInstance) = SkillUsedResponse(
     casterId = user.id,
     targetId = user.id,
-    skillId = when(ss) {
-        is Soulshot -> getSoulshotUsageSkillId(ss.grade)
-        is Spiritshot -> getSpiritshotUsageSkillId(ss.grade)
+    skillId = when(shot) {
+        is SoulshotInstance -> getSoulshotUsageSkillId(shot.grade)
+        is SpiritshotInstance -> getSpiritshotUsageSkillId(shot.grade)
     },
     skillLevel = 1,
     castTime = 0,

@@ -10,7 +10,7 @@ import org.l2kserver.game.model.skill.template.MagicSkillTemplate
 import org.l2kserver.game.model.skill.template.SkillConsumablesTemplate
 import kotlin.math.roundToInt
 
-object LifeScavenge: MagicSkillTemplate {
+object LifeScavenge: MagicSkillTemplate() {
     override val id = 46
     override val skillName = "Life Scavenge"
     override val maxLevel = 15

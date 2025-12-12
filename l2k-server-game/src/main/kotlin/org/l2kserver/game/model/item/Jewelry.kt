@@ -1,25 +1,19 @@
 package org.l2kserver.game.model.item
 
 import org.l2kserver.game.domain.ItemEntity
-import org.l2kserver.game.model.item.instance.EnchantableItemInstance
-import org.l2kserver.game.model.item.instance.EquippableItemInstance
+import org.l2kserver.game.model.item.instance.JewelryInstance
 import org.l2kserver.game.model.item.template.Grade
-import org.l2kserver.game.model.item.template.ItemGroup
 import org.l2kserver.game.model.item.template.JewelryTemplate
 import org.l2kserver.game.model.stats.CombatStats
 
 private const val JEWELRY_SAFE_ENCHANT_LEVEL = 3
-
 private const val JEWELRY_PER_UNSAFE_ENCHANT_P_DEF_BONUS = 3
 private const val JEWELRY_PER_SAFE_ENCHANT_P_DEF_BONUS = 1
 
-class Jewelry(
-    private val itemEntity: ItemEntity,
-    private val itemTemplate: JewelryTemplate,
-): EquippableItemInstance, EnchantableItemInstance {
+class Jewelry(itemEntity: ItemEntity, private val itemTemplate: JewelryTemplate): JewelryInstance {
     override val id: Int = itemEntity.id.value
+    override val templateId = itemEntity.templateId
 
-    override val templateId by itemEntity::templateId
     override var ownerId by itemEntity::ownerId
     override var amount by itemEntity::amount
     override var equippedAt by itemEntity::equippedAt
@@ -36,15 +30,10 @@ class Jewelry(
     override val type = itemTemplate.type
     override val crystalCount = itemTemplate.crystalCount
 
-    override val popUpHintType = itemTemplate.popupHintType
-    override val group = ItemGroup.WEAPON_OR_JEWELRY
-
-    override fun toString() = "Jewelry(name=$name id=$id enchantLevel=$enchantLevel)"
-
     override val stats: CombatStats get() {
-        if (grade == Grade.NO_GRADE) return itemTemplate.stats
-
         val initialStats = itemTemplate.stats
+        if (grade == Grade.NO_GRADE) return initialStats
+
         val safeEnchantBonus = minOf(enchantLevel, JEWELRY_SAFE_ENCHANT_LEVEL) *
                 JEWELRY_PER_SAFE_ENCHANT_P_DEF_BONUS
         val unsafeEnchantBonus = maxOf(enchantLevel - JEWELRY_SAFE_ENCHANT_LEVEL, 0) *

@@ -50,15 +50,6 @@ interface EquippableItemTemplate: ItemTemplate {
 }
 
 /**
- * Template of an item, that can be crystallized
- *
- * @property crystalCount How many crystals will be given for this item crystallization
- */
-interface CrystallizableItemTemplate: ItemTemplate {
-    val crystalCount: Int
-}
-
-/**
  * Type of item
  *
  * @property availableSlots Slots, where item of this type will be placed when equipped

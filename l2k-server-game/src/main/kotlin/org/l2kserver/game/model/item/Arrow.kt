@@ -5,13 +5,10 @@ import org.l2kserver.game.model.item.instance.ItemInstance
 import org.l2kserver.game.model.item.template.ArrowTemplate
 import org.l2kserver.game.model.item.template.ItemGroup
 
-class Arrow(
-    private val itemEntity: ItemEntity,
-    itemTemplate: ArrowTemplate
-): ItemInstance {
+class Arrow(itemEntity: ItemEntity, itemTemplate: ArrowTemplate): ItemInstance {
     override val id: Int = itemEntity.id.value
+    override val templateId = itemEntity.templateId
 
-    override val templateId by itemEntity::templateId
     override var ownerId by itemEntity::ownerId
     override var amount by itemEntity::amount
     override var equippedAt by itemEntity::equippedAt

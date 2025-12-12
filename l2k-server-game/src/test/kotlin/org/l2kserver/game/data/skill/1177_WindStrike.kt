@@ -8,7 +8,7 @@ import org.l2kserver.game.model.skill.instance.SkillTargetType
 import org.l2kserver.game.model.skill.template.MagicSkillTemplate
 import org.l2kserver.game.model.skill.template.SkillConsumablesTemplate
 
-object WindStrike: MagicSkillTemplate {
+object WindStrike: MagicSkillTemplate() {
     override val id = 1177
     override val skillName = "Wind Strike"
     override val maxLevel = 5
