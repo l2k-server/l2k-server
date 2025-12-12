@@ -12,7 +12,7 @@ import org.l2kserver.game.data.item.armor.LeatherShield
 import org.l2kserver.game.data.item.arrows.BoneArrow
 import org.l2kserver.game.data.item.arrows.WoodenArrow
 import org.l2kserver.game.data.item.etc.Adena
-import org.l2kserver.game.data.item.weapons.DAGGER
+import org.l2kserver.game.data.item.weapons.Dagger
 import org.l2kserver.game.data.item.weapons.HeavensDivider
 import org.l2kserver.game.data.item.weapons.SquiresSword
 import org.l2kserver.game.data.item.weapons.WillowStaff
@@ -207,7 +207,7 @@ class ItemServiceTests(
             ItemTable.deleteAll() // Delete initial items
             listOf(
                 createTestItem(SquiresSword.id, owner = character, isEquipped = true),
-                createTestItem(DAGGER.id, owner = character)
+                createTestItem(Dagger.id, owner = character)
             )
         }
 

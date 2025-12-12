@@ -44,8 +44,7 @@ class AdminCommandService(
         }
 
         try {
-            val adminCommand = AdminCommand.parse(commandRequest.commandString)
-            when (adminCommand) {
+            when (val adminCommand = AdminCommand.parse(commandRequest.commandString)) {
                 is HelpCommand -> handleHelpCommand()
                 is TeleportCommand -> handleTeleportCommand(adminCommand)
                 is EnchantCommand -> handleEnchantCommand(adminCommand)
@@ -200,6 +199,5 @@ class AdminCommandService(
 
         skillService.learnSkill(character, command.skillId, command.level)
     }
-
 
 }

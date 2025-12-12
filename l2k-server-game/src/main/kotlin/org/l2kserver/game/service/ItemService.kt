@@ -16,7 +16,7 @@ import org.l2kserver.game.handler.dto.response.FullCharacterResponse
 import org.l2kserver.game.handler.dto.response.DroppedItemResponse
 import org.l2kserver.game.handler.dto.response.NpcChatWindowResponse
 import org.l2kserver.game.handler.dto.response.PickUpItemResponse
-import org.l2kserver.game.handler.dto.response.SsUsedResponse
+import org.l2kserver.game.handler.dto.response.ShotUsedResponse
 import org.l2kserver.game.handler.dto.response.SystemMessageResponse
 import org.l2kserver.game.handler.dto.response.UpdateItemsResponse
 import org.l2kserver.game.handler.dto.response.UpdateStatusResponse
@@ -28,11 +28,13 @@ import org.l2kserver.game.model.item.Arrow
 import org.l2kserver.game.model.item.Book
 import org.l2kserver.game.model.item.Soulshot
 import org.l2kserver.game.model.item.Spiritshot
-import org.l2kserver.game.model.item.Ss
 import org.l2kserver.game.model.item.instance.EquippableItemInstance
 import org.l2kserver.game.model.item.instance.ItemInstance
 import org.l2kserver.game.model.item.template.Slot
 import org.l2kserver.game.model.item.Weapon
+import org.l2kserver.game.model.item.instance.ShotInstance
+import org.l2kserver.game.model.item.instance.SoulshotInstance
+import org.l2kserver.game.model.item.instance.SpiritshotInstance
 import org.l2kserver.game.model.item.template.ItemTemplateRegistry
 import org.l2kserver.game.model.item.template.WeaponType
 import org.l2kserver.game.model.reward.RewardItem
@@ -66,15 +68,15 @@ class ItemService(
     suspend fun toggleAutoUseSs(request: AutoUseSsRequest) {
         val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
 
-        val ss = character.inventory.findAllByTemplateId(request.ssTemplateId).firstOrNull() as? Ss ?: run {
+        val shot = character.inventory.findAllByTemplateId(request.ssTemplateId).firstOrNull() as? ShotInstance ?: run {
             log.warn("Character does not have item with template id='{}', or it is not a soul- or spiritshot",
                 request.ssTemplateId)
             return
         }
 
-        when(ss) {
-            is Soulshot -> toggleSoulshotAutoUsage(character, ss)
-            is Spiritshot -> toggleSpiritshotAutoUsage(character, ss)
+        when(shot) {
+            is SoulshotInstance -> toggleSoulshotAutoUsage(character, shot)
+            is SpiritshotInstance -> toggleSpiritshotAutoUsage(character, shot)
         }
     }
 
@@ -340,7 +342,7 @@ class ItemService(
         sendTo(owner.id) { UpdateStatusResponse.weightOf(owner) }
     }
 
-    private suspend fun toggleSoulshotAutoUsage(character: PlayerCharacter, soulshot: Soulshot) {
+    private suspend fun toggleSoulshotAutoUsage(character: PlayerCharacter, soulshot: SoulshotInstance) {
         val weapon = character.inventory.weapon ?: run {
             send { SystemMessageResponse.CannotUseSoulshot }
             return
@@ -365,7 +367,7 @@ class ItemService(
         }
     }
 
-    private suspend fun toggleSpiritshotAutoUsage(character: PlayerCharacter, spiritshot: Spiritshot) {
+    private suspend fun toggleSpiritshotAutoUsage(character: PlayerCharacter, spiritshot: SpiritshotInstance) {
         val weapon = character.inventory.weapon ?: run {
             send { SystemMessageResponse.CannotUseSoulshot }
             return
@@ -395,7 +397,7 @@ class ItemService(
      *
      * @return `true` if soulshot was successfully charged, `false` if not
      */
-    suspend fun useSoulshot(character: PlayerCharacter, soulshot: Soulshot) {
+    suspend fun useSoulshot(character: PlayerCharacter, soulshot: SoulshotInstance) {
         val weapon = character.inventory.weapon ?: run {
             send { SystemMessageResponse.CannotUseSoulshot }
             return
@@ -417,10 +419,10 @@ class ItemService(
         if (reducedSoulshot == null ) send { UpdateItemsResponse().wasDeleted(soulshot) }
         else send { UpdateItemsResponse().wasModified(soulshot) }
 
-        this@ItemService.broadcastAround(character.position) { SsUsedResponse(character, soulshot) }
+        this@ItemService.broadcastAround(character.position) { ShotUsedResponse(character, soulshot) }
     }
 
-    suspend fun useSpiritshot(character: PlayerCharacter, spiritshot: Spiritshot) {
+    suspend fun useSpiritshot(character: PlayerCharacter, spiritshot: SpiritshotInstance) {
         val weapon = character.inventory.weapon ?: run {
             send { SystemMessageResponse.CannotUseSpiritshot }
             return
@@ -442,7 +444,7 @@ class ItemService(
         if (reducedSpiritshot == null ) send { UpdateItemsResponse().wasDeleted(spiritshot) }
         else send { UpdateItemsResponse().wasModified(spiritshot) }
 
-        this@ItemService.broadcastAround(character.position) { SsUsedResponse(character, spiritshot) }
+        this@ItemService.broadcastAround(character.position) { ShotUsedResponse(character, spiritshot) }
     }
 
     suspend fun useBook(book: Book) = send {
@@ -603,7 +605,7 @@ class ItemService(
         }
     }
 
-    private suspend fun Weapon.canUseSoulshot(soulshot: Soulshot?) = when {
+    private suspend fun Weapon.canUseSoulshot(soulshot: SoulshotInstance?) = when {
         this.soulshotUsed > (soulshot?.amount ?: 0) -> {
             send { SystemMessageResponse.NotEnoughSoulshots }
             false
@@ -615,7 +617,7 @@ class ItemService(
         else -> true
     }
 
-    private suspend fun Weapon.canUseSpiritshot(spiritshot: Spiritshot?) = when {
+    private suspend fun Weapon.canUseSpiritshot(spiritshot: SpiritshotInstance?) = when {
         this.spiritshotUsed > (spiritshot?.amount ?: 0) -> {
             send { SystemMessageResponse.NotEnoughSpiritshots }
             false

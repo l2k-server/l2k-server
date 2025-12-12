@@ -26,14 +26,14 @@ sealed interface SkillTemplate: GameData {
     val maxLevel: Int
 }
 
-interface PassiveSkillTemplate: SkillTemplate {
+abstract class PassiveSkillTemplate: SkillTemplate {
     /** Calculates abnormal effects, applied by this skill */
-    fun effect(actor: ActorInstance, actionLevel: Int): AbnormalEffect
+    abstract fun effect(actor: ActorInstance, actionLevel: Int): AbnormalEffect
 }
 
-interface ToggleSkillTemplate: SkillTemplate {
+abstract class ToggleSkillTemplate: SkillTemplate {
     /** Requirements to use this skill */
-    val requires: SkillRequirements?
+    abstract val requires: SkillRequirements?
 }
 
 /**
@@ -67,10 +67,10 @@ sealed interface CastableSkillTemplate: SkillTemplate {
 }
 
 /** Active (physical) skill template */
-interface ActiveSkillTemplate: CastableSkillTemplate
+abstract class ActiveSkillTemplate: CastableSkillTemplate
 
 /** Magic skill template */
-interface MagicSkillTemplate: CastableSkillTemplate
+abstract class MagicSkillTemplate: CastableSkillTemplate
 
 /**
  * Skill requirements - conditions to use this skill

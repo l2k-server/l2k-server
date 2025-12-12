@@ -27,7 +27,7 @@ data object SpellcraftEffect: AbnormalEffect {
     }
 }
 
-object Spellcraft: PassiveSkillTemplate {
+object Spellcraft: PassiveSkillTemplate() {
     override val id = 163
     override val skillName = "Spellcraft"
     override val maxLevel = 1

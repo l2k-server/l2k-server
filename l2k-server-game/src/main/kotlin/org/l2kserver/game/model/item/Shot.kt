@@ -1,21 +1,12 @@
 package org.l2kserver.game.model.item
 
 import org.l2kserver.game.domain.ItemEntity
-import org.l2kserver.game.model.item.instance.ItemInstance
-import org.l2kserver.game.model.item.template.Grade
-import org.l2kserver.game.model.item.template.ItemGroup
+import org.l2kserver.game.model.item.instance.SoulshotInstance
+import org.l2kserver.game.model.item.instance.SpiritshotInstance
 import org.l2kserver.game.model.item.template.SoulshotTemplate
 import org.l2kserver.game.model.item.template.SpiritshotTemplate
 
-sealed interface Ss {
-    val id: Int
-    val grade: Grade
-}
-
-class Soulshot(
-    private val itemEntity: ItemEntity,
-    itemTemplate: SoulshotTemplate
-): ItemInstance, Ss {
+class Soulshot(itemEntity: ItemEntity, itemTemplate: SoulshotTemplate): SoulshotInstance {
     override val id: Int = itemEntity.id.value
     override val templateId = itemEntity.templateId
 
@@ -31,16 +22,11 @@ class Soulshot(
     override val isDroppable = itemTemplate.isDroppable
     override val isDestroyable = itemTemplate.isDestroyable
     override val isExchangeable = itemTemplate.isExchangeable
-    override val isStackable = itemTemplate.isStackable
 
-    override val popUpHintType = itemTemplate.popupHintType
-    override val group = ItemGroup.ETC
+    override fun toString() = "Soulshot(name=$name id=$id amount=$amount grade=$grade)"
 }
 
-class Spiritshot(
-    private val itemEntity: ItemEntity,
-    itemTemplate: SpiritshotTemplate
-): ItemInstance, Ss {
+class Spiritshot(itemEntity: ItemEntity, itemTemplate: SpiritshotTemplate): SpiritshotInstance {
     override val id: Int = itemEntity.id.value
     override val templateId = itemEntity.templateId
 
@@ -56,10 +42,8 @@ class Spiritshot(
     override val isDroppable = itemTemplate.isDroppable
     override val isDestroyable = itemTemplate.isDestroyable
     override val isExchangeable = itemTemplate.isExchangeable
-    override val isStackable = itemTemplate.isStackable
 
-    override val popUpHintType = itemTemplate.popupHintType
-    override val group = ItemGroup.ETC
+    override val spiritshotType = itemTemplate.spiritshotType
 
-    val spiritshotType = itemTemplate.spiritshotType
+    override fun toString() = "Spiritshot(name=$name id=$id amount=$amount type=$spiritshotType)"
 }

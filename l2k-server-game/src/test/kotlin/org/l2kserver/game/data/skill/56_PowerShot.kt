@@ -11,7 +11,7 @@ import org.l2kserver.game.model.skill.template.SkillConsumablesTemplate
 import org.l2kserver.game.model.skill.template.SkillRequirements
 
 @Suppress("MatchingDeclarationName")
-object PowerShot: ActiveSkillTemplate {
+object PowerShot: ActiveSkillTemplate() {
     override val id = 56
     override val skillName = "Power Shot"
     override val maxLevel = 24

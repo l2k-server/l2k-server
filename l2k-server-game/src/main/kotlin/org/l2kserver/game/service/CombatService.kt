@@ -5,13 +5,13 @@ import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
 import org.l2kserver.game.extensions.logger
-import org.l2kserver.game.extensions.model.actor.hit
 import org.l2kserver.game.handler.dto.response.ActionFailedResponse
 import org.l2kserver.game.handler.dto.response.AttackResponse
 import org.l2kserver.game.handler.dto.response.GaugeColor
@@ -33,7 +33,6 @@ import org.l2kserver.game.network.session.send
 import org.l2kserver.game.network.session.sendTo
 import org.l2kserver.game.repository.GameObjectRepository
 import org.springframework.stereotype.Service
-import kotlin.coroutines.coroutineContext
 import kotlin.math.roundToInt
 import kotlin.math.roundToLong
 
@@ -77,7 +76,7 @@ class CombatService(
             return
         }
 
-        while (coroutineContext.isActive && attacker.canAttack(attacked)) {
+        while (currentCoroutineContext().isActive && attacker.canAttack(attacked)) {
             try {
                 val requiredDistance = (attacker.stats.attackRange + attacked.collisionBox.radius).roundToInt()
 
@@ -99,7 +98,7 @@ class CombatService(
                     // Player character must spend mana and arrows for attack (if weapon requires)
                     if ((attacker as? PlayerCharacter)?.spendResources() != false)
                         //Already launched attack must not be cancelled TODO STUN??
-                        withContext(coroutineContext + NonCancellable) {
+                        withContext(currentCoroutineContext() + NonCancellable) {
                             when (attacker.weaponType) {
                                 WeaponType.BOW ->
                                     performBowAttack(attacker, attacked)
@@ -124,7 +123,7 @@ class CombatService(
                 }
             } catch (e: Exception) {
                 log.error("An error occurred while attacking target {} by {}", attacked, attacker, e)
-                coroutineContext.cancel()
+                currentCoroutineContext().cancel()
             }
         }
     }
@@ -215,8 +214,15 @@ class CombatService(
         val aoeTargets = getAoeAttackTargets(attacker, attacked)
 
         val hits = List(hitAmount) {
-            val effects = aoeTargets.map { attacker.hit(it, soulshotUsed, hitAmount) }.toMutableList()
-            effects.add(attacker.hit(attacked, soulshotUsed, hitAmount))
+            val effects = aoeTargets.map {
+                DamageEffect.physicalHit(
+                    attacker, it, usedSoulshot = soulshotUsed, attackPowerDivider = hitAmount
+                )
+            }.toMutableList()
+
+            effects.add(DamageEffect.physicalHit(
+                attacker, attacked, usedSoulshot = soulshotUsed, attackPowerDivider = hitAmount
+            ))
 
             effects
         }
@@ -256,7 +262,7 @@ class CombatService(
 
         val usedSoulshot = (attacker as? PlayerCharacter)?.inventory?.weapon?.soulshotCharged ?: false
 
-        val damageEffect = attacker.hit(attacked, usedSoulshot)
+        val damageEffect = DamageEffect.physicalHit(attacker, attacked, usedSoulshot = usedSoulshot)
         if (usedSoulshot && !damageEffect.isAvoided) attacker.inventory.weapon?.soulshotCharged = false
 
         send { GaugeResponse(GaugeColor.RED, (attackDuration + reuseDelay).toInt()) }
@@ -268,7 +274,7 @@ class CombatService(
         delay((attackDuration * 0.9).roundToLong())
 
         //Launch an arrow!
-        CoroutineScope(coroutineContext + NonCancellable).launch {
+        CoroutineScope(currentCoroutineContext() + NonCancellable).launch {
             //Delay for time it takes for the arrow to reach the target
             delay((attacker.position.distanceTo(attacked.position) / ARROW_SPEED_PER_MS).toLong())
             suspendTransaction { applyDamageEffect(attacker, damageEffect) }
@@ -369,7 +375,7 @@ class CombatService(
         //Check if player has enough mana
         if (this.currentMp < weapon.manaCost) {
             send { SystemMessageResponse.NotEnoughMp }
-            coroutineContext.cancel() //TODO cancelling whole process seems to be not very good idea...
+            currentCoroutineContext().cancel() //TODO cancelling whole process seems to be not very good idea...
             return false
         }
 
@@ -379,7 +385,7 @@ class CombatService(
             //Check if player has enough ammo
             if (arrows == null || consumable.amount > arrows.amount) {
                 send { SystemMessageResponse.NotEnoughArrows }
-                coroutineContext.cancel()
+                currentCoroutineContext().cancel()
                 return false
             }
 

@@ -10,7 +10,7 @@ import org.l2kserver.game.model.skill.template.ActiveSkillTemplate
 import org.l2kserver.game.model.skill.template.SkillConsumablesTemplate
 import org.l2kserver.game.model.skill.template.SkillRequirements
 
-object PowerStrike: ActiveSkillTemplate {
+object PowerStrike: ActiveSkillTemplate() {
     override val id = 3
     override val skillName = "Power strike"
     override val maxLevel = 9

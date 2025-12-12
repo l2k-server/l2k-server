@@ -28,7 +28,7 @@ class DefenseAuraEffect(
     )
 }
 
-object DefenseAura: MagicSkillTemplate {
+object DefenseAura: MagicSkillTemplate() {
     override val id = 91
     override val skillName = "Defense Aura"
     override val maxLevel = 2

@@ -5,6 +5,8 @@ import org.l2kserver.game.model.item.template.SpiritshotType
 import org.l2kserver.game.model.item.template.calculateRandomDamageModifier
 import org.l2kserver.game.model.utils.MAGIC_ATTACK_BASE
 import org.l2kserver.game.model.utils.PHYSICAL_ATTACK_BASE
+import org.l2kserver.game.model.utils.PHYSICAL_DMG_FROM_BACK_MODIFIER
+import org.l2kserver.game.model.utils.PHYSICAL_DMG_FROM_SIDE_MODIFIER
 import org.l2kserver.game.model.utils.calculateIsMagicCritical
 import org.l2kserver.game.model.utils.calculateIsMagicSucceeded
 import org.l2kserver.game.model.utils.calculateIsPhysicalAttackAvoided
@@ -40,6 +42,7 @@ data class DamageEffect(
 ): Effect {
 
     companion object {
+
         /**
          * Calculates physical hit
          *
@@ -48,13 +51,15 @@ data class DamageEffect(
          * @param power POwer of skill itself
          * @param usedSoulshot Was the soulshot used
          * @param ignoresShield Does this skill ignore shield defence or evasion
+         * @param attackPowerDivider Value, on which resulting damage should be divided
          */
         fun physicalHit(
             caster: ActorInstance,
             target: ActorInstance,
-            power: Int,
+            power: Int = 0,
             usedSoulshot: Boolean = false,
-            ignoresShield: Boolean = false
+            ignoresShield: Boolean = false,
+            attackPowerDivider: Int = 1
         ): DamageEffect {
             if (!ignoresShield && calculateIsPhysicalAttackAvoided(caster, target)) {
                 return DamageEffect(target.id, isAvoided = true)
@@ -65,8 +70,11 @@ data class DamageEffect(
             val isBlocked = !ignoresShield && calculateIsPhysicalAttackBlocked(caster, target)
             val isCritical = !isBlocked && calculateIsPhysicalAttackCritical(caster, target)
 
-            var damage = power.toDouble() + caster.stats.pAtk
+            var damage = power.toDouble() + caster.stats.pAtk / attackPowerDivider
             damage *= (caster.weaponType.calculateRandomDamageModifier())
+
+            if (caster.isOnSideOf(target)) damage *= PHYSICAL_DMG_FROM_SIDE_MODIFIER
+            if (caster.isBehind(target)) damage *= PHYSICAL_DMG_FROM_BACK_MODIFIER
 
             if (usedSoulshot) damage *= 2
             if (isCritical) damage = damage * 2 + caster.stats.critDamage

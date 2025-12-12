@@ -44,7 +44,7 @@ class PoisonEffect(
 
 }
 
-object CursePoison: MagicSkillTemplate {
+object CursePoison: MagicSkillTemplate() {
     override val id = 1168
     override val skillName = "Curse: Poison"
     override val maxLevel = 3

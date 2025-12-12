@@ -26,27 +26,27 @@ import org.l2kserver.game.model.stats.CombatStats
  * @property group Item group (I don't know what does it affect ¯\_(ツ)_/¯)
  */
 interface ItemInstance {
-     val id: Int
-     val templateId: Int
-     var ownerId: Int
-     var amount: Int
-     val equippedAt: Slot? get() = null
-     val enchantLevel: Int get() = 0
-     val augmentationId: Int get() = 0
-     val name: String
-     val type: ItemType
-     val grade: Grade get() = Grade.NO_GRADE
-     val weight: Int
-     val price: Int
-     val isSellable: Boolean
-     val isDroppable: Boolean
-     val isDestroyable: Boolean
-     val isExchangeable: Boolean
-     val isStackable: Boolean
-     val popUpHintType: PopupHintType
-     val group: ItemGroup
+    val id: Int
+    val templateId: Int
+    var ownerId: Int
+    var amount: Int
+    val equippedAt: Slot? get() = null
+    val enchantLevel: Int get() = 0
+    val augmentationId: Int get() = 0
+    val name: String
+    val type: ItemType
+    val grade: Grade get() = Grade.NO_GRADE
+    val weight: Int
+    val price: Int
+    val isSellable: Boolean
+    val isDroppable: Boolean
+    val isDestroyable: Boolean
+    val isExchangeable: Boolean
+    val isStackable: Boolean
+    val popUpHintType: PopupHintType
+    val group: ItemGroup
 
-     val isEquipped: Boolean get() = equippedAt != null
+    val isEquipped: Boolean get() = equippedAt != null
 }
 
 /**
@@ -61,39 +61,10 @@ interface ItemInstance {
  * @property isEquipped Is this item equipped
  */
 interface EquippableItemInstance : ItemInstance {
-     override val grade: Grade
-     val stats: CombatStats
-     val fixedBonusStats: CombatStats?
-     override var equippedAt: Slot?
+    override val grade: Grade
+    val stats: CombatStats
+    val fixedBonusStats: CombatStats?
+    override var equippedAt: Slot?
 
-     override val isStackable: Boolean get() = false
-}
-
-/**
- * In-game item that can be crystallized
- *
- * @property crystalCount How many crystals will be given for this item crystallization
- */
-interface CrystallizableItemInstance: ItemInstance {
-    val crystalCount: Int
-}
-
-/**
- * In-game item instance, that can be enchanted
- *
- * @property grade Grande of enchant scrolls, to enchant this item
- * @property enchantLevel THis item enchant level
- */
-interface EnchantableItemInstance: CrystallizableItemInstance {
-     override val grade: Grade
-     override var enchantLevel: Int
-}
-
-/**
- * In-game item instance, that can be augmented
- *
- * @property augmentationId TODO Augmentation skill identifier?
- */
-interface AugmentableItemInstance: ItemInstance {
-     override var augmentationId: Int
+    override val isStackable: Boolean get() = false
 }

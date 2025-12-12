@@ -47,7 +47,7 @@ object WillowStaff: WeaponTemplate() {
     override val spiritshotUsed = 1
 }
 
-object DAGGER: WeaponTemplate() {
+object Dagger: WeaponTemplate() {
     override val id = 10
     override val name = "Dagger"
     override val grade = Grade.NO_GRADE

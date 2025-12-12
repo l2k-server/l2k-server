@@ -25,7 +25,7 @@ import org.l2kserver.game.data.item.soulshot.SoulshotSGrade
 import org.l2kserver.game.data.item.soulshot.SpiritshotNoGrade
 import org.l2kserver.game.data.item.weapons.ApprenticesWand
 import org.l2kserver.game.data.item.weapons.Bow
-import org.l2kserver.game.data.item.weapons.DAGGER
+import org.l2kserver.game.data.item.weapons.Dagger
 import org.l2kserver.game.data.item.weapons.DemonSplinter
 import org.l2kserver.game.data.item.weapons.HeavensDivider
 import org.l2kserver.game.data.item.weapons.ShortSpear
@@ -95,7 +95,7 @@ class TestDataLoader(
 
             // No Grade weapons
             WillowStaff,
-            DAGGER,
+            Dagger,
             Bow,
             ShortSpear,
             SquiresSword,

@@ -1,11 +1,8 @@
 package org.l2kserver.game.model.item
 
 import org.l2kserver.game.domain.ItemEntity
-import org.l2kserver.game.model.item.instance.AugmentableItemInstance
-import org.l2kserver.game.model.item.instance.EnchantableItemInstance
-import org.l2kserver.game.model.item.instance.EquippableItemInstance
+import org.l2kserver.game.model.item.instance.WeaponInstance
 import org.l2kserver.game.model.item.template.Grade
-import org.l2kserver.game.model.item.template.ItemGroup
 import org.l2kserver.game.model.item.template.SpiritshotType
 import org.l2kserver.game.model.item.template.WeaponTemplate
 import org.l2kserver.game.model.item.template.WeaponType
@@ -33,13 +30,10 @@ private const val TWO_HANDED_WEAPON_S_GRADE_PER_ENCHANT_P_ATK_BONUS = 6
 private const val BOW_S_GRADE_PER_ENCHANT_P_ATK_BONUS = 10
 private const val WEAPON_S_GRADE_PER_ENCHANT_M_ATK_BONUS = 4
 
-class Weapon(
-    private val itemEntity: ItemEntity,
-    private val itemTemplate: WeaponTemplate
-) : EquippableItemInstance, EnchantableItemInstance, AugmentableItemInstance {
+class Weapon(itemEntity: ItemEntity, private val itemTemplate: WeaponTemplate): WeaponInstance {
     override val id: Int = itemEntity.id.value
+    override val templateId = itemEntity.templateId
 
-    override val templateId by itemEntity::templateId
     override var ownerId by itemEntity::ownerId
     override var amount by itemEntity::amount
     override var equippedAt by itemEntity::equippedAt
@@ -57,21 +51,18 @@ class Weapon(
     override val type = itemTemplate.type
     override val crystalCount = itemTemplate.crystalCount
 
-    val soulshotUsed = itemTemplate.soulshotUsed
-    val spiritshotUsed = itemTemplate.spiritshotUsed
+    override val soulshotUsed = itemTemplate.soulshotUsed
+    override val spiritshotUsed = itemTemplate.spiritshotUsed
 
-    var soulshotCharged = false
-    var spiritshotChargedType: SpiritshotType? = null
+    override var soulshotCharged = false
+    override var spiritshotChargedType: SpiritshotType? = null
 
-    val manaCost = itemTemplate.manaCost
-    val consumes = itemTemplate.consumes
-
-    override val popUpHintType = itemTemplate.popupHintType
-    override val group = ItemGroup.WEAPON_OR_JEWELRY
-
-    override fun toString() = "Weapon(name=$name id=$id enchantLevel=$enchantLevel)"
+    override val manaCost = itemTemplate.manaCost
+    override val consumes = itemTemplate.consumes
 
     override val stats: CombatStats get() {
+        val initialStats = itemTemplate.stats
+
         val (pAtkPerEnchantBonus, mAtkPerEnchantBonus) = when (grade) {
             Grade.NO_GRADE -> 0 to 0
             Grade.D -> when (type) {
@@ -125,7 +116,6 @@ class Weapon(
             }
         }
 
-        val initialStats = itemTemplate.stats
         val safeEnchantLevel = minOf(enchantLevel, WEAPON_SAFE_ENCHANT_LEVEL)
         val unsafeEnchantLevel = maxOf(enchantLevel - WEAPON_SAFE_ENCHANT_LEVEL, 0)
 
@@ -139,4 +129,5 @@ class Weapon(
 
     override val fixedBonusStats = itemTemplate.fixedBonusStats
 
+    override fun toString() = "Weapon(name=$name id=$id enchantLevel=$enchantLevel)"
 }

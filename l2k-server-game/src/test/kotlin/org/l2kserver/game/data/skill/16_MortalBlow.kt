@@ -10,7 +10,7 @@ import org.l2kserver.game.model.skill.template.ActiveSkillTemplate
 import org.l2kserver.game.model.skill.template.SkillConsumablesTemplate
 import org.l2kserver.game.model.skill.template.SkillRequirements
 
-object MortalBlow: ActiveSkillTemplate {
+object MortalBlow: ActiveSkillTemplate() {
     override val id = 16
     override val skillName = "Mortal Blow"
     override val maxLevel = 24

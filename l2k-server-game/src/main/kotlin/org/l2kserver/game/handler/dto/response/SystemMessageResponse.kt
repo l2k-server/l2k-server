@@ -4,8 +4,8 @@ import org.l2kserver.game.model.extensions.forEachNotNull
 import org.l2kserver.game.extensions.littleEndianByteArray
 import org.l2kserver.game.extensions.putUTF16String
 import org.l2kserver.game.extensions.putUByte
-import org.l2kserver.game.model.item.Ss
 import org.l2kserver.game.model.item.instance.ItemInstance
+import org.l2kserver.game.model.item.instance.ShotInstance
 import org.l2kserver.game.model.skill.instance.CastableSkillInstance
 import org.l2kserver.game.model.skill.instance.SkillInstance
 
@@ -228,11 +228,13 @@ open class SystemMessageResponse private constructor(
     /** Message: "Power of Mana enabled." */
     data object SpiritshotEnabled: SystemMessageResponse(systemMessageId = 533)
 
-    /** Message: "The automatic use of [ss] has been activated" */
-    data class AutomaticUseActivated(val ss: Ss): SystemMessageResponse(systemMessageId = 1433, ss)
+    /** Message: "The automatic use of [shot] has been activated" */
+    data class AutomaticUseActivated(val shot: ShotInstance): SystemMessageResponse(
+        systemMessageId = 1433, shot)
 
-    /** Message: "The automatic use of [ss] has been deactivated" */
-    data class AutomaticUseDeactivated(val ss: Ss): SystemMessageResponse(systemMessageId = 1434, ss)
+    /** Message: "The automatic use of [shot] has been deactivated" */
+    data class AutomaticUseDeactivated(val shot: ShotInstance): SystemMessageResponse(
+        systemMessageId = 1434, shot)
 
     /** Message: [value] CP has been restored. (by [healerName]) */
     data class CpRestored(val value: Int, val healerName: String?): SystemMessageResponse(

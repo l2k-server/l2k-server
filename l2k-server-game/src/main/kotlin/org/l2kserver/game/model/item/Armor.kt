@@ -1,24 +1,18 @@
 package org.l2kserver.game.model.item
 
 import org.l2kserver.game.domain.ItemEntity
-import org.l2kserver.game.model.item.instance.EnchantableItemInstance
-import org.l2kserver.game.model.item.instance.EquippableItemInstance
+import org.l2kserver.game.model.item.instance.ArmorInstance
 import org.l2kserver.game.model.item.template.ArmorTemplate
 import org.l2kserver.game.model.item.template.ArmorType
 import org.l2kserver.game.model.item.template.Grade
-import org.l2kserver.game.model.item.template.ItemGroup
 import org.l2kserver.game.model.stats.CombatStats
 
 // For full body armor safe enchant level is 4, but stats are calculated as it is 3
 private const val ARMOR_SAFE_ENCHANT_LEVEL = 3
-
 private const val ARMOR_PER_UNSAFE_ENCHANT_P_DEF_BONUS = 3
 private const val ARMOR_PER_SAFE_ENCHANT_P_DEF_BONUS = 1
 
-class Armor(
-    private val itemEntity: ItemEntity,
-    private val itemTemplate: ArmorTemplate,
-): EquippableItemInstance, EnchantableItemInstance {
+class Armor(itemEntity: ItemEntity, private val itemTemplate: ArmorTemplate): ArmorInstance {
     override val id: Int = itemEntity.id.value
     override val templateId = itemEntity.templateId
 
@@ -38,11 +32,6 @@ class Armor(
     override val type = itemTemplate.type
     override val crystalCount = itemTemplate.crystalCount
 
-    override val popUpHintType = itemTemplate.popupHintType
-    override val group = ItemGroup.ARMOR
-
-    override fun toString() = "Armor(name=$name id=$id enchantLevel=$enchantLevel)"
-
     override val stats: CombatStats get() {
         if (grade == Grade.NO_GRADE) return itemTemplate.stats
 
@@ -58,4 +47,6 @@ class Armor(
     }
 
     override val fixedBonusStats = itemTemplate.fixedBonusStats
+
+    override fun toString() = "Armor(name=$name id=$id enchantLevel=$enchantLevel)"
 }

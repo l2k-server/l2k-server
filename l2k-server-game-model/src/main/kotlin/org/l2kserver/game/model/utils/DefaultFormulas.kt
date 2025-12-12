@@ -112,7 +112,7 @@ fun calculateDebuffSuccess(
     //TODO Resistance to debuff type
     //TODO Common debuff resistance
 
-    chance = chance / 100
+    chance /= 100
     println("Calculated chance = $chance")
     return Random.nextDouble() < chance.coerceIn(DEBUFF_MIN_CHANCE, DEBUFF_MAX_CHANCE)
 }

@@ -1,6 +1,8 @@
 package org.l2kserver.game.model.item.template
 
-abstract class SoulshotTemplate: ItemTemplate {
+sealed interface ShotTemplate: ItemTemplate
+
+abstract class SoulshotTemplate: ShotTemplate {
     abstract override val id: Int
     abstract override val name: String
     abstract override val grade: Grade
@@ -19,7 +21,7 @@ enum class SpiritshotType {
     BLESSED_SPIRITSHOT
 }
 
-abstract class SpiritshotTemplate: ItemTemplate {
+abstract class SpiritshotTemplate: ShotTemplate {
     abstract override val id: Int
     abstract override val name: String
     abstract override val grade: Grade
@@ -31,5 +33,5 @@ abstract class SpiritshotTemplate: ItemTemplate {
     abstract override val isExchangeable: Boolean
     abstract val spiritshotType: SpiritshotType
 
-    final override val isStackable: Boolean get() = true
+    final override val isStackable = true
 }

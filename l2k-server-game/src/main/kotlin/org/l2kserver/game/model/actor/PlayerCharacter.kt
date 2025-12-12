@@ -20,6 +20,8 @@ import org.l2kserver.game.model.actor.character.PvpState
 import org.l2kserver.game.model.actor.position.Heading
 import org.l2kserver.game.model.item.Soulshot
 import org.l2kserver.game.model.item.Spiritshot
+import org.l2kserver.game.model.item.instance.SoulshotInstance
+import org.l2kserver.game.model.item.instance.SpiritshotInstance
 import org.l2kserver.game.model.stats.BasicStats
 import org.l2kserver.game.model.stats.CombatStats
 import org.l2kserver.game.model.stats.TradeAndInventoryStats
@@ -188,8 +190,8 @@ class PlayerCharacter(
     override val weaponType get() = inventory.weapon?.type
     override val hasShield: Boolean get() = inventory.shield != null
 
-    var autoUsesSoulshot: Soulshot? = null
-    var autoUsesSpiritshot: Spiritshot? = null
+    var autoUsesSoulshot: SoulshotInstance? = null
+    var autoUsesSpiritshot: SpiritshotInstance? = null
 
     val knownGameWorldObjects: MutableSet<GameWorldObject> = ConcurrentHashMap.newKeySet()
 

@@ -8,7 +8,7 @@ import org.l2kserver.game.model.skill.instance.SkillTargetType
 import org.l2kserver.game.model.skill.template.MagicSkillTemplate
 import org.l2kserver.game.model.skill.template.SkillConsumablesTemplate
 
-object SelfHeal: MagicSkillTemplate {
+object SelfHeal: MagicSkillTemplate() {
     override val id = 1216
     override val skillName = "Self Heal"
     override val maxLevel = 1
