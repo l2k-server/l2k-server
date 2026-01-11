@@ -10,7 +10,7 @@ import org.l2kserver.game.model.skill.effect.Debuff
 import org.l2kserver.game.model.skill.effect.ResistedEffect
 import org.l2kserver.game.model.skill.effect.effects
 import org.l2kserver.game.model.skill.instance.SkillTargetType
-import org.l2kserver.game.model.skill.template.MagicSkillTemplate
+import org.l2kserver.game.model.skill.template.ActiveSkill
 import org.l2kserver.game.model.skill.template.SkillConsumablesTemplate
 import org.l2kserver.game.model.stats.BasicStat
 import org.l2kserver.game.model.stats.CON
@@ -44,13 +44,14 @@ class PoisonEffect(
 
 }
 
-object CursePoison: MagicSkillTemplate() {
+data object CursePoison: ActiveSkill() {
     override val id = 1168
     override val skillName = "Curse: Poison"
     override val maxLevel = 3
     override val targetType = SkillTargetType.ENEMY
     override val reuseDelay = 12_000
     override val castTime = 4_000
+    override val isMagic = true
     override val castRange = 600
     override val consumesToStart = SkillConsumablesTemplate(mp = listOf(2, 4, 6))
     override val consumes = SkillConsumablesTemplate(mp = listOf(8, 16, 21))

@@ -6,7 +6,7 @@ import org.l2kserver.game.extensions.putUTF16String
 import org.l2kserver.game.extensions.putUByte
 import org.l2kserver.game.model.item.instance.ItemInstance
 import org.l2kserver.game.model.item.instance.ShotInstance
-import org.l2kserver.game.model.skill.instance.CastableSkillInstance
+import org.l2kserver.game.model.skill.instance.ActiveSkillInstance
 import org.l2kserver.game.model.skill.instance.SkillInstance
 
 private const val SYSTEM_MESSAGE_RESPONSE_PACKET_ID: UByte = 100u
@@ -115,7 +115,7 @@ open class SystemMessageResponse private constructor(
     data object AttackFailed: SystemMessageResponse(systemMessageId = 158)
 
     /** Message: "[targetName] has resisted your [skill]." */
-    data class HasResisted(val targetName: String, val skill: CastableSkillInstance): SystemMessageResponse(
+    data class HasResisted(val targetName: String, val skill: ActiveSkillInstance): SystemMessageResponse(
         systemMessageId = 139, targetName, skill)
 
     /** Message: You have resisted [of]'s magic. */
@@ -124,7 +124,7 @@ open class SystemMessageResponse private constructor(
     )
 
     /** Message: "You use [skill]" */
-    data class YouUse(val skill: CastableSkillInstance): SystemMessageResponse(
+    data class YouUse(val skill: ActiveSkillInstance): SystemMessageResponse(
         systemMessageId = 46, skill)
 
     /** Message: "You have earned [earnedExp] experience and [earnedSp] SP" */

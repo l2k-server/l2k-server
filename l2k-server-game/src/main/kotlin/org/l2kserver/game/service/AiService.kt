@@ -1,12 +1,13 @@
 package org.l2kserver.game.service
 
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import org.l2kserver.game.extensions.logger
 import org.l2kserver.game.extensions.model.actor.asMutable
 import org.l2kserver.game.handler.dto.ChatTab
 import org.l2kserver.game.handler.dto.response.ChatMessageResponse
-import org.l2kserver.game.model.actor.Npc
+import org.l2kserver.game.model.actor.NpcInstanceImpl
 import org.l2kserver.game.model.actor.npc.ai.AiIntents
 import org.l2kserver.game.model.actor.npc.ai.AttackIntent
 import org.l2kserver.game.model.actor.npc.ai.MoveIntent
@@ -16,7 +17,6 @@ import org.l2kserver.game.repository.GameObjectRepository
 import org.springframework.boot.context.event.ApplicationReadyEvent
 import org.springframework.context.event.EventListener
 import org.springframework.stereotype.Service
-import kotlin.coroutines.coroutineContext
 
 @Service
 class AiService(
@@ -38,15 +38,15 @@ class AiService(
         //TODO Idle actions should be performed less frequently, but what if the npc is fighting?
     }
 
-    private suspend fun launchOnIdleAction(npc: Npc) {
+    private suspend fun launchOnIdleAction(npc: NpcInstanceImpl) {
         val intents = npc.onIdle()
         if (!asyncTaskService.hasActionByActorId(npc.id) && !intents.isNullOrEmpty()) {
             asyncTaskService.launchAction(npc.id) { performIntendedActions(intents, npc) }
         }
     }
 
-    private suspend fun performIntendedActions(intents: AiIntents, npc: Npc) = intents.forEach { intent ->
-        if (!coroutineContext.isActive) return@forEach
+    private suspend fun performIntendedActions(intents: AiIntents, npc: NpcInstanceImpl) = intents.forEach { intent ->
+        if (!currentCoroutineContext().isActive) return@forEach
         when (intent) {
             is WaitIntent -> delay(intent.waitTimeMillis)
             is SayIntent -> this@AiService.broadcastAround(npc.position) {

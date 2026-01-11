@@ -18,6 +18,9 @@ object AbnormalType {
     /** Increases physical attack*/
     const val PA_UP = "pa_up"
 
+    /** Increases accuracy */
+    const val HIT_UP = "hit_up"
+
     /** Dot heal (from potions and Greater Heal) */
     const val HP_RECOVER = "hp_recover"
 
@@ -76,9 +79,7 @@ interface Debuff: AbnormalEffect {
  * @property skillId Identifier of skill, that produced this effect
  * @property expiresAt Time of this effect's expiration
  */
-abstract class TemporalAbnormalEffect(
-    duration: Duration
-) : AbnormalEffect, Effect {
+abstract class TemporalAbnormalEffect(duration: Duration): AbnormalEffect, Effect {
     abstract val effectLevel: Int
     abstract val skillId: Int
 

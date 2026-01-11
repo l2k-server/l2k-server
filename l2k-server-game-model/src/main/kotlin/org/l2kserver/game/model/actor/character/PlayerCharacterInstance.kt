@@ -16,12 +16,13 @@ import org.l2kserver.game.model.skill.instance.SkillInstance
 /**
  * Player character instance.
  */
-interface CharacterInstance: ActorInstance {
+interface PlayerCharacterInstance: ActorInstance {
     override val id: Int
     val accountName: String
     override val name: String
     val title: String
 
+    val characterClass: CharacterClass
     val gender: Gender
     val race: CharacterRace
 
@@ -61,6 +62,8 @@ interface CharacterInstance: ActorInstance {
     override val isMoving: Boolean
     override val targetId: Int?
     override val targetedBy: Set<ActorInstance>
+
+    var pvpState get() = PvpState.NOT_IN_PVP; set(_) {}
 
     override val collisionBox: CollisionBox
     override val stats: CombatStats

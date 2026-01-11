@@ -15,11 +15,9 @@ import org.l2kserver.game.extensions.model.stats.applyModifiersOf
 import org.l2kserver.game.extensions.model.stats.applyFixedBonusStatsOf
 import org.l2kserver.game.extensions.model.stats.applyPostureBonusOf
 import org.l2kserver.game.model.actor.character.CharacterClass
-import org.l2kserver.game.model.actor.character.CharacterInstance
+import org.l2kserver.game.model.actor.character.PlayerCharacterInstance
 import org.l2kserver.game.model.actor.character.PvpState
 import org.l2kserver.game.model.actor.position.Heading
-import org.l2kserver.game.model.item.Soulshot
-import org.l2kserver.game.model.item.Spiritshot
 import org.l2kserver.game.model.item.instance.SoulshotInstance
 import org.l2kserver.game.model.item.instance.SpiritshotInstance
 import org.l2kserver.game.model.stats.BasicStats
@@ -97,11 +95,10 @@ import org.l2kserver.game.model.store.PrivateStore
  * @property autoUsesSoulshot Automatically used soulshot item. Null if disabled
  * @property autoUsesSpiritshot Automatically used spiritshot item. Null if disabled
  */
-class PlayerCharacter(
+class PlayerCharacterInstanceImpl(
     private val entity: PlayerCharacterEntity,
-    val characterClass: CharacterClass
-): MutableActorInstance(), CharacterInstance {
-
+    override val characterClass: CharacterClass
+): MutableActorInstance(), PlayerCharacterInstance {
     override val id: Int = entity.id.value
     override val accountName by entity::accountName
     override val name by entity::name
@@ -165,7 +162,7 @@ class PlayerCharacter(
     override var targetId: Int? = null
     override val targetedBy: MutableSet<ActorInstance> = ConcurrentHashMap.newKeySet(0)
 
-    var pvpState = PvpState.NOT_IN_PVP
+    override var pvpState = PvpState.NOT_IN_PVP
 
     override val level: Int get() = LevelUtils.getLevelByExp(exp)
 

@@ -6,16 +6,17 @@ import org.l2kserver.game.model.skill.context.SkillContext
 import org.l2kserver.game.model.skill.effect.DamageEffect
 import org.l2kserver.game.model.skill.effect.Effects
 import org.l2kserver.game.model.skill.instance.SkillTargetType
-import org.l2kserver.game.model.skill.template.ActiveSkillTemplate
+import org.l2kserver.game.model.skill.template.ActiveSkill
 import org.l2kserver.game.model.skill.template.SkillConsumablesTemplate
 import org.l2kserver.game.model.skill.template.SkillRequirements
 
-object MortalBlow: ActiveSkillTemplate() {
+data object MortalBlow: ActiveSkill() {
     override val id = 16
     override val skillName = "Mortal Blow"
     override val maxLevel = 24
     override val reuseDelay = 11_000
     override val castTime = 1_080
+    override val isMagic = false
     override val repriseTime = 720
     override val castRange = 40
     override val effectRange = 400

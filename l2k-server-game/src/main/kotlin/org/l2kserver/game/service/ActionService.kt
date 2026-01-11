@@ -17,12 +17,13 @@ import org.l2kserver.game.handler.dto.response.SocialActionResponse
 import org.l2kserver.game.handler.dto.response.StatusAttribute
 import org.l2kserver.game.handler.dto.response.UpdateStatusResponse
 import org.l2kserver.game.model.actor.ActorInstance
-import org.l2kserver.game.model.actor.Npc
-import org.l2kserver.game.model.actor.PlayerCharacter
+import org.l2kserver.game.model.actor.NpcInstanceImpl
+import org.l2kserver.game.model.actor.PlayerCharacterInstanceImpl
 import org.l2kserver.game.model.actor.ScatteredItem
 import org.l2kserver.game.model.actor.MoveType
 import org.l2kserver.game.model.actor.MutableActorInstance
 import org.l2kserver.game.model.actor.Posture
+import org.l2kserver.game.model.actor.character.PlayerCharacterInstance
 import org.l2kserver.game.network.session.send
 import org.l2kserver.game.network.session.sessionContext
 import org.l2kserver.game.repository.GameObjectRepository
@@ -42,7 +43,7 @@ class ActionService(
     private val asyncTaskService: AsyncTaskService,
 
     override val gameObjectRepository: GameObjectRepository
-): AbstractService() {
+) : AbstractService() {
     override val log = logger()
 
     /** Handles request to attack */
@@ -63,18 +64,17 @@ class ActionService(
         if (character.targetId == request.targetId && character.targetId == character.id)
             return
 
-        val target = gameObjectRepository.findByIdOrNull(request.targetId)
-        when {
-            target is ScatteredItem -> itemService.launchPickUp(character, target)
-            target is MutableActorInstance && target.id != character.targetId -> character.setTarget(target)
-            target is Npc && target.isEnemyOf(character) -> combatService.launchAttack(character, target)
-            target is Npc || target is PlayerCharacter && target.privateStore != null -> character.interactWith(target)
-            target is PlayerCharacter && target.isEnemyOf(character) -> combatService.launchAttack(character, target)
-            target is PlayerCharacter -> send { ActionFailedResponse } //TODO https://github.com/l2k-server/l2k-server/issues/21
-            target == null -> {
-                log.warn("Character '{}' tries to set target to non-existent target with id = '{}'",
-                    character, request.targetId)
+        when (val target = gameObjectRepository.findByIdOrNull(request.targetId)) {
+            null -> {
+                log.warn("'{}' tries to interact with non-existent object '{}'", character, request.targetId)
                 send { ActionFailedResponse }
+            }
+            is ScatteredItem -> itemService.launchPickUp(character, target)
+            is MutableActorInstance -> when {
+                target.id != character.targetId -> character.setTarget(target)
+                target.isEnemyOf(character) -> combatService.launchAttack(character, target)
+                target.isInteractableBy(character) -> character.interactWith(target)
+                target is PlayerCharacterInstanceImpl -> send { ActionFailedResponse } //TODO https://github.com/l2k-server/l2k-server/issues/21
             }
         }
     }
@@ -104,6 +104,7 @@ class ActionService(
                 if (character.posture == Posture.STANDING) character.sitDown()
                 else character.standUp()
             }
+
             BasicAction.TOGGLE_WALK_RUN -> suspendTransaction {
                 log.debug("Got request to toggle walk/run")
 
@@ -114,6 +115,7 @@ class ActionService(
                     ChangeMoveTypeResponse(character.id, character.moveType)
                 }
             }
+
             BasicAction.GENERAL_MANUFACTURE -> tradeService.startGeneralPrivateManufacture()
         }
     }
@@ -136,7 +138,7 @@ class ActionService(
     suspend fun showMap() = send { ShowMapResponse }
 
     /** Moves PlayerCharacter enough close to [target] and starts interaction with it */
-    private suspend fun PlayerCharacter.interactWith(
+    private suspend fun PlayerCharacterInstanceImpl.interactWith(
         target: ActorInstance
     ) = asyncTaskService.launchAction(this.id) {
         val character = this@interactWith
@@ -152,19 +154,19 @@ class ActionService(
         if (!isActive || !enoughCloseToInteract) return@launchAction
 
         when (target) {
-            is Npc -> npcService.talkTo(target)
-            is PlayerCharacter -> tradeService.showPrivateStoreOf(target)
+            is NpcInstanceImpl -> npcService.talkTo(target)
+            is PlayerCharacterInstanceImpl -> tradeService.showPrivateStoreOf(target)
         }
     }
 
     /** Set character's target to [targeted] and sends information about it */
-    private suspend fun PlayerCharacter.setTarget(targeted: MutableActorInstance) {
+    private suspend fun PlayerCharacterInstanceImpl.setTarget(targeted: MutableActorInstance) {
         this.targetId = targeted.id
         targeted.targetedBy.add(this)
 
         when (targeted) {
-            is PlayerCharacter -> send { SetTargetResponse(targeted.id) }
-            is Npc -> {
+            is PlayerCharacterInstanceImpl -> send { SetTargetResponse(targeted.id) }
+            is NpcInstanceImpl -> {
                 send { SetTargetResponse(targeted.id, this.level - targeted.level) }
                 send {
                     UpdateStatusResponse(
@@ -176,4 +178,10 @@ class ActionService(
             }
         }
     }
+
+    private fun ActorInstance.isInteractableBy(character: PlayerCharacterInstance): Boolean {
+        return (this is NpcInstanceImpl && !this.isEnemyOf(character))
+                || (this is PlayerCharacterInstanceImpl && this.privateStore != null)
+    }
+
 }

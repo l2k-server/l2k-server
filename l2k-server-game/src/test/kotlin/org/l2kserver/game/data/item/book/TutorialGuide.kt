@@ -1,10 +1,10 @@
 package org.l2kserver.game.data.item.book
 
 import org.l2kserver.game.model.html.HtmlRegistry
-import org.l2kserver.game.model.item.template.BookTemplate
+import org.l2kserver.game.model.item.template.Book
 import org.l2kserver.game.model.item.template.Grade
 
-object TutorialGuide: BookTemplate() {
+data object TutorialGuide: Book() {
     override val id = 5588
     override val name = "Tutorial Guide"
     override val grade = Grade.NO_GRADE

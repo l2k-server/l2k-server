@@ -3,13 +3,8 @@ package org.l2kserver.game.model.skill
 import org.l2kserver.game.domain.SkillEntity
 import org.l2kserver.game.model.skill.context.SkillContext
 import org.l2kserver.game.model.skill.instance.ActiveSkillInstance
-import org.l2kserver.game.model.skill.instance.CastableSkillInstance
-import org.l2kserver.game.model.skill.instance.MagicSkillInstance
 import org.l2kserver.game.model.skill.instance.SkillConsumables
-import org.l2kserver.game.model.skill.template.ActiveSkillTemplate
-import org.l2kserver.game.model.skill.template.CastableSkillTemplate
-import org.l2kserver.game.model.skill.template.MagicSkillTemplate
-import org.l2kserver.game.model.skill.template.SkillConsumablesTemplate
+import org.l2kserver.game.model.skill.template.ActiveSkill
 import java.time.Instant
 import java.util.concurrent.ConcurrentHashMap
 
@@ -30,17 +25,16 @@ private val cooldowns = ConcurrentHashMap<Int, Instant>()
  * @property requires Requirements to use this skill
  * @property consumes Skill consumables - mp, items, etc.
  */
-sealed class CastableSkill(
+class ActiveSkillInstanceImpl(
     private val entity: SkillEntity,
-    private val template:  CastableSkillTemplate
-) : CastableSkillInstance {
-    companion object;
-
+    private val template: ActiveSkill,
+): ActiveSkillInstance {
     private val skillEntityId = entity.id.value
 
     override val skillId = entity.skillId
     override val skillName = template.skillName
     override val skillLevel by entity::skillLevel
+    override val isMagic = template.isMagic
     override val targetType = template.targetType
 
     override val reuseDelay: Int = template.reuseDelay
@@ -49,10 +43,11 @@ sealed class CastableSkill(
     override val castRange = template.castRange
     override val effectRange = template.effectRange
     override val requires = template.requires
-    override val consumesToStart: SkillConsumables? get() = template.consumesToStart?.toSkillConsumables(skillLevel)
-    override val consumes: SkillConsumables? get() = template.consumes?.toSkillConsumables(skillLevel)
+    override val consumesToStart: SkillConsumables? get() = template.consumesToStart?.getByLevel(skillLevel)
+    override val consumes: SkillConsumables? get() = template.consumes?.getByLevel(skillLevel)
     override val overhitPossible = template.overhitPossible
     override val forcedUsageAllowed = template.forcedUsageAllowed
+    override val usesCasterStats = template.usesCasterStats
 
     override var nextUsageTime: Instant
         get() = cooldowns[skillEntityId] ?: Instant.MIN
@@ -64,29 +59,3 @@ sealed class CastableSkill(
 
     override fun toString() = "ActiveSkill(id=$skillId name=$skillName level=$skillLevel)"
 }
-
-class ActiveSkill(
-    entity: SkillEntity, template: ActiveSkillTemplate
-): ActiveSkillInstance, CastableSkill(entity, template)
-
-class MagicSkill(
-    entity: SkillEntity, template: MagicSkillTemplate
-): MagicSkillInstance, CastableSkill(entity, template)
-
-private fun SkillConsumablesTemplate.toSkillConsumables(skillLevel: Int) = SkillConsumables(
-    hp = this.hp?.let {
-        requireNotNull(it.getOrNull(skillLevel - 1)) {
-            "No data about hp consumption at skill level = '$skillLevel' found"
-        }
-    } ?: 0,
-    mp = this.mp?.let {
-        requireNotNull(it.getOrNull(skillLevel - 1)) {
-            "No data about mp consumption at skill level = '$skillLevel' found"
-        }
-    } ?: 0,
-    item = this.item?.let {
-        requireNotNull(it.getOrNull(skillLevel - 1)) {
-            "No data about item consumption at skill level = '$skillLevel' found"
-        }
-    },
-)

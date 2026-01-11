@@ -2,7 +2,7 @@ package org.l2kserver.game.handler.dto.response
 
 import org.l2kserver.game.extensions.littleEndianByteArray
 import org.l2kserver.game.extensions.putUTF16String
-import org.l2kserver.game.model.actor.PlayerCharacter
+import org.l2kserver.game.model.actor.PlayerCharacterInstanceImpl
 import java.time.Duration
 import java.time.LocalDateTime
 
@@ -18,7 +18,7 @@ private const val CHARACTERS_INFO_RESPONSE_PACKET_ID: UByte = 19u
 data class CharacterListResponse(
     val gameSessionKey1: Int,
     val accountName: String,
-    val playerCharacters: List<PlayerCharacter>
+    val playerCharacters: List<PlayerCharacterInstanceImpl>
 ) : ResponsePacket {
 
     override val data = littleEndianByteArray {

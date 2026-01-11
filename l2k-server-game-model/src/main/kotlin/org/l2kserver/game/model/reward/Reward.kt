@@ -5,25 +5,13 @@ package org.l2kserver.game.model.reward
  *
  * @property exp How many experience is given
  * @property sp How many skill points is given
- * @property itemGroups Reward item groups.
+ * @property itemGroups Reward item groups. Key - chance, Value - items in this group
  *
- * @see RewardItemGroup
  */
 data class Reward(
     val exp: Int = 0,
     val sp: Int = 0,
-    val itemGroups: List<RewardItemGroup> = emptyList()
-)
-
-/**
- * Group of reward items. Only one item from group will be dropped, if [chance] occurs
- *
- * @property chance Drop chance
- * @property items Items, one of which will be dropped
- */
-data class RewardItemGroup(
-    val chance: Double,
-    val items: List<RewardItem>
+    val itemGroups: List<Pair<Double, List<RewardItem>>> = emptyList()
 )
 
 /**

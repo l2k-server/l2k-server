@@ -10,6 +10,7 @@ import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import org.l2kserver.game.extensions.logger
@@ -17,7 +18,6 @@ import org.l2kserver.game.utils.time.withDelay
 import java.time.Duration
 import java.time.Instant
 import java.time.temporal.Temporal
-import kotlin.coroutines.coroutineContext
 
 /**
  * This service handles async tasks, like moving, attacking, etc
@@ -38,7 +38,7 @@ class AsyncTaskService {
      */
     suspend fun launchAction(actorId: Int, action: suspend CoroutineScope.() -> Unit): Job {
         actionJobMap[actorId]?.cancelAndJoin()
-        val job = CoroutineScope(Dispatchers.Default + coroutineContext).launch { action() }
+        val job = CoroutineScope(Dispatchers.Default + currentCoroutineContext()).launch { action() }
         job.invokeOnCompletion {
             it?.let { log.warn("Job for actor '{}' completed with error", actorId, it) }
             actionJobMap.remove(actorId)
@@ -89,7 +89,7 @@ class AsyncTaskService {
     @PreDestroy
     @Suppress("unused")
     fun shutdown() {
-        taskJobMap.forEach { name, task ->
+        taskJobMap.forEach { (name, task) ->
             log.info("Cancelling $name}")
             task.cancel()
         }

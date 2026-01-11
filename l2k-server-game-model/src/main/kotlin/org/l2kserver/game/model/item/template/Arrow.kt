@@ -1,6 +1,6 @@
 package org.l2kserver.game.model.item.template
 
-abstract class BookTemplate: ItemTemplate {
+abstract class Arrow: Item {
     abstract override val id: Int
     abstract override val name: String
     abstract override val grade: Grade
@@ -10,7 +10,11 @@ abstract class BookTemplate: ItemTemplate {
     abstract override val isDroppable: Boolean
     abstract override val isDestroyable: Boolean
     abstract override val isExchangeable: Boolean
-    abstract val text: String
 
-    final override val isStackable = false
+    final override val isStackable = true
+    final override val type = ArrowItemType
+}
+
+object ArrowItemType : ItemType {
+    override val availableSlots = setOf(Slot.LEFT_HAND)
 }

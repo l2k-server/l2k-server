@@ -6,17 +6,18 @@ import org.l2kserver.game.model.skill.context.SkillContext
 import org.l2kserver.game.model.skill.effect.effects
 import org.l2kserver.game.model.skill.effect.HealEffect
 import org.l2kserver.game.model.skill.instance.SkillTargetType
-import org.l2kserver.game.model.skill.template.MagicSkillTemplate
+import org.l2kserver.game.model.skill.template.ActiveSkill
 import org.l2kserver.game.model.skill.template.SkillConsumablesTemplate
 import kotlin.math.roundToInt
 
-object LifeScavenge: MagicSkillTemplate() {
+data object LifeScavenge: ActiveSkill() {
     override val id = 46
     override val skillName = "Life Scavenge"
     override val maxLevel = 15
     override val targetType = SkillTargetType.DEAD_NPC
     override val reuseDelay = 20_000
     override val castTime = 1500
+    override val isMagic = true
     override val castRange = 400
     override val effectRange = 900
     override val consumesToStart = SkillConsumablesTemplate(

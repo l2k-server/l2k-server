@@ -6,18 +6,19 @@ import org.l2kserver.game.model.skill.context.SkillContext
 import org.l2kserver.game.model.skill.effect.DamageEffect
 import org.l2kserver.game.model.skill.effect.Effects
 import org.l2kserver.game.model.skill.instance.SkillTargetType
-import org.l2kserver.game.model.skill.template.ActiveSkillTemplate
+import org.l2kserver.game.model.skill.template.ActiveSkill
 import org.l2kserver.game.model.skill.template.SkillConsumablesTemplate
 import org.l2kserver.game.model.skill.template.SkillRequirements
 
 @Suppress("MatchingDeclarationName")
-object PowerShot: ActiveSkillTemplate() {
+data object PowerShot: ActiveSkill() {
     override val id = 56
     override val skillName = "Power Shot"
     override val maxLevel = 24
     override val targetType = SkillTargetType.ENEMY
     override val reuseDelay = 25_000
     override val castTime = 3_200
+    override val isMagic = false
     override val repriseTime = 800
     override val castRange = 700
     override val effectRange = 1200

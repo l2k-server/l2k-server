@@ -1,11 +1,11 @@
 package org.l2kserver.game.repository
 
 import org.l2kserver.game.model.actor.position.Position
-import org.l2kserver.game.model.actor.PlayerCharacter
+import org.l2kserver.game.model.actor.PlayerCharacterInstanceImpl
 import org.l2kserver.game.model.actor.GameWorldObject
 import org.springframework.stereotype.Component
 import java.util.concurrent.ConcurrentHashMap
-import org.l2kserver.game.model.actor.Npc
+import org.l2kserver.game.model.actor.NpcInstanceImpl
 import org.l2kserver.game.service.VISION_RANGE
 import kotlin.collections.asSequence
 
@@ -14,22 +14,22 @@ import kotlin.collections.asSequence
 class GameObjectRepository {
 
     private val objects = ConcurrentHashMap<Int, GameWorldObject>()
-    private val characters = ConcurrentHashMap<Int, PlayerCharacter>()
-    private val npcs = ConcurrentHashMap<Int, Npc>()
+    private val characters = ConcurrentHashMap<Int, PlayerCharacterInstanceImpl>()
+    private val npcs = ConcurrentHashMap<Int, NpcInstanceImpl>()
 
     /**
      * Loads character to game world
      * @return loaded Character
      */
-    fun loadCharacter(character: PlayerCharacter): PlayerCharacter {
+    fun loadCharacter(character: PlayerCharacterInstanceImpl): PlayerCharacterInstanceImpl {
         characters[character.id] = character
         return character
     }
 
     fun <T: GameWorldObject> save(gameObject: T?) = if (gameObject == null) null else {
         when (gameObject) {
-            is PlayerCharacter -> characters[gameObject.id] = gameObject
-            is Npc -> npcs[gameObject.id] = gameObject
+            is PlayerCharacterInstanceImpl -> characters[gameObject.id] = gameObject
+            is NpcInstanceImpl -> npcs[gameObject.id] = gameObject
             else -> objects[gameObject.id] = gameObject
         }
 
@@ -115,8 +115,8 @@ class GameObjectRepository {
      */
     @Suppress("UNCHECKED_CAST")
     fun <T: GameWorldObject> delete(gameObject: T): T? = when (gameObject) {
-        is PlayerCharacter -> characters.remove(gameObject.id)
-        is Npc -> npcs.remove(gameObject.id)
+        is PlayerCharacterInstanceImpl -> characters.remove(gameObject.id)
+        is NpcInstanceImpl -> npcs.remove(gameObject.id)
         else -> objects.remove(gameObject.id)
     } as T?
 

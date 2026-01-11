@@ -1,7 +1,7 @@
 package org.l2kserver.game.extensions.model.stats
 
 import org.l2kserver.game.model.actor.ActorInstance
-import org.l2kserver.game.model.actor.PlayerCharacter
+import org.l2kserver.game.model.actor.PlayerCharacterInstanceImpl
 import org.l2kserver.game.model.actor.Posture
 import org.l2kserver.game.model.actor.character.CharacterClass
 import org.l2kserver.game.model.actor.npc.NpcInstance
@@ -25,7 +25,7 @@ private const val REGENERATION_MULTIPLIER_ON_RUNNING = 0.7
  *
  * @param character Equipment owner
  */
-fun CombatStats.applyEquipmentOf(character: PlayerCharacter): CombatStats {
+fun CombatStats.applyEquipmentOf(character: PlayerCharacterInstanceImpl): CombatStats {
     var result = this + (character.inventory.weapon?.stats ?: character.characterClass.emptySlotStats[Slot.RIGHT_HAND])
 
     val upperBodyStats =
@@ -35,13 +35,14 @@ fun CombatStats.applyEquipmentOf(character: PlayerCharacter): CombatStats {
 
     result += character.inventory[Slot.UPPER_AND_LOWER_BODY]?.stats ?: (upperBodyStats?.plus(lowerBodyStats))
 
-    val slotsLeft = Slot.entries - listOf(
+    val slotsLeft = Slot.entries - setOf(
         Slot.RIGHT_HAND,
         Slot.TWO_HANDS,
         Slot.UPPER_BODY,
         Slot.LOWER_BODY,
         Slot.UPPER_AND_LOWER_BODY
     )
+
     slotsLeft.forEach {
         result += character.inventory[it]?.stats ?: character.characterClass.emptySlotStats[it]
     }
@@ -50,7 +51,7 @@ fun CombatStats.applyEquipmentOf(character: PlayerCharacter): CombatStats {
 }
 
 /** Calculate stats after applying base stats and level modifiers */
-fun CombatStats.applyModifiersOf(character: PlayerCharacter): CombatStats {
+fun CombatStats.applyModifiersOf(character: PlayerCharacterInstanceImpl): CombatStats {
     val level = character.level
     val characterClass = character.characterClass
     val basicStats = character.basicStats
@@ -115,7 +116,7 @@ fun CombatStats.applyModifiersOf(character: PlayerCharacter): CombatStats {
 }
 
 /** Applies fixed bonus of items, buffs and passives */
-fun CombatStats.applyFixedBonusStatsOf(character: PlayerCharacter): CombatStats {
+fun CombatStats.applyFixedBonusStatsOf(character: PlayerCharacterInstanceImpl): CombatStats {
     val itemsFixedBonusStats = character.inventory.findAllEquipped().mapNotNull { it.fixedBonusStats }
 
     val passivesFixedBonusStats = character.skillsAndMagic.passives()
@@ -131,7 +132,7 @@ fun CombatStats.applyFixedBonusStatsOf(character: PlayerCharacter): CombatStats 
 /** Applies posture bonus to regen stats */
 fun CombatStats.applyPostureBonusOf(actor: ActorInstance): CombatStats {
     val postureBonus = when {
-        actor is PlayerCharacter && actor.posture == Posture.SITTING -> REGENERATION_MULTIPLIER_ON_SITTING
+        actor is PlayerCharacterInstanceImpl && actor.posture == Posture.SITTING -> REGENERATION_MULTIPLIER_ON_SITTING
         !actor.isMoving -> REGENERATION_MULTIPLIER_ON_STAYING
         actor.isRunning -> REGENERATION_MULTIPLIER_ON_RUNNING
         else -> 1.0
@@ -156,10 +157,10 @@ fun CombatStats.applyAbnormalsOf(npc: NpcInstance): CombatStats {
 }
 
 private fun hpRegenLevelModifier(characterClass: CharacterClass, level: Int) =
-    characterClass.hpRegenPer10Levels[level / 10]
+    characterClass.hpRegenPer10Levels[(level - 1) / 10]
 
 private fun mpRegenLevelModifier(characterClass: CharacterClass, level: Int) =
-    characterClass.mpRegenPer10Levels[level / 10]
+    characterClass.mpRegenPer10Levels[(level - 1) / 10]
 
 private fun cpRegenLevelModifier(characterClass: CharacterClass, level: Int) =
     hpRegenLevelModifier(characterClass, level)

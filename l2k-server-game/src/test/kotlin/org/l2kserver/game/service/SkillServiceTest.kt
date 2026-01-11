@@ -28,7 +28,7 @@ import org.l2kserver.game.handler.dto.response.StartMovingToTargetResponse
 import org.l2kserver.game.handler.dto.response.StatusAttribute
 import org.l2kserver.game.handler.dto.response.SystemMessageResponse
 import org.l2kserver.game.handler.dto.response.UpdateStatusResponse
-import org.l2kserver.game.model.actor.npc.NpcTemplateRegistry
+import org.l2kserver.game.model.actor.npc.NpcRegistry
 import org.l2kserver.game.data.item.weapons.SquiresSword
 import org.l2kserver.game.data.npc.FatDummyGremlin
 import org.l2kserver.game.data.skill.DefenseAura
@@ -87,7 +87,7 @@ class SkillServiceTest(
 
         // Create our target
         val target = npcService.spawnAtPosition(
-            template = NpcTemplateRegistry.register(FatDummyGremlin),
+            template = NpcRegistry.register(FatDummyGremlin),
             spawnPosition = character.position.toSpawnPosition()
         )
         context.responseChannel.receive() //Skip NpcInfoResponse
@@ -111,7 +111,7 @@ class SkillServiceTest(
 
         // Create our target
         val target = npcService.spawnAtPosition(
-            template = NpcTemplateRegistry.register(FatDummyGremlin),
+            template = NpcRegistry.register(FatDummyGremlin),
             spawnPosition = character.position.toSpawnPosition()
         )
 
@@ -360,7 +360,7 @@ class SkillServiceTest(
         // Learn skill and create target
         character.skillsAndMagic.learn(PowerStrike.id, 1)
         val target = npcService.spawnAtPosition(
-            template = NpcTemplateRegistry.register(FatDummyGremlin),
+            template = NpcRegistry.register(FatDummyGremlin),
             spawnPosition = character.position.toSpawnPosition()
         )
         context.responseChannel.receive() // Skip NpcInfoResponse
@@ -403,7 +403,7 @@ class SkillServiceTest(
 
         // Spawn target far away so that castRange is insufficient
         val target = npcService.spawnAtPosition(
-            template = NpcTemplateRegistry.register(FatDummyGremlin),
+            template = NpcRegistry.register(FatDummyGremlin),
             spawnPosition = character.position.copy(x = character.position.x + 10_000).toSpawnPosition()
         )
 
@@ -424,7 +424,7 @@ class SkillServiceTest(
         character.skillsAndMagic.learn(PowerStrike.id, 1)
 
         val target = npcService.spawnAtPosition(
-            template = NpcTemplateRegistry.register(FatDummyGremlin),
+            template = NpcRegistry.register(FatDummyGremlin),
             spawnPosition = character.position.toSpawnPosition()
         )
         context.responseChannel.receive() // Skip NpcInfoResponse
@@ -450,7 +450,7 @@ class SkillServiceTest(
 
         // Spawn alive target
         val target = npcService.spawnAtPosition(
-            template = NpcTemplateRegistry.register(FatDummyGremlin),
+            template = NpcRegistry.register(FatDummyGremlin),
             spawnPosition = character.position.toSpawnPosition()
         )
         context.responseChannel.receive() // Skip NpcInfoResponse
@@ -477,7 +477,7 @@ class SkillServiceTest(
 
         // Create target
         val target = npcService.spawnAtPosition(
-            template = NpcTemplateRegistry.register(FatDummyGremlin),
+            template = NpcRegistry.register(FatDummyGremlin),
             spawnPosition = character.position.toSpawnPosition()
         )
         context.responseChannel.receive() // Skip NpcInfoResponse
@@ -613,7 +613,7 @@ class SkillServiceTest(
 
         // Create our target
         val target = npcService.spawnAtPosition(
-            template = NpcTemplateRegistry.register(FatDummyGremlin),
+            template = NpcRegistry.register(FatDummyGremlin),
             spawnPosition = character.position.toSpawnPosition()
         )
 
@@ -658,7 +658,7 @@ class SkillServiceTest(
 
         // Create our target
         val target = npcService.spawnAtPosition(
-            template = NpcTemplateRegistry.register(FatDummyGremlin),
+            template = NpcRegistry.register(FatDummyGremlin),
             spawnPosition = character.position.toSpawnPosition()
         )
 

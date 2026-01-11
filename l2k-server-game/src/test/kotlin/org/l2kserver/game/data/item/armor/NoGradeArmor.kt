@@ -1,11 +1,11 @@
 package org.l2kserver.game.data.item.armor
 
-import org.l2kserver.game.model.item.template.ArmorTemplate
+import org.l2kserver.game.model.item.template.Armor
 import org.l2kserver.game.model.item.template.ArmorType
 import org.l2kserver.game.model.item.template.Grade
 import org.l2kserver.game.model.stats.CombatStats
 
-object LeatherShield: ArmorTemplate() {
+data object LeatherShield: Armor() {
     override val id = 18
     override val name = "Leather Shield"
     override val grade = Grade.NO_GRADE
@@ -20,7 +20,7 @@ object LeatherShield: ArmorTemplate() {
     override val crystalCount = 0
 }
 
-object SquiresShirt: ArmorTemplate() {
+data object SquiresShirt: Armor() {
     override val id = 1146
     override val name = "Squire's Shirt"
     override val grade = Grade.NO_GRADE
@@ -35,7 +35,7 @@ object SquiresShirt: ArmorTemplate() {
     override val crystalCount = 0
 }
 
-object SquiresPants: ArmorTemplate() {
+data object SquiresPants: Armor() {
     override val id = 1147
     override val name = "Squire's Pants"
     override val grade = Grade.NO_GRADE
@@ -50,7 +50,7 @@ object SquiresPants: ArmorTemplate() {
     override val crystalCount = 0
 }
 
-object ApprenticeTunic: ArmorTemplate() {
+data object ApprenticeTunic: Armor() {
     override val id = 425
     override val name = "Apprentice's Tunic"
     override val grade = Grade.NO_GRADE
@@ -66,7 +66,7 @@ object ApprenticeTunic: ArmorTemplate() {
     override val crystalCount = 0
 }
 
-object ApprenticesStockings: ArmorTemplate() {
+data object ApprenticesStockings: Armor() {
     override val id = 461
     override val name = "Apprentice's Tunic"
     override val grade = Grade.NO_GRADE

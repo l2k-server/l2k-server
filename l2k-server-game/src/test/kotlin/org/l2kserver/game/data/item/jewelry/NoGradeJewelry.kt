@@ -1,11 +1,11 @@
 package org.l2kserver.game.data.item.jewelry
 
 import org.l2kserver.game.model.item.template.Grade
-import org.l2kserver.game.model.item.template.JewelryTemplate
+import org.l2kserver.game.model.item.template.Jewelry
 import org.l2kserver.game.model.item.template.JewelryType
 import org.l2kserver.game.model.stats.CombatStats
 
-object EarringOfStrength: JewelryTemplate() {
+data object EarringOfStrength: Jewelry() {
     override val id = 114
     override val name = "Earring of Strength"
     override val grade = Grade.NO_GRADE
@@ -20,7 +20,7 @@ object EarringOfStrength: JewelryTemplate() {
     override val crystalCount = 0
 }
 
-object EarringOfWisdom: JewelryTemplate() {
+data object EarringOfWisdom: Jewelry() {
     override val id = 115
     override val name = "Earring of Wisdom"
     override val grade = Grade.NO_GRADE
@@ -35,7 +35,7 @@ object EarringOfWisdom: JewelryTemplate() {
     override val crystalCount = 0
 }
 
-object RingOfKnowledge: JewelryTemplate() {
+data object RingOfKnowledge: Jewelry() {
     override val id = 875
     override val name = "Ring of Knowledge"
     override val grade = Grade.NO_GRADE
@@ -50,7 +50,7 @@ object RingOfKnowledge: JewelryTemplate() {
     override val crystalCount = 0
 }
 
-object RingOfAnguish: JewelryTemplate() {
+data object RingOfAnguish: Jewelry() {
     override val id = 876
     override val name = "Ring of Anguish"
     override val grade = Grade.NO_GRADE
@@ -65,7 +65,7 @@ object RingOfAnguish: JewelryTemplate() {
     override val crystalCount = 0
 }
 
-object NecklaceOfCourage: JewelryTemplate() {
+data object NecklaceOfCourage: Jewelry() {
     override val id = 1506
     override val name = "Necklace of Courage"
     override val grade = Grade.NO_GRADE

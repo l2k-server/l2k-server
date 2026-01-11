@@ -1,9 +1,9 @@
 package org.l2kserver.game.data.item.soulshot
 
 import org.l2kserver.game.model.item.template.Grade
-import org.l2kserver.game.model.item.template.SoulshotTemplate
+import org.l2kserver.game.model.item.template.Soulshot
 
-object SoulshotNoGrade: SoulshotTemplate() {
+data object SoulshotNoGrade: Soulshot() {
     override val id = 1835
     override val name = "Soulshot: No Grade"
     override val grade = Grade.NO_GRADE
@@ -15,7 +15,7 @@ object SoulshotNoGrade: SoulshotTemplate() {
     override val isExchangeable = true
 }
 
-object SoulshotSGrade: SoulshotTemplate() {
+data object SoulshotSGrade: Soulshot() {
     override val id = 1467
     override val name = "Soulshot: S-Grade"
     override val grade = Grade.S

@@ -8,7 +8,7 @@ import org.l2kserver.game.model.skill.effect.Effects
 import org.l2kserver.game.model.stats.CombatStats
 import kotlin.random.Random
 
-abstract class WeaponTemplate: EquippableItemTemplate, Crystallizable {
+abstract class Weapon: EquippableItem, Crystallizable {
     abstract override val id: Int
     abstract override val name: String
     abstract override val grade: Grade

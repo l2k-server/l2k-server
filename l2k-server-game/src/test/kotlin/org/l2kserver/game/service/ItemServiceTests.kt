@@ -18,6 +18,7 @@ import org.l2kserver.game.data.item.weapons.SquiresSword
 import org.l2kserver.game.data.item.weapons.WillowStaff
 import org.l2kserver.game.data.item.soulshot.SoulshotNoGrade
 import org.l2kserver.game.data.item.soulshot.SoulshotSGrade
+import org.l2kserver.game.data.item.etc.ScrollOfGuidance
 import org.l2kserver.game.handler.dto.request.DeleteItemRequest
 import org.l2kserver.game.handler.dto.request.DropItemRequest
 import org.l2kserver.game.handler.dto.request.TakeOffItemRequest
@@ -28,6 +29,10 @@ import org.l2kserver.game.handler.dto.response.SystemMessageResponse
 import org.l2kserver.game.handler.dto.response.UpdateItemOperation
 import org.l2kserver.game.handler.dto.response.UpdateItemsResponse
 import org.l2kserver.game.handler.dto.response.UpdateStatusResponse
+import org.l2kserver.game.handler.dto.response.GaugeColor
+import org.l2kserver.game.handler.dto.response.GaugeResponse
+import org.l2kserver.game.handler.dto.response.SkillUsedResponse
+import org.l2kserver.game.handler.dto.response.TemporalEffectsResponse
 import org.l2kserver.game.model.actor.position.Position
 import org.l2kserver.game.extensions.toItemOnSale
 import org.l2kserver.game.handler.dto.response.DeleteObjectResponse
@@ -41,6 +46,7 @@ import org.l2kserver.game.handler.dto.response.operation
 import org.l2kserver.game.model.actor.Posture
 import org.l2kserver.game.model.item.template.ItemTemplateRegistry
 import org.l2kserver.game.model.item.template.Slot
+import org.l2kserver.game.model.skill.effect.AbnormalType
 import org.l2kserver.game.model.store.PrivateStore
 import org.springframework.beans.factory.annotation.Autowired
 import kotlin.random.Random
@@ -822,6 +828,51 @@ class ItemServiceTests(
             assertEquals(soulshot.id, updateItemsResponse.operations[0].item.id)
             assertEquals(UpdateItemOperation.REMOVE, updateItemsResponse.operations[0].operation)
         }
+    }
+
+    @Test
+    fun shouldSuccessfullyUseMagicItem(): Unit = runBlocking {
+        val context = createTestSessionContext()
+        val character = createTestCharacter()
+        context.setCharacterId(character.id)
+
+        // Create ScrollOfGuidance
+        val scroll = createTestItem(ScrollOfGuidance.id, character, 1)
+
+        // Use the scroll
+        withContext(context) { itemService.useItem(UseItemRequest(scroll.id)) }
+
+        // Check scroll is consumed (consumesToStart is consumed at the start of casting)
+        val scrollAfterUsage = character.inventory.findAllByTemplateId(scroll.templateId).firstOrNull()
+        assertNull(scrollAfterUsage, "Scroll should be consumed")
+
+        // Check responses - item consumed at start of cast
+        val updateItemsResponse = assertIs<UpdateItemsResponse>(context.responseChannel.receive())
+        assertEquals(scroll.id, updateItemsResponse.operations[0].item.id)
+        assertEquals(UpdateItemOperation.REMOVE, updateItemsResponse.operations[0].operation)
+
+        // Check skill casting responses
+        assertIs<SystemMessageResponse.YouUse>(context.responseChannel.receive())
+        val gaugeResponse = assertIs<GaugeResponse>(context.responseChannel.receive())
+        assertEquals(GaugeColor.BLUE, gaugeResponse.gaugeColor)
+
+        val skillUsedResponse = assertIs<SkillUsedResponse>(context.responseChannel.receive())
+        assertEquals(character.id, skillUsedResponse.casterId)
+        assertEquals(character.id, skillUsedResponse.targetId)
+        assertEquals(ScrollOfGuidance.skill.id, skillUsedResponse.skillId)
+
+        assertIs<FullCharacterResponse>(context.responseChannel.receive())
+        val temporalEffectsResponse = assertIs<TemporalEffectsResponse>(context.responseChannel.receive())
+        assertEquals(1, temporalEffectsResponse.abnormals.size)
+
+        // Check that character has the effect applied
+        assertEquals(1, character.temporalEffects.size)
+        val effect = character.temporalEffects.firstOrNull()
+        assertNotNull(effect, "Character should have temporal effect")
+        assertEquals(AbnormalType.HIT_UP, effect.abnormalType)
+        val bonusStats = effect.getFixedBonusStats(character)
+        assertNotNull(bonusStats, "Effect should provide fixed bonus stats")
+        assertEquals(4, bonusStats.accuracy, "Effect should give +4 accuracy")
     }
 
 }

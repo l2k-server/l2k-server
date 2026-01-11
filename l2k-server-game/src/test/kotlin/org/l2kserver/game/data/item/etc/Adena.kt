@@ -1,9 +1,9 @@
 package org.l2kserver.game.data.item.etc
 
 import org.l2kserver.game.model.item.template.Grade
-import org.l2kserver.game.model.item.template.ItemTemplate
+import org.l2kserver.game.model.item.template.Item
 
-object Adena: ItemTemplate {
+data object Adena: Item {
     override val id = 57
     override val name = "Adena"
     override val grade = Grade.NO_GRADE

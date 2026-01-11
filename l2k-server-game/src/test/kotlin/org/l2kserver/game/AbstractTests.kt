@@ -5,7 +5,7 @@ import org.jetbrains.exposed.v1.jdbc.deleteAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.junit.jupiter.api.BeforeEach
 import org.l2kserver.game.configuration.HazelcastInstanceTestConfiguration
-import org.l2kserver.game.data.character.classes.HUMAN_FIGHTER
+import org.l2kserver.game.data.character.classes.HumanFighter
 import org.l2kserver.game.domain.ItemEntity
 import org.l2kserver.game.model.session.AuthorizationKey
 import org.l2kserver.game.repository.GameObjectRepository
@@ -16,14 +16,14 @@ import org.l2kserver.game.domain.SkillTable
 import org.l2kserver.game.extensions.model.item.toItemInstance
 import org.l2kserver.game.model.GameData
 import org.l2kserver.game.model.GameDataRegistry
-import org.l2kserver.game.model.actor.PlayerCharacter
+import org.l2kserver.game.model.actor.PlayerCharacterInstanceImpl
 import org.l2kserver.game.model.actor.ScatteredItem
 import org.l2kserver.game.model.actor.character.CharacterRace
 import org.l2kserver.game.model.actor.character.Gender
 import org.l2kserver.game.model.actor.character.InitialItem
-import org.l2kserver.game.model.actor.npc.NpcTemplateRegistry
+import org.l2kserver.game.model.actor.npc.NpcRegistry
 import org.l2kserver.game.model.actor.position.Position
-import org.l2kserver.game.model.item.template.ItemTemplate
+import org.l2kserver.game.model.item.template.Item
 import org.l2kserver.game.network.session.SessionContext
 import org.l2kserver.game.repository.PlayerCharacterRepository
 import org.l2kserver.game.service.ActorStateService
@@ -68,7 +68,7 @@ abstract class AbstractTests {
         gameObjectRepository.deleteAll()
         actorStateService.flushStates()
         asyncTaskService.cancelTask("REGENERATION_JOB")
-        NpcTemplateRegistry.flush()
+        NpcRegistry.flush()
     }
 
     protected fun createRandomAuthorizationKey() = AuthorizationKey(
@@ -81,13 +81,13 @@ abstract class AbstractTests {
     protected fun createTestCharacter(
         enterGame: Boolean = true,
         name: String = testCharacterName
-    ): PlayerCharacter {
+    ): PlayerCharacterInstanceImpl {
         val character = playerCharacterRepository.create(
             accountName = testLogin,
             characterName = name,
             race = CharacterRace.HUMAN,
             gender = Gender.MALE,
-            classId = HUMAN_FIGHTER.id,
+            classId = HumanFighter.id,
             hairStyle = 0,
             hairColor = 0,
             faceType = 0
@@ -106,7 +106,7 @@ abstract class AbstractTests {
     }
 
     protected suspend fun createTestItem(
-        templateId: Int, owner: PlayerCharacter, amount: Int = 1, isEquipped: Boolean = false
+        templateId: Int, owner: PlayerCharacterInstanceImpl, amount: Int = 1, isEquipped: Boolean = false
     ) = transaction {
         val item = ItemEntity.createAllFrom(owner.id, listOf(InitialItem(templateId, amount, isEquipped)))
             .first().toItemInstance()!!
@@ -117,7 +117,7 @@ abstract class AbstractTests {
 
     protected suspend fun createTestScatteredItem(
         position: Position,
-        template: ItemTemplate,
+        template: Item,
         amount: Int = 1,
         enchantLevel: Int = 0
     ): ScatteredItem {

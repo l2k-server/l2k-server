@@ -5,7 +5,7 @@ import org.l2kserver.game.model.GameDataRegistry
 import org.l2kserver.game.model.stats.CombatStats
 
 /** Stores all the item templates */
-object ItemTemplateRegistry: GameDataRegistry<ItemTemplate>()
+object ItemTemplateRegistry: GameDataRegistry<Item>()
 
 /**
  * Data, common to all items of this type
@@ -21,7 +21,7 @@ object ItemTemplateRegistry: GameDataRegistry<ItemTemplate>()
  * @property isDestroyable If true, this item can be destroyed
  * @property isExchangeable If true, this item can be exchanged with other players
  */
-interface ItemTemplate: GameData {
+interface Item: GameData {
     override val id: Int
     val name: String
     val type: ItemType get() = NonEquippableItemType
@@ -41,7 +41,7 @@ interface ItemTemplate: GameData {
  *
  * @property stats Stats that will be given to the character when equipping the item
  */
-interface EquippableItemTemplate: ItemTemplate {
+interface EquippableItem: Item {
     override val type: ItemType
     override val isStackable: Boolean get() = false
 

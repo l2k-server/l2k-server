@@ -2,16 +2,16 @@ package org.l2kserver.game.model.actor
 
 import org.l2kserver.game.domain.TemporalEffects
 import org.l2kserver.game.extensions.model.stats.applyAbnormalsOf
-import org.l2kserver.game.model.actor.character.CharacterInstance
+import org.l2kserver.game.model.actor.character.PlayerCharacterInstance
 import org.l2kserver.game.model.actor.npc.NpcInstance
 import java.util.concurrent.ConcurrentHashMap
 import org.l2kserver.game.model.actor.position.Position
-import org.l2kserver.game.model.actor.npc.NpcTemplate
+import org.l2kserver.game.model.actor.npc.Npc
 import org.l2kserver.game.model.actor.npc.SpawnedAt
 import org.l2kserver.game.model.actor.position.Heading
-import org.l2kserver.game.model.item.template.ArmorTemplate
+import org.l2kserver.game.model.item.template.Armor
 import org.l2kserver.game.model.item.template.ItemTemplateRegistry
-import org.l2kserver.game.model.item.template.WeaponTemplate
+import org.l2kserver.game.model.item.template.Weapon
 import org.l2kserver.game.utils.IdUtils
 
 /**
@@ -34,13 +34,12 @@ import org.l2kserver.game.utils.IdUtils
  * @property moveType NPC's current move type
  * @property hasShield Can this NPC block attacks by shield
  */
-class Npc(
-    private val template: NpcTemplate,
+class NpcInstanceImpl(
+    private val template: Npc,
     override val spawnedAt: SpawnedAt,
     override var position: Position,
     override var heading: Heading
 ): MutableActorInstance(), NpcInstance {
-
     override val id = IdUtils.getNextNpcId()
     override val name = template.name
     override val title = template.title
@@ -62,11 +61,11 @@ class Npc(
     override var moveType = MoveType.WALK
 
     override var equippedWeaponTemplate = template.equippedWeaponTemplateId?.let {
-        ItemTemplateRegistry.findByIdOrNull(it) as? WeaponTemplate
+        ItemTemplateRegistry.findByIdOrNull(it) as? Weapon
     }
 
-    override var equippedShieldTemplate: ArmorTemplate? = template.equippedShieldTemplateId?.let {
-        ItemTemplateRegistry.findByIdOrNull(it) as? ArmorTemplate
+    override var equippedShieldTemplate: Armor? = template.equippedShieldTemplateId?.let {
+        ItemTemplateRegistry.findByIdOrNull(it) as? Armor
     }
 
     /**
@@ -93,6 +92,6 @@ class Npc(
     override fun toString() = "Npc(name=$name id=$id)"
 
     override fun isEnemyOf(other: ActorInstance): Boolean = template.isEnemyOf(other)
-    override fun onTalkWith(character: CharacterInstance) = template.onTalkWith(character)
+    override fun onTalkWith(character: PlayerCharacterInstance) = template.onTalkWith(character)
     override fun onIdle() = template.onIdle(this)
 }

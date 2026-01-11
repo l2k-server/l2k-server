@@ -1,10 +1,10 @@
 package org.l2kserver.game.data.item.soulshot
 
 import org.l2kserver.game.model.item.template.Grade
-import org.l2kserver.game.model.item.template.SpiritshotTemplate
+import org.l2kserver.game.model.item.template.Spiritshot
 import org.l2kserver.game.model.item.template.SpiritshotType
 
-object SpiritshotNoGrade: SpiritshotTemplate() {
+data object SpiritshotNoGrade: Spiritshot() {
     override val id = 2509
     override val name = "Spiritshot: No Grade"
     override val grade = Grade.NO_GRADE
@@ -17,7 +17,7 @@ object SpiritshotNoGrade: SpiritshotTemplate() {
     override val spiritshotType = SpiritshotType.SPIRITSHOT
 }
 
-object BlessedSpiritshotNoGrade: SpiritshotTemplate() {
+data object BlessedSpiritshotNoGrade: Spiritshot() {
     override val id = 3947
     override val name = "Blessed Spiritshot: No Grade"
     override val grade = Grade.NO_GRADE

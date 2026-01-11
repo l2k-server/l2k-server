@@ -21,7 +21,7 @@ import kotlinx.coroutines.withContext
 import org.awaitility.kotlin.await
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.junit.jupiter.api.assertThrows
-import org.l2kserver.game.data.character.classes.HUMAN_FIGHTER
+import org.l2kserver.game.data.character.classes.HumanFighter
 import org.l2kserver.game.domain.ItemEntity
 import org.l2kserver.game.domain.PlayerCharacterEntity
 import org.l2kserver.game.handler.dto.response.ExitGameResponse
@@ -63,7 +63,7 @@ class CharacterServiceTests(
                     characterName = testCharacterName,
                     raceId = testRace.ordinal,
                     genderId = testGender.ordinal,
-                    classId = HUMAN_FIGHTER.id,
+                    classId = HumanFighter.id,
                     hairStyle = testHairStyle,
                     hairColor = testHairColor,
                     faceType = testFaceType,
@@ -75,7 +75,7 @@ class CharacterServiceTests(
 
         assertEquals(testCharacterName, response.playerCharacters[0].name)
         assertEquals(testRace, response.playerCharacters[0].race)
-        assertEquals(HUMAN_FIGHTER, response.playerCharacters[0].characterClass)
+        assertEquals(HumanFighter, response.playerCharacters[0].characterClass)
         assertEquals(testGender, response.playerCharacters[0].gender)
         assertEquals(testHairColor, response.playerCharacters[0].hairColor)
         assertEquals(testHairStyle, response.playerCharacters[0].hairStyle)

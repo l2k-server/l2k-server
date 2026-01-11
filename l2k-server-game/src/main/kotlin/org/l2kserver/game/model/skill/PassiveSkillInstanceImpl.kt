@@ -3,11 +3,11 @@ package org.l2kserver.game.model.skill
 import org.l2kserver.game.domain.SkillEntity
 import org.l2kserver.game.model.actor.ActorInstance
 import org.l2kserver.game.model.skill.instance.PassiveSkillInstance
-import org.l2kserver.game.model.skill.template.PassiveSkillTemplate
+import org.l2kserver.game.model.skill.template.PassiveSkill
 
-class PassiveSkill(
+class PassiveSkillInstanceImpl(
     entity: SkillEntity,
-    private val template: PassiveSkillTemplate
+    private val template: PassiveSkill
 ): PassiveSkillInstance {
     override val skillId = entity.skillId
     override val skillLevel by entity::skillLevel

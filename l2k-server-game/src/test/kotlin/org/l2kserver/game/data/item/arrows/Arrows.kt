@@ -1,9 +1,9 @@
 package org.l2kserver.game.data.item.arrows
 
-import org.l2kserver.game.model.item.template.ArrowTemplate
+import org.l2kserver.game.model.item.template.Arrow
 import org.l2kserver.game.model.item.template.Grade
 
-object WoodenArrow: ArrowTemplate() {
+data object WoodenArrow: Arrow() {
     override val id = 17
     override val name = "Wooden Arrow"
     override val grade = Grade.NO_GRADE
@@ -15,7 +15,7 @@ object WoodenArrow: ArrowTemplate() {
     override val isExchangeable = true
 }
 
-object BoneArrow: ArrowTemplate() {
+data object BoneArrow: Arrow() {
     override val id = 1341
     override val name = "Bone Arrow"
     override val grade = Grade.NO_GRADE
