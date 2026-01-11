@@ -10,6 +10,6 @@ object GameTime {
     /** How many millis is server up */
     val runtime: Long get() = System.currentTimeMillis() - serverStartTime
 
-    /** Game time in 'game minutes'. One 'game minute' is 10 seconds */
+    /** Game time in 'game minutes'. One 'game minute' is 10 real seconds */
     val gameMinutes: Int get() = ((runtime / MILLIS_IN_GAME_MINUTE) % MINUTES_IN_FULL_DAY).toInt()
 }

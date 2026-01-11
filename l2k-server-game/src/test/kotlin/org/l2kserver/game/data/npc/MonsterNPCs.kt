@@ -1,17 +1,16 @@
 package org.l2kserver.game.data.npc
 
-import org.l2kserver.game.data.character.classes.HUMAN_FIGHTER
+import org.l2kserver.game.data.character.classes.HumanFighter
 import org.l2kserver.game.model.actor.ActorInstance
 import org.l2kserver.game.model.actor.CollisionBox
 import org.l2kserver.game.model.actor.npc.NpcInstance
 import org.l2kserver.game.model.actor.npc.NpcRace
-import org.l2kserver.game.model.actor.npc.NpcTemplate
+import org.l2kserver.game.model.actor.npc.Npc
 import org.l2kserver.game.model.actor.npc.SpawnData
 import org.l2kserver.game.model.actor.npc.ai.aiIntents
 import org.l2kserver.game.model.actor.position.Position
 import org.l2kserver.game.model.reward.Reward
 import org.l2kserver.game.model.reward.RewardItem
-import org.l2kserver.game.model.reward.RewardItemGroup
 import org.l2kserver.game.model.stats.CombatStats
 import org.l2kserver.game.model.zone.Point
 import org.l2kserver.game.model.zone.SpawnZone
@@ -20,7 +19,7 @@ import kotlin.math.roundToInt
 import kotlin.math.sin
 import kotlin.random.Random
 
-data object Gremlin: NpcTemplate {
+data object Gremlin: Npc {
     private const val WANDERING_DISTANCE = 75
     private const val MAX_DISTANCE_FROM_SPAWN = 150
 
@@ -46,19 +45,16 @@ data object Gremlin: NpcTemplate {
         mpRegen = 0.91,
         attackRange = 40
     )
-    override val basicStats = HUMAN_FIGHTER.basicStats
+    override val basicStats = HumanFighter.basicStats
     override val reward = Reward(
         exp = 29,
         sp = 2,
         itemGroups = listOf(
-            RewardItemGroup(
-                chance = 1.0,
-                items = listOf(
-                    RewardItem(
-                        id = 57,
-                        name = "Adena",
-                        amount = 7..13
-                    )
+            1.0 to listOf(
+                RewardItem(
+                    id = 57,
+                    name = "Adena",
+                    amount = 7..13
                 )
             )
         )
@@ -139,7 +135,7 @@ data object Gremlin: NpcTemplate {
     }
 }
 
-data object FatDummyGremlin: NpcTemplate {
+data object FatDummyGremlin: Npc {
     override val id = 1018342
     override val name = "Fat Dummy Gremlin"
     override val level = 1
@@ -162,6 +158,6 @@ data object FatDummyGremlin: NpcTemplate {
         mpRegen = 0.91,
         attackRange = 40
     )
-    override val basicStats = HUMAN_FIGHTER.basicStats
+    override val basicStats = HumanFighter.basicStats
     override fun isEnemyOf(other: ActorInstance) = true
 }

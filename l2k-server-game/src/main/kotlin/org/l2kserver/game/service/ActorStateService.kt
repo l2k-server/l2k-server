@@ -6,16 +6,18 @@ import java.util.concurrent.ConcurrentHashMap
 import org.l2kserver.game.extensions.logger
 import org.l2kserver.game.handler.dto.response.TemporalEffectsResponse
 import org.l2kserver.game.handler.dto.response.ChangeMoveTypeResponse
+import org.l2kserver.game.handler.dto.response.FullCharacterResponse
 import org.l2kserver.game.handler.dto.response.PvPStatusResponse
 import org.l2kserver.game.handler.dto.response.StartFightingResponse
 import org.l2kserver.game.handler.dto.response.StatusAttribute
 import org.l2kserver.game.handler.dto.response.StopFightingResponse
 import org.l2kserver.game.handler.dto.response.UpdateStatusResponse
 import org.l2kserver.game.model.actor.ActorInstance
-import org.l2kserver.game.model.actor.Npc
-import org.l2kserver.game.model.actor.PlayerCharacter
+import org.l2kserver.game.model.actor.NpcInstanceImpl
+import org.l2kserver.game.model.actor.PlayerCharacterInstanceImpl
 import org.l2kserver.game.model.actor.MoveType
 import org.l2kserver.game.model.actor.MutableActorInstance
+import org.l2kserver.game.model.actor.character.PlayerCharacterInstance
 import org.l2kserver.game.model.actor.character.PvpState
 import org.l2kserver.game.network.session.sendTo
 import org.l2kserver.game.repository.GameObjectRepository
@@ -54,7 +56,7 @@ class ActorStateService(
     /**
      * Key - character, value - time when character's PVP state ends
      */
-    private val charactersInPvpState = ConcurrentHashMap<PlayerCharacter, Long>()
+    private val charactersInPvpState = ConcurrentHashMap<PlayerCharacterInstance, Long>()
 
     @EventListener(ApplicationReadyEvent::class)
     fun init() {
@@ -77,7 +79,7 @@ class ActorStateService(
      * broadcasts to all surrounding characters that actor is in PVP,
      * else - updates this actor combat time
      */
-    suspend fun activatePvpState(character: PlayerCharacter) {
+    suspend fun activatePvpState(character: PlayerCharacterInstance) {
         log.debug("Enabling (or updating) PVP state of '{}'", character)
         charactersInPvpState[character] = currentTimeMillis() + pvpFlagTimeMs
 
@@ -98,7 +100,7 @@ class ActorStateService(
             actor.isFighting = true
 
             //TODO This is part of AI, not combat service
-            if (actor is Npc) {
+            if (actor is NpcInstanceImpl) {
                 actor.moveType = MoveType.RUN
                 this@ActorStateService.broadcastAround(actor.position) {
                     ChangeMoveTypeResponse(actor.id, actor.moveType)
@@ -133,7 +135,7 @@ class ActorStateService(
     private suspend fun updateActorsFightingState() = fightingActors.forEach { (actor, inCombatEndTimeMs) ->
         if (inCombatEndTimeMs <= currentTimeMillis()) {
             //TODO This is part of AI, not combat service
-            if (actor is Npc) {
+            if (actor is NpcInstanceImpl) {
                 actor.moveType = MoveType.WALK
                 this@ActorStateService.broadcastAround(actor.position) {
                     ChangeMoveTypeResponse(actor.id, actor.moveType)
@@ -189,7 +191,7 @@ class ActorStateService(
             }
 
             // Regenerate CP
-            if (actor is PlayerCharacter && actor.stats.maxCp > actor.currentCp) {
+            if (actor is PlayerCharacterInstanceImpl && actor.stats.maxCp > actor.currentCp) {
                 val cpRegeneration = actor.stats.cpRegen
                 actor.currentCp = minOf(actor.stats.maxCp, actor.currentCp + cpRegeneration.roundToInt())
 
@@ -211,10 +213,12 @@ class ActorStateService(
                 log.debug("Successfully removed '{}' from '{}'", outdatedEffects, actor)
 
                 if (outdatedEffects.any { it.abnormalVisualEffect != null }) broadcastActorInfo(actor)
-                //TODO Notify about summon and party members effects
-                if (actor is PlayerCharacter) sendTo(actor.id) {
-                    TemporalEffectsResponse(actor.temporalEffects)
+                else if (actor is PlayerCharacterInstanceImpl) sendTo(actor.id) {
+                    FullCharacterResponse(actor)
                 }
+
+                //TODO Notify about summon and party members effects
+                sendTo(actor.id) { TemporalEffectsResponse(actor.temporalEffects) }
             }
         }
     }

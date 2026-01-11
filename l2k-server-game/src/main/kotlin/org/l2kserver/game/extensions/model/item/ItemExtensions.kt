@@ -2,36 +2,39 @@ package org.l2kserver.game.extensions.model.item
 
 import org.l2kserver.game.model.actor.position.Position
 import org.l2kserver.game.model.actor.ScatteredItem
-import org.l2kserver.game.model.item.Armor
-import org.l2kserver.game.model.item.Arrow
+import org.l2kserver.game.model.item.ArmorInstanceImpl
+import org.l2kserver.game.model.item.ArrowInstanceImpl
 import org.l2kserver.game.model.item.instance.ItemInstance
-import org.l2kserver.game.model.item.Jewelry
-import org.l2kserver.game.model.item.SimpleItem
-import org.l2kserver.game.model.item.Weapon
+import org.l2kserver.game.model.item.JewelryInstanceImpl
+import org.l2kserver.game.model.item.MagicItemInstanceImpl
+import org.l2kserver.game.model.item.ItemInstanceImpl
+import org.l2kserver.game.model.item.WeaponInstanceImpl
 import org.l2kserver.game.domain.ItemEntity
-import org.l2kserver.game.model.item.Book
-import org.l2kserver.game.model.item.Soulshot
-import org.l2kserver.game.model.item.Spiritshot
-import org.l2kserver.game.model.item.template.ArmorTemplate
-import org.l2kserver.game.model.item.template.ArrowTemplate
-import org.l2kserver.game.model.item.template.BookTemplate
+import org.l2kserver.game.model.item.BookInstanceImpl
+import org.l2kserver.game.model.item.SoulshotInstanceImpl
+import org.l2kserver.game.model.item.SpiritshotInstanceImpl
+import org.l2kserver.game.model.item.template.Armor
+import org.l2kserver.game.model.item.template.Arrow
+import org.l2kserver.game.model.item.template.Book
 import org.l2kserver.game.model.item.template.ItemTemplateRegistry
-import org.l2kserver.game.model.item.template.JewelryTemplate
-import org.l2kserver.game.model.item.template.SoulshotTemplate
-import org.l2kserver.game.model.item.template.SpiritshotTemplate
-import org.l2kserver.game.model.item.template.WeaponTemplate
+import org.l2kserver.game.model.item.template.Jewelry
+import org.l2kserver.game.model.item.template.MagicItem
+import org.l2kserver.game.model.item.template.Soulshot
+import org.l2kserver.game.model.item.template.Spiritshot
+import org.l2kserver.game.model.item.template.Weapon
 import org.l2kserver.game.utils.IdUtils
 import kotlin.Int
 
 fun ItemEntity.toItemInstance(): ItemInstance? = when (val template = ItemTemplateRegistry.findById(this.templateId)) {
-    is WeaponTemplate -> Weapon(this, template)
-    is ArmorTemplate -> Armor(this, template)
-    is ArrowTemplate -> Arrow(this, template)
-    is JewelryTemplate -> Jewelry(this, template)
-    is SoulshotTemplate -> Soulshot(this, template)
-    is SpiritshotTemplate -> Spiritshot(this, template)
-    is BookTemplate -> Book(this, template)
-    else -> SimpleItem(this, template)
+    is Weapon -> WeaponInstanceImpl(this, template)
+    is Armor -> ArmorInstanceImpl(this, template)
+    is Arrow -> ArrowInstanceImpl(this, template)
+    is Jewelry -> JewelryInstanceImpl(this, template)
+    is Soulshot -> SoulshotInstanceImpl(this, template)
+    is Spiritshot -> SpiritshotInstanceImpl(this, template)
+    is Book -> BookInstanceImpl(this, template)
+    is MagicItem -> MagicItemInstanceImpl(this, template)
+    else -> ItemInstanceImpl(this, template)
 }
 
 fun ItemInstance.toScatteredItem(position: Position, amount: Int) = ScatteredItem(

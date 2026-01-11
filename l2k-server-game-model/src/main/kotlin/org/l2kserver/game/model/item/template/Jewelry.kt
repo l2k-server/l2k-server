@@ -3,7 +3,7 @@ package org.l2kserver.game.model.item.template
 import org.l2kserver.game.model.item.Crystallizable
 import org.l2kserver.game.model.stats.CombatStats
 
-abstract class JewelryTemplate: EquippableItemTemplate, Crystallizable {
+abstract class Jewelry: EquippableItem, Crystallizable {
     abstract override val id: Int
     abstract override val name: String
     abstract override val grade: Grade

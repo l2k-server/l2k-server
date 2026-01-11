@@ -4,11 +4,11 @@ import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.l2kserver.game.extensions.model.item.toItemInstance
-import org.l2kserver.game.model.actor.PlayerCharacter
+import org.l2kserver.game.model.actor.PlayerCharacterInstanceImpl
 import org.l2kserver.game.model.extensions.filterIsInstanceAnd
-import org.l2kserver.game.model.item.Armor
-import org.l2kserver.game.model.item.Jewelry
-import org.l2kserver.game.model.item.Weapon
+import org.l2kserver.game.model.item.ArmorInstanceImpl
+import org.l2kserver.game.model.item.JewelryInstanceImpl
+import org.l2kserver.game.model.item.WeaponInstanceImpl
 import org.l2kserver.game.model.item.instance.EquippableItemInstance
 import org.l2kserver.game.model.item.instance.ItemInstance
 import org.l2kserver.game.model.item.template.ItemTemplateRegistry
@@ -21,7 +21,7 @@ private const val ADENA_TEMPLATE_ID = 57
 /**
  * DAO class to access all the items of some character or pet
  */
-class Inventory(val owner: PlayerCharacter): Collection<ItemInstance> {
+class Inventory(val owner: PlayerCharacterInstanceImpl): Collection<ItemInstance> {
 
     private val items: MutableMap<Int, ItemInstance> = ConcurrentHashMap()
     private lateinit var equippedItems: EnumMap<Slot, EquippableItemInstance>
@@ -30,29 +30,29 @@ class Inventory(val owner: PlayerCharacter): Collection<ItemInstance> {
         reload()
     }
 
-    val twoSlotsAccessory: Jewelry? get() = equippedItems[Slot.TWO_SLOT_ACCESSORY] as Jewelry?
-    val rightEarring: Jewelry? get() = equippedItems[Slot.RIGHT_EARRING] as Jewelry?
-    val leftEarring: Jewelry? get() = equippedItems[Slot.LEFT_EARRING] as Jewelry?
-    val necklace: Jewelry? get() = equippedItems[Slot.NECKLACE] as Jewelry?
-    val rightRing: Jewelry? get() = equippedItems[Slot.RIGHT_RING] as Jewelry?
-    val leftRing: Jewelry? get() = equippedItems[Slot.LEFT_RING] as Jewelry?
-    val headgear: Armor? get() = equippedItems[Slot.HEADGEAR] as Armor?
-    val oneHanded: Weapon? get() = equippedItems[Slot.RIGHT_HAND] as Weapon?
-    val shield: Armor? get() = equippedItems[Slot.LEFT_HAND] as Armor?
-    val gloves: Armor? get() = equippedItems[Slot.GLOVES] as Armor?
-    val upperBody: Armor? get() = (equippedItems[Slot.UPPER_BODY]
-            ?: equippedItems[Slot.UPPER_AND_LOWER_BODY]) as Armor?
-    val lowerBody: Armor? get() = equippedItems[Slot.LOWER_BODY] as Armor?
-    val boots: Armor? get() = equippedItems[Slot.BOOTS] as Armor?
-    val underwear: Armor? get() = equippedItems[Slot.UNDERWEAR] as Armor?
-    val twoHanded: Weapon? get() = equippedItems[Slot.TWO_HANDS] as Weapon?
-    val faceAccessory: Jewelry? get() = equippedItems[Slot.FACE_ACCESSORY] as Jewelry?
-    val hairAccessory: Jewelry? get() = equippedItems[Slot.HAIR_ACCESSORY] as Jewelry?
+    val twoSlotsAccessory: JewelryInstanceImpl? get() = equippedItems[Slot.TWO_SLOT_ACCESSORY] as JewelryInstanceImpl?
+    val rightEarring: JewelryInstanceImpl? get() = equippedItems[Slot.RIGHT_EARRING] as JewelryInstanceImpl?
+    val leftEarring: JewelryInstanceImpl? get() = equippedItems[Slot.LEFT_EARRING] as JewelryInstanceImpl?
+    val necklace: JewelryInstanceImpl? get() = equippedItems[Slot.NECKLACE] as JewelryInstanceImpl?
+    val rightRing: JewelryInstanceImpl? get() = equippedItems[Slot.RIGHT_RING] as JewelryInstanceImpl?
+    val leftRing: JewelryInstanceImpl? get() = equippedItems[Slot.LEFT_RING] as JewelryInstanceImpl?
+    val headgear: ArmorInstanceImpl? get() = equippedItems[Slot.HEADGEAR] as ArmorInstanceImpl?
+    val oneHanded: WeaponInstanceImpl? get() = equippedItems[Slot.RIGHT_HAND] as WeaponInstanceImpl?
+    val shield: ArmorInstanceImpl? get() = equippedItems[Slot.LEFT_HAND] as ArmorInstanceImpl?
+    val gloves: ArmorInstanceImpl? get() = equippedItems[Slot.GLOVES] as ArmorInstanceImpl?
+    val upperBody: ArmorInstanceImpl? get() = (equippedItems[Slot.UPPER_BODY]
+            ?: equippedItems[Slot.UPPER_AND_LOWER_BODY]) as ArmorInstanceImpl?
+    val lowerBody: ArmorInstanceImpl? get() = equippedItems[Slot.LOWER_BODY] as ArmorInstanceImpl?
+    val boots: ArmorInstanceImpl? get() = equippedItems[Slot.BOOTS] as ArmorInstanceImpl?
+    val underwear: ArmorInstanceImpl? get() = equippedItems[Slot.UNDERWEAR] as ArmorInstanceImpl?
+    val twoHanded: WeaponInstanceImpl? get() = equippedItems[Slot.TWO_HANDS] as WeaponInstanceImpl?
+    val faceAccessory: JewelryInstanceImpl? get() = equippedItems[Slot.FACE_ACCESSORY] as JewelryInstanceImpl?
+    val hairAccessory: JewelryInstanceImpl? get() = equippedItems[Slot.HAIR_ACCESSORY] as JewelryInstanceImpl?
 
     /** Character's adena amount */
     val adena: ItemInstance? get() = findAllByTemplateId(ADENA_TEMPLATE_ID).firstOrNull()
     val weight: Int get() = items.values.sumOf { it.amount * it.weight }
-    val weapon: Weapon? get() = this.oneHanded ?: this.twoHanded
+    val weapon: WeaponInstanceImpl? get() = this.oneHanded ?: this.twoHanded
 
     operator fun get(key: Slot) = equippedItems[key]
     operator fun set(key: Slot, value: EquippableItemInstance?) {
@@ -117,6 +117,11 @@ class Inventory(val owner: PlayerCharacter): Collection<ItemInstance> {
 
     /** Checks if item with [itemId] exists and its amount is greater or equal [amount] */
     fun existsByIdAndAmount(itemId: Int, amount: Int) = (items[itemId]?.amount ?: 0) >= amount
+
+    /** Checks if item with [templateId] exists and its amount is greater or equal [amount] */
+    fun hasEnough(templateId: Int, amount: Int) = items.values.asSequence()
+        .filter { it.templateId == templateId }
+        .fold(0) { acc, item -> acc + item.amount } >= amount
 
     /**
      * Reduces [ItemInstance.amount] on provided [value]. If [value] is equal to [ItemInstance.amount] - deletes item

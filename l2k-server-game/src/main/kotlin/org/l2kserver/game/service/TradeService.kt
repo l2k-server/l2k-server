@@ -30,7 +30,7 @@ import org.l2kserver.game.handler.dto.response.Sound
 import org.l2kserver.game.handler.dto.response.SystemMessageResponse
 import org.l2kserver.game.handler.dto.response.UpdateItemsResponse
 import org.l2kserver.game.handler.dto.response.UpdateStatusResponse
-import org.l2kserver.game.model.actor.PlayerCharacter
+import org.l2kserver.game.model.actor.PlayerCharacterInstanceImpl
 import org.l2kserver.game.model.item.instance.ItemInstance
 import org.l2kserver.game.model.store.ItemInWishList
 import org.l2kserver.game.model.store.ItemOnSale
@@ -257,7 +257,7 @@ class TradeService(
     }
 
     /** Shows [character]'s private store info */
-    suspend fun showPrivateStoreOf(character: PlayerCharacter) {
+    suspend fun showPrivateStoreOf(character: PlayerCharacterInstanceImpl) {
         val privateStore = character.privateStore ?: run {
             log.warn("No private store of character '{}' found", character)
             send { ActionFailedResponse }
@@ -433,7 +433,7 @@ class TradeService(
      */
     //All the responses should be sent only after all the item transferring is complete
     private suspend fun transferItem(
-        item: ItemInstance, from: PlayerCharacter, to: PlayerCharacter, amount: Int
+        item: ItemInstance, from: PlayerCharacterInstanceImpl, to: PlayerCharacterInstanceImpl, amount: Int
     ): Pair<UpdateItemsResponse, UpdateItemsResponse> {
         require(amount <= item.amount) { "Not enough $item to transfer!" }
 
@@ -476,7 +476,9 @@ class TradeService(
      * Checks that all the requested items are in private store and inventory
      */
     private fun checkAllPresent(
-        itemsInStore: Map<Int, ItemOnSale>, requestedItems: Iterable<RequestedToSellItem>, seller: PlayerCharacter
+        itemsInStore: Map<Int, ItemOnSale>,
+        requestedItems: Iterable<RequestedToSellItem>,
+        seller: PlayerCharacterInstanceImpl
     ) = requestedItems.all { requestedItem ->
         val itemInStoreAmount = itemsInStore[requestedItem.itemId]?.amount ?: 0
         val itemInInventoryAmount = seller.inventory.findNotEquippedByIdOrNull(requestedItem.itemId)?.amount ?: 0
@@ -487,7 +489,7 @@ class TradeService(
     private fun checkAllPresent(
         itemsInWishList: Iterable<ItemInWishList>,
         requestedItems: Iterable<RequestedToSellToPrivateStoreItem>,
-        seller: PlayerCharacter,
+        seller: PlayerCharacterInstanceImpl,
     ): Boolean = requestedItems.all { requestedItem ->
         val existsInPrivateStore = itemsInWishList.any {
             it.templateId == requestedItem.templateId &&

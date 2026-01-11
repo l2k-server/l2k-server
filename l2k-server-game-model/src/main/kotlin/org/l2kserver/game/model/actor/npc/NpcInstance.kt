@@ -3,13 +3,13 @@ package org.l2kserver.game.model.actor.npc
 import org.l2kserver.game.model.actor.ActorInstance
 import org.l2kserver.game.model.actor.CollisionBox
 import org.l2kserver.game.model.actor.MoveType
-import org.l2kserver.game.model.actor.character.CharacterInstance
+import org.l2kserver.game.model.actor.character.PlayerCharacterInstance
 import org.l2kserver.game.model.actor.position.Heading
 import org.l2kserver.game.model.actor.position.Position
 import org.l2kserver.game.model.actor.position.SpawnPosition
 import org.l2kserver.game.model.actor.npc.ai.AiIntents
-import org.l2kserver.game.model.item.template.ArmorTemplate
-import org.l2kserver.game.model.item.template.WeaponTemplate
+import org.l2kserver.game.model.item.template.Armor
+import org.l2kserver.game.model.item.template.Weapon
 import org.l2kserver.game.model.item.template.WeaponType
 import org.l2kserver.game.model.reward.Reward
 import org.l2kserver.game.model.stats.BasicStats
@@ -43,15 +43,15 @@ interface NpcInstance: ActorInstance {
     override val currentHp: Int
     override val currentMp: Int
     override val moveType: MoveType
-    val equippedWeaponTemplate: WeaponTemplate? get() = null
-    val equippedShieldTemplate: ArmorTemplate? get() = null
+    val equippedWeaponTemplate: Weapon? get() = null
+    val equippedShieldTemplate: Armor? get() = null
     val opponents: Map<ActorInstance, Int> //TODO State Machine
 
     override val weaponType: WeaponType? get() = equippedWeaponTemplate?.type
     override val hasShield: Boolean get() = equippedShieldTemplate != null
 
     fun onIdle(): AiIntents? = null
-    fun onTalkWith(character: CharacterInstance): String? = null
+    fun onTalkWith(character: PlayerCharacterInstance): String? = null
 }
 
 /**

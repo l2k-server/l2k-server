@@ -2,7 +2,7 @@ package org.l2kserver.game.model.item
 
 import org.l2kserver.game.domain.ItemEntity
 import org.l2kserver.game.model.item.instance.ArmorInstance
-import org.l2kserver.game.model.item.template.ArmorTemplate
+import org.l2kserver.game.model.item.template.Armor
 import org.l2kserver.game.model.item.template.ArmorType
 import org.l2kserver.game.model.item.template.Grade
 import org.l2kserver.game.model.stats.CombatStats
@@ -12,7 +12,7 @@ private const val ARMOR_SAFE_ENCHANT_LEVEL = 3
 private const val ARMOR_PER_UNSAFE_ENCHANT_P_DEF_BONUS = 3
 private const val ARMOR_PER_SAFE_ENCHANT_P_DEF_BONUS = 1
 
-class Armor(itemEntity: ItemEntity, private val itemTemplate: ArmorTemplate): ArmorInstance {
+class ArmorInstanceImpl(itemEntity: ItemEntity, private val itemTemplate: Armor): ArmorInstance {
     override val id: Int = itemEntity.id.value
     override val templateId = itemEntity.templateId
 

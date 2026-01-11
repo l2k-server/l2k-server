@@ -15,11 +15,11 @@ import org.l2kserver.game.model.actor.position.Position
 import org.l2kserver.game.model.actor.ActorInstance
 import org.l2kserver.game.model.actor.GameWorldObject
 import org.l2kserver.game.model.actor.MutableActorInstance
-import org.l2kserver.game.model.actor.Npc
-import org.l2kserver.game.model.actor.PlayerCharacter
+import org.l2kserver.game.model.actor.NpcInstanceImpl
+import org.l2kserver.game.model.actor.PlayerCharacterInstanceImpl
 import org.l2kserver.game.model.actor.Posture
 import org.l2kserver.game.model.actor.ScatteredItem
-import org.l2kserver.game.model.actor.character.CharacterInstance
+import org.l2kserver.game.model.actor.character.PlayerCharacterInstance
 import org.l2kserver.game.model.actor.npc.NpcInstance
 import org.l2kserver.game.network.session.send
 import org.l2kserver.game.repository.GameObjectRepository
@@ -72,7 +72,7 @@ abstract class AbstractService {
             sendTo(addressee.id) { actor.toInfoResponse(addressee) }
         }
 
-        if (actor is PlayerCharacter) {
+        if (actor is PlayerCharacterInstanceImpl) {
             sendTo(actor.id) { FullCharacterResponse(actor) }
             actor.privateStore?.let {
                 broadcastAround(actor.position) { it.toMessageResponse(actor.id) }
@@ -90,13 +90,13 @@ abstract class AbstractService {
      */
     suspend fun updateObjectsAround(actor: MutableActorInstance, destination: Position? = null) {
         if (actor is NpcInstance) updateObjectsAroundNpc(actor, destination)
-        if (actor is PlayerCharacter) updateObjectsAroundCharacter(actor, destination)
+        if (actor is PlayerCharacterInstanceImpl) updateObjectsAroundCharacter(actor, destination)
     }
 
     protected fun ActorInstance.exists() = gameObjectRepository.existsById(this.id)
 
     /** Makes this character to sit down (if he is standing) */
-    protected suspend fun PlayerCharacter.sitDown() {
+    protected suspend fun PlayerCharacterInstanceImpl.sitDown() {
         if (this.posture == Posture.STANDING) {
             this.posture = Posture.SITTING
             this@AbstractService.broadcastAround( this.position) {
@@ -106,7 +106,7 @@ abstract class AbstractService {
     }
 
     /** Makes this character to stand up (if he is not standing) */
-    protected suspend fun PlayerCharacter.standUp() {
+    protected suspend fun PlayerCharacterInstanceImpl.standUp() {
         if (this.posture != Posture.STANDING) {
             this.posture = Posture.STANDING
             this@AbstractService.broadcastAround(this.position) {
@@ -126,7 +126,10 @@ abstract class AbstractService {
         }
     }
 
-    private suspend fun updateObjectsAroundCharacter(character: PlayerCharacter, movementDestination: Position?) {
+    private suspend fun updateObjectsAroundCharacter(
+        character: PlayerCharacterInstanceImpl,
+        movementDestination: Position?
+    ) {
         val newGameObjectsAround = gameObjectRepository.findAllNear(character).toMutableSet()
         character.knownGameWorldObjects.forEach { knownObject ->
             //If known object now is too far - delete it.
@@ -141,7 +144,7 @@ abstract class AbstractService {
         }
     }
 
-    private suspend fun PlayerCharacter.removeObjectFromKnowsAndNotify(gameObject: GameWorldObject) {
+    private suspend fun PlayerCharacterInstanceImpl.removeObjectFromKnowsAndNotify(gameObject: GameWorldObject) {
         this.knownGameWorldObjects.remove(gameObject)
         send { DeleteObjectResponse(gameObject.id) }
 
@@ -151,7 +154,7 @@ abstract class AbstractService {
             send { SetTargetResponse(0, 0) }
         }
 
-        if (gameObject is PlayerCharacter) {
+        if (gameObject is PlayerCharacterInstanceImpl) {
             gameObject.knownGameWorldObjects.remove(this)
             sendTo(gameObject.id) { DeleteObjectResponse(this.id) }
 
@@ -163,13 +166,13 @@ abstract class AbstractService {
         }
     }
 
-    private suspend fun PlayerCharacter.addToKnownListAndNotify(
+    private suspend fun PlayerCharacterInstanceImpl.addToKnownListAndNotify(
         gameObject: GameWorldObject, movementDestination: Position?
     ) {
         this.knownGameWorldObjects.add(gameObject)
         send { gameObject.toInfoResponse(this) }
 
-        if (gameObject is PlayerCharacter) {
+        if (gameObject is PlayerCharacterInstanceImpl) {
             gameObject.knownGameWorldObjects.add(this)
             sendTo(gameObject.id) { this.toInfoResponse(gameObject) }
 
@@ -183,9 +186,9 @@ abstract class AbstractService {
     }
 }
 
-private fun GameWorldObject.toInfoResponse(sessionOwner: CharacterInstance): ResponsePacket = when(this) {
-    is Npc -> NpcInfoResponse(this, sessionOwner)
-    is PlayerCharacter -> CharacterInfoResponse(this)
+private fun GameWorldObject.toInfoResponse(sessionOwner: PlayerCharacterInstance): ResponsePacket = when(this) {
+    is NpcInstanceImpl -> NpcInfoResponse(this, sessionOwner)
+    is PlayerCharacterInstanceImpl -> CharacterInfoResponse(this)
     is ScatteredItem -> ScatteredItemResponse(this)
     else -> throw IllegalArgumentException("Unknown game object type ${this::class}")
 }

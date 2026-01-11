@@ -1,6 +1,8 @@
 package org.l2kserver.game.model.item.template
 
-abstract class ArrowTemplate: ItemTemplate {
+import org.l2kserver.game.model.skill.template.ActiveSkill
+
+abstract class MagicItem: Item {
     abstract override val id: Int
     abstract override val name: String
     abstract override val grade: Grade
@@ -10,11 +12,11 @@ abstract class ArrowTemplate: ItemTemplate {
     abstract override val isDroppable: Boolean
     abstract override val isDestroyable: Boolean
     abstract override val isExchangeable: Boolean
+    abstract override val isStackable: Boolean
 
-    final override val isStackable = true
-    final override val type = ArrowItemType
-}
-
-object ArrowItemType : ItemType {
-    override val availableSlots = setOf(Slot.LEFT_HAND)
+    /**
+     * Skill template that will be used when this item is used
+     * Contains skill template and level
+     */
+    abstract val skill: ActiveSkill
 }

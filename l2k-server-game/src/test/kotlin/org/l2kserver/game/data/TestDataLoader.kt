@@ -3,8 +3,8 @@ package org.l2kserver.game.data
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.jetbrains.exposed.v1.jdbc.update
-import org.l2kserver.game.data.character.classes.HUMAN_FIGHTER
-import org.l2kserver.game.data.character.classes.HUMAN_MYSTIC
+import org.l2kserver.game.data.character.classes.HumanFighter
+import org.l2kserver.game.data.character.classes.HumanMystic
 import org.l2kserver.game.data.item.armor.ApprenticesStockings
 import org.l2kserver.game.data.item.armor.ApprenticeTunic
 import org.l2kserver.game.data.item.armor.LeatherShield
@@ -14,6 +14,7 @@ import org.l2kserver.game.data.item.arrows.BoneArrow
 import org.l2kserver.game.data.item.arrows.WoodenArrow
 import org.l2kserver.game.data.item.book.TutorialGuide
 import org.l2kserver.game.data.item.etc.Adena
+import org.l2kserver.game.data.item.etc.ScrollOfGuidance
 import org.l2kserver.game.data.item.jewelry.EarringOfStrength
 import org.l2kserver.game.data.item.jewelry.EarringOfWisdom
 import org.l2kserver.game.data.item.jewelry.NecklaceOfCourage
@@ -52,10 +53,10 @@ import org.l2kserver.game.model.actor.character.Gender
 import org.l2kserver.game.model.actor.character.CharacterClassRegistry
 import org.l2kserver.game.model.actor.character.CharacterRace
 import org.l2kserver.game.model.actor.character.ShortcutType
-import org.l2kserver.game.model.actor.npc.NpcTemplateRegistry
+import org.l2kserver.game.model.actor.npc.NpcRegistry
 import org.l2kserver.game.model.html.HtmlRegistry
 import org.l2kserver.game.model.item.template.ItemTemplateRegistry
-import org.l2kserver.game.model.skill.template.SkillTemplateRegistry
+import org.l2kserver.game.model.skill.template.SkillRegistry
 import org.l2kserver.game.repository.PlayerCharacterRepository
 import org.l2kserver.game.repository.ShortcutRepository
 import org.l2kserver.game.utils.LevelUtils
@@ -87,8 +88,8 @@ class TestDataLoader(
     private fun registerTestData() {
         HtmlRegistry.loadResource("data/html")
 
-        NpcTemplateRegistry.register(Gremlin, GrandMasterRoien, GrandMagisterGallint)
-        CharacterClassRegistry.register(HUMAN_FIGHTER, HUMAN_MYSTIC)
+        NpcRegistry.register(Gremlin, GrandMasterRoien, GrandMagisterGallint)
+        CharacterClassRegistry.register(HumanFighter, HumanMystic)
 
         ItemTemplateRegistry.register(
             TutorialGuide,
@@ -122,6 +123,7 @@ class TestDataLoader(
 
             //ETC
             Adena,
+            ScrollOfGuidance,
 
             // Arrows
             WoodenArrow,
@@ -136,7 +138,7 @@ class TestDataLoader(
             BlessedSpiritshotNoGrade
         )
 
-        SkillTemplateRegistry.register(
+        SkillRegistry.register(
             PowerStrike,
             MortalBlow,
             PowerShot,
@@ -157,13 +159,13 @@ class TestDataLoader(
             characterName = TEST_FIGHTER_CHARACTER_NAME,
             race = CharacterRace.HUMAN,
             gender = Gender.MALE,
-            classId = HUMAN_FIGHTER.id,
+            classId = HumanFighter.id,
             hairColor = 1,
             hairStyle = 2,
             faceType = 3
         )
 
-        testFighter.exp = LevelUtils.getRequiredExpForLevel(10)
+        testFighter.exp = LevelUtils.getRequiredExpForLevel(80)
         PlayerCharacterTable.update({ PlayerCharacterTable.id eq testFighter.id }) {
             it[accessLevel] = AccessLevel.GAME_MASTER
         }
@@ -194,7 +196,7 @@ class TestDataLoader(
             characterName = TEST_MYSTIC_CHARACTER_NAME,
             race = CharacterRace.HUMAN,
             gender = Gender.FEMALE,
-            classId = HUMAN_MYSTIC.id,
+            classId = HumanMystic.id,
             hairColor = 3,
             hairStyle = 2,
             faceType = 1

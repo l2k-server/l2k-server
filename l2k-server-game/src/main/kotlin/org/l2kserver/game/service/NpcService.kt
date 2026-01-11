@@ -6,11 +6,11 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.l2kserver.game.extensions.logger
 import org.l2kserver.game.handler.dto.response.NpcChatWindowResponse
-import org.l2kserver.game.model.actor.Npc
+import org.l2kserver.game.model.actor.NpcInstanceImpl
 import org.l2kserver.game.repository.GameObjectRepository
 import org.l2kserver.game.handler.dto.response.DeleteObjectResponse
-import org.l2kserver.game.model.actor.npc.NpcTemplate
-import org.l2kserver.game.model.actor.npc.NpcTemplateRegistry
+import org.l2kserver.game.model.actor.npc.Npc
+import org.l2kserver.game.model.actor.npc.NpcRegistry
 import org.l2kserver.game.model.actor.npc.SpawnedAt
 import org.l2kserver.game.model.actor.position.Heading
 import org.l2kserver.game.model.actor.position.SpawnPosition
@@ -39,14 +39,14 @@ class NpcService(
 
     @EventListener(ApplicationReadyEvent::class)
     fun init() = asyncTaskService.launchOnce {
-        NpcTemplateRegistry.forEach { template ->
+        NpcRegistry.forEach { template ->
             template.spawn?.positions?.forEach { spawnAtPosition(template, it) }
             template.spawn?.zones?.forEach { zone -> repeat(zone.npcAmount) { spawnAtZone(template, zone) }}
         }
     }
 
     /** Opens chat window with [npc] */
-    suspend fun talkTo(npc: Npc) = send {
+    suspend fun talkTo(npc: NpcInstanceImpl) = send {
         val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
         val replica = npc.onTalkWith(character) ?: getNoTextMessage(npc.id, npc.name)
 
@@ -54,7 +54,7 @@ class NpcService(
     }
 
     /** Handles [npc]'s death - schedules corpse disappearing and respawn */
-    suspend fun handleNpcDeath(npc: Npc) {
+    suspend fun handleNpcDeath(npc: NpcInstanceImpl) {
         CoroutineScope(Dispatchers.Default).launch {
             //Delete corpse from game world after delay
             delay(CORPSE_DISAPPEARANCE_DELAY_MS)
@@ -62,7 +62,7 @@ class NpcService(
         }
         CoroutineScope(Dispatchers.Default).launch {
             //Respawn this NPC after delay
-            val template = NpcTemplateRegistry.findByIdOrNull(npc.templateId)!!
+            val template = NpcRegistry.findByIdOrNull(npc.templateId)!!
 
             template.spawn?.let { spawn ->
                 delay(spawn.respawnDelay)
@@ -74,7 +74,7 @@ class NpcService(
         }
     }
 
-    suspend fun remove(npc: Npc) = gameObjectRepository.delete(npc)?.let {
+    suspend fun remove(npc: NpcInstanceImpl) = gameObjectRepository.delete(npc)?.let {
         broadcastAround(it) { DeleteObjectResponse(it.id) }
     }
 
@@ -83,9 +83,9 @@ class NpcService(
      *
      * @return Spawned NPC
      */
-    suspend fun spawnAtPosition(template: NpcTemplate, spawnPosition: SpawnPosition): Npc {
+    suspend fun spawnAtPosition(template: Npc, spawnPosition: SpawnPosition): NpcInstanceImpl {
         val (position, heading) = spawnPosition.toPositionAndHeading()
-        val npc = Npc(template, SpawnedAt(spawnPosition), position, heading)
+        val npc = NpcInstanceImpl(template, SpawnedAt(spawnPosition), position, heading)
         spawnNpc(npc)
 
         log.info("Spawned {} at {}", npc, position)
@@ -98,11 +98,11 @@ class NpcService(
      *
      * @return Spawned NPC
      */
-    suspend fun spawnAtZone(template: NpcTemplate, zone: SpawnZone): Npc {
+    suspend fun spawnAtZone(template: Npc, zone: SpawnZone): NpcInstanceImpl {
         val position = geoDataService.getRandomSpawnPosition(template.collisionBox, zone)
         val heading = Heading(Random.nextInt(0..65535))
 
-        val npc = Npc(template, SpawnedAt(zone), position, heading)
+        val npc = NpcInstanceImpl(template, SpawnedAt(zone), position, heading)
         spawnNpc(npc)
 
         log.info("Spawned {} at {} inside of {}", npc, position, zone)
@@ -110,7 +110,7 @@ class NpcService(
     }
 
     /** Saved NPC to gameObjectRepository and notified surrounding players about spawn */
-    private suspend fun spawnNpc(npc: Npc) {
+    private suspend fun spawnNpc(npc: NpcInstanceImpl) {
         gameObjectRepository.save(npc)
         updateObjectsAround(npc)
     }

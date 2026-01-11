@@ -1,11 +1,11 @@
 package org.l2kserver.game.data.item.weapons
 
 import org.l2kserver.game.model.item.template.Grade
-import org.l2kserver.game.model.item.template.WeaponTemplate
+import org.l2kserver.game.model.item.template.Weapon
 import org.l2kserver.game.model.item.template.WeaponType
 import org.l2kserver.game.model.stats.CombatStats
 
-object DemonSplinter: WeaponTemplate() {
+data object DemonSplinter: Weapon() {
     override val id = 6371
     override val name = "Demon Splinter"
     override val grade = Grade.S
@@ -25,7 +25,7 @@ object DemonSplinter: WeaponTemplate() {
     override val spiritshotUsed = 1
 }
 
-object HeavensDivider: WeaponTemplate() {
+data object HeavensDivider: Weapon() {
     override val id = 6372
     override val name = "Heaven's Divider"
     override val grade = Grade.S
@@ -45,7 +45,7 @@ object HeavensDivider: WeaponTemplate() {
     override val spiritshotUsed = 1
 }
 
-object TallumBladeDarkLegionsEdge: WeaponTemplate() {
+data object TallumBladeDarkLegionsEdge: Weapon() {
     override val id = 6580
     override val name = "Tallum Blade*Dark Legion's Edge"
     override val grade = Grade.S

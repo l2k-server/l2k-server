@@ -3,10 +3,10 @@ package org.l2kserver.game.model.item
 import org.l2kserver.game.domain.ItemEntity
 import org.l2kserver.game.model.item.instance.SoulshotInstance
 import org.l2kserver.game.model.item.instance.SpiritshotInstance
-import org.l2kserver.game.model.item.template.SoulshotTemplate
-import org.l2kserver.game.model.item.template.SpiritshotTemplate
+import org.l2kserver.game.model.item.template.Soulshot
+import org.l2kserver.game.model.item.template.Spiritshot
 
-class Soulshot(itemEntity: ItemEntity, itemTemplate: SoulshotTemplate): SoulshotInstance {
+class SoulshotInstanceImpl(itemEntity: ItemEntity, itemTemplate: Soulshot): SoulshotInstance {
     override val id: Int = itemEntity.id.value
     override val templateId = itemEntity.templateId
 
@@ -26,7 +26,7 @@ class Soulshot(itemEntity: ItemEntity, itemTemplate: SoulshotTemplate): Soulshot
     override fun toString() = "Soulshot(name=$name id=$id amount=$amount grade=$grade)"
 }
 
-class Spiritshot(itemEntity: ItemEntity, itemTemplate: SpiritshotTemplate): SpiritshotInstance {
+class SpiritshotInstanceImpl(itemEntity: ItemEntity, itemTemplate: Spiritshot): SpiritshotInstance {
     override val id: Int = itemEntity.id.value
     override val templateId = itemEntity.templateId
 

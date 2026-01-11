@@ -23,12 +23,13 @@ import org.l2kserver.game.handler.dto.response.UpdateItemsResponse
 import org.l2kserver.game.handler.dto.response.UpdateStatusResponse
 import org.l2kserver.game.model.actor.ActorInstance
 import org.l2kserver.game.model.actor.MutableActorInstance
-import org.l2kserver.game.model.actor.Npc
-import org.l2kserver.game.model.actor.PlayerCharacter
+import org.l2kserver.game.model.actor.NpcInstanceImpl
+import org.l2kserver.game.model.actor.PlayerCharacterInstanceImpl
+import org.l2kserver.game.model.actor.character.PlayerCharacterInstance
 import org.l2kserver.game.model.extensions.toInt
 import org.l2kserver.game.model.item.template.WeaponType
 import org.l2kserver.game.model.skill.effect.DamageEffect
-import org.l2kserver.game.model.skill.instance.CastableSkillInstance
+import org.l2kserver.game.model.skill.instance.ActiveSkillInstance
 import org.l2kserver.game.network.session.send
 import org.l2kserver.game.network.session.sendTo
 import org.l2kserver.game.repository.GameObjectRepository
@@ -61,7 +62,7 @@ class CombatService(
 
     /** Launches attacking job for player */
     suspend fun launchAttack(
-        character: PlayerCharacter, target: MutableActorInstance
+        character: PlayerCharacterInstanceImpl, target: MutableActorInstance
     ) = asyncTaskService.launchAction(character.id) {
         attack(character, target)
     }
@@ -96,7 +97,7 @@ class CombatService(
 
                 suspendTransaction {
                     // Player character must spend mana and arrows for attack (if weapon requires)
-                    if ((attacker as? PlayerCharacter)?.spendResources() != false)
+                    if ((attacker as? PlayerCharacterInstanceImpl)?.spendResources() != false)
                         //Already launched attack must not be cancelled TODO STUN??
                         withContext(currentCoroutineContext() + NonCancellable) {
                             when (attacker.weaponType) {
@@ -111,12 +112,16 @@ class CombatService(
                             // Activate combat stance and pvp state (if fighters are characters)
                             actorStateService.activateCombatState(attacker)
                             actorStateService.activateCombatState(attacked)
-                            if (attacker is PlayerCharacter && attacked is PlayerCharacter && attacked.karma == 0) {
+                            if (
+                                attacker is PlayerCharacterInstance &&
+                                attacked is PlayerCharacterInstance &&
+                                attacked.karma == 0
+                            ) {
                                 actorStateService.activatePvpState(attacker)
                             }
 
                             //Enable SS if auto-use soulshot enabled
-                            (attacker as? PlayerCharacter)?.autoUsesSoulshot?.let {
+                            (attacker as? PlayerCharacterInstanceImpl)?.autoUsesSoulshot?.let {
                                 itemService.useSoulshot(attacker, it)
                             }
                         }
@@ -129,7 +134,7 @@ class CombatService(
     }
 
     suspend fun applyDamageEffect(
-        attacker: MutableActorInstance, effect: DamageEffect, skill: CastableSkillInstance? = null
+        attacker: MutableActorInstance, effect: DamageEffect, skill: ActiveSkillInstance? = null
     ) = suspendTransaction {
         val attacked = gameObjectRepository.findActorByIdOrNull(effect.targetId) ?: return@suspendTransaction
 
@@ -148,18 +153,18 @@ class CombatService(
 
         // Calculate overhit damage.
         // "mob had 10 HP left, over-hit skill did 50 damage total, over-hit damage is 40" (c) l2jserver
-        val overhitDamage = if (skill?.overhitPossible == true && attacked is Npc)
+        val overhitDamage = if (skill?.overhitPossible == true && attacked is NpcInstanceImpl)
             maxOf(effect.damage - attacked.currentHp, 0)
         else 0
 
         //Store damage for AI and reward ownership
-        if (attacked is Npc) synchronized(attacked.opponents) {
+        if (attacked is NpcInstanceImpl) synchronized(attacked.opponents) {
             val damageDealt = attacked.opponents[attacker] ?: 0
             attacked.opponents[attacker] = damageDealt + minOf(effect.damage, attacked.currentHp)
         }
 
         //If fighters are players, subtract fom CP first
-        val damageOnHp = if (attacker is PlayerCharacter && attacked is PlayerCharacter) {
+        val damageOnHp = if (attacker is PlayerCharacterInstanceImpl && attacked is PlayerCharacterInstanceImpl) {
             val hitOnHp = -minOf(attacked.currentCp - effect.damage, 0)
             attacked.currentCp = maxOf(0, attacked.currentCp - effect.damage)
             hitOnHp
@@ -208,7 +213,7 @@ class CombatService(
         val attackDuration = calculateAttackTime(attacker.stats.atkSpd)
         nextAttackAvailableTimeMap[attacker.id] = currentTimeMillis() + attackDuration
 
-        val weapon = (attacker as? PlayerCharacter)?.inventory?.weapon
+        val weapon = (attacker as? PlayerCharacterInstanceImpl)?.inventory?.weapon
         val soulshotUsed = weapon?.soulshotCharged ?: false
 
         val aoeTargets = getAoeAttackTargets(attacker, attacked)
@@ -260,7 +265,7 @@ class CombatService(
 
         send { SystemMessageResponse.YouCarefullyNockAnArrow }
 
-        val usedSoulshot = (attacker as? PlayerCharacter)?.inventory?.weapon?.soulshotCharged ?: false
+        val usedSoulshot = (attacker as? PlayerCharacterInstanceImpl)?.inventory?.weapon?.soulshotCharged ?: false
 
         val damageEffect = DamageEffect.physicalHit(attacker, attacked, usedSoulshot = usedSoulshot)
         if (usedSoulshot && !damageEffect.isAvoided) attacker.inventory.weapon?.soulshotCharged = false
@@ -332,15 +337,16 @@ class CombatService(
         actor.temporalEffects.clear()
 
         when (actor) {
-            is Npc -> {
+            is NpcInstanceImpl -> {
                 broadcastAround(actor.position) { NpcDiedResponse(actor) }
                 npcService.handleNpcDeath(actor)
-                if (killer is PlayerCharacter) rewardService.manageRewardForKillingNpc(killer, actor, overhitDamage)
+                if (killer is PlayerCharacterInstanceImpl)
+                    rewardService.manageRewardForKillingNpc(killer, actor, overhitDamage)
             }
 
-            is PlayerCharacter -> {
+            is PlayerCharacterInstanceImpl -> {
                 broadcastAround(actor.position) { PlayerDiedResponse(actor) }
-                if (killer is PlayerCharacter) rewardService.manageRewardForKillingPlayer(actor, killer)
+                if (killer is PlayerCharacterInstanceImpl) rewardService.manageRewardForKillingPlayer(actor, killer)
             }
         }
     }
@@ -369,7 +375,7 @@ class CombatService(
      *
      * @return `true` if resources are spent and attack can be performed, `false` - if not
      */
-    private suspend fun PlayerCharacter.spendResources(): Boolean {
+    private suspend fun PlayerCharacterInstanceImpl.spendResources(): Boolean {
         val weapon = this.inventory.weapon ?: return true
 
         //Check if player has enough mana
@@ -381,7 +387,7 @@ class CombatService(
 
         //If weapon consumes smth
         weapon.consumes?.let { consumable ->
-            val arrows = this.inventory.findAllByTemplateId(consumable.id).firstOrNull()
+            val arrows = this.inventory.findAllByTemplateId(consumable.templateId).firstOrNull()
             //Check if player has enough ammo
             if (arrows == null || consumable.amount > arrows.amount) {
                 send { SystemMessageResponse.NotEnoughArrows }

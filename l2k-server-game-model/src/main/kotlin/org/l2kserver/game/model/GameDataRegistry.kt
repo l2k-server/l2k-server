@@ -10,6 +10,8 @@ import java.util.concurrent.ConcurrentHashMap
  */
 interface GameData {
     val id: Int
+
+    fun validate() {}
 }
 
 /**
@@ -28,6 +30,7 @@ abstract class GameDataRegistry<T: GameData>: Collection<T> {
 
     /** Saves [gameData] to storage and returns it */
     fun register(gameData: T): T {
+        gameData.validate()
         val prevData = gameDataStorage.put(gameData.id, gameData)
 
         if (prevData == null) log.info("Successfully registered '{}'", gameData)

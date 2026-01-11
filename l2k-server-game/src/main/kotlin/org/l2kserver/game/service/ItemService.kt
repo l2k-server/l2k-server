@@ -22,16 +22,17 @@ import org.l2kserver.game.handler.dto.response.UpdateItemsResponse
 import org.l2kserver.game.handler.dto.response.UpdateStatusResponse
 import org.l2kserver.game.model.actor.position.Position
 import org.l2kserver.game.model.actor.ActorInstance
-import org.l2kserver.game.model.actor.PlayerCharacter
+import org.l2kserver.game.model.actor.PlayerCharacterInstanceImpl
 import org.l2kserver.game.model.actor.ScatteredItem
-import org.l2kserver.game.model.item.Arrow
-import org.l2kserver.game.model.item.Book
-import org.l2kserver.game.model.item.Soulshot
-import org.l2kserver.game.model.item.Spiritshot
+import org.l2kserver.game.model.item.ArrowInstanceImpl
+import org.l2kserver.game.model.item.BookInstanceImpl
+import org.l2kserver.game.model.item.MagicItemInstanceImpl
+import org.l2kserver.game.model.item.SoulshotInstanceImpl
+import org.l2kserver.game.model.item.SpiritshotInstanceImpl
 import org.l2kserver.game.model.item.instance.EquippableItemInstance
 import org.l2kserver.game.model.item.instance.ItemInstance
 import org.l2kserver.game.model.item.template.Slot
-import org.l2kserver.game.model.item.Weapon
+import org.l2kserver.game.model.item.WeaponInstanceImpl
 import org.l2kserver.game.model.item.instance.ShotInstance
 import org.l2kserver.game.model.item.instance.SoulshotInstance
 import org.l2kserver.game.model.item.instance.SpiritshotInstance
@@ -44,6 +45,7 @@ import org.l2kserver.game.network.session.sendTo
 import org.l2kserver.game.network.session.sessionContext
 import org.l2kserver.game.repository.GameObjectRepository
 import org.springframework.stereotype.Service
+import org.springframework.context.annotation.Lazy
 import kotlin.math.roundToInt
 import kotlin.ranges.random
 
@@ -58,6 +60,7 @@ class ItemService(
     private val geoDataService: GeoDataService,
     private val moveService: MoveService,
     private val asyncTaskService: AsyncTaskService,
+    @param:Lazy private val skillService: SkillService,
 
     override val gameObjectRepository: GameObjectRepository
 ) : AbstractService() {
@@ -104,9 +107,10 @@ class ItemService(
                 return
             }
             item is EquippableItemInstance -> equipOrDisarmItem(character, item)
-            item is Soulshot -> useSoulshot(character, item)
-            item is Spiritshot -> useSpiritshot(character, item)
-            item is Book -> useBook(item)
+            item is SoulshotInstanceImpl -> useSoulshot(character, item)
+            item is SpiritshotInstanceImpl -> useSpiritshot(character, item)
+            item is BookInstanceImpl -> useBook(item)
+            item is MagicItemInstanceImpl -> useMagicItem(character, item)
         }
     }
 
@@ -229,7 +233,7 @@ class ItemService(
 
     /** Moves [character] closer to [scatteredItem] and picks it up */
     suspend fun launchPickUp(
-        character: PlayerCharacter, scatteredItem: ScatteredItem
+        character: PlayerCharacterInstanceImpl, scatteredItem: ScatteredItem
     ) = asyncTaskService.launchAction(character.id) {
         moveService.move(character, scatteredItem)
 
@@ -266,12 +270,12 @@ class ItemService(
 
     /** Creates new item(s) in [itemReceiver]'s inventory */
     suspend fun giveItem(
-        itemReceiver: PlayerCharacter, itemTemplateId: Int, amount: Int, enchantLevel: Int
+        itemReceiver: PlayerCharacterInstanceImpl, itemTemplateId: Int, amount: Int, enchantLevel: Int
     ) = suspendTransaction {
         val existingItem = itemReceiver.inventory.findAllByTemplateId(itemTemplateId).firstOrNull()
         val itemTemplate = ItemTemplateRegistry.findById(itemTemplateId)
 
-        val consumableId = itemReceiver.inventory.weapon?.consumes?.id
+        val consumableId = itemReceiver.inventory.weapon?.consumes?.templateId
         val equippedAt = if (consumableId == itemTemplate.id) Slot.LEFT_HAND else null
 
         val items = if (itemTemplate.isStackable) {
@@ -307,7 +311,7 @@ class ItemService(
      * @param amount Amount of items to delete
      * @param owner Owner of this [item]
      */
-    suspend fun deleteItem(item: ItemInstance, amount: Int, owner: PlayerCharacter) = suspendTransaction {
+    suspend fun deleteItem(item: ItemInstance, amount: Int, owner: PlayerCharacterInstanceImpl) = suspendTransaction {
         require(item.isStackable || amount == 1) { "Cannot remove '$amount' of non-stackable '$item' of '${owner}'!" }
 
         if (amount > item.amount) {
@@ -324,9 +328,9 @@ class ItemService(
                 owner.inventory.disarmItem(item)
                 owner.inventory
                 response.wasModified(item)
-                val consumableId = (item as? Weapon)?.consumes?.id
+                val consumableId = (item as? WeaponInstanceImpl)?.consumes?.templateId
                 if (consumableId != null) {
-                    val arrow = owner.inventory.findAllByTemplateId(consumableId).firstOrNull() as? Arrow
+                    val arrow = owner.inventory.findAllByTemplateId(consumableId).firstOrNull() as? ArrowInstanceImpl
                     arrow?.let {
                         it.equippedAt = null
                         response.wasModified(it)
@@ -342,7 +346,7 @@ class ItemService(
         sendTo(owner.id) { UpdateStatusResponse.weightOf(owner) }
     }
 
-    private suspend fun toggleSoulshotAutoUsage(character: PlayerCharacter, soulshot: SoulshotInstance) {
+    private suspend fun toggleSoulshotAutoUsage(character: PlayerCharacterInstanceImpl, soulshot: SoulshotInstance) {
         val weapon = character.inventory.weapon ?: run {
             send { SystemMessageResponse.CannotUseSoulshot }
             return
@@ -367,7 +371,9 @@ class ItemService(
         }
     }
 
-    private suspend fun toggleSpiritshotAutoUsage(character: PlayerCharacter, spiritshot: SpiritshotInstance) {
+    private suspend fun toggleSpiritshotAutoUsage(
+        character: PlayerCharacterInstanceImpl, spiritshot: SpiritshotInstance
+    ) {
         val weapon = character.inventory.weapon ?: run {
             send { SystemMessageResponse.CannotUseSoulshot }
             return
@@ -397,7 +403,7 @@ class ItemService(
      *
      * @return `true` if soulshot was successfully charged, `false` if not
      */
-    suspend fun useSoulshot(character: PlayerCharacter, soulshot: SoulshotInstance) {
+    suspend fun useSoulshot(character: PlayerCharacterInstanceImpl, soulshot: SoulshotInstance) {
         val weapon = character.inventory.weapon ?: run {
             send { SystemMessageResponse.CannotUseSoulshot }
             return
@@ -422,7 +428,7 @@ class ItemService(
         this@ItemService.broadcastAround(character.position) { ShotUsedResponse(character, soulshot) }
     }
 
-    suspend fun useSpiritshot(character: PlayerCharacter, spiritshot: SpiritshotInstance) {
+    suspend fun useSpiritshot(character: PlayerCharacterInstanceImpl, spiritshot: SpiritshotInstance) {
         val weapon = character.inventory.weapon ?: run {
             send { SystemMessageResponse.CannotUseSpiritshot }
             return
@@ -447,8 +453,21 @@ class ItemService(
         this@ItemService.broadcastAround(character.position) { ShotUsedResponse(character, spiritshot) }
     }
 
-    suspend fun useBook(book: Book) = send {
+    suspend fun useBook(book: BookInstanceImpl) = send {
         NpcChatWindowResponse(npcId = book.templateId, message = book.text)
+    }
+
+    /**
+     * Uses magic item (scroll, potion, etc.) to cast its skill
+     * The item will be consumed immediately when skill casting starts
+     */
+    suspend fun useMagicItem(character: PlayerCharacterInstanceImpl, magicItem: MagicItemInstanceImpl) {
+        log.info("Character '{}' tries to use magic item '{}'", character.name, magicItem)
+        // Create skill instance with character's ID for individual cooldowns
+        val skill = magicItem.createSkill(character.id)
+
+        // Use the skill from the item
+        skillService.useSkill(character, skill)
     }
 
     /**
@@ -458,7 +477,7 @@ class ItemService(
      * @param item Item, that will be equipped/taken off
      */
     @Suppress("NestedBlockDepth", "CyclomaticComplexMethod") //TODO Refactor?
-    private suspend fun equipOrDisarmItem(character: PlayerCharacter, item: EquippableItemInstance) {
+    private suspend fun equipOrDisarmItem(character: PlayerCharacterInstanceImpl, item: EquippableItemInstance) {
         val updatedItems = ArrayList<ItemInstance>(3)
         suspendTransaction {
             val paperDoll = character.inventory
@@ -543,14 +562,14 @@ class ItemService(
             }
 
             character.autoUsesSoulshot?.let {
-                if (item is Weapon && !item.canUseSoulshot(character.autoUsesSoulshot)) {
+                if (item is WeaponInstanceImpl && !item.canUseSoulshot(character.autoUsesSoulshot)) {
                     send { AutoUseSsResponse(it.templateId, false) }
                     character.autoUsesSoulshot = null
                 }
             }
 
             character.autoUsesSpiritshot?.let {
-                if (item is Weapon && !item.canUseSpiritshot(character.autoUsesSpiritshot)) {
+                if (item is WeaponInstanceImpl && !item.canUseSpiritshot(character.autoUsesSpiritshot)) {
                     send { AutoUseSsResponse(it.templateId, false) }
                     character.autoUsesSpiritshot = null
                 }
@@ -585,19 +604,19 @@ class ItemService(
     }
 
     private suspend fun equipAndDisarmArrows(
-        updatedItems: ArrayList<ItemInstance>, character: PlayerCharacter
+        updatedItems: ArrayList<ItemInstance>, character: PlayerCharacterInstanceImpl
     ): List<ItemInstance> = buildList(2) {
-        updatedItems.forEachInstanceMatching<Weapon>({ it.type == WeaponType.BOW }) { bow ->
+        updatedItems.forEachInstanceMatching<WeaponInstanceImpl>({ it.type == WeaponType.BOW }) { bow ->
             if (bow.isEquipped) bow.consumes?.let {
-                character.inventory.findAllByTemplateId(it.id).firstOrNull()
-                    ?.let { consumable -> if (consumable is Arrow) {
+                character.inventory.findAllByTemplateId(it.templateId).firstOrNull()
+                    ?.let { consumable -> if (consumable is ArrowInstanceImpl) {
                         consumable.equippedAt = Slot.LEFT_HAND
                         add(consumable)
                     }}
             }
             else bow.consumes?.let {
-                character.inventory.findAllByTemplateId(it.id).firstOrNull()
-                    ?.let { consumable -> if (consumable is Arrow) {
+                character.inventory.findAllByTemplateId(it.templateId).firstOrNull()
+                    ?.let { consumable -> if (consumable is ArrowInstanceImpl) {
                         consumable.equippedAt = null
                         add(consumable)
                     }}
@@ -605,7 +624,7 @@ class ItemService(
         }
     }
 
-    private suspend fun Weapon.canUseSoulshot(soulshot: SoulshotInstance?) = when {
+    private suspend fun WeaponInstanceImpl.canUseSoulshot(soulshot: SoulshotInstance?) = when {
         this.soulshotUsed > (soulshot?.amount ?: 0) -> {
             send { SystemMessageResponse.NotEnoughSoulshots }
             false
@@ -617,7 +636,7 @@ class ItemService(
         else -> true
     }
 
-    private suspend fun Weapon.canUseSpiritshot(spiritshot: SpiritshotInstance?) = when {
+    private suspend fun WeaponInstanceImpl.canUseSpiritshot(spiritshot: SpiritshotInstance?) = when {
         this.spiritshotUsed > (spiritshot?.amount ?: 0) -> {
             send { SystemMessageResponse.NotEnoughSpiritshots }
             false

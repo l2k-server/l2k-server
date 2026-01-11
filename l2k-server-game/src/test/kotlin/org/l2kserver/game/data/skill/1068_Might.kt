@@ -7,7 +7,7 @@ import org.l2kserver.game.model.skill.effect.AbnormalType
 import org.l2kserver.game.model.skill.effect.Effects
 import org.l2kserver.game.model.skill.effect.TemporalAbnormalEffect
 import org.l2kserver.game.model.skill.instance.SkillTargetType
-import org.l2kserver.game.model.skill.template.MagicSkillTemplate
+import org.l2kserver.game.model.skill.template.ActiveSkill
 import org.l2kserver.game.model.skill.template.SkillConsumablesTemplate
 import org.l2kserver.game.model.stats.CombatStatsMultipliers
 import java.time.Duration
@@ -25,13 +25,15 @@ class MightEffect(
         pAtk = power.getOrElse(effectLevel - 1) { error("Skill 'Might' has no level '$effectLevel'") }
     )
 }
-object Might: MagicSkillTemplate() {
+
+data object Might: ActiveSkill() {
     override val id = 1068
     override val skillName = "Might"
     override val maxLevel = 3
     override val targetType = SkillTargetType.FRIEND
     override val reuseDelay = 6_000
     override val castTime = 4_000
+    override val isMagic = true
     override val castRange = 400
     override val consumesToStart = SkillConsumablesTemplate(mp = listOf(2, 4, 7))
     override val consumes = SkillConsumablesTemplate(mp = listOf(8, 16, 28))

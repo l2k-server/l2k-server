@@ -14,7 +14,7 @@ import org.l2kserver.game.domain.PlayerCharacterEntity
 import org.l2kserver.game.domain.PlayerCharacterTable
 import org.l2kserver.game.domain.SkillEntity
 import org.l2kserver.game.extensions.logger
-import org.l2kserver.game.model.actor.PlayerCharacter
+import org.l2kserver.game.model.actor.PlayerCharacterInstanceImpl
 import org.l2kserver.game.model.actor.character.CharacterRace
 import org.l2kserver.game.model.actor.character.Gender
 import org.l2kserver.game.model.actor.character.CharacterClassRegistry
@@ -36,7 +36,7 @@ class PlayerCharacterRepository(
     fun create(
         accountName: String, characterName: String, race: CharacterRace, gender: Gender,
         classId: Int, hairColor: Int, hairStyle: Int, faceType: Int
-    ): PlayerCharacter = transaction {
+    ): PlayerCharacterInstanceImpl = transaction {
         val characterClass = requireNotNull(CharacterClassRegistry.findByIdOrNull(classId)) {
             "No class with id $classId exists!"
         }
@@ -64,7 +64,6 @@ class PlayerCharacterRepository(
             this.z = characterTemplate.position.z
             this.nameColor = DEFAULT_NAME_COLOR
             this.titleColor = DEFAULT_TITLE_COLOR
-            this
         }
 
         val characterLevel = LevelUtils.getLevelByExp(characterEntity.exp)
@@ -142,10 +141,10 @@ class PlayerCharacterRepository(
             .mapNotNull { PlayerCharacterEntity.wrapRow(it).toPlayerCharacter() }
     }
 
-    private fun PlayerCharacterEntity.toPlayerCharacter(): PlayerCharacter? {
+    private fun PlayerCharacterEntity.toPlayerCharacter(): PlayerCharacterInstanceImpl? {
         val characterClass = CharacterClassRegistry.findByIdOrNull(this.classId)
         return if (characterClass != null)
-            PlayerCharacter(this, characterClass)
+            PlayerCharacterInstanceImpl(this, characterClass)
         else {
             log.warn("No character class exists by Id")
             null

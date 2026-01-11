@@ -1,6 +1,7 @@
 package org.l2kserver.game.service
 
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
@@ -9,7 +10,7 @@ import org.l2kserver.game.extensions.logger
 import org.l2kserver.game.extensions.model.actor.hasEnoughConsumableItemFor
 import org.l2kserver.game.extensions.model.actor.hasEnoughHpToCast
 import org.l2kserver.game.extensions.model.actor.hasEnoughMpToCast
-import org.l2kserver.game.extensions.model.isOnCooldown
+import org.l2kserver.game.extensions.model.skill.isOnCooldown
 import org.l2kserver.game.handler.dto.request.UseSkillRequest
 import org.l2kserver.game.handler.dto.response.TemporalEffectsResponse
 import org.l2kserver.game.handler.dto.response.ActionFailedResponse
@@ -26,9 +27,9 @@ import org.l2kserver.game.handler.dto.response.UpdateItemsResponse
 import org.l2kserver.game.handler.dto.response.UpdateStatusResponse
 import org.l2kserver.game.model.actor.ActorInstance
 import org.l2kserver.game.model.actor.MutableActorInstance
-import org.l2kserver.game.model.actor.Npc
-import org.l2kserver.game.model.actor.PlayerCharacter
-import org.l2kserver.game.model.actor.character.CharacterInstance
+import org.l2kserver.game.model.actor.NpcInstanceImpl
+import org.l2kserver.game.model.actor.PlayerCharacterInstanceImpl
+import org.l2kserver.game.model.actor.character.PlayerCharacterInstance
 import org.l2kserver.game.model.actor.npc.NpcInstance
 import org.l2kserver.game.model.extensions.forEachInstance
 import org.l2kserver.game.model.extensions.safePlus
@@ -41,13 +42,11 @@ import org.l2kserver.game.model.skill.effect.HealEffect
 import org.l2kserver.game.model.skill.effect.ResistedEffect
 import org.l2kserver.game.model.skill.effect.TemporalAbnormalEffect
 import org.l2kserver.game.model.skill.instance.ActiveSkillInstance
-import org.l2kserver.game.model.skill.instance.CastableSkillInstance
-import org.l2kserver.game.model.skill.instance.MagicSkillInstance
 import org.l2kserver.game.model.skill.instance.PassiveSkillInstance
 import org.l2kserver.game.model.skill.instance.SkillConsumables
 import org.l2kserver.game.model.skill.instance.SkillInstance
 import org.l2kserver.game.model.skill.instance.ToggleSkillInstance
-import org.l2kserver.game.model.skill.template.SkillTemplateRegistry
+import org.l2kserver.game.model.skill.template.SkillRegistry
 import org.l2kserver.game.network.session.send
 import org.l2kserver.game.network.session.sendTo
 import org.l2kserver.game.network.session.sessionContext
@@ -57,7 +56,6 @@ import org.springframework.stereotype.Service
 import java.time.Instant
 import kotlin.collections.contains
 import kotlin.math.roundToInt
-import kotlin.math.roundToLong
 
 private const val CAST_TIME_COEFFICIENT = 333
 
@@ -84,9 +82,9 @@ class SkillService(
         log.info("Successfully sent skill list to character {}", character)
     }
 
-    suspend fun learnSkill(character: PlayerCharacter, skillId: Int, skillLevel: Int) = suspendTransaction {
+    suspend fun learnSkill(character: PlayerCharacterInstanceImpl, skillId: Int, skillLevel: Int) = suspendTransaction {
         //TODO checks if skill can be learned by this class, etc.
-        val skillTemplate = SkillTemplateRegistry.findById(skillId)
+        val skillTemplate = SkillRegistry.findById(skillId)
         require(skillLevel in 0..skillTemplate.maxLevel) {
             "Cannot learn skill ${skillTemplate.skillName} on level $skillLevel " +
                     "- it's max level is ${skillTemplate.maxLevel}"
@@ -112,9 +110,10 @@ class SkillService(
     ) {
         log.debug("'{}' tries to use skill '{}'", actor, skill)
         when (skill) {
-            is CastableSkillInstance -> useActiveSkill(
+            is ActiveSkillInstance -> useActiveSkill(
                 actor, skill, forced = forced && skill.forcedUsageAllowed, holdPosition
             )
+
             is PassiveSkillInstance -> send { ActionFailedResponse }
             is ToggleSkillInstance -> {
                 //TODO Toggle skills
@@ -132,7 +131,7 @@ class SkillService(
      * @param holdPosition actor won't move closer to use skill
      */
     private suspend fun useActiveSkill(
-        actor: MutableActorInstance, skill: CastableSkillInstance, forced: Boolean, holdPosition: Boolean
+        actor: MutableActorInstance, skill: ActiveSkillInstance, forced: Boolean, holdPosition: Boolean
     ) {
         //TODO Check if actor is already casting
 
@@ -174,7 +173,80 @@ class SkillService(
 
             // Casting animation
             // All skills that do not require a target are essentially cast on yourself
-            actor.castSkillOn(skill, target)
+            castSkill(actor, target, skill)
+        }
+    }
+
+    /** Cast [skill] and apply cooldown */
+    suspend fun castSkill(
+        caster: MutableActorInstance, target: MutableActorInstance, skill: ActiveSkillInstance
+    ) {
+        var castingSpeed = if (skill.isMagic) caster.stats.castingSpd.toDouble()
+        else caster.stats.atkSpd.toDouble()
+
+        val blessedSpiritshotCharged = (caster as? PlayerCharacterInstanceImpl)
+            ?.inventory?.weapon?.spiritshotChargedType == SpiritshotType.BLESSED_SPIRITSHOT
+
+        if (skill.isMagic && blessedSpiritshotCharged) castingSpeed *= 1.5
+
+        var castTime = skill.castTime
+        var repriseTime = skill.repriseTime
+        var reuseDelay = skill.reuseDelay
+
+        if (skill.usesCasterStats) {
+            castTime = (castTime * CAST_TIME_COEFFICIENT / castingSpeed).roundToInt()
+            repriseTime = (repriseTime * CAST_TIME_COEFFICIENT / castingSpeed).roundToInt()
+            reuseDelay = (reuseDelay * CAST_TIME_COEFFICIENT / castingSpeed).roundToInt()
+        }
+
+        skill.nextUsageTime = Instant.now().plusMillis(reuseDelay.toLong())
+        caster.spendResources(skill.consumesToStart)
+
+        withContext(currentCoroutineContext() + NonCancellable) {
+            send { SystemMessageResponse.YouUse(skill) }
+            send { GaugeResponse(GaugeColor.BLUE, castTime) }
+
+            this@SkillService.broadcastAround(caster.position) {
+                SkillUsedResponse(
+                    casterId = caster.id,
+                    targetId = target.id,
+                    skillId = skill.skillId,
+                    skillLevel = skill.skillLevel,
+                    castTime = castTime,
+                    reuseDelay = reuseDelay,
+                    casterPosition = caster.position
+                )
+            }
+
+            //Time, needed to cast a skill
+            delay(castTime.toLong())
+            applyEffects(skill, caster, target)
+
+            caster.spendResources(skill.consumes)
+
+            when (skill.targetType) {
+                SkillTargetType.ENEMY -> {
+                    actorStateService.activateCombatState(caster)
+                    actorStateService.activateCombatState(target)
+                    if (
+                        caster is PlayerCharacterInstanceImpl &&
+                        target is PlayerCharacterInstanceImpl &&
+                        target.karma == 0
+                    ) {
+                        actorStateService.activatePvpState(caster)
+                    }
+                }
+
+                SkillTargetType.FRIEND -> (caster as? PlayerCharacterInstanceImpl)?.let { character ->
+                    if (target.isEnemyOf(character)) actorStateService.activatePvpState(character)
+                }
+
+                SkillTargetType.DEAD_NPC -> npcService.remove(target as NpcInstanceImpl)
+                else -> {}
+            }
+
+            //Time to finish cast animation
+            delay(repriseTime.toLong())
         }
     }
 
@@ -185,18 +257,30 @@ class SkillService(
         val actor = this@spendResources
 
         var statusUpdated = false
-        consumables?.hp?.let { actor.currentHp -= it; statusUpdated = true }
-        consumables?.mp?.let { actor.currentMp -= it; statusUpdated = true }
 
-        if (actor is PlayerCharacter) consumables?.item?.let {
-            val resourceItem = actor.inventory.findById(it.id)
-            val reducedItem = actor.inventory.reduceAmount(it.id, it.amount)
+        consumables?.hp?.let {
+            if (it > 0) {
+                actor.currentHp -= it
+                statusUpdated = true
+            }
+        }
+
+        consumables?.mp?.let {
+            if (it > 0) {
+                actor.currentMp -= it
+                statusUpdated = true
+            }
+        }
+
+        if (actor is PlayerCharacterInstanceImpl) consumables?.item?.let {
+            val resourceItem = actor.inventory.findAllByTemplateId(it.templateId).first()
+            val reducedItem = actor.inventory.reduceAmount(resourceItem.id, it.amount)
 
             if (reducedItem == null) send { UpdateItemsResponse().wasDeleted(resourceItem) }
             else send { UpdateItemsResponse().wasModified(reducedItem) }
         }
 
-        if (actor is PlayerCharacter && statusUpdated) send {
+        if (actor is PlayerCharacterInstanceImpl && statusUpdated) send {
             UpdateStatusResponse(
                 objectId = actor.id,
                 StatusAttribute.CUR_HP to actor.currentHp,
@@ -204,73 +288,6 @@ class SkillService(
                 StatusAttribute.CUR_CP to actor.currentCp,
                 StatusAttribute.MAX_CP to actor.stats.maxCp
             )
-        }
-    }
-
-    /** Cast [skill] and apply cooldown */
-    private suspend fun MutableActorInstance.castSkillOn(
-        skill: CastableSkillInstance, target: MutableActorInstance
-    ) {
-        val castingSpeed = when (skill) {
-            is MagicSkillInstance -> this.stats.castingSpd
-            else -> this.stats.atkSpd
-        }
-
-        val blessedSpiritshotCharged = (this as? PlayerCharacter)
-            ?.inventory?.weapon?.spiritshotChargedType == SpiritshotType.BLESSED_SPIRITSHOT
-
-        val blessedSpiritshotCastSpeedBonus =
-            if (skill is MagicSkillInstance && blessedSpiritshotCharged) 1.5
-            else 1.0
-
-        val castTime = skill.castTime * CAST_TIME_COEFFICIENT / castingSpeed / blessedSpiritshotCastSpeedBonus
-        val repriseTime = skill.repriseTime * CAST_TIME_COEFFICIENT / castingSpeed / blessedSpiritshotCastSpeedBonus
-        val reuseDelay = skill.reuseDelay * CAST_TIME_COEFFICIENT / castingSpeed / blessedSpiritshotCastSpeedBonus
-
-        skill.nextUsageTime = Instant.now().plusMillis(reuseDelay.roundToLong())
-        this.spendResources(skill.consumesToStart)
-
-        withContext(kotlin.coroutines.coroutineContext + NonCancellable) {
-            send { SystemMessageResponse.YouUse(skill) }
-            send { GaugeResponse(GaugeColor.BLUE, castTime.roundToInt()) }
-
-            this@SkillService.broadcastAround(this@castSkillOn.position) {
-                SkillUsedResponse(
-                    casterId = this@castSkillOn.id,
-                    targetId = target.id,
-                    skillId = skill.skillId,
-                    skillLevel = skill.skillLevel,
-                    castTime = castTime.roundToInt(),
-                    reuseDelay = reuseDelay.roundToInt(),
-                    casterPosition = this@castSkillOn.position
-                )
-            }
-
-            //Time, needed to cast a skill
-            delay(castTime.toLong())
-            applyEffects(skill, this@castSkillOn, target)
-
-            this@castSkillOn.spendResources(skill.consumes)
-
-            when (skill.targetType) {
-                SkillTargetType.ENEMY -> {
-                    actorStateService.activateCombatState(this@castSkillOn)
-                    actorStateService.activateCombatState(target)
-                    if (this@castSkillOn is PlayerCharacter && target is PlayerCharacter && target.karma == 0) {
-                        actorStateService.activatePvpState(this@castSkillOn)
-                    }
-                }
-
-                SkillTargetType.FRIEND -> (this@castSkillOn as? PlayerCharacter)?.let { character ->
-                    if (target.isEnemyOf(character)) actorStateService.activatePvpState(character)
-                }
-
-                SkillTargetType.DEAD_NPC -> npcService.remove(target as Npc)
-                else -> {}
-            }
-
-            //Time to finish cast animation
-            delay(repriseTime.toLong())
         }
     }
 
@@ -285,7 +302,7 @@ class SkillService(
      */
     @Suppress("CyclomaticComplexMethod")
     private suspend fun ActorInstance.canUseSkill(
-        skill: CastableSkillInstance, target: ActorInstance, forced: Boolean
+        skill: ActiveSkillInstance, target: ActorInstance, forced: Boolean
     ): Boolean = when {
         //TODO Physical/Magical silence
         this.isParalyzed || this.isDead() -> {
@@ -319,7 +336,7 @@ class SkillService(
             false
         }
 
-        this is PlayerCharacter && !this.hasEnoughConsumableItemFor(skill) -> {
+        this is PlayerCharacterInstanceImpl && !this.hasEnoughConsumableItemFor(skill) -> {
             send { PlaySoundResponse(Sound.ITEMSOUND_SYS_IMPOSSIBLE) }
             send { SystemMessageResponse.NotEnoughItems }
             send { ActionFailedResponse }
@@ -352,7 +369,7 @@ class SkillService(
             false
         }
 
-        skill.targetType == SkillTargetType.DEAD_PLAYER && (!target.isDead() || target !is CharacterInstance) -> {
+        skill.targetType == SkillTargetType.DEAD_PLAYER && (!target.isDead() || target !is PlayerCharacterInstance) -> {
             send { SystemMessageResponse.IncorrectTarget }
             send { ActionFailedResponse }
             false
@@ -371,7 +388,7 @@ class SkillService(
 
     /** Applies cast by [caster] [skill] effects on [target] */
     private suspend fun applyEffects(
-        skill: CastableSkillInstance, caster: MutableActorInstance, target: MutableActorInstance
+        skill: ActiveSkillInstance, caster: MutableActorInstance, target: MutableActorInstance
     ) = suspendTransaction {
         val context = SkillContext(
             caster = caster,
@@ -379,8 +396,8 @@ class SkillService(
             skillLevel = skill.skillLevel,
             additionalEnemyTargets = emptyList(), //TODO
             additionalFriendlyTargets = emptyList(), //TODO
-            usedSoulshot = (caster as? PlayerCharacter)?.inventory?.weapon?.soulshotCharged ?: false,
-            usedSpiritshotType = (caster as? PlayerCharacter)?.inventory?.weapon?.spiritshotChargedType
+            usedSoulshot = (caster as? PlayerCharacterInstanceImpl)?.inventory?.weapon?.soulshotCharged ?: false,
+            usedSpiritshotType = (caster as? PlayerCharacterInstanceImpl)?.inventory?.weapon?.spiritshotChargedType
         )
 
         val effects = try {
@@ -391,15 +408,15 @@ class SkillService(
         }
 
         //Use SS and re-enable it if auto-use enabled
-        when (skill) {
-            is ActiveSkillInstance -> if (context.usedSoulshot && caster is PlayerCharacter) {
-                caster.inventory.weapon?.soulshotCharged = false
-                caster.autoUsesSoulshot?.let { itemService.useSoulshot(caster, it) }
-            }
-
-            is MagicSkillInstance -> if (context.usedSpiritshotType != null && caster is PlayerCharacter) {
+        if (skill.isMagic) {
+            if (context.usedSpiritshotType != null && caster is PlayerCharacterInstanceImpl) {
                 caster.inventory.weapon?.spiritshotChargedType = null
                 caster.autoUsesSpiritshot?.let { itemService.useSpiritshot(caster, it) }
+            }
+        } else {
+            if (context.usedSoulshot && caster is PlayerCharacterInstanceImpl) {
+                caster.inventory.weapon?.soulshotCharged = false
+                caster.autoUsesSoulshot?.let { itemService.useSoulshot(caster, it) }
             }
         }
 
@@ -407,7 +424,7 @@ class SkillService(
     }
 
     private suspend fun applyEffects(
-        effects: Iterable<Effect>, caster: MutableActorInstance, skill: CastableSkillInstance
+        effects: Iterable<Effect>, caster: MutableActorInstance, skill: ActiveSkillInstance
     ) = effects.forEach { effect ->
         //TODO Abnormals should not show caster in system message (???)
         val target = gameObjectRepository.findActorByIdOrNull(effect.targetId) ?: return@forEach
@@ -438,16 +455,16 @@ class SkillService(
         sendTo(target.id) { updateStatusResponse }
         sendTo(target.id) { SystemMessageResponse.HpRestored(effect.value, healerName) }
 
-        if (target is NpcInstance) target.targetedBy.forEachInstance<PlayerCharacter> {
+        if (target is NpcInstance) target.targetedBy.forEachInstance<PlayerCharacterInstanceImpl> {
             sendTo(it.id) { updateStatusResponse }
         }
     }
 
     private suspend fun applyAbnormalEffect(
-        caster: MutableActorInstance, effect: TemporalAbnormalEffect, skill: CastableSkillInstance
+        caster: MutableActorInstance, effect: TemporalAbnormalEffect, skill: ActiveSkillInstance
     ): Unit = suspendTransaction {
         val target = gameObjectRepository.findActorByIdOrNull(effect.targetId) ?: return@suspendTransaction
-        if (target.temporalEffects.add(effect) && target is PlayerCharacter) {
+        if (target.temporalEffects.add(effect) && target is PlayerCharacterInstanceImpl) {
             sendTo(target.id) { FullCharacterResponse(target) }
             sendTo(target.id) { TemporalEffectsResponse(target.temporalEffects) }
             //TODO Summon abnormals must be shown to master

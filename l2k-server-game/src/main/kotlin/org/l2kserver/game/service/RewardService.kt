@@ -9,9 +9,11 @@ import org.l2kserver.game.handler.dto.response.SystemMessageResponse
 import org.l2kserver.game.handler.dto.response.UpdateStatusResponse
 import org.l2kserver.game.model.SocialAction
 import org.l2kserver.game.model.actor.ActorInstance
-import org.l2kserver.game.model.actor.Npc
-import org.l2kserver.game.model.actor.PlayerCharacter
+import org.l2kserver.game.model.actor.NpcInstanceImpl
+import org.l2kserver.game.model.actor.PlayerCharacterInstanceImpl
+import org.l2kserver.game.model.actor.character.PlayerCharacterInstance
 import org.l2kserver.game.model.actor.character.PvpState
+import org.l2kserver.game.model.actor.npc.NpcInstance
 import org.l2kserver.game.model.utils.withChance
 import org.l2kserver.game.network.session.sendTo
 import org.l2kserver.game.repository.GameObjectRepository
@@ -46,7 +48,11 @@ class RewardService(
      * Manages rewards for killing NPC.
      * Calculates exp, sp, item drops, distributes the reward among the players
      */
-    suspend fun manageRewardForKillingNpc(killer: PlayerCharacter, killed: Npc, overhitDamage: Int) {
+    suspend fun manageRewardForKillingNpc(
+        killer: PlayerCharacterInstance,
+        killed: NpcInstance,
+        overhitDamage: Int
+    ) {
         manageItemRewards(killed)
         manageExpAndSpGain(killer, killed, overhitDamage)
     }
@@ -55,7 +61,7 @@ class RewardService(
      * Manages rewards for killing PlayerCharacter.
      * Calculates pvp and pk scores, karma gain, item drops
      */
-    suspend fun manageRewardForKillingPlayer(killed: PlayerCharacter, killer: PlayerCharacter) {
+    suspend fun manageRewardForKillingPlayer(killed: PlayerCharacterInstanceImpl, killer: PlayerCharacterInstanceImpl) {
 
         if (killed.pvpState != PvpState.NOT_IN_PVP || killed.karma > 0) {
             killer.pvpCount++
@@ -82,21 +88,22 @@ class RewardService(
     /**
      * Calculates item drops
      */
-    private suspend fun manageItemRewards(killed: Npc) {
-        if (killed.reward == null) return
+    private suspend fun manageItemRewards(killed: NpcInstance) {
         val mostValuableDamager = killed.opponents.maxBy { (_, damage) -> damage }.key
-        if (mostValuableDamager is Npc) return
+        if (mostValuableDamager is NpcInstanceImpl) return
 
-        for (itemGroup in killed.reward.itemGroups) {
-            if (isLvlDifferenceDropPenaltyApplied(killed.level, mostValuableDamager.level)) continue
-            withChance(itemGroup.chance) { itemService.dropRewardItem(itemGroup.items.random(), killed) }
+        killed.reward?.itemGroups?.forEach { (chance, items) ->
+            if (!isLvlDifferenceDropPenaltyApplied(killed.level, mostValuableDamager.level))
+                withChance(chance) { itemService.dropRewardItem(items.random(), killed) }
         }
     }
 
     /**
      * Calculates exp and sp gain for all the attackers by level difference and damage dealt, and applies it to killer
      */
-    private suspend fun manageExpAndSpGain(killer: PlayerCharacter, killed: Npc, overhitDamage: Int) {
+    private suspend fun manageExpAndSpGain(
+        killer: PlayerCharacterInstance, killed: NpcInstance, overhitDamage: Int
+    ) {
         val allTheDamageReceived = killed.opponents.values.reduce { acc, i -> acc + i }
 
         for ((attacker: ActorInstance, damage: Int) in killed.opponents) {
@@ -105,7 +112,7 @@ class RewardService(
             //TODO Manage sp share between parties and solo players, who hit this monster
 
             // Monsters do not get exp/sp for monster hunt
-            if (attacker !is PlayerCharacter) continue
+            if (attacker !is PlayerCharacterInstanceImpl) continue
             if (!attacker.position.isCloseTo(killed.position, VISION_RANGE)) continue
 
             val killerLevel = attacker.level
@@ -157,7 +164,9 @@ class RewardService(
     /**
      * Calculate karma amount that player killer must get
      */
-    private suspend fun calculateKarmaGainForKillingPlayer(killer: PlayerCharacter, killed: PlayerCharacter): Int {
+    private suspend fun calculateKarmaGainForKillingPlayer(
+        killer: PlayerCharacterInstance, killed: PlayerCharacterInstance
+    ): Int {
         val pkCountMultiplier = maxOf(1.0, killer.pkCount / 2.0)
         val levelMultiplier = maxOf(1.0, (killer.level / killed.level).toDouble())
 
@@ -191,7 +200,7 @@ class RewardService(
     }
 
 
-    private suspend fun handleLevelUp(character: PlayerCharacter) {
+    private suspend fun handleLevelUp(character: PlayerCharacterInstanceImpl) {
         //Full heal on level up
         character.currentCp = character.stats.maxCp
         character.currentHp = character.stats.maxHp

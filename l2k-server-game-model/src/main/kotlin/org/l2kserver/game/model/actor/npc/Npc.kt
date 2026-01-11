@@ -4,7 +4,7 @@ import org.l2kserver.game.model.actor.CollisionBox
 import org.l2kserver.game.model.GameData
 import org.l2kserver.game.model.GameDataRegistry
 import org.l2kserver.game.model.actor.ActorInstance
-import org.l2kserver.game.model.actor.character.CharacterInstance
+import org.l2kserver.game.model.actor.character.PlayerCharacterInstance
 import org.l2kserver.game.model.actor.npc.ai.AiIntents
 import org.l2kserver.game.model.actor.position.SpawnPosition
 import org.l2kserver.game.model.reward.Reward
@@ -13,9 +13,9 @@ import org.l2kserver.game.model.stats.CombatStats
 import org.l2kserver.game.model.zone.SpawnZone
 
 /** Stores all the NPC templates */
-object NpcTemplateRegistry: GameDataRegistry<NpcTemplate>()
+object NpcRegistry: GameDataRegistry<Npc>()
 
-interface NpcTemplate: GameData {
+interface Npc: GameData {
     override val id: Int
     val name: String
     val title: String? get() = null
@@ -32,7 +32,7 @@ interface NpcTemplate: GameData {
     fun isEnemyOf(other: ActorInstance): Boolean
 
     fun onIdle(npc: NpcInstance): AiIntents? = null
-    fun onTalkWith(character: CharacterInstance): String? = null
+    fun onTalkWith(character: PlayerCharacterInstance): String? = null
 }
 
 data class SpawnData(

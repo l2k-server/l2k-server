@@ -4,7 +4,7 @@ import org.l2kserver.game.extensions.littleEndianByteArray
 import org.l2kserver.game.extensions.putUTF16String
 import org.l2kserver.game.extensions.putUByte
 import org.l2kserver.game.model.extensions.toByte
-import org.l2kserver.game.model.actor.PlayerCharacter
+import org.l2kserver.game.model.actor.PlayerCharacterInstanceImpl
 import org.l2kserver.game.model.actor.MoveType
 
 private const val CHARACTER_INFO_RESPONSE_PACKET_ID: UByte = 4u
@@ -13,7 +13,7 @@ private const val MAX_ENCHANTMENT_EFFECT_VALUE = 16
 
 /** Full character info, which is sent to a player who plays this character */
 data class FullCharacterResponse(
-    val character: PlayerCharacter
+    val character: PlayerCharacterInstanceImpl
 ): ResponsePacket {
 
     @Suppress("LongMethod")

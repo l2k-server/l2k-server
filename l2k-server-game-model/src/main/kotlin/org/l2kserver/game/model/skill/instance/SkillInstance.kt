@@ -28,7 +28,7 @@ interface PassiveSkillInstance: SkillInstance {
 interface ToggleSkillInstance: SkillInstance
 
 /**
- * Instance of skill, that can be cast
+ * Active skill instance
  *
  * @property reuseDelay Base cooldown of this skill
  * @property castTime Base casting time of this skill
@@ -41,10 +41,11 @@ interface ToggleSkillInstance: SkillInstance
  * @property overhitPossible Can this skill produce an over-hit
  * @property forcedUsageAllowed Can this skill be used on incorrect target (CTRL pressed)
  */
-interface CastableSkillInstance: SkillInstance {
+interface ActiveSkillInstance: SkillInstance {
     val targetType: SkillTargetType
     val reuseDelay: Int
     val castTime: Int
+    val isMagic: Boolean
     val repriseTime: Int
     val castRange: Int
     val effectRange: Int
@@ -53,16 +54,11 @@ interface CastableSkillInstance: SkillInstance {
     val consumes: SkillConsumables?
     val overhitPossible: Boolean
     val forcedUsageAllowed: Boolean
+    val usesCasterStats: Boolean
     var nextUsageTime: Instant
 
     fun affect(context: SkillContext): Effects
 }
-
-/** Active (physical) skill instance */
-interface ActiveSkillInstance: CastableSkillInstance
-
-/** Magic skill instance */
-interface MagicSkillInstance: CastableSkillInstance
 
 /**
  * Type of target, the skill can be used on.
@@ -107,7 +103,7 @@ enum class SkillTargetType {
  * @property item - How much and which item is consumed to use skill
  */
 data class SkillConsumables(
-    val hp: Int,
-    val mp: Int,
-    val item: ConsumableItem?
+    val hp: Int = 0,
+    val mp: Int = 0,
+    val item: ConsumableItem? = null
 )

@@ -15,12 +15,11 @@ import org.l2kserver.game.handler.dto.response.DeleteCharacterFailReason
 import org.l2kserver.game.handler.dto.response.DeleteCharacterFailResponse
 import org.l2kserver.game.handler.dto.response.SelectCharacterResponse
 import org.springframework.beans.factory.annotation.Value
-import org.springframework.boot.context.event.ApplicationReadyEvent
-import org.springframework.context.event.EventListener
 import org.springframework.stereotype.Service
 import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.currentCoroutineContext
 import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
 import org.l2kserver.game.domain.AccessLevel
 import org.l2kserver.game.handler.dto.request.RespawnAt
@@ -37,7 +36,7 @@ import org.l2kserver.game.handler.dto.response.ShortcutPanelResponse
 import org.l2kserver.game.handler.dto.response.SkillListResponse
 import org.l2kserver.game.handler.dto.response.SystemMessageResponse
 import org.l2kserver.game.handler.dto.response.UpdateStatusResponse
-import org.l2kserver.game.model.actor.PlayerCharacter
+import org.l2kserver.game.model.actor.PlayerCharacterInstanceImpl
 import org.l2kserver.game.model.actor.position.Position
 import org.l2kserver.game.model.actor.character.CharacterRace
 import org.l2kserver.game.model.actor.character.Gender
@@ -48,7 +47,8 @@ import org.l2kserver.game.network.session.sessionContext
 import org.l2kserver.game.repository.GameObjectRepository
 import org.l2kserver.game.repository.PlayerCharacterRepository
 import org.l2kserver.game.repository.ShortcutRepository
-import kotlin.coroutines.coroutineContext
+import org.springframework.boot.context.event.ApplicationReadyEvent
+import org.springframework.context.event.EventListener
 import kotlin.math.roundToInt
 
 private const val CHARACTERS_MAX_AMOUNT = 7
@@ -350,7 +350,7 @@ class CharacterService(
 
         if (character.canExitWorld()) {
             send { ExitGameResponse }
-            coroutineContext.cancel()
+            currentCoroutineContext().cancel()
             log.info("Player {} has quit game", context.getAccountName())
         }
     }
@@ -364,7 +364,7 @@ class CharacterService(
     /**
      * Removes [character] from game world and stop all the related jobs
      */
-    suspend fun removeFromGameWorld(character: PlayerCharacter) {
+    suspend fun removeFromGameWorld(character: PlayerCharacterInstanceImpl) {
         asyncTaskService.cancelActionByActorId(character.id)
 
         broadcastAround(character) { DeleteObjectResponse(character.id) }
@@ -375,7 +375,7 @@ class CharacterService(
     /**
      * Checks if player can exit game world
      */
-    private suspend fun PlayerCharacter.canExitWorld(): Boolean {
+    private suspend fun PlayerCharacterInstanceImpl.canExitWorld(): Boolean {
         //TODO Other checks if player cannot leave game
         if (this.isFighting) {
             send { SystemMessageResponse.CannotRestartInCombat }
@@ -389,7 +389,7 @@ class CharacterService(
      * Respawns [character] at provided [position] - teleports character at position,
      * restores character's cp, hp and mp and revives him
      */
-    private suspend fun respawnCharacterAt(character: PlayerCharacter, position: Position) {
+    private suspend fun respawnCharacterAt(character: PlayerCharacterInstanceImpl, position: Position) {
         moveService.teleport(character, position)
         broadcastAround(character.position) { ReviveResponse(character.id) }
 

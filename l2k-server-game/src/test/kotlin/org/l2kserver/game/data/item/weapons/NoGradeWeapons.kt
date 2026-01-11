@@ -2,12 +2,12 @@ package org.l2kserver.game.data.item.weapons
 
 import org.l2kserver.game.data.item.arrows.WoodenArrow
 import org.l2kserver.game.model.item.template.Grade
-import org.l2kserver.game.model.item.template.WeaponTemplate
+import org.l2kserver.game.model.item.template.Weapon
 import org.l2kserver.game.model.item.template.WeaponType
 import org.l2kserver.game.model.item.of
 import org.l2kserver.game.model.stats.CombatStats
 
-object ApprenticesWand: WeaponTemplate() {
+data object ApprenticesWand: Weapon() {
     override val id = 6
     override val name = "Apprentice's Wand"
     override val grade = Grade.NO_GRADE
@@ -27,7 +27,7 @@ object ApprenticesWand: WeaponTemplate() {
     override val spiritshotUsed = 1
 }
 
-object WillowStaff: WeaponTemplate() {
+data object WillowStaff: Weapon() {
     override val id = 8
     override val name = "Willow Staff"
     override val grade = Grade.NO_GRADE
@@ -47,7 +47,7 @@ object WillowStaff: WeaponTemplate() {
     override val spiritshotUsed = 1
 }
 
-object Dagger: WeaponTemplate() {
+data object Dagger: Weapon() {
     override val id = 10
     override val name = "Dagger"
     override val grade = Grade.NO_GRADE
@@ -67,7 +67,7 @@ object Dagger: WeaponTemplate() {
     override val spiritshotUsed = 1
 }
 
-object Bow: WeaponTemplate() {
+data object Bow: Weapon() {
     override val id = 14
     override val name = "Bow"
     override val grade = Grade.NO_GRADE
@@ -89,7 +89,7 @@ object Bow: WeaponTemplate() {
     override val manaCost = 1
 }
 
-object ShortSpear: WeaponTemplate() {
+data object ShortSpear: Weapon() {
     override val id = 15
     override val name = "Short Spear"
     override val grade = Grade.NO_GRADE
@@ -109,7 +109,7 @@ object ShortSpear: WeaponTemplate() {
     override val spiritshotUsed = 2
 }
 
-object SquiresSword: WeaponTemplate() {
+data object SquiresSword: Weapon() {
     override val id = 2369
     override val name = "Squire's Sword"
     override val grade = Grade.NO_GRADE

@@ -3,14 +3,14 @@ package org.l2kserver.game.model.item
 import org.l2kserver.game.domain.ItemEntity
 import org.l2kserver.game.model.item.instance.JewelryInstance
 import org.l2kserver.game.model.item.template.Grade
-import org.l2kserver.game.model.item.template.JewelryTemplate
+import org.l2kserver.game.model.item.template.Jewelry
 import org.l2kserver.game.model.stats.CombatStats
 
 private const val JEWELRY_SAFE_ENCHANT_LEVEL = 3
 private const val JEWELRY_PER_UNSAFE_ENCHANT_P_DEF_BONUS = 3
 private const val JEWELRY_PER_SAFE_ENCHANT_P_DEF_BONUS = 1
 
-class Jewelry(itemEntity: ItemEntity, private val itemTemplate: JewelryTemplate): JewelryInstance {
+class JewelryInstanceImpl(itemEntity: ItemEntity, private val itemTemplate: Jewelry): JewelryInstance {
     override val id: Int = itemEntity.id.value
     override val templateId = itemEntity.templateId
 

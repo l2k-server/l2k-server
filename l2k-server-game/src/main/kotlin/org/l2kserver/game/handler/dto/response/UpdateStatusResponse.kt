@@ -3,7 +3,7 @@ package org.l2kserver.game.handler.dto.response
 import org.l2kserver.game.extensions.littleEndianByteArray
 import org.l2kserver.game.extensions.putUByte
 import org.l2kserver.game.model.actor.ActorInstance
-import org.l2kserver.game.model.actor.PlayerCharacter
+import org.l2kserver.game.model.actor.PlayerCharacterInstanceImpl
 
 private const val UPDATE_STATUS_RESPONSE_PACKET_ID: UByte = 14u
 
@@ -41,13 +41,13 @@ data class UpdateStatusResponse(
                 StatusAttribute.CUR_HP to actor.currentHp,
                 StatusAttribute.CUR_MP to actor.currentMp
             )
-            if (actor is PlayerCharacter) attributes[StatusAttribute.CUR_CP] = actor.currentCp
+            if (actor is PlayerCharacterInstanceImpl) attributes[StatusAttribute.CUR_CP] = actor.currentCp
 
             return UpdateStatusResponse(actor.id, attributes)
         }
 
         /** Create UpdateStatusResponse for updating character's weight on client side */
-        fun weightOf(character: PlayerCharacter) = UpdateStatusResponse(
+        fun weightOf(character: PlayerCharacterInstanceImpl) = UpdateStatusResponse(
             character.id,
             StatusAttribute.CUR_LOAD to character.inventory.weight
         )

@@ -1,11 +1,11 @@
 package org.l2kserver.game.model.item
 
-import org.l2kserver.game.model.item.template.ItemTemplate
+import org.l2kserver.game.model.item.template.Item
 
-/** Determines, which [amount] of item with [id] should be consumed by some action */
+/** Determines, which [amount] of item with [templateId] should be consumed by some action */
 data class ConsumableItem(
-    val id: Int,
+    val templateId: Int,
     val amount: Int = 1
 )
 
-infix fun Int.of(item: ItemTemplate) = ConsumableItem(item.id, this)
+infix fun Int.of(item: Item) = ConsumableItem(item.id, this)

@@ -3,14 +3,14 @@ package org.l2kserver.game.handler.dto.response
 import org.l2kserver.game.extensions.littleEndianByteArray
 import org.l2kserver.game.extensions.putUTF16String
 import org.l2kserver.game.extensions.putUByte
-import org.l2kserver.game.model.actor.PlayerCharacter
+import org.l2kserver.game.model.actor.PlayerCharacterInstanceImpl
 import org.l2kserver.game.model.session.AuthorizationKey
 import org.l2kserver.game.model.time.GameTime
 
 private const val SELECT_CHARACTER_RESPONSE_PACKET_ID: UByte = 21u
 data class SelectCharacterResponse(
     val authorizationKey: AuthorizationKey,
-    val selectedPlayerCharacter: PlayerCharacter
+    val selectedPlayerCharacter: PlayerCharacterInstanceImpl
 ): ResponsePacket {
 
     override val data = littleEndianByteArray {
@@ -52,7 +52,7 @@ data class SelectCharacterResponse(
 
         repeat(32) { putInt(0)}
 
-        putInt(GameTime.gameMinutes.toInt())
+        putInt(GameTime.gameMinutes)
 
         repeat(14) { putInt(0)}
     }

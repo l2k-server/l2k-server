@@ -55,7 +55,7 @@ fun calculateIsPhysicalAttackBlocked(attacker: ActorInstance, attacked: ActorIns
         else -> 0
     }
 
-    val blockChance = attacked.stats.shieldDefRate /* TODO * buff shield rate */ + attackerWeaponBonus
+    val blockChance = attacked.stats.shieldDefRate + attackerWeaponBonus
 
     return blockChance > Random.nextInt(0, 100)
 }
@@ -113,6 +113,5 @@ fun calculateDebuffSuccess(
     //TODO Common debuff resistance
 
     chance /= 100
-    println("Calculated chance = $chance")
     return Random.nextDouble() < chance.coerceIn(DEBUFF_MIN_CHANCE, DEBUFF_MAX_CHANCE)
 }

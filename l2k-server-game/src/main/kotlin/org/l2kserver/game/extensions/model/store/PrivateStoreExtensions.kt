@@ -7,7 +7,7 @@ import org.l2kserver.game.handler.dto.response.PrivateStoreSellSetMessageRespons
 import org.l2kserver.game.handler.dto.response.ResponsePacket
 import org.l2kserver.game.handler.dto.response.ShowPrivateStoreBuyResponse
 import org.l2kserver.game.handler.dto.response.ShowPrivateStoreSellResponse
-import org.l2kserver.game.model.actor.PlayerCharacter
+import org.l2kserver.game.model.actor.PlayerCharacterInstanceImpl
 import org.l2kserver.game.model.store.ItemInWishList
 import org.l2kserver.game.model.store.PrivateStore
 import org.l2kserver.game.model.store.ItemOnSale
@@ -60,7 +60,7 @@ fun List<ItemInWishList>.subtractTradedItem(requestedItem: RequestedToSellToPriv
 }
 
 fun PrivateStore.toInfoResponse(
-    storeOwner: PlayerCharacter, storeCustomer: PlayerCharacter
+    storeOwner: PlayerCharacterInstanceImpl, storeCustomer: PlayerCharacterInstanceImpl
 ): ResponsePacket = when (this) {
     is PrivateStore.Sell -> ShowPrivateStoreSellResponse(
         ownerId = storeOwner.id,

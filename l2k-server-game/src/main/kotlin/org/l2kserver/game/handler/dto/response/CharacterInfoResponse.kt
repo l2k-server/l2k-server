@@ -4,7 +4,7 @@ import org.l2kserver.game.extensions.littleEndianByteArray
 import org.l2kserver.game.extensions.putUTF16String
 import org.l2kserver.game.extensions.putUByte
 import org.l2kserver.game.model.extensions.toByte
-import org.l2kserver.game.model.actor.PlayerCharacter
+import org.l2kserver.game.model.actor.PlayerCharacterInstanceImpl
 import org.l2kserver.game.model.actor.MoveType
 import org.l2kserver.game.model.actor.Posture
 
@@ -16,7 +16,7 @@ private const val CHARACTER_INFO_RESPONSE_PACKET_ID: UByte = 3u
  * Character info, which is sent to all players who see this character
  */
 data class CharacterInfoResponse(
-    val character: PlayerCharacter
+    val character: PlayerCharacterInstanceImpl
 ) : ResponsePacket {
 
     override val data = littleEndianByteArray {

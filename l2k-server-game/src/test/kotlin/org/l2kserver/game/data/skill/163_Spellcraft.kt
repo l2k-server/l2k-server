@@ -2,17 +2,17 @@
 package org.l2kserver.game.data.skill
 
 import org.l2kserver.game.model.actor.ActorInstance
-import org.l2kserver.game.model.actor.character.CharacterInstance
+import org.l2kserver.game.model.actor.character.PlayerCharacterInstance
 import org.l2kserver.game.model.item.template.ArmorType
 import org.l2kserver.game.model.skill.effect.AbnormalEffect
-import org.l2kserver.game.model.skill.template.PassiveSkillTemplate
+import org.l2kserver.game.model.skill.template.PassiveSkill
 import org.l2kserver.game.model.stats.CombatStatsMultipliers
 
 data object SpellcraftEffect: AbnormalEffect {
     override val abnormalType = Spellcraft.skillName
 
     override fun getCombatStatsMultipliers(actor: ActorInstance): CombatStatsMultipliers? {
-        if (actor !is CharacterInstance) return null
+        if (actor !is PlayerCharacterInstance) return null
 
         val equippedItemTypes = actor.inventory.filter { it.isEquipped }.map { it.type }
 
@@ -27,7 +27,7 @@ data object SpellcraftEffect: AbnormalEffect {
     }
 }
 
-object Spellcraft: PassiveSkillTemplate() {
+data object Spellcraft: PassiveSkill() {
     override val id = 163
     override val skillName = "Spellcraft"
     override val maxLevel = 1

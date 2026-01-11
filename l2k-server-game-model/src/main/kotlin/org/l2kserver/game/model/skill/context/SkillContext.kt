@@ -10,11 +10,11 @@ import org.l2kserver.game.model.item.template.SpiritshotType
  * @property mainTarget Actor, who is target of casting skill
  * @property skillLevel Level of used skill
  * @property additionalEnemyTargets enemies,
- * calculated using [org.l2kserver.game.model.skill.instance.CastableSkillInstance.targetType]
- * and [org.l2kserver.game.model.skill.instance.CastableSkillInstance.effectRange]
+ * calculated using [org.l2kserver.game.model.skill.instance.ActiveSkillInstance.targetType]
+ * and [org.l2kserver.game.model.skill.instance.ActiveSkillInstance.effectRange]
  * @property additionalFriendlyTargets friendly actors,
- * calculated using [org.l2kserver.game.model.skill.instance.CastableSkillInstance.targetType]
- * and [org.l2kserver.game.model.skill.instance.CastableSkillInstance.effectRange]
+ * calculated using [org.l2kserver.game.model.skill.instance.ActiveSkillInstance.targetType]
+ * and [org.l2kserver.game.model.skill.instance.ActiveSkillInstance.effectRange]
  * @property usedSoulshot If soulshot was charged before casting skill
  * @property usedSpiritshotType Type of spiritshot charged before casting the skill
  */

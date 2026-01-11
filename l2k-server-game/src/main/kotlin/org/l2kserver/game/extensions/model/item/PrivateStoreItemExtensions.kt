@@ -4,7 +4,7 @@ import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.l2kserver.game.handler.dto.request.RequestedToBuyItem
 import org.l2kserver.game.handler.dto.request.RequestedToSellItem
 import org.l2kserver.game.handler.dto.request.RequestedToSellToPrivateStoreItem
-import org.l2kserver.game.model.actor.PlayerCharacter
+import org.l2kserver.game.model.actor.PlayerCharacterInstanceImpl
 import org.l2kserver.game.model.item.instance.ItemInstance
 import org.l2kserver.game.model.item.template.ItemTemplateRegistry
 import org.l2kserver.game.model.store.ItemInInventory
@@ -15,7 +15,7 @@ import kotlin.Int
 /**
  * Finds requested item in [owner]'s inventory and checks if it can be requested to sell
  */
-fun RequestedToSellItem.toItemInstance(owner: PlayerCharacter): ItemInstance = transaction {
+fun RequestedToSellItem.toItemInstance(owner: PlayerCharacterInstanceImpl): ItemInstance = transaction {
     val requestedItem = this@toItemInstance
     val item = owner.inventory.findById(requestedItem.itemId)
 
@@ -32,7 +32,7 @@ fun RequestedToSellItem.toItemInstance(owner: PlayerCharacter): ItemInstance = t
  *
  * @param owner Current item owner
  */
-fun RequestedToSellItem.toItemOnSale(owner: PlayerCharacter): ItemOnSale = transaction {
+fun RequestedToSellItem.toItemOnSale(owner: PlayerCharacterInstanceImpl): ItemOnSale = transaction {
     val requestedItem = this@toItemOnSale
     val item = requestedItem.toItemInstance(owner)
 
@@ -66,7 +66,7 @@ fun RequestedToBuyItem.toItemInWishList(ownerId: Int): ItemInWishList = transact
     )
 }
 
-fun RequestedToSellToPrivateStoreItem.toItemInstance(owner: PlayerCharacter): ItemInstance = transaction {
+fun RequestedToSellToPrivateStoreItem.toItemInstance(owner: PlayerCharacterInstanceImpl): ItemInstance = transaction {
     val requestedItem = this@toItemInstance
     val item = owner.inventory.findById(requestedItem.itemId)
     require(!item.isEquipped) { "Equipped item cannot be placed to private store!" }

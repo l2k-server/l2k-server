@@ -29,7 +29,7 @@ import org.l2kserver.game.handler.dto.response.StartMovingToTargetResponse
 import org.l2kserver.game.handler.dto.response.item
 import org.l2kserver.game.handler.dto.response.operation
 import org.l2kserver.game.model.actor.character.PvpState
-import org.l2kserver.game.model.item.Weapon
+import org.l2kserver.game.model.item.WeaponInstanceImpl
 import org.springframework.beans.factory.annotation.Autowired
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
@@ -214,7 +214,7 @@ class CombatServiceTest(
 
         transaction { ItemEntity.deleteAllByOwnerId(character.id) }
         val arrowsId = createTestItem(WoodenArrow.id, character).id
-        val bow = createTestItem(Bow.id, character, isEquipped = true) as Weapon
+        val bow = createTestItem(Bow.id, character, isEquipped = true) as WeaponInstanceImpl
         character.inventory.reload()
 
         //Create target

@@ -3,7 +3,7 @@ package org.l2kserver.game.handler.dto.response
 import org.l2kserver.game.extensions.littleEndianByteArray
 import org.l2kserver.game.extensions.putUByte
 import org.l2kserver.game.model.actor.ActorInstance
-import org.l2kserver.game.model.actor.PlayerCharacter
+import org.l2kserver.game.model.actor.PlayerCharacterInstanceImpl
 import org.l2kserver.game.model.item.template.Grade
 import org.l2kserver.game.model.skill.effect.DamageEffect
 
@@ -30,7 +30,7 @@ data class AttackResponse(
     }
 
     override val data = littleEndianByteArray {
-        val weaponGrade = (attacker as? PlayerCharacter)?.inventory?.weapon?.grade ?: Grade.NO_GRADE
+        val weaponGrade = (attacker as? PlayerCharacterInstanceImpl)?.inventory?.weapon?.grade ?: Grade.NO_GRADE
 
         putUByte(ATTACK_RESPONSE_PACKET_ID)
         putInt(attacker.id)

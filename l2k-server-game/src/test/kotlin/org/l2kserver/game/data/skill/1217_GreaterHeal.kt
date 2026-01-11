@@ -8,7 +8,7 @@ import org.l2kserver.game.model.skill.effect.Effects
 import org.l2kserver.game.model.skill.effect.effects
 import org.l2kserver.game.model.skill.effect.HealEffect
 import org.l2kserver.game.model.skill.instance.SkillTargetType
-import org.l2kserver.game.model.skill.template.MagicSkillTemplate
+import org.l2kserver.game.model.skill.template.ActiveSkill
 import org.l2kserver.game.model.skill.template.SkillConsumablesTemplate
 import java.time.Duration
 import kotlin.math.roundToInt
@@ -32,13 +32,14 @@ class GreaterHealEffect(
     )
 }
 
-object GreaterHeal: MagicSkillTemplate() {
+data object GreaterHeal: ActiveSkill() {
     override val id = 1217
     override val skillName = "Greater Heal"
     override val maxLevel = 3
     override val targetType = SkillTargetType.FRIEND
     override val reuseDelay = 6_000
     override val castTime = 4_000
+    override val isMagic = true
     override val castRange = 400
     override val consumesToStart = SkillConsumablesTemplate(mp = listOf(2, 4, 7))
     override val consumes = SkillConsumablesTemplate(mp = listOf(8, 16, 28))

@@ -6,17 +6,18 @@ import org.l2kserver.game.model.skill.context.SkillContext
 import org.l2kserver.game.model.skill.effect.DamageEffect
 import org.l2kserver.game.model.skill.effect.Effects
 import org.l2kserver.game.model.skill.instance.SkillTargetType
-import org.l2kserver.game.model.skill.template.ActiveSkillTemplate
+import org.l2kserver.game.model.skill.template.ActiveSkill
 import org.l2kserver.game.model.skill.template.SkillConsumablesTemplate
 import org.l2kserver.game.model.skill.template.SkillRequirements
 
-object PowerStrike: ActiveSkillTemplate() {
+data object PowerStrike: ActiveSkill() {
     override val id = 3
     override val skillName = "Power strike"
     override val maxLevel = 9
     override val targetType = SkillTargetType.ENEMY
     override val reuseDelay = 13_000
     override val castTime = 1_080
+    override val isMagic = false
     override val repriseTime = 720
     override val castRange = 40
     override val effectRange = 400
