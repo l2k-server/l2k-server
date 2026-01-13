@@ -6,6 +6,7 @@ import org.l2kserver.game.extensions.putUByte
 import org.l2kserver.game.model.extensions.toByte
 import org.l2kserver.game.model.actor.PlayerCharacterInstanceImpl
 import org.l2kserver.game.model.actor.MoveType
+import kotlin.math.roundToInt
 
 private const val CHARACTER_INFO_RESPONSE_PACKET_ID: UByte = 4u
 
@@ -46,9 +47,9 @@ data class FullCharacterResponse(
         putInt(character.basicStats.wit.value)
         putInt(character.basicStats.men.value)
 
-        putInt(character.stats.maxHp)
+        putInt(character.stats.maxHp.roundToInt())
         putInt(character.currentHp)
-        putInt(character.stats.maxMp)
+        putInt(character.stats.maxMp.roundToInt())
         putInt(character.currentMp)
 
         putInt(character.sp)
@@ -173,7 +174,7 @@ data class FullCharacterResponse(
         putInt(character.characterClass.id)
         putInt(0) // special effects? circles around player... (c)L2J
 
-        putInt(character.stats.maxCp)
+        putInt(character.stats.maxCp.roundToInt())
         putInt(character.currentCp)
 
         put(minOf(MAX_ENCHANTMENT_EFFECT_VALUE, character.inventory.weapon?.enchantLevel ?: 0)

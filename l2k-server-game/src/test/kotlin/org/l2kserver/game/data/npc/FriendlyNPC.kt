@@ -19,8 +19,8 @@ data object GrandMasterRoien: Npc {
     override val race = NpcRace.HUMANS
     override val collisionBox = CollisionBox(8.0, 23.5)
     override val stats = CombatStats(
-        maxHp = Int.MAX_VALUE,
-        maxMp = Int.MAX_VALUE,
+        maxHp = Int.MAX_VALUE.toDouble(),
+        maxMp = Int.MAX_VALUE.toDouble(),
         pDef = Int.MAX_VALUE,
         mDef = Int.MAX_VALUE
     )
@@ -41,8 +41,8 @@ data object GrandMagisterGallint: Npc {
     override val race = NpcRace.HUMANS
     override val collisionBox = CollisionBox(8.0, 24.0)
     override val stats = CombatStats(
-        maxHp = Int.MAX_VALUE,
-        maxMp = Int.MAX_VALUE,
+        maxHp = Int.MAX_VALUE.toDouble(),
+        maxMp = Int.MAX_VALUE.toDouble(),
         pDef = Int.MAX_VALUE,
         mDef = Int.MAX_VALUE
     )

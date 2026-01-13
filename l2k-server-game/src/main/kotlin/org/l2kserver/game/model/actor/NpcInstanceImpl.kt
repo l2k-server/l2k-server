@@ -13,6 +13,7 @@ import org.l2kserver.game.model.item.template.Armor
 import org.l2kserver.game.model.item.template.ItemTemplateRegistry
 import org.l2kserver.game.model.item.template.Weapon
 import org.l2kserver.game.utils.IdUtils
+import kotlin.math.roundToInt
 
 /**
  * NPC data
@@ -55,8 +56,8 @@ class NpcInstanceImpl(
 
     override val collisionBox = template.collisionBox
 
-    override var currentHp = template.stats.maxHp
-    override var currentMp = template.stats.maxMp
+    override var currentHp = template.stats.maxHp.roundToInt()
+    override var currentMp = template.stats.maxMp.roundToInt()
 
     override var moveType = MoveType.WALK
 

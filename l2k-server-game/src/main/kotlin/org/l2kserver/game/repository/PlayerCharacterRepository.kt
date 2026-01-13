@@ -21,6 +21,7 @@ import org.l2kserver.game.model.actor.character.CharacterClassRegistry
 import org.l2kserver.game.utils.LevelUtils
 import org.springframework.stereotype.Component
 import java.time.LocalDateTime
+import kotlin.math.roundToInt
 
 private const val DEFAULT_NAME_COLOR = 0xFFFFFF
 private const val DEFAULT_TITLE_COLOR = 0xFFFF77
@@ -90,9 +91,9 @@ class PlayerCharacterRepository(
             character
         )
 
-        character.currentCp = character.stats.maxCp
-        character.currentHp = character.stats.maxHp
-        character.currentMp = character.stats.maxMp
+        character.currentCp = character.stats.maxCp.roundToInt()
+        character.currentHp = character.stats.maxHp.roundToInt()
+        character.currentMp = character.stats.maxMp.roundToInt()
 
         return@transaction character
     }

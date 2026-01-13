@@ -7,6 +7,7 @@ import org.l2kserver.game.model.extensions.toByte
 import org.l2kserver.game.model.actor.PlayerCharacterInstanceImpl
 import org.l2kserver.game.model.actor.MoveType
 import org.l2kserver.game.model.actor.Posture
+import kotlin.math.roundToInt
 
 private const val CHARACTER_INFO_RESPONSE_PACKET_ID: UByte = 3u
 
@@ -121,7 +122,7 @@ data class CharacterInfoResponse(
 
         putInt(character.characterClass.id)
 
-        putInt(character.stats.maxCp)
+        putInt(character.stats.maxCp.roundToInt())
         putInt(character.currentCp)
 
         put(minOf(16, character.inventory.weapon?.enchantLevel ?: 0).toByte())

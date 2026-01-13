@@ -62,7 +62,7 @@ data object ApprenticeTunic: Armor() {
     override val isExchangeable = false
     override val type = ArmorType.UPPER_BODY_ROBE
     override val stats = CombatStats(pDef = 17)
-    override val fixedBonusStats = CombatStats(maxMp = 19)
+    override val fixedBonusStats = CombatStats(maxMp = 19.0)
     override val crystalCount = 0
 }
 
@@ -78,6 +78,6 @@ data object ApprenticesStockings: Armor() {
     override val isExchangeable = false
     override val type = ArmorType.LOWER_BODY_ROBE
     override val stats = CombatStats(pDef = 10)
-    override val fixedBonusStats = CombatStats(maxMp = 10)
+    override val fixedBonusStats = CombatStats(maxMp = 10.0)
     override val crystalCount = 0
 }

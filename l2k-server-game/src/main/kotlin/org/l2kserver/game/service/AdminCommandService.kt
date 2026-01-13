@@ -24,6 +24,7 @@ import org.l2kserver.game.model.command.StatToRestore
 import org.l2kserver.game.model.command.TeleportCommand
 import org.l2kserver.game.network.session.sendTo
 import org.springframework.stereotype.Service
+import kotlin.math.roundToInt
 
 /** Service for handling admin commands */
 @Service
@@ -170,22 +171,25 @@ class AdminCommandService(
         stats.forEach {
             when (it) {
                 StatToRestore.CP -> {
+                    val maxCp = character.stats.maxCp.roundToInt()
                     sendTo(character.id) {
-                        SystemMessageResponse.CpRestored(character.stats.maxCp - character.currentCp, healerName)
+                        SystemMessageResponse.CpRestored(maxCp - character.currentCp, healerName)
                     }
-                    character.currentCp = character.stats.maxCp
+                    character.currentCp = maxCp
                 }
                 StatToRestore.HP -> {
+                    val maxHp = character.stats.maxHp.roundToInt()
                     sendTo(character.id) {
-                        SystemMessageResponse.HpRestored(character.stats.maxHp - character.currentHp, healerName)
+                        SystemMessageResponse.HpRestored(maxHp - character.currentHp, healerName)
                     }
-                    character.currentHp = character.stats.maxHp
+                    character.currentHp = maxHp
                 }
                 StatToRestore.MP -> {
+                    val maxMp = character.stats.maxMp.roundToInt()
                     sendTo(character.id) {
-                        SystemMessageResponse.MpRestored(character.stats.maxMp - character.currentMp, healerName)
+                        SystemMessageResponse.MpRestored(maxMp - character.currentMp, healerName)
                     }
-                    character.currentMp = character.stats.maxMp
+                    character.currentMp = maxMp
                 }
             }
         }

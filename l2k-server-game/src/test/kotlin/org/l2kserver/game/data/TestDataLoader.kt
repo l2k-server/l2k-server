@@ -63,6 +63,7 @@ import org.l2kserver.game.utils.LevelUtils
 import org.springframework.boot.context.event.ApplicationStartedEvent
 import org.springframework.context.event.EventListener
 import org.springframework.stereotype.Component
+import kotlin.math.roundToInt
 
 private const val TEST_CHARACTER_ACCOUNT_NAME = "admin"
 private const val TEST_FIGHTER_CHARACTER_NAME = "TesterMan"
@@ -178,9 +179,9 @@ class TestDataLoader(
         testFighter.skillsAndMagic.learn(skillId = Might.id, skillLevel = 1)
         testFighter.skillsAndMagic.learn(skillId = GreaterHeal.id, skillLevel = 1)
 
-        testFighter.currentCp = testFighter.stats.maxCp
-        testFighter.currentHp = testFighter.stats.maxHp
-        testFighter.currentMp = testFighter.stats.maxMp
+        testFighter.currentCp = testFighter.stats.maxCp.roundToInt()
+        testFighter.currentHp = testFighter.stats.maxHp.roundToInt()
+        testFighter.currentMp = testFighter.stats.maxMp.roundToInt()
 
         shortcutRepository.create(
             testFighter.id,
