@@ -173,7 +173,8 @@ class ActorStateService(
             // Regenerate HP
             if (actor.stats.maxHp > actor.currentHp) {
                 val hpRegeneration = actor.stats.hpRegen
-                actor.currentHp = minOf(actor.stats.maxHp, actor.currentHp + hpRegeneration.roundToInt())
+                actor.currentHp = minOf(
+                    actor.stats.maxHp.roundToInt(), actor.currentHp + hpRegeneration.roundToInt())
 
                 //Both hp and mp must be sent, otherwise client does not update status
                 updatedStatuses[StatusAttribute.CUR_HP] = actor.currentHp
@@ -183,7 +184,8 @@ class ActorStateService(
             // Regenerate MP
             if (actor.stats.maxMp > actor.currentMp) {
                 val mpRegeneration = actor.stats.mpRegen
-                actor.currentMp = minOf(actor.stats.maxMp, actor.currentMp + mpRegeneration.roundToInt())
+                actor.currentMp = minOf(
+                    actor.stats.maxMp.roundToInt(), actor.currentMp + mpRegeneration.roundToInt())
 
                 //Both hp and mp must be sent, otherwise client does not update status
                 updatedStatuses[StatusAttribute.CUR_HP] = actor.currentHp
@@ -193,7 +195,8 @@ class ActorStateService(
             // Regenerate CP
             if (actor is PlayerCharacterInstanceImpl && actor.stats.maxCp > actor.currentCp) {
                 val cpRegeneration = actor.stats.cpRegen
-                actor.currentCp = minOf(actor.stats.maxCp, actor.currentCp + cpRegeneration.roundToInt())
+                actor.currentCp = minOf(
+                    actor.stats.maxCp.roundToInt(), actor.currentCp + cpRegeneration.roundToInt())
 
                 updatedStatuses[StatusAttribute.CUR_CP] = actor.currentCp
             }

@@ -31,6 +31,7 @@ import org.l2kserver.game.handler.dto.response.operation
 import org.l2kserver.game.model.actor.character.PvpState
 import org.l2kserver.game.model.item.WeaponInstanceImpl
 import org.springframework.beans.factory.annotation.Autowired
+import kotlin.math.roundToInt
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -237,7 +238,10 @@ class CombatServiceTest(
         assertEquals(arrowsId, updateItemsResponse.operations.first().item.id)
 
         val updateStatusResponse = assertIs<UpdateStatusResponse>(context.responseChannel.receive())
-        assertEquals(character.stats.maxMp - bow.manaCost, updateStatusResponse.attributes[StatusAttribute.CUR_MP])
+        assertEquals(
+            character.stats.maxMp.roundToInt() - bow.manaCost,
+            updateStatusResponse.attributes[StatusAttribute.CUR_MP]
+        )
 
         assertIs<SystemMessageResponse.YouCarefullyNockAnArrow>(context.responseChannel.receive())
         assertIs<GaugeResponse>(context.responseChannel.receive())

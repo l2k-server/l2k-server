@@ -25,7 +25,6 @@ data class InitialShortcut(
     val actionLevel: Int = 1
 )
 
-//TODO попробовать тоже через полиморфизм
 enum class ShortcutType(val id: Int) {
     ITEM(1),
     SKILL(2),

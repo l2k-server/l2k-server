@@ -11,12 +11,6 @@ import org.l2kserver.game.model.stats.TradeAndInventoryStats
 /** Stores all the character classes */
 object CharacterClassRegistry: GameDataRegistry<CharacterClass>()
 
-/** Basic HP regeneration depends on character level and raises each 10 levels. */
-val DEFAULT_HP_REGEN_PER_10_LEVELS = listOf(2.0, 2.5, 3.5, 4.5, 5.5, 6.5, 7.5, 8.5)
-
-/** Basic MP regeneration depends on character level and raises each 10 levels. */
-val DEFAULT_MP_REGEN_PER_10_LEVELS = listOf(0.9, 1.2, 1.5, 1.8, 2.1, 2.4, 2.7, 3.0)
-
 /**
  * Empty slots in game have stats too - for example, if no weapon equipped,
  * character hits will deal some damage anyway.
@@ -82,32 +76,25 @@ object DefaultEmptySlotStats {
  *
  * @property id Class identifier
  * @property requiredLevel Level, required to take this class. IMPORTANT for proper stats calculation
- * @property combatStats Initial values of character's combat stats
  * @property basicStats Initial values of character's basic stats
  * @property tradeAndInventoryStats Initial values for character trading stats
  * @property emptySlotStats Stats of character's empty slots. Will be applied if no item equipped in slot
- * @property perLevelGain CP, HP and MP per level gain coefficients
  * @property parentClass Parent class. For example, in L2 for 'Duelist' class parent class will be 'Gladiator'
  * @property characterTemplate Template for this class character creation
  * @property skillTree Map of skills to learn. Key - character level, value - list of skills, available at this level
+ * @property baseClassId Base class identifier (for example, for Duelist base class will be Human Fighter)
+ * @property baseAtkSpd Base attack speed of this class.
+ * This value must be the same as on client side - it is necessary for proper animations
+ * @property baseSpeed Base movement speed of this class.
+ * This value must be the same as on client side - it is necessary for proper animations
  */
 abstract class CharacterClass: GameData {
     abstract override val id: Int
 
     abstract val requiredLevel: Int
-    abstract val combatStats: CombatStats
     abstract val basicStats: BasicStats
     abstract val tradeAndInventoryStats: TradeAndInventoryStats
     open val emptySlotStats: Map<Slot, CombatStats> get() = emptyMap()
-
-    //TODO Calculate in 'combatStats' getter?
-    abstract val perLevelGain: PerLevelGain
-
-    //TODO Calculate in 'combatStats' getter?
-    open val hpRegenPer10Levels: List<Double> get() = DEFAULT_HP_REGEN_PER_10_LEVELS
-
-    //TODO Calculate in 'combatStats' getter?
-    open val mpRegenPer10Levels: List<Double> get() = DEFAULT_MP_REGEN_PER_10_LEVELS
 
     open val parentClass: CharacterClass? get() = null
     open val characterTemplate: CharacterTemplate? get() = parentClass?.characterTemplate ?: error(
@@ -116,13 +103,13 @@ abstract class CharacterClass: GameData {
 
     abstract val skillTree: Map<Int, List<SkillToLearn>>
 
-    /**
-     * Returns base class identifier.
-     * For example, in L2 for 'Duelist' class base class will be 'Human Fighter'
-     */
     val baseClassId: Int get() = this.parentClass?.baseClassId ?: this.id
-    val baseAtkSpd: Int get() = emptySlotStats.values.reduce { acc, stats -> acc + stats }.atkSpd
-    val baseSpeed: Int get() = combatStats.speed
+
+    abstract val baseAtkSpd: Int
+    abstract val baseSpeed: Int
+
+    /** Initial values of character's combat stats, based on character's level */
+    abstract fun getCombatStats(characterLevel: Int): CombatStats
 
     override fun validate() {
         check(parentClass != this) {
@@ -132,19 +119,32 @@ abstract class CharacterClass: GameData {
             "Either parent class or character template must be defined"
         }
     }
-}
 
-/**`
- * Coefficients for max CP, HP and MP calculation according to character's level
- */
-data class PerLevelGain(
-    val cpAdd: Double = 0.0,
-    val cpMod: Double = 0.0,
-    val hpAdd: Double = 0.0,
-    val hpMod: Double = 0.0,
-    val mpAdd: Double = 0.0,
-    val mpMod: Double = 0.0
-)
+    companion object {
+
+        /**
+         * Basic HP regeneration depends on character level and raises each 10 levels. (1 - 10, 11 - 20, etc.)
+         *
+         * Note: array is zero-base, level should be decremented
+         */
+        val DEFAULT_HP_REGEN_PER_10_LEVELS = listOf(2.0, 2.5, 3.5, 4.5, 5.5, 6.5, 7.5, 8.5)
+
+        /**
+         * Basic MP regeneration depends on character level and raises each 10 levels. (1 - 10, 11 - 20, etc.)
+         *
+         * Note: array is zero-base, level should be decremented
+         */
+        val DEFAULT_MP_REGEN_PER_10_LEVELS = listOf(0.9, 1.2, 1.5, 1.8, 2.1, 2.4, 2.7, 3.0)
+
+        /**
+         * Basic CP regeneration depends on character level and raises each 10 levels. (1 - 10, 11 - 20, etc.)
+         *
+         * Note: array is zero-base, level should be decremented
+         */
+        val DEFAULT_CP_REGEN_PER_10_LEVELS = DEFAULT_HP_REGEN_PER_10_LEVELS
+
+    }
+}
 
 /**
  * Requirements to learn skill with ID [skillId]

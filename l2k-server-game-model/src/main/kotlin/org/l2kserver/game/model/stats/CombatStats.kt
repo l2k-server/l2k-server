@@ -30,9 +30,9 @@ object PoleAoeStats {
  */
 data class CombatStats(
     // Resource stats
-    val maxCp: Int = 0,
-    val maxHp: Int = 0,
-    val maxMp: Int = 0,
+    val maxCp: Double = 0.0,
+    val maxHp: Double = 0.0,
+    val maxMp: Double = 0.0,
 
     //Combat stats
     val pAtk: Int = 0,
@@ -188,9 +188,9 @@ data class CombatStats(
 
     @Suppress("CyclomaticComplexMethod")
     override fun toString() = buildList {
-        if (maxCp != 0) add("maxCp=$maxCp")
-        if (maxHp != 0) add("maxHp=$maxHp")
-        if (maxMp != 0) add("maxMp=$maxMp")
+        if (maxCp != 0.0) add("maxCp=$maxCp")
+        if (maxHp != 0.0) add("maxHp=$maxHp")
+        if (maxMp != 0.0) add("maxMp=$maxMp")
 
         if (pAtk != 0) add("pAtk=$pAtk")
         if (pDef != 0) add("pDef=$pDef")

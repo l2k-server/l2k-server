@@ -286,7 +286,7 @@ class SkillService(
                 StatusAttribute.CUR_HP to actor.currentHp,
                 StatusAttribute.CUR_MP to actor.currentMp,
                 StatusAttribute.CUR_CP to actor.currentCp,
-                StatusAttribute.MAX_CP to actor.stats.maxCp
+                StatusAttribute.MAX_CP to actor.stats.maxCp.roundToInt()
             )
         }
     }
@@ -447,7 +447,7 @@ class SkillService(
     private suspend fun applyHealEffect(caster: MutableActorInstance, effect: HealEffect) = suspendTransaction {
         val target = gameObjectRepository.findActorByIdOrNull(effect.targetId) ?: return@suspendTransaction
 
-        target.currentHp = minOf(target.currentHp safePlus effect.value, target.stats.maxHp)
+        target.currentHp = minOf(target.currentHp safePlus effect.value, target.stats.maxHp.roundToInt())
         val healerName = if (caster == target) null else caster.name
 
         val updateStatusResponse by lazy { UpdateStatusResponse.hpMpCpOf(target) }

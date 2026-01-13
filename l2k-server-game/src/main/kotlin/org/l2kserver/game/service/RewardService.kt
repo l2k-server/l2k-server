@@ -128,8 +128,10 @@ class RewardService(
                 spShare = maxOf(0.0, spShare * levelDifferenceModifier)
             }
 
-            val overhitExp = if (attacker == killer && overhitDamage > 0)
-                calculateOverhitExp(expShare.roundToInt(), overhitDamage, killed.stats.maxHp)
+            val overhitExp = if (attacker == killer && overhitDamage > 0) {
+                val killedMaxHp = killed.stats.maxHp.roundToInt()
+                calculateOverhitExp(expShare.roundToInt(), overhitDamage, killedMaxHp)
+            }
             else 0
 
             suspendTransaction {
@@ -202,9 +204,9 @@ class RewardService(
 
     private suspend fun handleLevelUp(character: PlayerCharacterInstanceImpl) {
         //Full heal on level up
-        character.currentCp = character.stats.maxCp
-        character.currentHp = character.stats.maxHp
-        character.currentMp = character.stats.maxMp
+        character.currentCp = character.stats.maxCp.roundToInt()
+        character.currentHp = character.stats.maxHp.roundToInt()
+        character.currentMp = character.stats.maxMp.roundToInt()
 
         sendTo(character.id) { UpdateStatusResponse.hpMpCpOf(character) }
         sendTo(character.id) { SystemMessageResponse.YourLevelHasIncreased }

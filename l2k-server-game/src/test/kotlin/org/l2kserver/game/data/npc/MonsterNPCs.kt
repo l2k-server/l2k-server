@@ -29,8 +29,8 @@ data object Gremlin: Npc {
     override val race = NpcRace.FAIRIES
     override val collisionBox = CollisionBox(10.0, 15.0)
     override val stats = CombatStats(
-        maxHp = 62,
-        maxMp = 44,
+        maxHp = 62.0,
+        maxMp = 44.0,
         pAtk = 9,
         pDef = 39,
         accuracy = 33,
@@ -142,8 +142,8 @@ data object FatDummyGremlin: Npc {
     override val race = NpcRace.FAIRIES
     override val collisionBox = CollisionBox(10.0, 15.0)
     override val stats = CombatStats(
-        maxHp = 10_000,
-        maxMp = 44,
+        maxHp = 10_000.0,
+        maxMp = 44.0,
         pAtk = 9,
         pDef = 39,
         accuracy = 33,

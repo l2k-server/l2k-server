@@ -169,7 +169,7 @@ class PlayerCharacterInstanceImpl(
     override val basicStats: BasicStats get() = characterClass.basicStats //TODO + Henna, set bonuses, augmentations
 
     //TODO Cache?
-    override val stats: CombatStats get() = characterClass.combatStats
+    override val stats: CombatStats get() = characterClass.getCombatStats(level)
         .applyEquipmentOf(this)
         .applyModifiersOf(this)
         .applyFixedBonusStatsOf(this)

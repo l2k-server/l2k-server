@@ -172,7 +172,7 @@ class ActionService(
                     UpdateStatusResponse(
                         targeted.id,
                         StatusAttribute.CUR_HP to targeted.currentHp,
-                        StatusAttribute.MAX_HP to targeted.stats.maxHp
+                        StatusAttribute.MAX_HP to targeted.stats.maxHp.roundToInt()
                     )
                 }
             }

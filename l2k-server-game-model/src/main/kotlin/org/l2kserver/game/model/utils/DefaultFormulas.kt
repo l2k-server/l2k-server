@@ -86,7 +86,7 @@ fun calculateIsMagicCritical(attacker: ActorInstance): Boolean {
     return critRate > Random.nextInt(0, 1000)
 }
 
-//FIXME This is Freya/HF formula, not sure that Interlude variant is the same
+//TODO This is Freya/HF formula, not sure that Interlude variant is the same
 fun calculateDebuffSuccess(
     caster: ActorInstance,
     target: ActorInstance,

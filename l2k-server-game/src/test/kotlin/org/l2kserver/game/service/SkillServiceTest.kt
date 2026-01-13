@@ -41,6 +41,7 @@ import org.l2kserver.game.handler.dto.response.PvPStatusResponse
 import org.l2kserver.game.model.actor.character.PvpState
 import org.l2kserver.game.model.skill.effect.AbnormalType
 import org.springframework.beans.factory.annotation.Autowired
+import kotlin.math.roundToInt
 import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -152,7 +153,7 @@ class SkillServiceTest(
 
         assertEquals(
             damageResponse.damage,
-            target.stats.maxHp - (updateStatusResponse.attributes[StatusAttribute.CUR_HP] ?: 0)
+            target.stats.maxHp.roundToInt() - (updateStatusResponse.attributes[StatusAttribute.CUR_HP] ?: 0)
         )
 
         val updateCharacterStatusResponse = assertIs<UpdateStatusResponse>(context.responseChannel.receive())
@@ -332,7 +333,7 @@ class SkillServiceTest(
 
         // Learn self-heal
         character.skillsAndMagic.learn(SelfHeal.id, 1)
-        transaction { character.currentHp = character.stats.maxHp - 10 }
+        transaction { character.currentHp = character.stats.maxHp.roundToInt() - 10 }
 
         withContext(context) {
             skillService.useSkill(UseSkillRequest(SelfHeal.id))
@@ -346,9 +347,9 @@ class SkillServiceTest(
 
         val updateAfterHeal = assertIs<UpdateStatusResponse>(context.responseChannel.receive())
         val hpAfterHeal = updateAfterHeal.attributes[StatusAttribute.CUR_HP] ?: 0
-        assertEquals(character.stats.maxHp, hpAfterHeal)
+        assertEquals(character.stats.maxHp.roundToInt(), hpAfterHeal)
         assertIs<SystemMessageResponse.HpRestored>(context.responseChannel.receive())
-        transaction { assertEquals(character.stats.maxHp, character.currentHp) }
+        transaction { assertEquals(character.stats.maxHp.roundToInt(), character.currentHp) }
     }
 
     @Test
