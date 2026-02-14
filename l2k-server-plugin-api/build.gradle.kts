@@ -14,7 +14,7 @@ repositories {
 
 dependencies {
     implementation(project(":l2k-server-game-model"))
-    implementation("com.google.devtools.ksp:symbol-processing-api:2.2.20-2.0.4")
+    implementation("com.google.devtools.ksp:symbol-processing-api:2.3.5")
 
     testImplementation(kotlin("test"))
     testImplementation(gradleTestKit())

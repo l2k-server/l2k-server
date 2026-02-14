@@ -273,7 +273,9 @@ class CharacterService(
         val character = requireNotNull(playerCharacterRepository.findById(characterId)) {
             "Cannot enter game: no character with id $characterId exists!"
         }
-        gameObjectRepository.loadCharacter(character)
+
+        //gameObjectRepository.loadCharacter(character)
+        gameObjectRepository.save(character)
         val shortcuts = shortcutRepository.findAllBy(character.id, character.activeSubclass)
 
         send { FullCharacterResponse(character) }

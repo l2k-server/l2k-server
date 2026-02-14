@@ -2,7 +2,7 @@ group = "org.l2kserver"
 version = "0.0.0"
 
 plugins {
-    kotlin("jvm")
+    kotlin("jvm") apply false
 }
 
 tasks.register<Exec>("launchTestLoginServer") {

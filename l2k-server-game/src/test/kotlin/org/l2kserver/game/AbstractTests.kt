@@ -93,7 +93,7 @@ abstract class AbstractTests {
             faceType = 0
         )
 
-        return if (enterGame) gameObjectRepository.loadCharacter(character)
+        return if (enterGame) gameObjectRepository.save(character)
         else character
     }
 
@@ -130,7 +130,7 @@ abstract class AbstractTests {
             enchantLevel = enchantLevel
         )
 
-        return gameObjectRepository.save(scatteredItem)!!
+        return gameObjectRepository.save(scatteredItem)
     }
 
     private fun ActorStateService.flushStates() {

@@ -16,11 +16,11 @@ class PostgresEnum<T : Enum<T>>(enumTypeName: String, enumValue: T?) : PGobject(
  * @param columnName Name of column
  * @param enumerationName Name of enum type at database
  */
-inline fun <reified E: Enum<E>> Table.postgresEnumeration(
+inline fun <reified E: Enum<E>> Table.pgEnumeration(
     columnName: String, enumerationName: String
 ) = customEnumeration(
     name = columnName,
     sql = enumerationName,
-    fromDb = { value -> enumValues<E>().find { it.name == value }!! },
+    fromDb = { value -> enumValueOf<E>(value as String) },
     toDb = { PostgresEnum(enumerationName, it) }
 )

@@ -5,6 +5,7 @@ import kotlinx.coroutines.sync.withLock
 import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
 import org.l2kserver.game.model.extensions.allUniqueBy
 import org.l2kserver.game.extensions.logger
+import org.l2kserver.game.extensions.model.item.canBeSold
 import org.l2kserver.game.extensions.model.item.toItemInstance
 import org.l2kserver.game.extensions.model.item.toItemInInventory
 import org.l2kserver.game.extensions.model.item.toItemInWishList
@@ -104,15 +105,12 @@ class TradeService(
 
         stopPrivateStore()
 
-        val itemsInInventory = character.inventory
-            .mapNotNull { item ->
-                val itemOnSale = privateStore?.items[item.id]
+        val itemsInInventory = character.inventory.mapNotNull { item ->
+            val itemOnSale = privateStore?.items[item.id]
 
-                if (item.isEquipped || !item.isSellable || (itemOnSale != null && itemOnSale.amount >= item.amount))
-                    null
-                else
-                    item.toItemInInventory(item.amount - (itemOnSale?.amount ?: 0))
-            }
+            if (item.canBeSold || (itemOnSale != null && itemOnSale.amount >= item.amount)) null
+            else item.toItemInInventory(item.amount - (itemOnSale?.amount ?: 0))
+        }
 
         val adenaAmount = character.inventory.adena?.amount ?: 0
 

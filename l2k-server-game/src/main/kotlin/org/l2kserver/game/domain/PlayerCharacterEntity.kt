@@ -14,8 +14,8 @@ object PlayerCharacterTable: IntIdTable("characters") {
     val name = varchar("name", length = 16).uniqueIndex()
     val title = varchar("title", length = 16).default("")
     val clanId = integer("clan_id").default(defaultValue = 0)
-    val gender = postgresEnumeration<Gender>("gender", "GENDER")
-    val race = postgresEnumeration<CharacterRace>("race", "RACE")
+    val gender = pgEnumeration<Gender>("gender", "GENDER")
+    val race = pgEnumeration<CharacterRace>("race", "RACE")
     val classId = integer("class_id")
     val currentHp = integer("current_hp")
     val currentMp = integer("current_mp")
@@ -35,8 +35,9 @@ object PlayerCharacterTable: IntIdTable("characters") {
     val z = integer("z")
     val nameColor = integer("name_color")
     val titleColor = integer("title_color")
-    val activeSubclass = integer("active_subclass").default(defaultValue =0)
-    val accessLevel = postgresEnumeration<AccessLevel>("access_level", "ACCESS_LEVEL").default(AccessLevel.PLAYER)
+    val activeSubclass = integer("active_subclass").default(defaultValue = 0)
+    val accessLevel = pgEnumeration<AccessLevel>("access_level", "ACCESS_LEVEL")
+        .default(AccessLevel.PLAYER)
 }
 
 class PlayerCharacterEntity(id: EntityID<Int>): IntEntity(id) {

@@ -46,3 +46,5 @@ fun ItemInstance.toScatteredItem(position: Position, amount: Int) = ScatteredIte
     amount = amount,
     enchantLevel = this.enchantLevel
 )
+
+val ItemInstance.canBeSold: Boolean  get() = this.isEquipped || !this.isSellable

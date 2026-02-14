@@ -188,7 +188,7 @@ class ItemService(
                 )
                 val scatteredItem = gameObjectRepository.save(
                     item.toScatteredItem(scatteredItemPosition, request.amount)
-                )!!
+                )
                 this@ItemService.broadcastAround(character.position) {
                     DroppedItemResponse(character.id, scatteredItem)
                 }
@@ -221,7 +221,7 @@ class ItemService(
             val dropPosition = geoDataService.getAvailableTargetPosition(
                 dropper.position, calculatedPosition)
 
-            gameObjectRepository.save(item.toScatteredItem(dropPosition, itemsInStackAmount))
+            item.toScatteredItem(dropPosition, itemsInStackAmount)?.let { gameObjectRepository.save(it) }
         }.filterNotNull()
 
         scatteredItems.forEach { scatteredItem ->
@@ -346,7 +346,9 @@ class ItemService(
         sendTo(owner.id) { UpdateStatusResponse.weightOf(owner) }
     }
 
-    private suspend fun toggleSoulshotAutoUsage(character: PlayerCharacterInstanceImpl, soulshot: SoulshotInstance) {
+    private suspend fun toggleSoulshotAutoUsage(
+        character: PlayerCharacterInstanceImpl, soulshot: SoulshotInstance
+    ) {
         val weapon = character.inventory.weapon ?: run {
             send { SystemMessageResponse.CannotUseSoulshot }
             return

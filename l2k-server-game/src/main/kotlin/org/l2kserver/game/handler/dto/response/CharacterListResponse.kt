@@ -104,8 +104,8 @@ data class CharacterListResponse(
             putInt(it.hairColor)
             putInt(it.faceType)
 
-            putDouble(it.stats.maxHp.toDouble())
-            putDouble(it.stats.maxMp.toDouble())
+            putDouble(it.stats.maxHp)
+            putDouble(it.stats.maxMp)
 
             putInt(
                 if (it.deletionDate == null) 0
