@@ -26,18 +26,18 @@ class EnchantCommand: AdminCommand() {
         "EnchantCommand(itemToEnchant=$itemToEnchant, name=$characterName, enchantLevel=$enchantLevel)"
 }
 
-enum class ItemToEnchant {
-    UNDERWEAR,
-    RIGHT_EARRING,
-    LEFT_EARRING,
-    NECKLACE,
-    RIGHT_RING,
-    LEFT_RING,
-    HEADGEAR,
-    WEAPON,
-    SHIELD,
-    GLOVES,
-    UPPER_BODY,
-    LOWER_BODY,
-    BOOTS
+enum class ItemToEnchant(val messageName: String) {
+    UNDERWEAR("underwear"),
+    RIGHT_EARRING("right earring"),
+    LEFT_EARRING("left earring"),
+    NECKLACE("necklace"),
+    RIGHT_RING("right ring"),
+    LEFT_RING("left ring"),
+    HEADGEAR("headgear"),
+    WEAPON("weapon"),
+    SHIELD("shield"),
+    GLOVES("gloves"),
+    UPPER_BODY("upper body"),
+    LOWER_BODY("lower body"),
+    BOOTS("boots")
 }

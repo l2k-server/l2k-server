@@ -17,23 +17,14 @@ class GameObjectRepository {
     private val characters = ConcurrentHashMap<Int, PlayerCharacterInstanceImpl>()
     private val npcs = ConcurrentHashMap<Int, NpcInstanceImpl>()
 
-    /**
-     * Loads character to game world
-     * @return loaded Character
-     */
-    fun loadCharacter(character: PlayerCharacterInstanceImpl): PlayerCharacterInstanceImpl {
-        characters[character.id] = character
-        return character
-    }
-
-    fun <T: GameWorldObject> save(gameObject: T?) = if (gameObject == null) null else {
+    fun <T: GameWorldObject> save(gameObject: T): T {
         when (gameObject) {
             is PlayerCharacterInstanceImpl -> characters[gameObject.id] = gameObject
             is NpcInstanceImpl -> npcs[gameObject.id] = gameObject
             else -> objects[gameObject.id] = gameObject
         }
 
-        gameObject
+        return gameObject
     }
 
     fun findByIdOrNull(id: Int) = characters[id] ?: npcs[id] ?: objects[id]
@@ -90,7 +81,6 @@ class GameObjectRepository {
      * Finds all characters near given Position.
      * @return all the characters near provided position
      */
-    @Suppress("UNCHECKED_CAST")
     fun findAllCharactersNear(
         position: Position, distance: Int = VISION_RANGE
     ) = characters.values.asSequence().filter {

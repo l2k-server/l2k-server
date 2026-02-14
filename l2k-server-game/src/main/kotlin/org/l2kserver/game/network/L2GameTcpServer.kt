@@ -26,7 +26,7 @@ import org.l2kserver.game.extensions.readBytes
 import org.l2kserver.game.handler.L2GameRequestHandler
 import org.l2kserver.game.handler.dto.response.ResponsePacket
 import org.l2kserver.game.security.GameCrypt
-import org.l2kserver.game.utils.CyclicIdIterator
+import org.l2kserver.game.utils.CyclicIdGenerator
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 import java.util.concurrent.Executors
@@ -51,7 +51,7 @@ class L2GameTcpServer(
     private val selectorManager = SelectorManager(Dispatchers.IO)
     private val executor = CoroutineScope(Executors.newSingleThreadExecutor().asCoroutineDispatcher())
 
-    private val idIterator = CyclicIdIterator()
+    private val idGenerator = CyclicIdGenerator()
 
     @PostConstruct
     fun start() = executor.launch {
@@ -66,7 +66,7 @@ class L2GameTcpServer(
             val sendChannel = socket.openWriteChannel(autoFlush = true)
 
             val gameCrypt = GameCrypt()
-            val sessionId = idIterator.next()
+            val sessionId = idGenerator.next()
 
             val context = createContext(sessionId)
 

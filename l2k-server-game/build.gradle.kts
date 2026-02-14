@@ -22,7 +22,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter")
 
     // Ktor
-    implementation("io.ktor:ktor-network-jvm:3.3.3")
+    implementation("io.ktor:ktor-network-jvm:3.4.0")
 
     // Kotlin
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-slf4j:1.10.2")
@@ -31,15 +31,15 @@ dependencies {
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
     
     // Command parser
-    implementation("com.github.ajalt.clikt:clikt-jvm:5.0.3")
+    implementation("com.github.ajalt.clikt:clikt-jvm:5.1.0")
 
     // Database
-    implementation("org.jetbrains.exposed:exposed-spring-boot-starter:1.0.0-rc-4")
-    implementation("org.jetbrains.exposed:exposed-java-time:1.0.0-rc-4")
+    implementation("org.jetbrains.exposed:exposed-spring-boot4-starter:1.0.0")
+    implementation("org.jetbrains.exposed:exposed-java-time:1.0.0")
     implementation("org.postgresql:postgresql")
 
-    implementation("org.flywaydb:flyway-core:11.19.0")
-    runtimeOnly("org.flywaydb:flyway-database-postgresql:11.19.0")
+    implementation("org.springframework.boot:spring-boot-starter-flyway")
+    runtimeOnly("org.flywaydb:flyway-database-postgresql:12.0.1")
 
     // Hazelcast (for sharing data with LoginServer)
     implementation("com.hazelcast:hazelcast:5.6.0")
@@ -55,7 +55,7 @@ dependencies {
     testImplementation(kotlin("test"))
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.boot:spring-boot-testcontainers")
-    testImplementation("org.testcontainers:postgresql")
+    testImplementation("org.testcontainers:postgresql:1.21.4")
 
     testImplementation("org.awaitility:awaitility:4.3.0")
     testImplementation("org.awaitility:awaitility-kotlin:4.3.0")

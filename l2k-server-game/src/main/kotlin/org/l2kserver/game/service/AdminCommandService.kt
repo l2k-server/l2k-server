@@ -122,8 +122,7 @@ class AdminCommandService(
         if (item == null) {
             send {
                 SystemMessageResponse(
-                    "Player ${characterToEnchant.name} has " +
-                            "no equipped ${command.itemToEnchant.name.lowercase().replace('_', ' ')}"
+                    "Player ${characterToEnchant.name} has no equipped ${command.itemToEnchant.messageName}"
                 )
             }
             send { PlaySoundResponse(Sound.ITEMSOUND_SYS_IMPOSSIBLE) }

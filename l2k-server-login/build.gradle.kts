@@ -23,7 +23,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter")
 
     // Ktor
-    implementation("io.ktor:ktor-network-jvm:3.3.3")
+    implementation("io.ktor:ktor-network-jvm:3.4.0")
 
     //Jackson
     implementation("com.fasterxml.jackson.core:jackson-core")
@@ -36,18 +36,18 @@ dependencies {
     implementation("com.hazelcast:hazelcast:5.6.0")
 
     // Database
-    implementation("org.jetbrains.exposed:exposed-spring-boot-starter:1.0.0-rc-4")
-    implementation("org.jetbrains.exposed:exposed-java-time:1.0.0-rc-4")
+    implementation("org.jetbrains.exposed:exposed-spring-boot4-starter:1.0.0")
+    implementation("org.jetbrains.exposed:exposed-java-time:1.0.0")
     runtimeOnly("org.postgresql:postgresql")
 
-    implementation("org.flywaydb:flyway-core:11.19.0")
+    implementation("org.springframework.boot:spring-boot-starter-flyway")
     runtimeOnly("org.flywaydb:flyway-database-postgresql:11.19.0")
 
     // Test
     testImplementation(kotlin("test"))
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.boot:spring-boot-testcontainers")
-    testImplementation("org.testcontainers:postgresql")
+    testImplementation("org.testcontainers:postgresql:1.21.4")
 }
 
 tasks.test {

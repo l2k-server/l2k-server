@@ -390,7 +390,7 @@ class ItemServiceTests(
             )
         }
 
-        gameObjectRepository.loadCharacter(character)
+        gameObjectRepository.save(character)
 
         suspendTransaction {
             assertEquals(8, ItemEntity.findById(itemId)!!.amount)

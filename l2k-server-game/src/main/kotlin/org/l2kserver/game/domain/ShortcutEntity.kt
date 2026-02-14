@@ -10,7 +10,7 @@ object ShortcutTable: LongIdTable("shortcuts") {
     val characterId = integer("character_id")
     val subclassIndex = integer("subclass_index")
     val index = integer("index")
-    val type = postgresEnumeration<ShortcutType>("type", "SHORTCUT_TYPE")
+    val type = pgEnumeration<ShortcutType>("type", "SHORTCUT_TYPE")
     val shortcutActionId = integer("shortcut_action_id")
     val actionLevel = integer("action_level")
 

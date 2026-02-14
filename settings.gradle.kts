@@ -1,9 +1,9 @@
 pluginManagement {
     plugins {
-        kotlin("jvm") version "2.2.20"
-        kotlin("plugin.spring") version "2.2.20"
-        id("dev.detekt") version "2.0.0-alpha.1"
-        id("org.springframework.boot") version "3.5.7"
+        kotlin("jvm") version "2.3.0"
+        kotlin("plugin.spring") version "2.3.0"
+        id("dev.detekt") version "2.0.0-alpha.2"
+        id("org.springframework.boot") version "4.0.2"
         id("io.spring.dependency-management") version "1.1.7"
     }
 }

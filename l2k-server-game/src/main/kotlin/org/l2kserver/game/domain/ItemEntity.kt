@@ -25,7 +25,7 @@ object ItemTable: IntIdTable("items") {
     val templateId = integer("template_id")
     val ownerId = integer("owner_id")
     val amount = integer("amount").default(1)
-    val equippedAt = postgresEnumeration<Slot>("equipped_at", "EQUIPPED_AT").nullable()
+    val equippedAt = pgEnumeration<Slot>("equipped_at", "EQUIPPED_AT").nullable()
     val enchantLevel = integer("enchant_level").default(0)
     val augmentationId = integer("augmentation_id").default(0)
 }

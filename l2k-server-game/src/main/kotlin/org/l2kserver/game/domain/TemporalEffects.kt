@@ -16,25 +16,27 @@ class TemporalEffects : MutableCollection<TemporalAbnormalEffect> {
      * @return `true` if effect was added or `false` if effect cannot be applied
      * (for example if already applied effect of such abnormal type is better than [element]
      */
-    override fun add(element: TemporalAbnormalEffect): Boolean {
-        val existingEffect = effects[element.abnormalType] ?: run {
-            effects[element.abnormalType] = element
-            return true
-        }
+    override fun add(
+        element: TemporalAbnormalEffect
+    ): Boolean {
+        val existingEffect = effects[element.abnormalType]
 
-        if (element.effectLevel > existingEffect.effectLevel) {
-            effects[element.abnormalType] = element
-            return true
+        return when {
+            existingEffect == null -> {
+                effects[element.abnormalType] = element
+                true
+            }
+            element.effectLevel > existingEffect.effectLevel -> {
+                effects[element.abnormalType] = element
+                true
+            }
+            element.effectLevel == existingEffect.effectLevel &&
+                    element.expiresAt.isAfter(existingEffect.expiresAt) -> {
+                effects[element.abnormalType] = element
+                return true
+            }
+            else -> false
         }
-
-        if (element.effectLevel == existingEffect.effectLevel &&
-            element.expiresAt.isAfter(existingEffect.expiresAt)
-        ) {
-            effects[element.abnormalType] = element
-            return true
-        }
-
-        return false
     }
 
     override fun addAll(elements: Collection<TemporalAbnormalEffect>) = synchronized(effects) {
