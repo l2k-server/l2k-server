@@ -34,10 +34,12 @@ import org.l2kserver.game.model.actor.npc.NpcInstance
 import org.l2kserver.game.model.extensions.forEachInstance
 import org.l2kserver.game.model.extensions.safePlus
 import org.l2kserver.game.model.item.template.SpiritshotType
+import org.l2kserver.game.model.map.TownRegistry
 import org.l2kserver.game.model.skill.context.SkillContext
 import org.l2kserver.game.model.skill.effect.DamageEffect
 import org.l2kserver.game.model.skill.effect.Effect
 import org.l2kserver.game.model.skill.effect.EffectOnTimeAbnormalEffect
+import org.l2kserver.game.model.skill.effect.EscapeEffect
 import org.l2kserver.game.model.skill.effect.HealEffect
 import org.l2kserver.game.model.skill.effect.ResistedEffect
 import org.l2kserver.game.model.skill.effect.TemporalAbnormalEffect
@@ -441,6 +443,7 @@ class SkillService(
                     SystemMessageResponse.YouHaveResistedMagic(caster.name)
                 }
             }
+            is EscapeEffect -> applyEscapeEffect(effect)
         }
     }
 
@@ -485,6 +488,19 @@ class SkillService(
         }
 
         if (effect.abnormalVisualEffect != null) broadcastActorInfo(target)
+    }
+
+    private suspend fun applyEscapeEffect(effect: EscapeEffect) {
+        val target = gameObjectRepository.findActorByIdOrNull(effect.targetId) ?: run {
+            log.warn("Cannot apply effect on target {} - it has disappeared", effect.targetId)
+            return
+        }
+        val targetPosition = TownRegistry.getRandomSpawnPointByPosition(
+            target.position,
+            isOutlaw = (target as? PlayerCharacterInstanceImpl)?.let { it.karma > 0 } ?: false
+        )
+
+        moveService.teleport(target, targetPosition)
     }
 
 }

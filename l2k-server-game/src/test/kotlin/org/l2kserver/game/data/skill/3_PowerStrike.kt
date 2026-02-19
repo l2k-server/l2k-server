@@ -4,13 +4,12 @@ package org.l2kserver.game.data.skill
 import org.l2kserver.game.model.item.template.WeaponType
 import org.l2kserver.game.model.skill.context.SkillContext
 import org.l2kserver.game.model.skill.effect.DamageEffect
-import org.l2kserver.game.model.skill.effect.Effects
 import org.l2kserver.game.model.skill.instance.SkillTargetType
 import org.l2kserver.game.model.skill.template.ActiveSkill
 import org.l2kserver.game.model.skill.template.SkillConsumablesTemplate
 import org.l2kserver.game.model.skill.template.SkillRequirements
 
-data object PowerStrike: ActiveSkill() {
+data object PowerStrike: ActiveSkill {
     override val id = 3
     override val skillName = "Power strike"
     override val maxLevel = 9
@@ -36,7 +35,7 @@ data object PowerStrike: ActiveSkill() {
 
     val power = listOf(25, 27, 30, 39, 42, 46, 60, 65, 70)
 
-    override fun affect(context: SkillContext) = Effects(
+    override fun affect(context: SkillContext) = listOf(
         DamageEffect.physicalHit(
             caster = context.caster,
             target = context.mainTarget,

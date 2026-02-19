@@ -4,7 +4,6 @@ import org.l2kserver.game.model.skill.context.SkillContext
 import org.l2kserver.game.model.skill.effect.AbnormalType
 import org.l2kserver.game.model.skill.effect.DamageEffect
 import org.l2kserver.game.model.skill.effect.EffectOnTimeAbnormalEffect
-import org.l2kserver.game.model.skill.effect.Effects
 import org.l2kserver.game.model.skill.effect.AbnormalVisualEffect
 import org.l2kserver.game.model.skill.effect.Debuff
 import org.l2kserver.game.model.skill.effect.ResistedEffect
@@ -32,7 +31,7 @@ class PoisonEffect(
 
     val power = listOf(8, 18, 24)
 
-    override fun effects(context: SkillContext) = Effects(
+    override fun effects(context: SkillContext) = listOf(
         DamageEffect(
             targetId = context.mainTarget.id,
             damage = power.getOrElse(context.skillLevel - 1) {
@@ -44,7 +43,7 @@ class PoisonEffect(
 
 }
 
-data object CursePoison: ActiveSkill() {
+data object CursePoison: ActiveSkill {
     override val id = 1168
     override val skillName = "Curse: Poison"
     override val maxLevel = 3

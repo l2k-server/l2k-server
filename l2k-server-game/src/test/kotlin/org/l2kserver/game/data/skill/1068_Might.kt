@@ -4,7 +4,6 @@ package org.l2kserver.game.data.skill
 import org.l2kserver.game.model.actor.ActorInstance
 import org.l2kserver.game.model.skill.context.SkillContext
 import org.l2kserver.game.model.skill.effect.AbnormalType
-import org.l2kserver.game.model.skill.effect.Effects
 import org.l2kserver.game.model.skill.effect.TemporalAbnormalEffect
 import org.l2kserver.game.model.skill.instance.SkillTargetType
 import org.l2kserver.game.model.skill.template.ActiveSkill
@@ -26,7 +25,7 @@ class MightEffect(
     )
 }
 
-data object Might: ActiveSkill() {
+data object Might: ActiveSkill {
     override val id = 1068
     override val skillName = "Might"
     override val maxLevel = 3
@@ -38,7 +37,7 @@ data object Might: ActiveSkill() {
     override val consumesToStart = SkillConsumablesTemplate(mp = listOf(2, 4, 7))
     override val consumes = SkillConsumablesTemplate(mp = listOf(8, 16, 28))
 
-    override fun affect(context: SkillContext) = Effects(
+    override fun affect(context: SkillContext) = listOf(
         MightEffect(
             targetId = context.mainTarget.id,
             effectLevel = context.skillLevel

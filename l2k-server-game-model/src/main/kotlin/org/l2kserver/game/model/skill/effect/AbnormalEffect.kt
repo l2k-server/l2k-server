@@ -94,11 +94,11 @@ abstract class TemporalAbnormalEffect(duration: Duration): AbnormalEffect, Effec
 }
 
 /**
- * Effect on time abnormal - produces some [effects] on with provided [frequency]
+ * Effect on time abnormal - produces some [effects] on target with provided [frequency]
  *
  * @property frequency How often should the [effects] be applied (in millis). Default: 3000
  */
 abstract class EffectOnTimeAbnormalEffect(duration: Duration) : TemporalAbnormalEffect(duration) {
     open val frequency = 3000L
-    abstract fun effects(context: SkillContext): Effects
+    abstract fun effects(context: SkillContext): Iterable<Effect>
 }

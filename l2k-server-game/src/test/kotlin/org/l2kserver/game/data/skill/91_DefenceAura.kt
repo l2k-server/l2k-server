@@ -4,7 +4,6 @@ package org.l2kserver.game.data.skill
 import org.l2kserver.game.model.actor.ActorInstance
 import org.l2kserver.game.model.skill.context.SkillContext
 import org.l2kserver.game.model.skill.effect.AbnormalType
-import org.l2kserver.game.model.skill.effect.Effects
 import org.l2kserver.game.model.skill.effect.TemporalAbnormalEffect
 import org.l2kserver.game.model.skill.instance.SkillTargetType
 import org.l2kserver.game.model.skill.template.ActiveSkill
@@ -28,7 +27,7 @@ class DefenseAuraEffect(
     )
 }
 
-data object DefenseAura: ActiveSkill() {
+data object DefenseAura: ActiveSkill {
     override val id = 91
     override val skillName = "Defense Aura"
     override val maxLevel = 2
@@ -39,7 +38,7 @@ data object DefenseAura: ActiveSkill() {
     override val consumesToStart = SkillConsumablesTemplate(mp = listOf(1, 2))
     override val consumes = SkillConsumablesTemplate(mp = listOf(4, 8))
 
-    override fun affect(context: SkillContext) = Effects(
+    override fun affect(context: SkillContext) = listOf(
         DefenseAuraEffect(
             context.mainTarget.id,
             context.skillLevel

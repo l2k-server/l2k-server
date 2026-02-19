@@ -7,8 +7,8 @@ import org.l2kserver.game.model.item.ConsumableItem
 import org.l2kserver.game.model.item.template.ArmorType
 import org.l2kserver.game.model.item.template.WeaponType
 import org.l2kserver.game.model.skill.context.SkillContext
-import org.l2kserver.game.model.skill.effect.Effects
 import org.l2kserver.game.model.skill.effect.AbnormalEffect
+import org.l2kserver.game.model.skill.effect.Effect
 import org.l2kserver.game.model.skill.instance.SkillConsumables
 import org.l2kserver.game.model.skill.instance.SkillTargetType
 
@@ -27,23 +27,23 @@ sealed interface Skill: GameData {
     val maxLevel: Int get() = 1
 }
 
-abstract class PassiveSkill: Skill {
+interface PassiveSkill: Skill {
     /** Calculates abnormal effects, applied by this skill */
-    abstract fun effect(actor: ActorInstance, actionLevel: Int): AbnormalEffect
+    fun effect(actor: ActorInstance, actionLevel: Int): AbnormalEffect
 }
 
-abstract class ToggleSkill: Skill {
+interface ToggleSkill: Skill {
     /** Requirements to use this skill */
-    abstract val requires: SkillRequirements?
+    val requires: SkillRequirements?
 }
 
 /**
  * Active skill template
  *
  * @property targetType Type of target to cast this skill on
- * @property reuseDelay Base cooldown of this skill
- * @property castTime Base casting time of this skill
- * @property repriseTime Time to return to the starting position after skill casting
+ * @property reuseDelay Base cooldown of this skill (millis)
+ * @property castTime Base casting time of this skill (millis)
+ * @property repriseTime Time to return to the starting position after skill casting (millis)
  * @property castRange Range to target to cast this skill, or radius for mass skill
  * @property effectRange TODO
  * @property requires Requirements to use this skill
@@ -52,22 +52,22 @@ abstract class ToggleSkill: Skill {
  * @property forcedUsageAllowed Can this skill be used to incorrect target with CTRL
  * @property usesCasterStats Should character stats be used at skill casting time, cast range, etc. calculations
  */
-abstract class ActiveSkill: Skill {
-    abstract val targetType: SkillTargetType
-    abstract val reuseDelay: Int
-    abstract val castTime: Int
-    abstract val isMagic: Boolean
-    open val repriseTime: Int = 0
-    open val castRange: Int = 0
-    open val effectRange: Int = 0
-    open val requires: SkillRequirements? = null
-    open val consumesToStart: SkillConsumablesTemplate? = null
-    open val consumes: SkillConsumablesTemplate? = null
-    open val overhitPossible: Boolean = false
-    open val forcedUsageAllowed: Boolean = true
-    open val usesCasterStats: Boolean = true
+interface ActiveSkill: Skill {
+    val targetType: SkillTargetType
+    val reuseDelay: Int
+    val castTime: Int
+    val isMagic: Boolean
+    val repriseTime: Int get() = 0
+    val castRange: Int get() = 0
+    val effectRange: Int get() = 0
+    val requires: SkillRequirements? get() = null
+    val consumesToStart: SkillConsumablesTemplate? get() = null
+    val consumes: SkillConsumablesTemplate? get() = null
+    val overhitPossible: Boolean get() = false
+    val forcedUsageAllowed: Boolean get() = true
+    val usesCasterStats: Boolean get() = true
 
-    abstract fun affect(context: SkillContext): Effects
+    fun affect(context: SkillContext): Iterable<Effect>
 }
 
 /**
@@ -96,6 +96,13 @@ data class SkillConsumablesTemplate(
     val mp: List<Int>? = null,
     val item: List<ConsumableItem?>? = null
 ) {
+
+    /** Constructor for single-level skill consumables */
+    constructor(hp: Int? = null, mp: Int? = null, item: ConsumableItem? = null): this(
+        hp = hp?.let { listOf(it) },
+        mp = mp?.let { listOf(it) },
+        item = item?.let { listOf(it) }
+    )
 
     /**
      * Get skill consumption by [skillLevel]

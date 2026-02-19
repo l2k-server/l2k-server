@@ -3,12 +3,11 @@ package org.l2kserver.game.data.skill
 
 import org.l2kserver.game.model.skill.context.SkillContext
 import org.l2kserver.game.model.skill.effect.DamageEffect
-import org.l2kserver.game.model.skill.effect.Effects
 import org.l2kserver.game.model.skill.instance.SkillTargetType
 import org.l2kserver.game.model.skill.template.ActiveSkill
 import org.l2kserver.game.model.skill.template.SkillConsumablesTemplate
 
-data object WindStrike: ActiveSkill() {
+data object WindStrike: ActiveSkill {
     override val id = 1177
     override val skillName = "Wind Strike"
     override val maxLevel = 5
@@ -24,7 +23,7 @@ data object WindStrike: ActiveSkill() {
     val power = listOf(12, 13, 15, 18, 21)
     val magicLevel = listOf(1, 4, 7, 11, 14)
 
-    override fun affect(context: SkillContext) = Effects(
+    override fun affect(context: SkillContext) = listOf(
         DamageEffect.magicHit(
             caster = context.caster,
             target = context.mainTarget,

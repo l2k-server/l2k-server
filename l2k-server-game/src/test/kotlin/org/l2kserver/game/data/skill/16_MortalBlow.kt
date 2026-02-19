@@ -4,13 +4,12 @@ package org.l2kserver.game.data.skill
 import org.l2kserver.game.model.item.template.WeaponType
 import org.l2kserver.game.model.skill.context.SkillContext
 import org.l2kserver.game.model.skill.effect.DamageEffect
-import org.l2kserver.game.model.skill.effect.Effects
 import org.l2kserver.game.model.skill.instance.SkillTargetType
 import org.l2kserver.game.model.skill.template.ActiveSkill
 import org.l2kserver.game.model.skill.template.SkillConsumablesTemplate
 import org.l2kserver.game.model.skill.template.SkillRequirements
 
-data object MortalBlow: ActiveSkill() {
+data object MortalBlow: ActiveSkill {
     override val id = 16
     override val skillName = "Mortal Blow"
     override val maxLevel = 24
@@ -32,7 +31,7 @@ data object MortalBlow: ActiveSkill() {
         73,80,88,115,126,137,178,193,210,268,291,314,367,396,427,494,531,571,656,703,752,859,916,977
     )
 
-    override fun affect(context: SkillContext) = Effects(
+    override fun affect(context: SkillContext) = listOf(
         DamageEffect.blow(
             caster = context.caster,
             target = context.mainTarget,
