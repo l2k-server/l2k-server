@@ -6,7 +6,6 @@ import org.l2kserver.game.model.item.template.Grade
 import org.l2kserver.game.model.item.template.MagicItem
 import org.l2kserver.game.model.skill.context.SkillContext
 import org.l2kserver.game.model.skill.effect.AbnormalType
-import org.l2kserver.game.model.skill.effect.Effects
 import org.l2kserver.game.model.skill.effect.TemporalAbnormalEffect
 import org.l2kserver.game.model.skill.instance.SkillTargetType
 import org.l2kserver.game.model.skill.template.ActiveSkill
@@ -26,23 +25,21 @@ private class ScrollOfGuidanceEffect(
     )
 }
 
-private data object ScrollOfGuidanceSkill: ActiveSkill() {
+private data object ScrollOfGuidanceSkill: ActiveSkill {
     override val id = 2050
-    override val skillName = "Scroll of Guidance"
+    override val skillName = "s_scroll_of_guidance"
     override val targetType = SkillTargetType.SELF
     override val reuseDelay = 0
     override val castTime = 4_000
     override val isMagic = false
-    override val consumesToStart = SkillConsumablesTemplate(item = listOf(1 of ScrollOfGuidance))
+    override val consumesToStart = SkillConsumablesTemplate(item = 1 of ScrollOfGuidance)
     override val usesCasterStats = false
 
-    override fun affect(context: SkillContext) = Effects(
-        ScrollOfGuidanceEffect(context.caster.id)
-    )
+    override fun affect(context: SkillContext) = listOf(ScrollOfGuidanceEffect(context.caster.id))
 
 }
 
-data object ScrollOfGuidance: MagicItem() {
+data object ScrollOfGuidance: MagicItem {
     override val id = 3926
     override val name = "Scroll of Guidance"
     override val grade = Grade.NO_GRADE

@@ -3,6 +3,7 @@ package org.l2kserver.game.service
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -33,7 +34,6 @@ import org.l2kserver.game.model.time.GameTime
 import org.l2kserver.game.utils.time.withDelay
 import org.springframework.stereotype.Service
 import java.util.concurrent.ConcurrentHashMap
-import kotlin.coroutines.coroutineContext
 import kotlin.math.hypot
 
 private const val ROTATE_SPEED_PER_SEC = 65536
@@ -142,7 +142,13 @@ class MoveService(
             var destination: Position? = null
 
             var moveIterations = 0
-            while (coroutineContext.isActive && target.exists() && !actor.position.isCloseTo(destination)) withDelay {
+
+            while (
+                currentCoroutineContext().isActive
+                && target.exists()
+                && !actor.position.isCloseTo(destination)
+            ) withDelay {
+
                 if (actor.isImmobilized) {
                     log.trace("Actor '{}' is immobilized", actor)
                     return@suspendTransaction
@@ -203,7 +209,7 @@ class MoveService(
     // Turning must be async because character turns and moves/attacks simultaneously
     // Client shows turning by itself, so there is no need to send some responses here
     suspend fun launchTurning(actor: MutableActorInstance, targetPosition: Position) =
-        CoroutineScope(coroutineContext).launch {
+        CoroutineScope(currentCoroutineContext()).launch {
             log.trace("Started turning actor '{}' to target position '{}'", actor, targetPosition)
             val newHeading = actor.position.headingTo(targetPosition)
 

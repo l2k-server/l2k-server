@@ -4,7 +4,6 @@ package org.l2kserver.game.data.skill
 import org.l2kserver.game.model.skill.context.SkillContext
 import org.l2kserver.game.model.skill.effect.AbnormalType
 import org.l2kserver.game.model.skill.effect.EffectOnTimeAbnormalEffect
-import org.l2kserver.game.model.skill.effect.Effects
 import org.l2kserver.game.model.skill.effect.effects
 import org.l2kserver.game.model.skill.effect.HealEffect
 import org.l2kserver.game.model.skill.instance.SkillTargetType
@@ -22,7 +21,7 @@ class GreaterHealEffect(
 
     private val recoverPower = listOf(15, 15, 15)
 
-    override fun effects(context: SkillContext) = Effects(
+    override fun effects(context: SkillContext) = listOf(
         HealEffect(
             target = context.mainTarget,
             power = recoverPower.getOrElse(context.skillLevel - 1) {
@@ -32,7 +31,7 @@ class GreaterHealEffect(
     )
 }
 
-data object GreaterHeal: ActiveSkill() {
+data object GreaterHeal: ActiveSkill {
     override val id = 1217
     override val skillName = "Greater Heal"
     override val maxLevel = 3

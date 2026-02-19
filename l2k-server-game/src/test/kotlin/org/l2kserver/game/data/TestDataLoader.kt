@@ -14,6 +14,7 @@ import org.l2kserver.game.data.item.arrows.BoneArrow
 import org.l2kserver.game.data.item.arrows.WoodenArrow
 import org.l2kserver.game.data.item.book.TutorialGuide
 import org.l2kserver.game.data.item.etc.Adena
+import org.l2kserver.game.data.item.etc.ScrollOfEscape
 import org.l2kserver.game.data.item.etc.ScrollOfGuidance
 import org.l2kserver.game.data.item.jewelry.EarringOfStrength
 import org.l2kserver.game.data.item.jewelry.EarringOfWisdom
@@ -125,6 +126,7 @@ class TestDataLoader(
             //ETC
             Adena,
             ScrollOfGuidance,
+            ScrollOfEscape,
 
             // Arrows
             WoodenArrow,

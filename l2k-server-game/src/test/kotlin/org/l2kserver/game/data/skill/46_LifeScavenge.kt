@@ -10,7 +10,7 @@ import org.l2kserver.game.model.skill.template.ActiveSkill
 import org.l2kserver.game.model.skill.template.SkillConsumablesTemplate
 import kotlin.math.roundToInt
 
-data object LifeScavenge: ActiveSkill() {
+data object LifeScavenge: ActiveSkill {
     override val id = 46
     override val skillName = "Life Scavenge"
     override val maxLevel = 15
