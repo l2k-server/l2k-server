@@ -12,7 +12,7 @@ data object WindStrike: ActiveSkill {
     override val skillName = "Wind Strike"
     override val maxLevel = 5
     override val targetType = SkillTargetType.ENEMY
-    override val reuseDelay = 6_000
+    override val reuseDelay = 2_000
     override val castTime = 4000
     override val isMagic = true
     override val castRange = 600

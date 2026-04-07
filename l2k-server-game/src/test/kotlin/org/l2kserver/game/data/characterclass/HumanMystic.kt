@@ -1,9 +1,9 @@
-package org.l2kserver.game.data.character.classes
+package org.l2kserver.game.data.characterclass
 
 import org.l2kserver.game.data.item.armor.ApprenticesStockings
 import org.l2kserver.game.data.item.armor.ApprenticeTunic
 import org.l2kserver.game.data.item.book.TutorialGuide
-import org.l2kserver.game.data.item.weapons.ApprenticesWand
+import org.l2kserver.game.data.item.weapon.ApprenticesWand
 import org.l2kserver.game.data.skill.SelfHeal
 import org.l2kserver.game.data.skill.WindStrike
 import org.l2kserver.game.data.skill.Spellcraft

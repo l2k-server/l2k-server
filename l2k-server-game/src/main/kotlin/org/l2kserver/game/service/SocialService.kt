@@ -41,7 +41,7 @@ class SocialService(
         )
 
         when (request.chatTab) {
-            ChatTab.GENERAL -> this@SocialService.broadcastAround(speaker.position, generalChatRange) { response }
+            ChatTab.GENERAL -> broadcastAround(speaker.position, generalChatRange) { response }
             ChatTab.WHISPER -> {
                 if (request.targetName != null) {
                     val addressee = gameObjectRepository.findCharacterByName(request.targetName)

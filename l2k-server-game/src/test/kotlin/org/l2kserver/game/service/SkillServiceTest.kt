@@ -29,17 +29,19 @@ import org.l2kserver.game.handler.dto.response.StatusAttribute
 import org.l2kserver.game.handler.dto.response.SystemMessageResponse
 import org.l2kserver.game.handler.dto.response.UpdateStatusResponse
 import org.l2kserver.game.model.actor.npc.NpcRegistry
-import org.l2kserver.game.data.item.weapons.SquiresSword
+import org.l2kserver.game.data.item.weapon.SquiresSword
 import org.l2kserver.game.data.npc.FatDummyGremlin
 import org.l2kserver.game.data.skill.DefenseAura
 import org.l2kserver.game.data.skill.Might
 import org.l2kserver.game.data.skill.PowerShot
+import org.l2kserver.game.extensions.next
 import org.l2kserver.game.handler.dto.response.TemporalEffectsResponse
 import org.l2kserver.game.handler.dto.response.FullCharacterResponse
 import org.l2kserver.game.handler.dto.response.NpcInfoResponse
 import org.l2kserver.game.handler.dto.response.PvPStatusResponse
 import org.l2kserver.game.model.actor.character.PvpState
 import org.l2kserver.game.model.skill.effect.AbnormalType
+import org.l2kserver.game.network.session.sessionContextOf
 import org.springframework.beans.factory.annotation.Autowired
 import kotlin.math.roundToInt
 import kotlin.random.Random
@@ -54,22 +56,20 @@ class SkillServiceTest(
 
     @Test
     fun shouldSuccessfullyGetSkillList(): Unit = runBlocking {
-        val context = createTestSessionContext()
         val character = createTestCharacter()
-        context.setCharacterId(character.id)
+        val context = sessionContextOf(character.id)!!
 
         withContext(context) { skillService.getSkillList() }
 
-        val skillListResponse = assertIs<SkillListResponse>(context.responseChannel.receive())
+        val skillListResponse = assertIs<SkillListResponse>(context.responseChannel.next())
         assertEquals(0, skillListResponse.skills.size, "Skill list must be empty")
     }
 
     @Test
     fun shouldThrowExceptionIfCharacterUsesNonLearntSkill(): Unit = runBlocking {
         // Create our character
-        val context = createTestSessionContext()
         val character = createTestCharacter()
-        context.setCharacterId(character.id)
+        val context = sessionContextOf(character.id)!!
 
         assertThrows<IllegalArgumentException> {
             withContext(context) { skillService.useSkill(UseSkillRequest(MortalBlow.id)) }
@@ -79,9 +79,8 @@ class SkillServiceTest(
     @Test
     fun shouldFailUsingSkillDueToUnsuitableTerms(): Unit = runBlocking {
         // Create our character
-        val context = createTestSessionContext()
         val character = createTestCharacter()
-        context.setCharacterId(character.id)
+        val context = sessionContextOf(character.id)!!
 
         //Learn skill
         character.skillsAndMagic.learn(MortalBlow.id, 1)
@@ -91,21 +90,20 @@ class SkillServiceTest(
             template = NpcRegistry.register(FatDummyGremlin),
             spawnPosition = character.position.toSpawnPosition()
         )
-        context.responseChannel.receive() //Skip NpcInfoResponse
+        context.responseChannel.next() //Skip NpcInfoResponse
         character.targetId = target.id
 
         withContext(context) { skillService.useSkill(UseSkillRequest(MortalBlow.id)) }
-        val playSoundResponse = assertIs<PlaySoundResponse>(context.responseChannel.receive())
+        val playSoundResponse = assertIs<PlaySoundResponse>(context.responseChannel.next())
         assertEquals(Sound.ITEMSOUND_SYS_IMPOSSIBLE, playSoundResponse.sound)
-        assertIs<ActionFailedResponse>(context.responseChannel.receive())
+        assertIs<ActionFailedResponse>(context.responseChannel.next())
     }
 
     @Test
     fun shouldSuccessfullyUseSingleTargetPhysicalDamageSkill(): Unit = runBlocking {
         // Create our character
-        val context = createTestSessionContext()
         val character = createTestCharacter()
-        context.setCharacterId(character.id)
+        val context = sessionContextOf(character.id)!!
 
         //Learn skill
         character.skillsAndMagic.learn(PowerStrike.id, 1)
@@ -116,7 +114,7 @@ class SkillServiceTest(
             spawnPosition = character.position.toSpawnPosition()
         )
 
-        context.responseChannel.receive() //Skip NpcInfoResponse
+        context.responseChannel.next() //Skip NpcInfoResponse
 
         character.targetId = target.id
         target.targetedBy.add(character)
@@ -126,14 +124,14 @@ class SkillServiceTest(
         }
 
         // Check results
-        assertIs<StartMovingToTargetResponse>(context.responseChannel.receive())
+        assertIs<StartMovingToTargetResponse>(context.responseChannel.next())
 
-        assertIs<SystemMessageResponse.YouUse>(context.responseChannel.receive())
-        val gaugeResponse = assertIs<GaugeResponse>(context.responseChannel.receive())
+        assertIs<SystemMessageResponse.YouUse>(context.responseChannel.next())
+        val gaugeResponse = assertIs<GaugeResponse>(context.responseChannel.next())
         assertEquals(GaugeColor.BLUE, gaugeResponse.gaugeColor)
 
         val calculatedReuseDelay = 10406
-        val skillUsedResponse = assertIs<SkillUsedResponse>(context.responseChannel.receive())
+        val skillUsedResponse = assertIs<SkillUsedResponse>(context.responseChannel.next())
         assertEquals(character.id, skillUsedResponse.casterId)
         assertEquals(target.id, skillUsedResponse.targetId)
         assertEquals(PowerStrike.id, skillUsedResponse.skillId)
@@ -156,24 +154,23 @@ class SkillServiceTest(
             target.stats.maxHp.roundToInt() - (updateStatusResponse.attributes[StatusAttribute.CUR_HP] ?: 0)
         )
 
-        val updateCharacterStatusResponse = assertIs<UpdateStatusResponse>(context.responseChannel.receive())
+        val updateCharacterStatusResponse = assertIs<UpdateStatusResponse>(context.responseChannel.next())
         assertEquals(character.id, updateCharacterStatusResponse.objectId)
 
-        val characterFightingResponse = assertIs<StartFightingResponse>(context.responseChannel.receive())
+        val characterFightingResponse = assertIs<StartFightingResponse>(context.responseChannel.next())
         assertEquals(character.id, characterFightingResponse.actorId)
 
-        assertIs<ChangeMoveTypeResponse>(context.responseChannel.receive())
+        assertIs<ChangeMoveTypeResponse>(context.responseChannel.next())
 
-        val targetFightingResponse = assertIs<StartFightingResponse>(context.responseChannel.receive())
+        val targetFightingResponse = assertIs<StartFightingResponse>(context.responseChannel.next())
         assertEquals(target.id, targetFightingResponse.actorId)
     }
 
     @Test
     fun shouldFailUsingSkillOnCooldown(): Unit = runBlocking {
         // Create our character
-        val context = createTestSessionContext()
         val character = createTestCharacter()
-        context.setCharacterId(character.id)
+        val context = sessionContextOf(character.id)!!
 
         //Learn skill
         character.skillsAndMagic.learn(PowerStrike.id, 1)
@@ -183,16 +180,16 @@ class SkillServiceTest(
             template = FatDummyGremlin,
             spawnPosition = character.position.toSpawnPosition()
         )
-        context.responseChannel.receive() //Skip NpcInfoResponse
+        context.responseChannel.next() //Skip NpcInfoResponse
         character.targetId = target.id
 
         // First skill usage
         withContext(context) { skillService.useSkill(UseSkillRequest(PowerStrike.id)) }
 
-        assertIs<StartMovingToTargetResponse>(context.responseChannel.receive())
-        assertIs<SystemMessageResponse.YouUse>(context.responseChannel.receive())
-        assertIs<GaugeResponse>(context.responseChannel.receive())
-        assertIs<SkillUsedResponse>(context.responseChannel.receive())
+        assertIs<StartMovingToTargetResponse>(context.responseChannel.next())
+        assertIs<SystemMessageResponse.YouUse>(context.responseChannel.next())
+        assertIs<GaugeResponse>(context.responseChannel.next())
+        assertIs<SkillUsedResponse>(context.responseChannel.next())
 
         assertIs<SystemMessageResponse.YouHit>(
             context.responseChannel.receiveIgnoring(
@@ -200,13 +197,13 @@ class SkillServiceTest(
             )
         )
 
-        assertIs<UpdateStatusResponse>(context.responseChannel.receive())
+        assertIs<UpdateStatusResponse>(context.responseChannel.next())
 
         //Consume target stance responses
-        assertIs<StartFightingResponse>(context.responseChannel.receive())
-        assertIs<ChangeMoveTypeResponse>(context.responseChannel.receive())
+        assertIs<StartFightingResponse>(context.responseChannel.next())
+        assertIs<ChangeMoveTypeResponse>(context.responseChannel.next())
 
-        assertIs<StartFightingResponse>(context.responseChannel.receive()) //attacker started fighting
+        assertIs<StartFightingResponse>(context.responseChannel.next()) //attacker started fighting
 
         delay(1000)
         // Second skill usage
@@ -220,15 +217,14 @@ class SkillServiceTest(
         )
 
         assertEquals(PowerStrike.id, cooldownResponse.skill.skillId)
-        assertIs<ActionFailedResponse>(context.responseChannel.receive())
+        assertIs<ActionFailedResponse>(context.responseChannel.next())
     }
 
     @Test
     fun shouldThrowExceptionIfCharacterUsesSkillLearntByAnotherSubclass(): Unit = runBlocking {
         // Create our character
-        val context = createTestSessionContext()
         val character = createTestCharacter()
-        context.setCharacterId(character.id)
+        val context = sessionContextOf(character.id)!!
 
         //Learn skill
         transaction {
@@ -248,9 +244,8 @@ class SkillServiceTest(
     @Test
     fun shouldFailUsingAttackSkillOnHimself(): Unit = runBlocking {
         // Create our character
-        val context = createTestSessionContext()
         val character = createTestCharacter()
-        context.setCharacterId(character.id)
+        val context = sessionContextOf(character.id)!!
 
         //Learn skill
         character.skillsAndMagic.learn(PowerStrike.id, 1)
@@ -259,15 +254,14 @@ class SkillServiceTest(
         withContext(context) { skillService.useSkill(UseSkillRequest(PowerStrike.id)) }
 
         // Check results
-        assertIs<SystemMessageResponse.CannotUseThisOnYourself>(context.responseChannel.receive())
+        assertIs<SystemMessageResponse.CannotUseThisOnYourself>(context.responseChannel.next())
     }
 
     @Test
     fun shouldFailUsingAttackSkillWithNoTargetSelected(): Unit = runBlocking {
         // Create our character
-        val context = createTestSessionContext()
         val character = createTestCharacter()
-        context.setCharacterId(character.id)
+        val context = sessionContextOf(character.id)!!
 
         //Learn skill
         character.skillsAndMagic.learn(PowerStrike.id, 1)
@@ -275,15 +269,14 @@ class SkillServiceTest(
         withContext(context) { skillService.useSkill(UseSkillRequest(PowerStrike.id)) }
 
         // Check results
-        assertIs<SystemMessageResponse.YouMustSelectTarget>(context.responseChannel.receive())
+        assertIs<SystemMessageResponse.YouMustSelectTarget>(context.responseChannel.next())
     }
 
     @Test
     fun shouldFailUsingAttackSkillOnNonExistingTarget(): Unit = runBlocking {
         // Create our character
-        val context = createTestSessionContext()
         val character = createTestCharacter()
-        context.setCharacterId(character.id)
+        val context = sessionContextOf(character.id)!!
 
         //Learn skill
         character.skillsAndMagic.learn(PowerStrike.id, 1)
@@ -293,14 +286,13 @@ class SkillServiceTest(
         withContext(context) { skillService.useSkill(UseSkillRequest(PowerStrike.id)) }
 
         // Check results
-        assertIs<SystemMessageResponse.TargetCannotBeFound>(context.responseChannel.receive())
+        assertIs<SystemMessageResponse.TargetCannotBeFound>(context.responseChannel.next())
     }
 
     @Test
     fun shouldHealSelfWhenHpIsLow(): Unit = runBlocking {
-        val context = createTestSessionContext()
         val character = createTestCharacter()
-        context.setCharacterId(character.id)
+        val context = sessionContextOf(character.id)!!
 
         // Learn self-heal
         character.skillsAndMagic.learn(SelfHeal.id, 1)
@@ -311,25 +303,24 @@ class SkillServiceTest(
         }
 
 
-        assertIs<UpdateStatusResponse>(context.responseChannel.receive())
+        assertIs<UpdateStatusResponse>(context.responseChannel.next())
 
         // MP consumption update
-        assertIs<SystemMessageResponse.YouUse>(context.responseChannel.receive())
-        assertIs<GaugeResponse>(context.responseChannel.receive())
-        assertIs<SkillUsedResponse>(context.responseChannel.receive())
+        assertIs<SystemMessageResponse.YouUse>(context.responseChannel.next())
+        assertIs<GaugeResponse>(context.responseChannel.next())
+        assertIs<SkillUsedResponse>(context.responseChannel.next())
 
-        val updateAfterHeal = assertIs<UpdateStatusResponse>(context.responseChannel.receive())
+        val updateAfterHeal = assertIs<UpdateStatusResponse>(context.responseChannel.next(timeout = 10000))
         assertEquals(43, updateAfterHeal.attributes[StatusAttribute.CUR_HP] ?: 0)
 
-        assertIs<SystemMessageResponse.HpRestored>(context.responseChannel.receive())
+        assertIs<SystemMessageResponse.HpRestored>(context.responseChannel.next())
         transaction { assertEquals(43, character.currentHp) }
     }
 
     @Test
     fun shouldNotExceedMaxHpWhenHealing(): Unit = runBlocking {
-        val context = createTestSessionContext()
         val character = createTestCharacter()
-        context.setCharacterId(character.id)
+        val context = sessionContextOf(character.id)!!
 
         // Learn self-heal
         character.skillsAndMagic.learn(SelfHeal.id, 1)
@@ -340,23 +331,22 @@ class SkillServiceTest(
         }
 
         // MP consumption update
-        assertIs<UpdateStatusResponse>(context.responseChannel.receive())
-        assertIs<SystemMessageResponse.YouUse>(context.responseChannel.receive())
-        assertIs<GaugeResponse>(context.responseChannel.receive())
-        assertIs<SkillUsedResponse>(context.responseChannel.receive())
+        assertIs<UpdateStatusResponse>(context.responseChannel.next())
+        assertIs<SystemMessageResponse.YouUse>(context.responseChannel.next())
+        assertIs<GaugeResponse>(context.responseChannel.next())
+        assertIs<SkillUsedResponse>(context.responseChannel.next())
 
-        val updateAfterHeal = assertIs<UpdateStatusResponse>(context.responseChannel.receive())
+        val updateAfterHeal = assertIs<UpdateStatusResponse>(context.responseChannel.next(10000))
         val hpAfterHeal = updateAfterHeal.attributes[StatusAttribute.CUR_HP] ?: 0
         assertEquals(character.stats.maxHp.roundToInt(), hpAfterHeal)
-        assertIs<SystemMessageResponse.HpRestored>(context.responseChannel.receive())
+        assertIs<SystemMessageResponse.HpRestored>(context.responseChannel.next())
         transaction { assertEquals(character.stats.maxHp.roundToInt(), character.currentHp) }
     }
 
     @Test
     fun shouldFailUsingSkillWhenNotEnoughMp(): Unit = runBlocking {
-        val context = createTestSessionContext()
         val character = createTestCharacter()
-        context.setCharacterId(character.id)
+        val context = sessionContextOf(character.id)!!
 
         // Learn skill and create target
         character.skillsAndMagic.learn(PowerStrike.id, 1)
@@ -364,7 +354,7 @@ class SkillServiceTest(
             template = NpcRegistry.register(FatDummyGremlin),
             spawnPosition = character.position.toSpawnPosition()
         )
-        context.responseChannel.receive() // Skip NpcInfoResponse
+        context.responseChannel.next() // Skip NpcInfoResponse
 
         // Not enough MP to cast
         transaction { character.currentMp = 0 }
@@ -372,17 +362,16 @@ class SkillServiceTest(
 
         withContext(context) { skillService.useSkill(UseSkillRequest(PowerStrike.id)) }
 
-        val playSoundResponse = assertIs<PlaySoundResponse>(context.responseChannel.receive())
+        val playSoundResponse = assertIs<PlaySoundResponse>(context.responseChannel.next())
         assertEquals(Sound.ITEMSOUND_SYS_IMPOSSIBLE, playSoundResponse.sound)
-        assertIs<SystemMessageResponse.NotEnoughMp>(context.responseChannel.receive())
-        assertIs<ActionFailedResponse>(context.responseChannel.receive())
+        assertIs<SystemMessageResponse.NotEnoughMp>(context.responseChannel.next())
+        assertIs<ActionFailedResponse>(context.responseChannel.next())
     }
 
     @Test
     fun shouldFailUsingSkillWhenCharacterIsDead(): Unit = runBlocking {
-        val context = createTestSessionContext()
         val character = createTestCharacter()
-        context.setCharacterId(character.id)
+        val context = sessionContextOf(character.id)!!
 
         // Learn self skill
         character.skillsAndMagic.learn(SelfHeal.id, 1)
@@ -391,14 +380,13 @@ class SkillServiceTest(
         withContext(context) { skillService.useSkill(UseSkillRequest(SelfHeal.id)) }
 
         // Character is dead: only ActionFailed expected
-        assertIs<ActionFailedResponse>(context.responseChannel.receive())
+        assertIs<ActionFailedResponse>(context.responseChannel.next())
     }
 
     @Test
     fun shouldReportTargetOutOfRangeWhenHoldPosition(): Unit = runBlocking {
-        val context = createTestSessionContext()
         val character = createTestCharacter()
-        context.setCharacterId(character.id)
+        val context = sessionContextOf(character.id)!!
 
         character.skillsAndMagic.learn(PowerStrike.id, 1)
 
@@ -413,14 +401,13 @@ class SkillServiceTest(
         withContext(context) { skillService.useSkill(UseSkillRequest(PowerStrike.id, holdPosition = true)) }
 
         // No movement occurs, should receive out of range message
-        assertIs<SystemMessageResponse.TargetOutOfRange>(context.responseChannel.receive())
+        assertIs<SystemMessageResponse.TargetOutOfRange>(context.responseChannel.next())
     }
 
     @Test
     fun shouldFailUsingAttackSkillOnDeadTarget(): Unit = runBlocking {
-        val context = createTestSessionContext()
         val character = createTestCharacter()
-        context.setCharacterId(character.id)
+        val context = sessionContextOf(character.id)!!
 
         character.skillsAndMagic.learn(PowerStrike.id, 1)
 
@@ -428,7 +415,7 @@ class SkillServiceTest(
             template = NpcRegistry.register(FatDummyGremlin),
             spawnPosition = character.position.toSpawnPosition()
         )
-        context.responseChannel.receive() // Skip NpcInfoResponse
+        context.responseChannel.next() // Skip NpcInfoResponse
 
         // Kill target
         transaction { target.currentHp = 0 }
@@ -436,15 +423,14 @@ class SkillServiceTest(
 
         withContext(context) { skillService.useSkill(UseSkillRequest(PowerStrike.id)) }
 
-        assertIs<SystemMessageResponse.IncorrectTarget>(context.responseChannel.receive())
-        assertIs<ActionFailedResponse>(context.responseChannel.receive())
+        assertIs<SystemMessageResponse.IncorrectTarget>(context.responseChannel.next())
+        assertIs<ActionFailedResponse>(context.responseChannel.next())
     }
 
     @Test
     fun shouldFailUsingCorpseSkillOnAliveTarget(): Unit = runBlocking {
-        val context = createTestSessionContext()
         val character = createTestCharacter()
-        context.setCharacterId(character.id)
+        val context = sessionContextOf(character.id)!!
 
         // Learn corpse skill
         character.skillsAndMagic.learn(LifeScavenge.id, 1)
@@ -454,21 +440,20 @@ class SkillServiceTest(
             template = NpcRegistry.register(FatDummyGremlin),
             spawnPosition = character.position.toSpawnPosition()
         )
-        context.responseChannel.receive() // Skip NpcInfoResponse
+        context.responseChannel.next() // Skip NpcInfoResponse
 
         character.targetId = target.id
 
         withContext(context) { skillService.useSkill(UseSkillRequest(LifeScavenge.id)) }
 
-        assertIs<SystemMessageResponse.IncorrectTarget>(context.responseChannel.receive())
-        assertIs<ActionFailedResponse>(context.responseChannel.receive())
+        assertIs<SystemMessageResponse.IncorrectTarget>(context.responseChannel.next())
+        assertIs<ActionFailedResponse>(context.responseChannel.next())
     }
 
     @Test
     fun shouldFailUsingSkillDueToWrongWeaponType(): Unit = runBlocking {
-        val context = createTestSessionContext()
         val character = createTestCharacter()
-        context.setCharacterId(character.id)
+        val context = sessionContextOf(character.id)!!
 
         // Learn bow-only skill
         character.skillsAndMagic.learn(PowerShot.id, 1)
@@ -481,42 +466,41 @@ class SkillServiceTest(
             template = NpcRegistry.register(FatDummyGremlin),
             spawnPosition = character.position.toSpawnPosition()
         )
-        context.responseChannel.receive() // Skip NpcInfoResponse
+        context.responseChannel.next() // Skip NpcInfoResponse
         character.targetId = target.id
 
         withContext(context) { skillService.useSkill(UseSkillRequest(PowerShot.id)) }
 
-        val playSoundResponse = assertIs<PlaySoundResponse>(context.responseChannel.receive())
+        val playSoundResponse = assertIs<PlaySoundResponse>(context.responseChannel.next())
         assertEquals(Sound.ITEMSOUND_SYS_IMPOSSIBLE, playSoundResponse.sound)
-        assertIs<ActionFailedResponse>(context.responseChannel.receive())
+        assertIs<ActionFailedResponse>(context.responseChannel.next())
     }
 
     @Test
     fun shouldSuccessfullyUseBuff(): Unit = runBlocking {
-        val context = createTestSessionContext()
         val character = createTestCharacter()
-        context.setCharacterId(character.id)
+        val context = sessionContextOf(character.id)!!
 
         character.skillsAndMagic.learn(DefenseAura.id, 1)
         withContext(context) { skillService.useSkill(UseSkillRequest(DefenseAura.id)) }
 
-        assertIs<UpdateStatusResponse>(context.responseChannel.receive()) //mana spent to start casting
-        assertIs<SystemMessageResponse.YouUse>(context.responseChannel.receive())
+        assertIs<UpdateStatusResponse>(context.responseChannel.next()) //mana spent to start casting
+        assertIs<SystemMessageResponse.YouUse>(context.responseChannel.next())
 
-        val gaugeResponse = assertIs<GaugeResponse>(context.responseChannel.receive())
+        val gaugeResponse = assertIs<GaugeResponse>(context.responseChannel.next())
         assertEquals(GaugeColor.BLUE, gaugeResponse.gaugeColor)
 
         val calculatedReuseDelay = 9380
-        val skillUsedResponse = assertIs<SkillUsedResponse>(context.responseChannel.receive())
+        val skillUsedResponse = assertIs<SkillUsedResponse>(context.responseChannel.next())
         assertEquals(character.id, skillUsedResponse.casterId)
         assertEquals(character.id, skillUsedResponse.targetId)
         assertEquals(DefenseAura.id, skillUsedResponse.skillId)
         assertEquals(calculatedReuseDelay, skillUsedResponse.reuseDelay)
 
-        assertIs<FullCharacterResponse>(context.responseChannel.receive())
-        val temporalEffectsResponse = assertIs<TemporalEffectsResponse>(context.responseChannel.receive())
+        assertIs<FullCharacterResponse>(context.responseChannel.next(timeout = 10000))
+        val temporalEffectsResponse = assertIs<TemporalEffectsResponse>(context.responseChannel.next())
         assertEquals(1, temporalEffectsResponse.abnormals.size)
-        assertIs<UpdateStatusResponse>(context.responseChannel.receive()) //mana spent after casting
+        assertIs<UpdateStatusResponse>(context.responseChannel.next()) //mana spent after casting
 
         assertEquals(1, character.temporalEffects.size)
         assertEquals(AbnormalType.PD_UP, character.temporalEffects.firstOrNull()?.abnormalType)
@@ -524,22 +508,21 @@ class SkillServiceTest(
 
     @Test
     fun shouldHaveOnlyOneEffectAfterSeveralBuffUsages(): Unit = runBlocking {
-        val context = createTestSessionContext()
         val character = createTestCharacter()
-        context.setCharacterId(character.id)
+        val context = sessionContextOf(character.id)!!
 
         character.skillsAndMagic.learn(DefenseAura.id, 1)
 
         //First usage of buff
         withContext(context) { skillService.useSkill(UseSkillRequest(DefenseAura.id)) }
 
-        assertIs<UpdateStatusResponse>(context.responseChannel.receive()) //mana spent to start casting
-        assertIs<SystemMessageResponse.YouUse>(context.responseChannel.receive())
-        assertIs<GaugeResponse>(context.responseChannel.receive())
-        val skillUsedResponse = assertIs<SkillUsedResponse>(context.responseChannel.receive())
-        assertIs<FullCharacterResponse>(context.responseChannel.receive())
-        assertIs<TemporalEffectsResponse>(context.responseChannel.receive())
-        assertIs<UpdateStatusResponse>(context.responseChannel.receive()) //mana spent after casting
+        assertIs<UpdateStatusResponse>(context.responseChannel.next()) //mana spent to start casting
+        assertIs<SystemMessageResponse.YouUse>(context.responseChannel.next())
+        assertIs<GaugeResponse>(context.responseChannel.next())
+        val skillUsedResponse = assertIs<SkillUsedResponse>(context.responseChannel.next())
+        assertIs<FullCharacterResponse>(context.responseChannel.next(timeout = 10000L))
+        assertIs<TemporalEffectsResponse>(context.responseChannel.next())
+        assertIs<UpdateStatusResponse>(context.responseChannel.next()) //mana spent after casting
 
         //Wait for skill cooldown
         delay(skillUsedResponse.reuseDelay + 1L)
@@ -547,59 +530,57 @@ class SkillServiceTest(
         //Second usage of buff
         withContext(context) { skillService.useSkill(UseSkillRequest(DefenseAura.id)) }
 
-        assertIs<UpdateStatusResponse>(context.responseChannel.receive())
-        assertIs<SystemMessageResponse.YouUse>(context.responseChannel.receive())
-        assertIs<GaugeResponse>(context.responseChannel.receive())
-        assertIs<SkillUsedResponse>(context.responseChannel.receive())
-        assertIs<FullCharacterResponse>(context.responseChannel.receive())
-        val temporalEffectsResponse = assertIs<TemporalEffectsResponse>(context.responseChannel.receive())
+        assertIs<UpdateStatusResponse>(context.responseChannel.next())
+        assertIs<SystemMessageResponse.YouUse>(context.responseChannel.next())
+        assertIs<GaugeResponse>(context.responseChannel.next())
+        assertIs<SkillUsedResponse>(context.responseChannel.next())
+        assertIs<FullCharacterResponse>(context.responseChannel.next(timeout = 10000L))
+        val temporalEffectsResponse = assertIs<TemporalEffectsResponse>(context.responseChannel.next())
         assertEquals(1, temporalEffectsResponse.abnormals.size)
-        assertIs<UpdateStatusResponse>(context.responseChannel.receive())
+        assertIs<UpdateStatusResponse>(context.responseChannel.next())
 
         assertEquals(1, character.temporalEffects.size)
     }
 
     @Test
     fun shouldSuccessfullyUseTargetBuff(): Unit = runBlocking {
-        val context = createTestSessionContext()
         val character = createTestCharacter()
-        context.setCharacterId(character.id)
+        val context = sessionContextOf(character.id)!!
 
         // Spawn alive target
-        val targetContext = createTestSessionContext()
         val targetCharacter = createTestCharacter(name = "FriendlyFriend")
-        targetContext.setCharacterId(targetCharacter.id)
+        val targetContext = sessionContextOf(targetCharacter.id)!!
 
         character.skillsAndMagic.learn(Might.id, 1)
         character.targetId = targetCharacter.id
         withContext(context) { skillService.useSkill(UseSkillRequest(Might.id)) }
 
         //Check caster's responses
-        assertIs<StartMovingToTargetResponse>(context.responseChannel.receive())
-        assertIs<UpdateStatusResponse>(context.responseChannel.receive()) //mana spent to start casting
-        assertIs<SystemMessageResponse.YouUse>(context.responseChannel.receive())
+        assertIs<StartMovingToTargetResponse>(context.responseChannel.next())
+        assertIs<UpdateStatusResponse>(context.responseChannel.next()) //mana spent to start casting
+        assertIs<SystemMessageResponse.YouUse>(context.responseChannel.next())
 
-        val gaugeResponse = assertIs<GaugeResponse>(context.responseChannel.receive())
+        val gaugeResponse = assertIs<GaugeResponse>(context.responseChannel.next())
         assertEquals(GaugeColor.BLUE, gaugeResponse.gaugeColor)
 
         val calculatedReuseDelay = 9380
-        val skillUsedResponse = assertIs<SkillUsedResponse>(context.responseChannel.receive())
+        val skillUsedResponse = assertIs<SkillUsedResponse>(context.responseChannel.next())
         assertEquals(character.id, skillUsedResponse.casterId)
         assertEquals(targetCharacter.id, skillUsedResponse.targetId)
         assertEquals(Might.id, skillUsedResponse.skillId)
         assertEquals(calculatedReuseDelay, skillUsedResponse.reuseDelay)
 
-        assertIs<UpdateStatusResponse>(context.responseChannel.receive()) //mana spent after casting
+        assertIs<UpdateStatusResponse>(context.responseChannel.next(timeout = 10000)) //mana spent after casting
 
         //Check target's responses
-        val skillUsedResponseForTarget = assertIs<SkillUsedResponse>(targetContext.responseChannel.receive())
+        val skillUsedResponseForTarget = assertIs<SkillUsedResponse>(targetContext.responseChannel.next())
         assertEquals(character.id, skillUsedResponseForTarget.casterId)
         assertEquals(targetCharacter.id, skillUsedResponseForTarget.targetId)
         assertEquals(Might.id, skillUsedResponseForTarget.skillId)
         assertEquals(calculatedReuseDelay, skillUsedResponseForTarget.reuseDelay)
 
-        assertIs<FullCharacterResponse>(targetContext.responseChannel.receive())
-        val temporalEffectsResponse = assertIs<TemporalEffectsResponse>(targetContext.responseChannel.receive())
+        assertIs<FullCharacterResponse>(targetContext.responseChannel.next())
+        val temporalEffectsResponse = assertIs<TemporalEffectsResponse>(targetContext.responseChannel.next())
         assertEquals(1, temporalEffectsResponse.abnormals.size)
 
         assertEquals(1, targetCharacter.temporalEffects.size)
@@ -608,9 +589,8 @@ class SkillServiceTest(
 
     @Test
     fun shouldFailUsingTargetBuffOnEnemy(): Unit = runBlocking {
-        val context = createTestSessionContext()
         val character = createTestCharacter()
-        context.setCharacterId(character.id)
+        val context = sessionContextOf(character.id)!!
 
         // Create our target
         val target = npcService.spawnAtPosition(
@@ -618,27 +598,24 @@ class SkillServiceTest(
             spawnPosition = character.position.toSpawnPosition()
         )
 
-        assertIs<NpcInfoResponse>(context.responseChannel.receive())
+        assertIs<NpcInfoResponse>(context.responseChannel.next())
 
         character.skillsAndMagic.learn(Might.id, 1)
         character.targetId = target.id
         withContext(context) { skillService.useSkill(UseSkillRequest(Might.id)) }
 
         //Check caster's responses
-        assertIs<SystemMessageResponse.IncorrectTarget>(context.responseChannel.receive())
-        assertIs<ActionFailedResponse>(context.responseChannel.receive())
+        assertIs<SystemMessageResponse.IncorrectTarget>(context.responseChannel.next())
+        assertIs<ActionFailedResponse>(context.responseChannel.next())
     }
 
     @Test
     fun shouldFailUsingTargetBuffOnDeadTarget(): Unit = runBlocking {
-        val context = createTestSessionContext()
         val character = createTestCharacter()
-        context.setCharacterId(character.id)
+        val context = sessionContextOf(character.id)!!
 
         // Spawn alive target
-        val targetContext = createTestSessionContext()
         val targetCharacter = createTestCharacter(name = "FriendlyFriend")
-        targetContext.setCharacterId(targetCharacter.id)
 
         transaction { targetCharacter.currentHp = 0 }
 
@@ -647,15 +624,14 @@ class SkillServiceTest(
         withContext(context) { skillService.useSkill(UseSkillRequest(Might.id)) }
 
         //Check caster's responses
-        assertIs<SystemMessageResponse.IncorrectTarget>(context.responseChannel.receive())
-        assertIs<ActionFailedResponse>(context.responseChannel.receive())
+        assertIs<SystemMessageResponse.IncorrectTarget>(context.responseChannel.next())
+        assertIs<ActionFailedResponse>(context.responseChannel.next())
     }
 
     @Test
     fun shouldSuccessfullyUseForcedTargetBuffOnEnemy(): Unit = runBlocking {
-        val context = createTestSessionContext()
         val character = createTestCharacter()
-        context.setCharacterId(character.id)
+        val context = sessionContextOf(character.id)!!
 
         // Create our target
         val target = npcService.spawnAtPosition(
@@ -663,30 +639,30 @@ class SkillServiceTest(
             spawnPosition = character.position.toSpawnPosition()
         )
 
-        assertIs<NpcInfoResponse>(context.responseChannel.receive())
+        assertIs<NpcInfoResponse>(context.responseChannel.next())
 
         character.skillsAndMagic.learn(Might.id, 1)
         character.targetId = target.id
         withContext(context) { skillService.useSkill(UseSkillRequest(Might.id, forced = true)) }
 
         //Check caster's responses
-        assertIs<StartMovingToTargetResponse>(context.responseChannel.receive())
-        assertIs<UpdateStatusResponse>(context.responseChannel.receive()) //mana spent to start casting
-        assertIs<SystemMessageResponse.YouUse>(context.responseChannel.receive())
+        assertIs<StartMovingToTargetResponse>(context.responseChannel.next())
+        assertIs<UpdateStatusResponse>(context.responseChannel.next()) //mana spent to start casting
+        assertIs<SystemMessageResponse.YouUse>(context.responseChannel.next())
 
-        val gaugeResponse = assertIs<GaugeResponse>(context.responseChannel.receive())
+        val gaugeResponse = assertIs<GaugeResponse>(context.responseChannel.next())
         assertEquals(GaugeColor.BLUE, gaugeResponse.gaugeColor)
 
         val calculatedReuseDelay = 9380
-        val skillUsedResponse = assertIs<SkillUsedResponse>(context.responseChannel.receive())
+        val skillUsedResponse = assertIs<SkillUsedResponse>(context.responseChannel.next())
         assertEquals(character.id, skillUsedResponse.casterId)
         assertEquals(target.id, skillUsedResponse.targetId)
         assertEquals(Might.id, skillUsedResponse.skillId)
         assertEquals(calculatedReuseDelay, skillUsedResponse.reuseDelay)
 
-        assertIs<UpdateStatusResponse>(context.responseChannel.receive()) //mana spent after casting
+        assertIs<UpdateStatusResponse>(context.responseChannel.next(timeout = 10000)) //mana spent after casting
 
-        val pvpStatusResponse = assertIs<PvPStatusResponse>(context.responseChannel.receive())
+        val pvpStatusResponse = assertIs<PvPStatusResponse>(context.responseChannel.next())
         assertEquals(PvpState.PVP, pvpStatusResponse.pvpState)
 
         //Check target

@@ -14,7 +14,6 @@ import org.l2kserver.game.model.actor.npc.NpcRegistry
 import org.l2kserver.game.model.actor.npc.SpawnedAt
 import org.l2kserver.game.model.actor.position.Heading
 import org.l2kserver.game.model.actor.position.SpawnPosition
-import org.l2kserver.game.utils.getNoTextMessage
 import org.l2kserver.game.model.zone.SpawnZone
 import org.l2kserver.game.network.session.send
 import org.l2kserver.game.network.session.sessionContext
@@ -88,7 +87,7 @@ class NpcService(
         val npc = NpcInstanceImpl(template, SpawnedAt(spawnPosition), position, heading)
         spawnNpc(npc)
 
-        log.info("Spawned {} at {}", npc, position)
+        log.debug("Spawned {} at {}", npc, position)
         return npc
     }
 
@@ -105,7 +104,7 @@ class NpcService(
         val npc = NpcInstanceImpl(template, SpawnedAt(zone), position, heading)
         spawnNpc(npc)
 
-        log.info("Spawned {} at {} inside of {}", npc, position, zone)
+        log.debug("Spawned {} at {} inside of {}", npc, position, zone)
         return npc
     }
 
@@ -114,5 +113,9 @@ class NpcService(
         gameObjectRepository.save(npc)
         updateObjectsAround(npc)
     }
+
+
+    private fun getNoTextMessage(id: Int, name: String = "") =
+        "<html><body>${name}_${id}:<br/> My text is missing!</body></html>"
 
 }

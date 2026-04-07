@@ -4,6 +4,8 @@ import org.l2kserver.game.extensions.littleEndianByteArray
 import org.l2kserver.game.extensions.putUByte
 import org.l2kserver.game.model.actor.ActorInstance
 import org.l2kserver.game.model.actor.PlayerCharacterInstanceImpl
+import org.l2kserver.game.model.actor.npc.NpcInstance
+import kotlin.math.roundToInt
 
 private const val UPDATE_STATUS_RESPONSE_PACKET_ID: UByte = 14u
 
@@ -33,10 +35,15 @@ data class UpdateStatusResponse(
 
     companion object {
 
-        /**
-         * Create UpdateStatusResponse for updating actor's HP, MP and CP (if actor is PlayerCharacter) on client side
-         */
-        fun hpMpCpOf(actor: ActorInstance): UpdateStatusResponse {
+        /** Create notification about [npc]'s HP on client side */
+        fun hpOf(npc: NpcInstance) = UpdateStatusResponse(
+            npc.id,
+            StatusAttribute.CUR_HP to npc.currentHp,
+            StatusAttribute.MAX_HP to npc.stats.maxHp.roundToInt()
+        )
+
+        /** Create notification about [actor]'s current HP, MP and CP (if actor is PlayerCharacter) on client side */
+        fun currentHpMpCpOf(actor: ActorInstance): UpdateStatusResponse {
             val attributes = mutableMapOf(
                 StatusAttribute.CUR_HP to actor.currentHp,
                 StatusAttribute.CUR_MP to actor.currentMp
@@ -46,7 +53,7 @@ data class UpdateStatusResponse(
             return UpdateStatusResponse(actor.id, attributes)
         }
 
-        /** Create UpdateStatusResponse for updating character's weight on client side */
+        /** Create notification about updating character's weight on client side */
         fun weightOf(character: PlayerCharacterInstanceImpl) = UpdateStatusResponse(
             character.id,
             StatusAttribute.CUR_LOAD to character.inventory.weight

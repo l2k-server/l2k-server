@@ -7,13 +7,12 @@ import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
 import org.l2kserver.game.extensions.logger
-import org.l2kserver.game.handler.dto.response.ActionFailedResponse
 import org.l2kserver.game.handler.dto.response.AttackResponse
+import org.l2kserver.game.handler.dto.response.CancelCastingResponse
 import org.l2kserver.game.handler.dto.response.GaugeColor
 import org.l2kserver.game.handler.dto.response.GaugeResponse
 import org.l2kserver.game.handler.dto.response.NpcDiedResponse
@@ -22,6 +21,7 @@ import org.l2kserver.game.handler.dto.response.SystemMessageResponse
 import org.l2kserver.game.handler.dto.response.UpdateItemsResponse
 import org.l2kserver.game.handler.dto.response.UpdateStatusResponse
 import org.l2kserver.game.model.actor.ActorInstance
+import org.l2kserver.game.model.actor.Intention
 import org.l2kserver.game.model.actor.MutableActorInstance
 import org.l2kserver.game.model.actor.NpcInstanceImpl
 import org.l2kserver.game.model.actor.PlayerCharacterInstanceImpl
@@ -44,11 +44,9 @@ private const val ARROW_SPEED_PER_MS = 0.9
 /** Service to handle fighting stuff - auto attacks, damage, etc. */
 @Service
 class CombatService(
-    private val moveService: MoveService,
     private val actorStateService: ActorStateService,
     private val npcService: NpcService,
     private val rewardService: RewardService,
-    private val asyncTaskService: AsyncTaskService,
     private val itemService: ItemService,
 
     override val gameObjectRepository: GameObjectRepository
@@ -58,14 +56,6 @@ class CombatService(
 
     /** Key - actor ID, value - time when actor can hit again */
     private val nextAttackAvailableTimeMap = ConcurrentHashMap<Int, Long>()
-
-
-    /** Launches attacking job for player */
-    suspend fun launchAttack(
-        character: PlayerCharacterInstanceImpl, target: MutableActorInstance
-    ) = asyncTaskService.launchAction(character.id) {
-        attack(character, target)
-    }
 
     /** Move [attacker] enough close to hit and attack [attacked] */
     suspend fun attack(attacker: MutableActorInstance, attacked: MutableActorInstance) {
@@ -77,59 +67,54 @@ class CombatService(
             return
         }
 
-        while (currentCoroutineContext().isActive && attacker.canAttack(attacked)) {
-            try {
-                val requiredDistance = (attacker.stats.attackRange + attacked.collisionBox.radius).roundToInt()
+        if (!attacker.canAttack(attacked)) return
 
-                moveService.move(attacker, attacked, requiredDistance)
-
-                //Check if movement was interrupted or stopped at some obstacle
-                if (!attacker.position.isCloseTo(attacked.position, requiredDistance)) {
-                    send { SystemMessageResponse.TargetOutOfRange }
-                    break
-                }
-
-                // If next attack is not available, wait for a while and try again
-                if ((nextAttackAvailableTimeMap[attacker.id] ?: 0) > currentTimeMillis()) {
-                    delay(50L)
-                    continue
-                }
-
-                suspendTransaction {
-                    // Player character must spend mana and arrows for attack (if weapon requires)
-                    if ((attacker as? PlayerCharacterInstanceImpl)?.spendResources() != false)
-                        //Already launched attack must not be cancelled TODO STUN??
-                        withContext(currentCoroutineContext() + NonCancellable) {
-                            when (attacker.weaponType) {
-                                WeaponType.BOW ->
-                                    performBowAttack(attacker, attacked)
-                                WeaponType.FIST, WeaponType.DOUBLE_BLADES ->
-                                    performSimpleAttacks(attacker, attacked, 2)
-                                else ->
-                                    performSimpleAttacks(attacker, attacked, 1)
-                            }
-
-                            // Activate combat stance and pvp state (if fighters are characters)
-                            actorStateService.activateCombatState(attacker)
-                            actorStateService.activateCombatState(attacked)
-                            if (
-                                attacker is PlayerCharacterInstance &&
-                                attacked is PlayerCharacterInstance &&
-                                attacked.karma == 0
-                            ) {
-                                actorStateService.activatePvpState(attacker)
-                            }
-
-                            //Enable SS if auto-use soulshot enabled
-                            (attacker as? PlayerCharacterInstanceImpl)?.autoUsesSoulshot?.let {
-                                itemService.useSoulshot(attacker, it)
-                            }
-                        }
-                }
-            } catch (e: Exception) {
-                log.error("An error occurred while attacking target {} by {}", attacked, attacker, e)
-                currentCoroutineContext().cancel()
+        try {
+            val requiredDistance = (attacker.stats.attackRange + attacked.collisionBox.radius).roundToInt()
+            if (!attacker.position.isCloseTo(attacked.position, requiredDistance)) {
+                attacker.intentionQueue.enqueue(
+                    Intention.Move(attacked, requiredDistance = attacker.stats.attackRange),
+                    Intention.Attack(attacked)
+                )
             }
+
+            // If next attack is not available, wait for a while and try again
+            if ((nextAttackAvailableTimeMap[attacker.id] ?: 0) > currentTimeMillis()) {
+                delay(50L)
+                attacker.intentionQueue.enqueue(
+                    Intention.Move(attacked, requiredDistance = attacker.stats.attackRange),
+                    Intention.Attack(attacked)
+                )
+                return
+            }
+
+            suspendTransaction {
+                // Player character must spend mana and arrows for attack (if weapon requires)
+                if ((attacker as? PlayerCharacterInstanceImpl)?.spendResources() != false) when (attacker.weaponType) {
+                    WeaponType.BOW -> performBowAttack(attacker, attacked)
+                    WeaponType.FIST, WeaponType.DOUBLE_BLADES -> performSimpleAttacks(attacker, attacked, 2)
+                    else -> performSimpleAttacks(attacker, attacked, 1)
+                }
+
+                // Activate combat stance and pvp state (if fighters are characters)
+                actorStateService.activateCombatState(attacker)
+                actorStateService.activateCombatState(attacked)
+                if (
+                    attacker is PlayerCharacterInstance &&
+                    attacked is PlayerCharacterInstance &&
+                    attacked.karma == 0
+                ) {
+                    actorStateService.activatePvpState(attacker)
+                }
+
+                //Enable SS if auto-use soulshot enabled
+                (attacker as? PlayerCharacterInstanceImpl)?.autoUsesSoulshot?.let {
+                    itemService.useSoulshot(attacker, it)
+                }
+            }
+        } catch (e: Exception) {
+            log.error("An error occurred while attacking target {} by {}", attacked, attacker, e)
+            currentCoroutineContext().cancel()
         }
     }
 
@@ -191,9 +176,9 @@ class CombatService(
 
         if (overhitDamage > 0) send { SystemMessageResponse.OverHit }
 
-        val updatedStatus = UpdateStatusResponse.hpMpCpOf(attacked)
+        val updatedStatus = UpdateStatusResponse.currentHpMpCpOf(attacked)
         sendTo(attacked.id) { updatedStatus }
-        attacked.targetedBy.forEach { sendTo(it.id) { updatedStatus }}
+        attacked.targetedBy.forEach { sendTo(it.id) { updatedStatus } }
 
         if (attacked.currentHp == 0) killActor(attacked, attacker, overhitDamage)
     }
@@ -225,9 +210,11 @@ class CombatService(
                 )
             }.toMutableList()
 
-            effects.add(DamageEffect.physicalHit(
-                attacker, attacked, usedSoulshot = soulshotUsed, attackPowerDivider = hitAmount
-            ))
+            effects.add(
+                DamageEffect.physicalHit(
+                    attacker, attacked, usedSoulshot = soulshotUsed, attackPowerDivider = hitAmount
+                )
+            )
 
             effects
         }
@@ -243,9 +230,11 @@ class CombatService(
         //Delay for the time between start of the attack animation and the hit
         delay(delayBeforeHit)
 
-        hits.forEach { hitEffects ->
-            hitEffects.forEach { applyDamageEffect(attacker, it) }
-            delay(delayBeforeHit)
+        withContext(currentCoroutineContext() + NonCancellable) {
+            hits.forEach { hitEffects ->
+                hitEffects.forEach { applyDamageEffect(attacker, it) }
+                delay(delayBeforeHit)
+            }
         }
     }
 
@@ -278,15 +267,17 @@ class CombatService(
         //Delay before launching an arrow
         delay((attackDuration * 0.9).roundToLong())
 
-        //Launch an arrow!
-        CoroutineScope(currentCoroutineContext() + NonCancellable).launch {
-            //Delay for time it takes for the arrow to reach the target
-            delay((attacker.position.distanceTo(attacked.position) / ARROW_SPEED_PER_MS).toLong())
-            suspendTransaction { applyDamageEffect(attacker, damageEffect) }
-        }
+        withContext(currentCoroutineContext() + NonCancellable) {
+            //Launch an arrow!
+            CoroutineScope(currentCoroutineContext() + NonCancellable).launch {
+                //Delay for time it takes for the arrow to reach the target
+                delay((attacker.position.distanceTo(attacked.position) / ARROW_SPEED_PER_MS).toLong())
+                suspendTransaction { applyDamageEffect(attacker, damageEffect) }
+            }
 
-        //Delay for the time between the hit and the end of the attack animation
-        delay((attackDuration * 0.1).roundToLong())
+            //Delay for the time between the hit and the end of the attack animation
+            delay((attackDuration * 0.1).roundToLong())
+        }
     }
 
     /**
@@ -330,7 +321,10 @@ class CombatService(
      * @param actor Actor, who was killed
      */
     private suspend fun killActor(actor: MutableActorInstance, killer: MutableActorInstance, overhitDamage: Int) {
-        asyncTaskService.cancelActionByActorId(actor.id)
+        if (actor.intentionQueue.current is Intention.Cast) {
+            broadcastAround(actor.position) { CancelCastingResponse(actor.id) }
+        }
+        actor.intentionQueue.cancel()
         actorStateService.disableCombatState(actor)
 
         //TODO Noblesse Blessing
@@ -353,20 +347,9 @@ class CombatService(
 
     /** Checks if `this` can attack [target] and sends system messages */
     private suspend fun ActorInstance.canAttack(target: ActorInstance) = when {
-        this.isParalyzed || this.isDead() -> {
-            send { ActionFailedResponse }
-            false
-        }
-        target.isDead() -> {
-            send { ActionFailedResponse }
-            false
-        }
-
-        !target.exists() || !this.position.isCloseTo(target.position, VISION_RANGE) -> {
-            send { ActionFailedResponse }
-            false
-        }
-
+        this.isParalyzed || this.isDead() -> false
+        target.isDead() -> false
+        !target.exists() || !this.position.isCloseTo(target.position, VISION_RANGE) -> false
         else -> true
     }
 
@@ -381,7 +364,7 @@ class CombatService(
         //Check if player has enough mana
         if (this.currentMp < weapon.manaCost) {
             send { SystemMessageResponse.NotEnoughMp }
-            currentCoroutineContext().cancel() //TODO cancelling whole process seems to be not very good idea...
+            currentCoroutineContext().cancel()
             return false
         }
 
@@ -404,7 +387,7 @@ class CombatService(
         if (weapon.manaCost != 0) {
             //Subtract mana
             this.currentMp -= weapon.manaCost
-            send { UpdateStatusResponse.hpMpCpOf(this) }
+            send { UpdateStatusResponse.currentHpMpCpOf(this) }
         }
 
         return true

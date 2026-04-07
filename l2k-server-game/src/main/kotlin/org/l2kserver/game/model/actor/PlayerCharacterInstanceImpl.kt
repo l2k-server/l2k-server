@@ -28,10 +28,10 @@ import org.l2kserver.game.model.store.PrivateStore
 /**
  * Player-controlled character in the game world.
  *
- * This class encapsulates all data and behavior for a player character, providing:
+ * This class encapsulates all data for a player character, providing:
  * - Access to core identifiers and attributes (name, gender, race, clan, title);
  * - Current resource stats (CP/HP/MP), experience/level, and reputation (karma, PK/PvP);
- * - World position and heading, movement/combat states, and targeting information;
+ * - World position and heading, movement/combat stats, and targeting information;
  * - Inventory and equipment that influence calculated combat statistics;
  * - Character skills (considering active subclass) and utilities for skill management;
  * - Trading parameters and private store functionality.
@@ -79,7 +79,6 @@ import org.l2kserver.game.model.store.PrivateStore
  * @property inventory Character's inventory
  * @property collisionBox Character's collision box
  * @property isFighting Whether character is currently in combat
- * @property isMoving Whether character is currently moving
  * @property targetId ID of current target
  * @property targetedBy Set of actors currently targeting this character
  * @property pvpState Current PvP state

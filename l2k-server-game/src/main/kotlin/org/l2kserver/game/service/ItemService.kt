@@ -58,8 +58,6 @@ private const val DROP_REWARD_DISTANCE = 25
 @Service
 class ItemService(
     private val geoDataService: GeoDataService,
-    private val moveService: MoveService,
-    private val asyncTaskService: AsyncTaskService,
     @param:Lazy private val skillService: SkillService,
 
     override val gameObjectRepository: GameObjectRepository
@@ -231,30 +229,29 @@ class ItemService(
         }
     }
 
-    /** Moves [character] closer to [scatteredItem] and picks it up */
-    suspend fun launchPickUp(
-        character: PlayerCharacterInstanceImpl, scatteredItem: ScatteredItem
-    ) = asyncTaskService.launchAction(character.id) {
-        moveService.move(character, scatteredItem)
+    /** Picks up [scatteredItem] by [character] */
+    suspend fun pickUp(character: PlayerCharacterInstanceImpl, scatteredItem: ScatteredItem) {
+        log.debug("Start picking up item '{}' by '{}'", scatteredItem, character.name)
 
         val enoughCloseToPickUp = character.position.isCloseTo(
             other = scatteredItem.position,
             distance = character.collisionBox.radius.roundToInt() + Position.GEO_CELL_SIZE
         )
 
-        if (!enoughCloseToPickUp) return@launchAction
-
-        log.debug("Start picking up item '{}' by '{}'", scatteredItem, character.name)
+        if (!enoughCloseToPickUp) {
+            send { ActionFailedResponse }
+            return
+        }
 
         //TODO Binding item on being dropped to it's owner
         //TODO Checks if player can pick up this item
         val deletedScatteredItem = gameObjectRepository.delete(scatteredItem) ?: run {
             send { ActionFailedResponse }
-            return@launchAction
+            return
         }
 
-        this@ItemService.broadcastAround(character.position) { PickUpItemResponse(character.id, deletedScatteredItem) }
-        this@ItemService.broadcastAround(character.position) { DeleteObjectResponse(deletedScatteredItem.id) }
+        broadcastAround(character.position) { PickUpItemResponse(character.id, deletedScatteredItem) }
+        broadcastAround(character.position) { DeleteObjectResponse(deletedScatteredItem.id) }
 
         giveItem(
             itemReceiver = character,
@@ -297,10 +294,11 @@ class ItemService(
         }
 
         send { UpdateStatusResponse.weightOf(itemReceiver) }
-        items.forEach { send { SystemMessageResponse.YouHaveObtained(it) }}
+        items.forEach { sendTo(itemReceiver.id) { SystemMessageResponse.YouHaveObtained(it) }}
 
-        log.info("Character '{}' has received item '{}'", itemReceiver.name, items)
+        log.info("Character '{}' has received items '{}'", itemReceiver.name, items)
 
+        commit()
         return@suspendTransaction items
     }
 
@@ -585,7 +583,7 @@ class ItemService(
                 if (it.isEquipped) {
                     //CRUTCH: Server must send
                     //SystemMessage -> CharacterResponse -> UpdatedItemResponse -> CharacterResponse
-                    //otherwise jewellery sucks
+                    //otherwise jewelry sucks
                     send { SystemMessageResponse.EquipItem(it) }
                     send { FullCharacterResponse(character) }
                 } else send { SystemMessageResponse.DisarmItem(it) }

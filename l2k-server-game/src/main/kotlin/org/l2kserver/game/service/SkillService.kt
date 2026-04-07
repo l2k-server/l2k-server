@@ -1,7 +1,6 @@
 package org.l2kserver.game.service
 
 import kotlinx.coroutines.NonCancellable
-import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
@@ -25,6 +24,7 @@ import org.l2kserver.game.handler.dto.response.StatusAttribute
 import org.l2kserver.game.handler.dto.response.SystemMessageResponse
 import org.l2kserver.game.handler.dto.response.UpdateItemsResponse
 import org.l2kserver.game.handler.dto.response.UpdateStatusResponse
+import org.l2kserver.game.model.actor.Intention
 import org.l2kserver.game.model.actor.ActorInstance
 import org.l2kserver.game.model.actor.MutableActorInstance
 import org.l2kserver.game.model.actor.NpcInstanceImpl
@@ -47,7 +47,6 @@ import org.l2kserver.game.model.skill.instance.ActiveSkillInstance
 import org.l2kserver.game.model.skill.instance.PassiveSkillInstance
 import org.l2kserver.game.model.skill.instance.SkillConsumables
 import org.l2kserver.game.model.skill.instance.SkillInstance
-import org.l2kserver.game.model.skill.instance.ToggleSkillInstance
 import org.l2kserver.game.model.skill.template.SkillRegistry
 import org.l2kserver.game.network.session.send
 import org.l2kserver.game.network.session.sendTo
@@ -115,14 +114,7 @@ class SkillService(
             is ActiveSkillInstance -> useActiveSkill(
                 actor, skill, forced = forced && skill.forcedUsageAllowed, holdPosition
             )
-
             is PassiveSkillInstance -> send { ActionFailedResponse }
-            is ToggleSkillInstance -> {
-                //TODO Toggle skills
-                send { SystemMessageResponse("Toggle skills are not implemented yet") }
-                send { PlaySoundResponse(Sound.ITEMSOUND_SYS_SHORTAGE) }
-                send { ActionFailedResponse }
-            }
         }
     }
 
@@ -135,8 +127,6 @@ class SkillService(
     private suspend fun useActiveSkill(
         actor: MutableActorInstance, skill: ActiveSkillInstance, forced: Boolean, holdPosition: Boolean
     ) {
-        //TODO Check if actor is already casting
-
         val target = when {
             skill.targetType == SkillTargetType.SELF -> actor
             actor.targetId == null -> {
@@ -152,31 +142,46 @@ class SkillService(
             }
         }
 
-        //TODO Introduce parameter - if target is enemy, but "friendly" skill used - fail using or use it on yourself
-        // https://github.com/orgs/l2k-server/projects/1/views/3?pane=issue&itemId=124732573&issue=l2k-server%7Cl2k-server%7C47
+        if (actor.canUseSkill(skill, target, forced)) {
+            //If character is already going to cast something else - it should be replaced
+            actor.intentionQueue.clearFurtherActions()
 
-        if (actor.canUseSkill(skill, target, forced)) asyncTaskService.launchAction(actor.id) {
-            // If skill must be used on target - move to target
-            if (skill.targetType != SkillTargetType.SELF) {
-                //canUseSkill method also checks that target exists, so here we can use unsafe call
-                val requiredDistance =
-                    skill.castRange + (actor.collisionBox.radius + target.collisionBox.radius).roundToInt()
-                if (!holdPosition) moveService.move(actor, target, requiredDistance)
-
-                //Check if movement was interrupted or stopped at some obstacle
-                if (!actor.position.isCloseTo(target.position, requiredDistance)) {
-                    send { SystemMessageResponse.TargetOutOfRange }
-                    return@launchAction
-                }
-            }
-
-            // Check if actor can use skill - before casting skill
-            if (!actor.canUseSkill(skill, target, forced)) return@launchAction
-
-            // Casting animation
-            // All skills that do not require a target are essentially cast on yourself
-            castSkill(actor, target, skill)
+            if (!holdPosition) actor.intentionQueue.enqueue(
+                Intention.Move(target, skill.castRange)
+            )
+            actor.intentionQueue.enqueue(Intention.Cast(skill, target, forced, holdPosition))
         }
+    }
+
+    suspend fun executeCasting(actor: MutableActorInstance, intention: Intention.Cast) {
+         //If skill must be used on target - move to target
+        val (skill, target, forced) = intention
+        log.debug("Start casting {} on {} by {}", skill, target, actor)
+
+        if (actor != target) {
+            //canUseSkill method also checks that target exists, so here we can use unsafe call
+            val requiredDistance = skill.castRange + target.collisionBox.radius.roundToInt()
+
+            //Check if movement was interrupted or stopped at some obstacle
+            if (!actor.position.isCloseTo(target.position, requiredDistance)) {
+                if (intention.holdPosition) {
+                    send { SystemMessageResponse.TargetOutOfRange }
+                    return
+                }
+
+                actor.intentionQueue.enqueue(
+                    Intention.Move(target, skill.castRange),
+                    intention
+                )
+            }
+        }
+
+        // Check if actor can use skill - before casting skill
+        if (!actor.canUseSkill(skill, target, forced)) return
+
+        // Casting animation
+        // All skills that do not require a target are essentially cast on yourself
+        castSkill(actor, target, skill)
     }
 
     /** Cast [skill] and apply cooldown */
@@ -204,51 +209,52 @@ class SkillService(
         skill.nextUsageTime = Instant.now().plusMillis(reuseDelay.toLong())
         caster.spendResources(skill.consumesToStart)
 
-        withContext(currentCoroutineContext() + NonCancellable) {
-            send { SystemMessageResponse.YouUse(skill) }
-            send { GaugeResponse(GaugeColor.BLUE, castTime) }
+        send { SystemMessageResponse.YouUse(skill) }
+        send { GaugeResponse(GaugeColor.BLUE, castTime + repriseTime) }
 
-            this@SkillService.broadcastAround(caster.position) {
-                SkillUsedResponse(
-                    casterId = caster.id,
-                    targetId = target.id,
-                    skillId = skill.skillId,
-                    skillLevel = skill.skillLevel,
-                    castTime = castTime,
-                    reuseDelay = reuseDelay,
-                    casterPosition = caster.position
-                )
-            }
+        this@SkillService.broadcastAround(caster.position) {
+            SkillUsedResponse(
+                casterId = caster.id,
+                targetId = target.id,
+                skillId = skill.skillId,
+                skillLevel = skill.skillLevel,
+                castTime = castTime,
+                reuseDelay = reuseDelay,
+                casterPosition = caster.position
+            )
+        }
 
-            //Time, needed to cast a skill
-            delay(castTime.toLong())
-            applyEffects(skill, caster, target)
+        //Time, needed to cast a skill
+        delay(castTime.toLong())
 
-            caster.spendResources(skill.consumes)
-
-            when (skill.targetType) {
-                SkillTargetType.ENEMY -> {
-                    actorStateService.activateCombatState(caster)
-                    actorStateService.activateCombatState(target)
-                    if (
-                        caster is PlayerCharacterInstanceImpl &&
-                        target is PlayerCharacterInstanceImpl &&
-                        target.karma == 0
-                    ) {
-                        actorStateService.activatePvpState(caster)
-                    }
-                }
-
-                SkillTargetType.FRIEND -> (caster as? PlayerCharacterInstanceImpl)?.let { character ->
-                    if (target.isEnemyOf(character)) actorStateService.activatePvpState(character)
-                }
-
-                SkillTargetType.DEAD_NPC -> npcService.remove(target as NpcInstanceImpl)
-                else -> {}
-            }
-
+        withContext(NonCancellable) {
             //Time to finish cast animation
-            delay(repriseTime.toLong())
+            withDelay(repriseTime.toLong()) {
+                applyEffects(skill, caster, target)
+
+                caster.spendResources(skill.consumes)
+
+                when (skill.targetType) {
+                    SkillTargetType.ENEMY -> {
+                        actorStateService.activateCombatState(caster)
+                        actorStateService.activateCombatState(target)
+                        if (
+                            caster is PlayerCharacterInstanceImpl &&
+                            target is PlayerCharacterInstanceImpl &&
+                            target.karma == 0
+                        ) {
+                            actorStateService.activatePvpState(caster)
+                        }
+                    }
+
+                    SkillTargetType.FRIEND -> (caster as? PlayerCharacterInstanceImpl)?.let { character ->
+                        if (target.isEnemyOf(character)) actorStateService.activatePvpState(character)
+                    }
+
+                    SkillTargetType.DEAD_NPC -> npcService.remove(target as NpcInstanceImpl)
+                    else -> {}
+                }
+            }
         }
     }
 
@@ -443,6 +449,7 @@ class SkillService(
                     SystemMessageResponse.YouHaveResistedMagic(caster.name)
                 }
             }
+
             is EscapeEffect -> applyEscapeEffect(effect)
         }
     }
@@ -453,7 +460,7 @@ class SkillService(
         target.currentHp = minOf(target.currentHp safePlus effect.value, target.stats.maxHp.roundToInt())
         val healerName = if (caster == target) null else caster.name
 
-        val updateStatusResponse by lazy { UpdateStatusResponse.hpMpCpOf(target) }
+        val updateStatusResponse by lazy { UpdateStatusResponse.currentHpMpCpOf(target) }
 
         sendTo(target.id) { updateStatusResponse }
         sendTo(target.id) { SystemMessageResponse.HpRestored(effect.value, healerName) }

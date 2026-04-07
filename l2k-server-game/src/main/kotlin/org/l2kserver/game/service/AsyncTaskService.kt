@@ -8,19 +8,21 @@ import kotlinx.coroutines.launch
 import org.springframework.stereotype.Service
 import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.CoroutineName
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.runBlocking
 import org.l2kserver.game.extensions.logger
 import org.l2kserver.game.utils.time.withDelay
 import java.time.Duration
 import java.time.Instant
 import java.time.temporal.Temporal
+import kotlin.collections.set
 
 /**
- * This service handles async tasks, like moving, attacking, etc
+ * This service handles async tasks - character one's, like moving, attacking, etc.,
+ * and global - regeneration, state updates, etc.
  */
 @Service
 class AsyncTaskService {
@@ -37,8 +39,13 @@ class AsyncTaskService {
      * Cancels previous action job of actor with provided [actorId], waits for its completion and launches new [action]
      */
     suspend fun launchAction(actorId: Int, action: suspend CoroutineScope.() -> Unit): Job {
-        actionJobMap[actorId]?.cancelAndJoin()
-        val job = CoroutineScope(Dispatchers.Default + currentCoroutineContext()).launch { action() }
+        val currentJob = actionJobMap[actorId]
+
+        val job = CoroutineScope(Dispatchers.Default + currentCoroutineContext()).launch {
+            currentJob?.cancelAndJoin()
+            action()
+        }
+
         job.invokeOnCompletion {
             it?.let { log.warn("Job for actor '{}' completed with error", actorId, it) }
             actionJobMap.remove(actorId)
@@ -49,8 +56,10 @@ class AsyncTaskService {
     }
 
     /** Cancels action job of actor with provided [actorId] */
-    fun cancelActionByActorId(actorId: Int) = actionJobMap.remove(actorId)
-        ?.cancel("Action job for actor '$actorId' was cancelled")
+    suspend fun cancelActionByActorId(actorId: Int) = actionJobMap.remove(actorId)?.let {
+        log.debug("Action job for actor '{}' was cancelled", actorId)
+        it.cancelAndJoin()
+    }
 
     /** Checks if actor with [actorId] has launched action */
     fun hasActionByActorId(actorId: Int) = actionJobMap.containsKey(actorId)
@@ -72,14 +81,12 @@ class AsyncTaskService {
      * Launches a task that will be repeated.
      *
      * @param taskName Name of starting task
-     * @param millis Ticks between iterations
+     * @param millis Time between iterations
      * @param action Action that will be repeated with [millis] interval
      */
-    fun launchRepeated(taskName: String, millis: Long, action: suspend CoroutineScope.() -> Unit) {
+    fun launchRepeated(taskName: String, millis: Long = 100L, action: suspend CoroutineScope.() -> Unit) {
         taskJobMap[taskName] = CoroutineScope(Dispatchers.Default + CoroutineName(taskName)).launch {
-            while (isActive) withDelay(millis) {
-                action()
-            }
+            while (isActive) withDelay(millis) { action() }
         }
         log.info("Started $taskName")
     }
@@ -87,8 +94,7 @@ class AsyncTaskService {
     fun cancelTask(taskName: String) = taskJobMap[taskName]?.cancel()
 
     @PreDestroy
-    @Suppress("unused")
-    fun shutdown() {
+    fun shutdown() = runBlocking {
         taskJobMap.forEach { (name, task) ->
             log.info("Cancelling $name}")
             task.cancel()

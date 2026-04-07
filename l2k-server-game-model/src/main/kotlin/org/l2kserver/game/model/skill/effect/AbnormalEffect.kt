@@ -12,7 +12,7 @@ import java.time.Instant
 
 /** Type of abnormal effect. Character can obtain only one effect of each type */
 object AbnormalType {
-    /** Increases physical defence*/
+    /** Increases physical defense*/
     const val PD_UP = "pd_up"
 
     /** Increases physical attack*/
@@ -72,7 +72,7 @@ interface Debuff: AbnormalEffect {
 }
 
 /**
- * Temporal abnormal effects (a.k.a. buffs and debuffs)
+ * Temporal abnormal effect (buff and debuff effect)
  *
  * @property targetId Target of this effect
  * @property effectLevel level of this effect

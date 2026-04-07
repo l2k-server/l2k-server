@@ -25,8 +25,6 @@ interface PassiveSkillInstance: SkillInstance {
     fun effect(actor: ActorInstance): AbnormalEffect
 }
 
-interface ToggleSkillInstance: SkillInstance
-
 /**
  * Active skill instance
  *

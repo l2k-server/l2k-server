@@ -1,6 +1,6 @@
 package org.l2kserver.game.data.npc
 
-import org.l2kserver.game.data.character.classes.HumanFighter
+import org.l2kserver.game.data.characterclass.HumanFighter
 import org.l2kserver.game.model.actor.ActorInstance
 import org.l2kserver.game.model.actor.CollisionBox
 import org.l2kserver.game.model.actor.character.PlayerCharacterInstance

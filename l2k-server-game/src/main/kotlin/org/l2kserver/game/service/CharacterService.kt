@@ -59,6 +59,7 @@ class CharacterService(
     private val asyncTaskService: AsyncTaskService,
     private val actorStateService: ActorStateService,
     private val moveService: MoveService,
+    private val intentionExecutorService: IntentionExecutorService,
 
     private val playerCharacterRepository: PlayerCharacterRepository,
     private val shortcutRepository: ShortcutRepository,
@@ -274,8 +275,9 @@ class CharacterService(
             "Cannot enter game: no character with id $characterId exists!"
         }
 
-        //gameObjectRepository.loadCharacter(character)
         gameObjectRepository.save(character)
+        intentionExecutorService.launchIntentionQueueListener(character)
+
         val shortcuts = shortcutRepository.findAllBy(character.id, character.activeSubclass)
 
         send { FullCharacterResponse(character) }
@@ -330,7 +332,7 @@ class CharacterService(
 
         if (character.canExitWorld()) {
             removeFromGameWorld(character)
-
+            intentionExecutorService.disableIntentionQueueListener(character.id)
             context.setCharacterId(null)
             send { RestartResponse }
             sendCharactersList()
@@ -403,7 +405,7 @@ class CharacterService(
             character.privateStore = null
             character.standUp()
 
-            broadcastAround(character.position) { UpdateStatusResponse.hpMpCpOf(character) }
+            broadcastAround(character.position) { UpdateStatusResponse.currentHpMpCpOf(character) }
             send { FullCharacterResponse(character) }
             send { ChangePostureResponse(character.id, character.position, character.posture) }
         }

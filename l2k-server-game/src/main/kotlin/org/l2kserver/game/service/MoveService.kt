@@ -2,9 +2,9 @@ package org.l2kserver.game.service
 
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.currentCoroutineContext
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
@@ -20,12 +20,15 @@ import org.l2kserver.game.handler.dto.response.StartMovingToTargetResponse
 import org.l2kserver.game.handler.dto.response.StartRotationResponse
 import org.l2kserver.game.handler.dto.response.StopRotationResponse
 import org.l2kserver.game.handler.dto.response.TeleportResponse
+import org.l2kserver.game.handler.dto.response.ValidatePositionResponse
 import org.l2kserver.game.model.actor.ActorInstance
-import org.l2kserver.game.model.actor.CollisionBox
+import org.l2kserver.game.model.actor.Intention
+import org.l2kserver.game.model.actor.DestinationPoint
 import org.l2kserver.game.model.actor.position.Position
 import org.l2kserver.game.model.actor.GameWorldObject
 import org.l2kserver.game.model.actor.MoveType
 import org.l2kserver.game.model.actor.MutableActorInstance
+import org.l2kserver.game.model.actor.character.PlayerCharacterInstance
 import org.l2kserver.game.network.session.send
 import org.l2kserver.game.network.session.sendTo
 import org.l2kserver.game.network.session.sessionContext
@@ -33,18 +36,9 @@ import org.l2kserver.game.repository.GameObjectRepository
 import org.l2kserver.game.model.time.GameTime
 import org.l2kserver.game.utils.time.withDelay
 import org.springframework.stereotype.Service
-import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.hypot
 
 private const val ROTATE_SPEED_PER_SEC = 65536
-
-/** Fake GameWorldObject, representing moving destination point */
-private data class DestinationPoint(
-    override var position: Position
-) : GameWorldObject {
-    override val id = 0
-    override val collisionBox = CollisionBox()
-}
 
 /** Service to handle actors moving */
 @Service
@@ -55,9 +49,6 @@ class MoveService(
 ) : AbstractService() {
 
     override val log = logger()
-
-    //Key - moving actor, value - move target
-    private val movingCharacters = ConcurrentHashMap<ActorInstance, DestinationPoint>()
 
     /** Handle request to move character to some destination point */
     suspend fun moveCharacter(request: MoveRequest) {
@@ -72,15 +63,7 @@ class MoveService(
             if (request.byMouse) "by mouse" else "by arrow keys"
         )
 
-        var destination = movingCharacters[character]
-        if (destination != null) destination.position = request.targetPosition
-        else {
-            destination = DestinationPoint(request.targetPosition)
-            movingCharacters[character] = destination
-            asyncTaskService
-                .launchAction(character.id) { move(character, destination) }
-                .invokeOnCompletion { movingCharacters.remove(character) }
-        }
+        character.intentionQueue.enqueue(Intention.Move(DestinationPoint(request.targetPosition)))
     }
 
     /** Handles position validation request. At the moment validates position by client */
@@ -91,6 +74,12 @@ class MoveService(
         }
 
         val character = gameObjectRepository.findCharacterById(characterId)
+
+        if (!character.position.isCloseTo(request.position, Position.GEO_CELL_SIZE)) {
+            log.warn("{} position at the client side differs from server one greatly! Client: '{}', Server: '{}'",
+                character, request.position, character.position)
+            send { ValidatePositionResponse(characterId, character.position, character.heading) }
+        }
 
         character.position = request.position
         //CRUTCH If this response is not sent - character becomes stuck
@@ -113,49 +102,50 @@ class MoveService(
     }
 
     /** Moves [actor] to [position] */
-    suspend fun move(actor: MutableActorInstance, position: Position) {
-        move(actor, DestinationPoint(position))
-    }
+    @Deprecated("Use intention version")
+    suspend fun move(actor: MutableActorInstance, position: Position) =
+        executeMoving(actor, Intention.Move(DestinationPoint(position), 0))
 
-    /** Moves [actor] to [target] by specified [requiredDistance] */
-    suspend fun move(
-        actor: MutableActorInstance, target: GameWorldObject, requiredDistance: Int = 0
-    ) = suspendTransaction {
+    /** Moves [actor] according to his [intention] */
+    suspend fun executeMoving(actor: MutableActorInstance, intention: Intention.Move) = suspendTransaction {
+        if (actor is PlayerCharacterInstance) log.debug("Start moving '{}' to '{}'", actor, intention.destination)
+
         //If target of moving is actor himself (f.e. if he casts target skill on self) - do nothing
-        if (actor == target) return@suspendTransaction
+        if (actor == intention.destination) return@suspendTransaction
 
-        //Actor should turn to target even if he is enough close
-        var turningJob = launchTurning(actor, target.position)
-
-        //If actor is already at destination point - no need to do anything else
-        if (actor.position.isCloseTo(target.position, requiredDistance)) {
+        //If actor is already at destination point - just turn to target
+        if (actor.position.isCloseTo(intention.destination.position, intention.requiredDistance)) {
+            //Actor should turn to target even if he is enough close
+            launchTurning(actor, intention.destination.position)
             //This needed to show red target frame
-            send { StartMovingToTargetResponse(actor, target.id, requiredDistance) }
+            send { StartMovingToTargetResponse(actor, intention.destination.id, intention.requiredDistance) }
             return@suspendTransaction
         }
-
-        log.trace("Start moving actor '{}' to target '{}'", actor, target)
 
         try {
             var moveTimestamp = System.currentTimeMillis()
             var previousTargetPosition: Position? = null
+            var requiredDistance: Int? = null
             var destination: Position? = null
+            var target: GameWorldObject? = null
+            var turningJob: Job? = null
 
             var moveIterations = 0
 
             while (
                 currentCoroutineContext().isActive
-                && target.exists()
+                && intention.destination.exists()
                 && !actor.position.isCloseTo(destination)
             ) withDelay {
-
                 if (actor.isImmobilized) {
                     log.trace("Actor '{}' is immobilized", actor)
                     return@suspendTransaction
                 }
+                target = intention.destination
 
                 //If target position changed, destination must be recalculated
-                if (previousTargetPosition != target.position) {
+                if (previousTargetPosition != target.position || requiredDistance != intention.requiredDistance) {
+                    requiredDistance = intention.requiredDistance
                     previousTargetPosition = target.position
                     destination = geoDataService.getAvailableTargetPosition(
                         startPosition = actor.position,
@@ -165,9 +155,14 @@ class MoveService(
                         )
                     )
 
-                    broadcastAround(actor.position) { StartMovingResponse(actor, target.position) }
-                    send { StartMovingToTargetResponse(actor, target.id, requiredDistance) }
-                    turningJob.cancelAndJoin()
+                    broadcastAround(actor.position) {
+                        if (target is ActorInstance)
+                            StartMovingToTargetResponse(actor, target!!.id, requiredDistance)
+                        else
+                            StartMovingResponse(actor, target.position)
+                    }
+
+                    turningJob?.cancelAndJoin()
                     turningJob = launchTurning(actor, target.position)
                 }
 
@@ -188,32 +183,35 @@ class MoveService(
                 updatePosition(actor, destination!!, moveDistance, updateObjects)
                 moveTimestamp = System.currentTimeMillis()
             }
-            turningJob.join()
-            log.trace("Actor '{}' has arrived to target '{}' on distance '{}'", actor, target, requiredDistance)
+            //Join turning only if target is DestinationPoint, otherwise
+            if (target is DestinationPoint) turningJob?.join()
+            log.trace("'{}' has arrived", actor)
         } catch (e: CancellationException) {
             log.trace("MoveToTarget job was cancelled for reason: {}", e.message)
         } catch (e: Exception) {
             log.error("An error occurred while trying to update position of character '{}'", actor, e)
         } finally {
-            actor.isMoving = false
             updateObjectsAround(actor)
-            broadcastAround(actor.position) {
-                ArrivedResponse(actor.id, actor.position, actor.heading)
-            }
+            broadcastAround(actor.position) { ArrivedResponse(actor.id, actor.position, actor.heading) }
         }
     }
 
     /**
      * Launches coroutine, that turns [actor] to [targetPosition]
      */
-    // Turning must be async because character turns and moves/attacks simultaneously
+    //TODO Turning must be async because character turns and moves/attacks simultaneously
+    // (but not when moving to point)
+
     // Client shows turning by itself, so there is no need to send some responses here
     suspend fun launchTurning(actor: MutableActorInstance, targetPosition: Position) =
         CoroutineScope(currentCoroutineContext()).launch {
-            log.trace("Started turning actor '{}' to target position '{}'", actor, targetPosition)
+            if (actor is PlayerCharacterInstance) log.debug(
+                "Started turning actor '{}' to target position '{}'", actor, targetPosition
+            )
+
             val newHeading = actor.position.headingTo(targetPosition)
 
-            while (isActive && actor.heading != newHeading) {
+            while (isActive && actor.heading != newHeading) withDelay {
                 suspendTransaction {
                     val deltaHeading = (newHeading - actor.heading).toShort().toInt()
 
@@ -224,25 +222,26 @@ class MoveService(
                     actor.heading += rotation
                 }
 
-                delay(GameTime.MILLIS_IN_TICK)
             }
             log.trace("Successfully turned actor '{}' to target position '{}'", actor, targetPosition)
-        }
+        } 
 
     /** Teleports [actor] to [targetPosition] */
-    suspend fun teleport(actor: MutableActorInstance, targetPosition: Position) = suspendTransaction {
+suspend fun teleport(actor: MutableActorInstance, targetPosition: Position) = asyncTaskService.launchOnce {
         log.debug("Teleporting '{}' to '{}'", actor, targetPosition)
-        asyncTaskService.cancelActionByActorId(actor.id)
+        actor.intentionQueue.cancel()
 
-        val fixedPosition = targetPosition.copy(
-            z = geoDataService.getNearestZ(targetPosition.x, targetPosition.y, targetPosition.z)
-        )
+        suspendTransaction {
+            val fixedPosition = targetPosition.copy(
+                z = geoDataService.getNearestZ(targetPosition.x, targetPosition.y, targetPosition.z)
+            )
 
-        //TODO Checks if player can teleport ???
-        sendTo(actor.id) { TeleportResponse(actor.id, fixedPosition) }
+            //TODO Checks if player can teleport ???
+            sendTo(actor.id) { TeleportResponse(actor.id, fixedPosition) }
 
-        actor.position = fixedPosition
-        updateObjectsAround(actor)
+            actor.position = fixedPosition
+            updateObjectsAround(actor)
+        }
     }
 
     /**
@@ -278,8 +277,10 @@ class MoveService(
     }
 
     //TODO Refactor this crutch
-    private fun GameWorldObject.exists() =
-        if (this is DestinationPoint) true
-        else (gameObjectRepository.existsById(this.id))
+    private fun GameWorldObject?.exists() = when(this) {
+        null -> false
+        is DestinationPoint -> true
+        else -> gameObjectRepository.existsById(this.id)
+    }
 
 }

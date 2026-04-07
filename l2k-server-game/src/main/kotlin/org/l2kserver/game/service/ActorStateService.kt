@@ -43,8 +43,8 @@ class ActorStateService(
     private val asyncTaskService: AsyncTaskService,
     override val gameObjectRepository: GameObjectRepository,
 
-    @param:Value($$"${pvp.pvpFlagTimeMs}") private val pvpFlagTimeMs: Int,
-    @param:Value($$"${pvp.pvpFlagEndingTimeMs}") private val pvpFlagEndingTimeMs: Int
+    @param:Value($$"${game.pvpFlagTimeMs}") private val pvpFlagTimeMs: Int,
+    @param:Value($$"${game.pvpFlagEndingTimeMs}") private val pvpFlagEndingTimeMs: Int
 ) : AbstractService() {
     override val log = logger()
 

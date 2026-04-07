@@ -1,4 +1,4 @@
-package org.l2kserver.game.data.item.weapons
+package org.l2kserver.game.data.item.weapon
 
 import org.l2kserver.game.model.item.template.Grade
 import org.l2kserver.game.model.item.template.Weapon

@@ -193,7 +193,7 @@ class AdminCommandService(
             }
         }
 
-        send { UpdateStatusResponse.hpMpCpOf(character) }
+        send { UpdateStatusResponse.currentHpMpCpOf(character) }
     }
 
     private suspend fun handleLearnCommand(command: LearnCommand) {

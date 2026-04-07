@@ -31,7 +31,7 @@ object TownRegistry: GameDataRegistry<Town>() {
 }
 
 /**
- * Class representing town and it's territories
+ * Represents town and it's territories
  *
  * @property id Town id
  * @property name Town name
@@ -39,9 +39,9 @@ object TownRegistry: GameDataRegistry<Town>() {
  * @property spawnPositions - If character dies or uses Scroll of escape
  * at this town territory, he will be teleported to one of these positions
  */
-data class Town(
-    override val id: Int,
-    val name: String,
-    val territories: List<String> = emptyList(),
-    val spawnPositions: List<Position> = emptyList()
-): GameData
+interface Town: GameData {
+    override val id: Int
+    val name: String
+    val territories: List<String>
+    val spawnPositions: List<Position>
+}

@@ -1,10 +1,10 @@
-package org.l2kserver.game.data.character.classes
+package org.l2kserver.game.data.characterclass
 
 import org.l2kserver.game.data.item.armor.SquiresPants
 import org.l2kserver.game.data.item.armor.SquiresShirt
 import org.l2kserver.game.data.item.book.TutorialGuide
-import org.l2kserver.game.data.item.weapons.Dagger
-import org.l2kserver.game.data.item.weapons.SquiresSword
+import org.l2kserver.game.data.item.weapon.Dagger
+import org.l2kserver.game.data.item.weapon.SquiresSword
 import org.l2kserver.game.model.actor.CollisionBox
 import org.l2kserver.game.model.actor.character.CharacterClass
 import org.l2kserver.game.model.actor.character.InitialItem

@@ -32,11 +32,6 @@ interface PassiveSkill: Skill {
     fun effect(actor: ActorInstance, actionLevel: Int): AbnormalEffect
 }
 
-interface ToggleSkill: Skill {
-    /** Requirements to use this skill */
-    val requires: SkillRequirements?
-}
-
 /**
  * Active skill template
  *
