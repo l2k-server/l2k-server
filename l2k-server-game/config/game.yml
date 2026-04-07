@@ -1,0 +1,22 @@
+########################################################################################################################
+#                              Game Mechanics Configuration - pvp flag time, karma amount, etc.                        #
+########################################################################################################################
+
+# How much time will the character be in pvp state (violet name). Default: 40_000
+game.pvpFlagTimeMs: 40_000
+
+# How much time will the character be in ending pvp state (blinking violet name). Default: 5_000
+game.pvpFlagEndingTimeMs: 5_000
+
+# Base coefficient to calculate karma gain on killing other player. Default: 240
+game.karmaBaseAmount: 240
+
+# Maximum karma amount, a player can have. Default: 10_000
+game.karmaMaxAmount: 10_000
+
+# When killing a monster, karma points will be reduced by the amount of experience / this coefficient.
+# Default: 40_000
+game.karmaExpDivider: 260
+
+# Minimum amount of karma lost when killing a monster. Default: 0
+game.karmaLostMin: 0

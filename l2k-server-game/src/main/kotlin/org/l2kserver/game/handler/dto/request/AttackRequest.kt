@@ -7,6 +7,7 @@ const val ATTACK_REQUEST_PACKET_ID: UByte = 10u
 
 /**
  * Request to attack target with [targetId]
+ * This request is sent by client when CTRL is pressed on attack action or left-click
  *
  * @property targetId Attacked actor id
  * @property attackerPosition Position of character, who performs attack

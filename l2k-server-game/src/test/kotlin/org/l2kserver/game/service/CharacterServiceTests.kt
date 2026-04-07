@@ -21,9 +21,10 @@ import kotlinx.coroutines.withContext
 import org.awaitility.kotlin.await
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.junit.jupiter.api.assertThrows
-import org.l2kserver.game.data.character.classes.HumanFighter
+import org.l2kserver.game.data.characterclass.HumanFighter
 import org.l2kserver.game.domain.ItemEntity
 import org.l2kserver.game.domain.PlayerCharacterEntity
+import org.l2kserver.game.extensions.next
 import org.l2kserver.game.handler.dto.response.ExitGameResponse
 import org.l2kserver.game.handler.dto.response.FullCharacterResponse
 import org.l2kserver.game.handler.dto.response.InventoryResponse
@@ -47,7 +48,7 @@ class CharacterServiceTests(
 
     @Test
     fun shouldSuccessfullyCreateCharacter(): Unit = runBlocking {
-        val context = createTestSessionContext()
+        val context = createTestSessionContext(testLogin)
 
         val testCharacterName = "Vitalya"
         val testRace = CharacterRace.HUMAN
@@ -71,7 +72,7 @@ class CharacterServiceTests(
             )
         }
 
-        val response = assertIs<CharacterListResponse>(context.responseChannel.receive())
+        val response = assertIs<CharacterListResponse>(context.responseChannel.next())
 
         assertEquals(testCharacterName, response.playerCharacters[0].name)
         assertEquals(testRace, response.playerCharacters[0].race)
@@ -84,68 +85,68 @@ class CharacterServiceTests(
 
     @Test
     fun shouldReturnErrorIfCharacterNameExists(): Unit = runBlocking {
-        val context = createTestSessionContext()
+        val context = createTestSessionContext(testLogin)
 
         withContext(context) { characterService.createCharacter(createCreateCharacterRequest()) }
-        context.responseChannel.receive()
+        context.responseChannel.next()
 
 
         withContext(context) { characterService.createCharacter(createCreateCharacterRequest(genderId = 1)) }
 
-        val response = assertIs<CreateCharacterFailResponse>(context.responseChannel.receive())
+        val response = assertIs<CreateCharacterFailResponse>(context.responseChannel.next())
         assertEquals(CreateCharacterFailReason.NAME_ALREADY_EXISTS, response.reason)
     }
 
     @Test
     fun shouldReturnErrorIfCharacterNameDoNotMatchRegexp(): Unit = runBlocking {
-        val context = createTestSessionContext()
+        val context = createTestSessionContext(testLogin)
 
         withContext(context) { characterService.createCharacter(createCreateCharacterRequest(characterName = "13")) }
 
-        val response = assertIs<CreateCharacterFailResponse>(context.responseChannel.receive())
+        val response = assertIs<CreateCharacterFailResponse>(context.responseChannel.next())
         assertEquals(CreateCharacterFailReason.NAME_EXCEED_16_CHARACTERS, response.reason)
     }
 
     @Test
     fun shouldReturnErrorIfThereAre7Characters(): Unit = runBlocking {
-        val context = createTestSessionContext()
+        val context = createTestSessionContext(testLogin)
         withContext(context) {
             repeat(7) {
                 characterService.createCharacter(createCreateCharacterRequest(characterName = "kek$it"))
-                context.responseChannel.receive()
+                context.responseChannel.next()
             }
 
             characterService.createCharacter(createCreateCharacterRequest())
         }
 
-        val response = assertIs<CreateCharacterFailResponse>(context.responseChannel.receive())
+        val response = assertIs<CreateCharacterFailResponse>(context.responseChannel.next())
         assertEquals(CreateCharacterFailReason.TOO_MANY_CHARACTERS, response.reason)
     }
 
     @Test
     fun shouldSuccessfullySetDeletionTime(): Unit = runBlocking {
-        val context = createTestSessionContext()
+        val context = createTestSessionContext(testLogin)
         val character = createTestCharacter()
 
         withContext(context) { characterService.deleteCharacter(DeleteCharacterRequest(0)) }
 
-        val response = assertIs<CharacterListResponse>(context.responseChannel.receive())
+        val response = assertIs<CharacterListResponse>(context.responseChannel.next())
         assertEquals(character.id, response.playerCharacters[0].id)
         assertNotNull(response.playerCharacters[0].deletionDate)
     }
 
     @Test
     fun shouldGetDeletionFailedIfCharacterSlotIsEmpty(): Unit = runBlocking {
-        val context = createTestSessionContext()
+        val context = createTestSessionContext(testLogin)
         withContext(context) { characterService.deleteCharacter(DeleteCharacterRequest(0)) }
 
-        val response = assertIs<DeleteCharacterFailResponse>(context.responseChannel.receive())
+        val response = assertIs<DeleteCharacterFailResponse>(context.responseChannel.next())
         assertEquals(DeleteCharacterFailReason.DELETION_FAILED, response.reason)
     }
 
     @Test
     fun shouldRestoreCharacter(): Unit = runBlocking {
-        val context = createTestSessionContext()
+        val context = createTestSessionContext(testLogin)
         val characterToDelete = createTestCharacter()
 
         transaction { characterToDelete.deletionDate = LocalDateTime.now().plusDays(7) }
@@ -157,12 +158,12 @@ class CharacterServiceTests(
 
     @Test
     fun shouldSuccessfullySelectCharacter(): Unit = runBlocking {
-        val context = createTestSessionContext()
+        val context = createTestSessionContext(testLogin)
         val character = createTestCharacter(enterGame = false)
 
         withContext(context) { characterService.selectCharacter(SelectCharacterRequest(0)) }
 
-        val response = assertIs<SelectCharacterResponse>(context.responseChannel.receive())
+        val response = assertIs<SelectCharacterResponse>(context.responseChannel.next())
         assertEquals(character.name, response.selectedPlayerCharacter.name)
         assertEquals(character.id, context.getCharacterId())
     }
@@ -180,10 +181,10 @@ class CharacterServiceTests(
         //Wait for deletion job completion
         delay(60_000)
         await.atMost(Duration.ofSeconds(1)).untilAsserted {
-            val context = createTestSessionContext()
+            val context = createTestSessionContext(testLogin)
             runBlocking(context) {
                 characterService.sendCharactersList()
-                val response = assertIs<CharacterListResponse>(context.responseChannel.receive())
+                val response = assertIs<CharacterListResponse>(context.responseChannel.next())
                 assertTrue(response.playerCharacters.isEmpty(), "Characters list must be empty")
             }
 
@@ -212,56 +213,56 @@ class CharacterServiceTests(
 
     @Test
     fun shouldSuccessfullyEnterGame(): Unit = runBlocking {
-        val context = createTestSessionContext()
+        val context = createTestSessionContext(testLogin)
         val character = createTestCharacter(enterGame = false)
         context.setCharacterId(character.id)
 
         withContext(context) { characterService.enterWorld() }
 
-        val characterResponse = assertIs<FullCharacterResponse>(context.responseChannel.receive())
+        val characterResponse = assertIs<FullCharacterResponse>(context.responseChannel.next())
         assertEquals(character.id, characterResponse.character.id)
         assertNotNull(gameObjectRepository.findByIdOrNull(character.id))
 
-        assertIs<InventoryResponse>(context.responseChannel.receive())
-        assertIs<SkillListResponse>(context.responseChannel.receive())
-        assertIs<ShortcutPanelResponse>(context.responseChannel.receive())
+        assertIs<InventoryResponse>(context.responseChannel.next())
+        assertIs<SkillListResponse>(context.responseChannel.next())
+        assertIs<ShortcutPanelResponse>(context.responseChannel.next())
 
-        assertIs<SystemMessageResponse>(context.responseChannel.receive())
+        assertIs<SystemMessageResponse>(context.responseChannel.next())
 
         //TODO Other responses
     }
 
     @Test
     fun shouldSuccessfullyExitToCharactersMenu(): Unit = runBlocking {
-        val context = createTestSessionContext()
+        val context = createTestSessionContext(testLogin)
         val character = createTestCharacter()
         context.setCharacterId(character.id)
 
         withContext(context) { characterService.exitToCharactersMenu() }
 
-        assertIs<RestartResponse>(context.responseChannel.receive())
-        assertIs<CharacterListResponse>(context.responseChannel.receive())
+        assertIs<RestartResponse>(context.responseChannel.next())
+        assertIs<CharacterListResponse>(context.responseChannel.next())
         assertTrue(context.inCharacterMenu())
     }
 
     @Test
     fun shouldFailExitingToCharactersMenuCauseOfNotBeingInGame(): Unit = runBlocking {
         val exception = assertThrows<IllegalStateException> {
-            withContext(createTestSessionContext()) { characterService.exitToCharactersMenu() }
+            withContext(createTestSessionContext(testLogin)) { characterService.exitToCharactersMenu() }
         }
         assertEquals("Player $testLogin has not selected character", exception.message)
     }
 
     @Test
     fun shouldSuccessfullyExitGame(): Unit = runBlocking {
-        val context = createTestSessionContext()
+        val context = createTestSessionContext(testLogin)
         val character = createTestCharacter()
         context.setCharacterId(character.id)
 
         //Swallow BlockingCoroutineCancelledException
         runCatching { withContext(context) { characterService.exitGame() } }
 
-        assertIs<ExitGameResponse>(context.responseChannel.receive())
+        assertIs<ExitGameResponse>(context.responseChannel.next())
     }
 
     @Suppress("LongParameterList")

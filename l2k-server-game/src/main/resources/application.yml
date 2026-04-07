@@ -4,8 +4,8 @@ spring:
   config.import:
     - file:./config/characters.yml
     - file:./config/chat.yml
+    - file:./config/game.yml
     - file:./config/database.yml
-    - file:./config/pvp.yml
     - file:./config/reward.yml
     - file:./config/server.yml
   datasource:

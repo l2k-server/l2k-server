@@ -35,7 +35,7 @@ open class SystemMessageResponse private constructor(
     }
 
     /** Custom system message */
-    constructor(message: String): this(systemMessageId = 614, message)
+    constructor(message: Any): this(systemMessageId = 614, message.toString())
 
     /** Message: "Your target is out of range." */
     data object TargetOutOfRange: SystemMessageResponse(systemMessageId = 22)

@@ -3,17 +3,41 @@ package org.l2kserver.game.service
 import com.l2jserver.geodriver.Cell
 import com.l2jserver.geodriver.GeoDriver
 import org.l2kserver.game.extensions.getRandomPoint
+import org.l2kserver.game.extensions.logger
 import org.l2kserver.game.model.actor.CollisionBox
 import org.l2kserver.game.model.actor.position.Position
 import org.l2kserver.game.model.zone.Zone
 import org.l2kserver.game.utils.BresenhamIterator
 import org.springframework.stereotype.Service
+import java.io.File
 import kotlin.random.Random
+
+private const val TILE_X_MIN = 16
+private const val TILE_X_MAX = 26
+private const val TILE_Y_MIN = 10
+private const val TILE_Y_MAX = 26
+
+private const val GEODATA_PATH = "./geodata"
 
 @Service
 class GeoDataService(
     private val geoDriver: GeoDriver
 ) {
+    private val log = logger()
+
+    init {
+        for (i: Int in TILE_X_MIN..TILE_X_MAX) {
+            for (j: Int in TILE_Y_MIN..TILE_Y_MAX) {
+                val geoDataFile = File("$GEODATA_PATH/${i}_${j}.l2j")
+                if (geoDataFile.exists()) {
+                    geoDriver.loadRegion(geoDataFile.toPath(), i, j)
+                    log.debug("Successfully loaded region {}_{}", i, j)
+                }
+                else
+                    log.warn("GeoData file '{}' does not exist!", geoDataFile)
+            }
+        }
+    }
 
     fun getRandomSpawnPosition(collisionBox: CollisionBox, zone: Zone): Position {
         while (true) {

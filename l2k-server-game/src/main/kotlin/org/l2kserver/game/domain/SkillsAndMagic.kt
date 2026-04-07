@@ -7,13 +7,11 @@ import org.jetbrains.exposed.v1.jdbc.upsertReturning
 import org.l2kserver.game.model.actor.PlayerCharacterInstanceImpl
 import org.l2kserver.game.model.skill.ActiveSkillInstanceImpl
 import org.l2kserver.game.model.skill.PassiveSkillInstanceImpl
-import org.l2kserver.game.model.skill.ToggleSkillInstanceImpl
 import org.l2kserver.game.model.skill.instance.PassiveSkillInstance
 import org.l2kserver.game.model.skill.instance.SkillInstance
 import org.l2kserver.game.model.skill.template.ActiveSkill
 import org.l2kserver.game.model.skill.template.PassiveSkill
 import org.l2kserver.game.model.skill.template.SkillRegistry
-import org.l2kserver.game.model.skill.template.ToggleSkill
 import java.util.concurrent.ConcurrentHashMap
 
 class SkillsAndMagic(val character: PlayerCharacterInstanceImpl): Collection<SkillInstance> {
@@ -72,5 +70,4 @@ private fun SkillEntity.Companion.findAllByCharacterIdAndSubclassIndex(
 private fun SkillEntity.toSkill() = when (val template = SkillRegistry.findById(this.skillId)) {
     is ActiveSkill -> ActiveSkillInstanceImpl(this, template)
     is PassiveSkill -> PassiveSkillInstanceImpl(this, template)
-    is ToggleSkill -> ToggleSkillInstanceImpl()
 }

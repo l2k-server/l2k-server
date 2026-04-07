@@ -12,8 +12,10 @@ sealed class MutableActorInstance: ActorInstance {
     abstract override var currentMp: Int
     abstract override var moveType: MoveType
     abstract override var isFighting: Boolean
-    abstract override var isMoving: Boolean
     abstract override var targetId: Int?
     abstract override val targetedBy: MutableSet<ActorInstance>
     abstract override val temporalEffects: TemporalEffects
+
+    val intentionQueue = IntentionQueue()
+    override val isMoving = intentionQueue.current is Intention.Move
 }

@@ -2,17 +2,19 @@ package org.l2kserver.game.handler.dto.response
 
 import org.l2kserver.game.extensions.littleEndianByteArray
 import org.l2kserver.game.extensions.putUByte
-import org.l2kserver.game.model.actor.position.Position
+import org.l2kserver.game.model.actor.character.PlayerCharacterInstance
 
 private const val CANCEL_TARGET_RESPONSE_PACKET_ID: UByte = 42u
 
-/** Cancels player's casting or target, if player is not casting. */
-data class CancelActionResponse(
-    val characterId: Int,
-    val characterPosition: Position
+/** Notifies client that character has canceled target */
+data class CancelTargetResponse(
+    val character: PlayerCharacterInstance,
 ): ResponsePacket {
 
     override val data = littleEndianByteArray {
+        val characterId = character.id
+        val characterPosition = character.position
+
         putUByte(CANCEL_TARGET_RESPONSE_PACKET_ID)
         putInt(characterId)
         putInt(characterPosition.x)

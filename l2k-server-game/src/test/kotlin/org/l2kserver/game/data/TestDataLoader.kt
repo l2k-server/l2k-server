@@ -3,41 +3,8 @@ package org.l2kserver.game.data
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.jetbrains.exposed.v1.jdbc.update
-import org.l2kserver.game.data.character.classes.HumanFighter
-import org.l2kserver.game.data.character.classes.HumanMystic
-import org.l2kserver.game.data.item.armor.ApprenticesStockings
-import org.l2kserver.game.data.item.armor.ApprenticeTunic
-import org.l2kserver.game.data.item.armor.LeatherShield
-import org.l2kserver.game.data.item.armor.SquiresPants
-import org.l2kserver.game.data.item.armor.SquiresShirt
-import org.l2kserver.game.data.item.arrows.BoneArrow
-import org.l2kserver.game.data.item.arrows.WoodenArrow
-import org.l2kserver.game.data.item.book.TutorialGuide
-import org.l2kserver.game.data.item.etc.Adena
-import org.l2kserver.game.data.item.etc.ScrollOfEscape
-import org.l2kserver.game.data.item.etc.ScrollOfGuidance
-import org.l2kserver.game.data.item.jewelry.EarringOfStrength
-import org.l2kserver.game.data.item.jewelry.EarringOfWisdom
-import org.l2kserver.game.data.item.jewelry.NecklaceOfCourage
-import org.l2kserver.game.data.item.jewelry.RingOfAnguish
-import org.l2kserver.game.data.item.jewelry.RingOfKnowledge
-import org.l2kserver.game.data.item.soulshot.BlessedSpiritshotNoGrade
-import org.l2kserver.game.data.item.soulshot.SoulshotNoGrade
-import org.l2kserver.game.data.item.soulshot.SoulshotSGrade
-import org.l2kserver.game.data.item.soulshot.SpiritshotNoGrade
-import org.l2kserver.game.data.item.weapons.ApprenticesWand
-import org.l2kserver.game.data.item.weapons.Bow
-import org.l2kserver.game.data.item.weapons.Dagger
-import org.l2kserver.game.data.item.weapons.DemonSplinter
-import org.l2kserver.game.data.item.weapons.HeavensDivider
-import org.l2kserver.game.data.item.weapons.ShortSpear
-import org.l2kserver.game.data.item.weapons.SquiresSword
-import org.l2kserver.game.data.item.weapons.TallumBladeDarkLegionsEdge
-import org.l2kserver.game.data.item.weapons.WillowStaff
-import org.l2kserver.game.data.npc.GrandMagisterGallint
-import org.l2kserver.game.data.npc.GrandMasterRoien
-import org.l2kserver.game.data.npc.Gremlin
-import org.l2kserver.game.data.skill.CursePoison
+import org.l2kserver.game.data.characterclass.HumanFighter
+import org.l2kserver.game.data.characterclass.HumanMystic
 import org.l2kserver.game.data.skill.DefenseAura
 import org.l2kserver.game.data.skill.GreaterHeal
 import org.l2kserver.game.data.skill.LifeScavenge
@@ -45,11 +12,11 @@ import org.l2kserver.game.data.skill.Might
 import org.l2kserver.game.data.skill.MortalBlow
 import org.l2kserver.game.data.skill.PowerShot
 import org.l2kserver.game.data.skill.PowerStrike
-import org.l2kserver.game.data.skill.SelfHeal
-import org.l2kserver.game.data.skill.Spellcraft
-import org.l2kserver.game.data.skill.WindStrike
 import org.l2kserver.game.domain.AccessLevel
 import org.l2kserver.game.domain.PlayerCharacterTable
+import org.l2kserver.game.extensions.logger
+import org.l2kserver.game.model.GameData
+import org.l2kserver.game.model.GameDataRegistry
 import org.l2kserver.game.model.actor.character.Gender
 import org.l2kserver.game.model.actor.character.CharacterClassRegistry
 import org.l2kserver.game.model.actor.character.CharacterRace
@@ -57,14 +24,19 @@ import org.l2kserver.game.model.actor.character.ShortcutType
 import org.l2kserver.game.model.actor.npc.NpcRegistry
 import org.l2kserver.game.model.html.HtmlRegistry
 import org.l2kserver.game.model.item.template.ItemTemplateRegistry
+import org.l2kserver.game.model.map.TownRegistry
 import org.l2kserver.game.model.skill.template.SkillRegistry
 import org.l2kserver.game.repository.PlayerCharacterRepository
 import org.l2kserver.game.repository.ShortcutRepository
 import org.l2kserver.game.utils.LevelUtils
 import org.springframework.boot.context.event.ApplicationStartedEvent
+import org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider
 import org.springframework.context.event.EventListener
+import org.springframework.core.type.filter.AssignableTypeFilter
 import org.springframework.stereotype.Component
 import kotlin.math.roundToInt
+import kotlin.reflect.KClass
+import kotlin.reflect.full.createInstance
 
 private const val TEST_CHARACTER_ACCOUNT_NAME = "admin"
 private const val TEST_FIGHTER_CHARACTER_NAME = "TesterMan"
@@ -72,11 +44,11 @@ private const val TEST_MYSTIC_CHARACTER_NAME = "TesterWoman"
 
 /** Loads data for LIVE test. Don't use it for integration testing */
 @Component
-@Suppress("unused")
 class TestDataLoader(
     private val playerCharacterRepository: PlayerCharacterRepository,
     private val shortcutRepository: ShortcutRepository,
 ) {
+    private val log = logger()
 
     @EventListener(ApplicationStartedEvent::class)
     fun init() {
@@ -89,71 +61,11 @@ class TestDataLoader(
      */
     private fun registerTestData() {
         HtmlRegistry.loadResource("data/html")
-
-        NpcRegistry.register(Gremlin, GrandMasterRoien, GrandMagisterGallint)
-        CharacterClassRegistry.register(HumanFighter, HumanMystic)
-
-        ItemTemplateRegistry.register(
-            TutorialGuide,
-
-            // No Grade weapons
-            WillowStaff,
-            Dagger,
-            Bow,
-            ShortSpear,
-            SquiresSword,
-            ApprenticesWand,
-
-            // S-Grade Weapons
-            DemonSplinter,
-            HeavensDivider,
-            TallumBladeDarkLegionsEdge,
-
-            // Armor
-            ApprenticeTunic,
-            ApprenticesStockings,
-            SquiresShirt,
-            SquiresPants,
-            LeatherShield,
-
-            //Jewelry
-            EarringOfStrength,
-            EarringOfWisdom,
-            RingOfAnguish,
-            RingOfKnowledge,
-            NecklaceOfCourage,
-
-            //ETC
-            Adena,
-            ScrollOfGuidance,
-            ScrollOfEscape,
-
-            // Arrows
-            WoodenArrow,
-            BoneArrow,
-
-            //Soulshots
-            SoulshotNoGrade,
-            SoulshotSGrade,
-
-            //Spiritshots
-            SpiritshotNoGrade,
-            BlessedSpiritshotNoGrade
-        )
-
-        SkillRegistry.register(
-            PowerStrike,
-            MortalBlow,
-            PowerShot,
-            LifeScavenge,
-            DefenseAura,
-            WindStrike,
-            SelfHeal,
-            GreaterHeal,
-            Spellcraft,
-            Might,
-            CursePoison
-        )
+        NpcRegistry.autoRegisterGameData("org.l2kserver.game.data.npc")
+        CharacterClassRegistry.autoRegisterGameData("org.l2kserver.game.data.characterclass")
+        ItemTemplateRegistry.autoRegisterGameData("org.l2kserver.game.data.item")
+        SkillRegistry.autoRegisterGameData("org.l2kserver.game.data.skill")
+        TownRegistry.autoRegisterGameData("org.l2kserver.game.data.town")
     }
 
     private fun createTestCharacter() = transaction {
@@ -210,6 +122,31 @@ class TestDataLoader(
             it[currentHp] = 1
         }
 
+    }
+
+    private inline fun <reified T : GameData> GameDataRegistry<T>.autoRegisterGameData(vararg basePackages: String) {
+        //FIXME Looks like overhead, use more simple way to scan
+        val scanner = ClassPathScanningCandidateComponentProvider(false).apply {
+            addIncludeFilter(AssignableTypeFilter(T::class.java))
+        }
+
+        for (basePackage in basePackages) {
+            val beanDefinitions = scanner.findCandidateComponents(basePackage)
+            for (beanDefinition in beanDefinitions) {
+                @Suppress("UNCHECKED_CAST")
+                val clazz = Class.forName(beanDefinition.beanClassName).kotlin as KClass<out T>
+
+                val instance: T = when {
+                    clazz.objectInstance != null -> clazz.objectInstance!!
+                    clazz.constructors.any { it.parameters.isEmpty() } -> clazz.createInstance()
+                    else -> {
+                        log.warn("GameData {} must be object or have empty constructor", clazz.qualifiedName)
+                        continue
+                    }
+                }
+                this.register(instance)
+            }
+        }
     }
 
 }

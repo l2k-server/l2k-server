@@ -2,11 +2,12 @@ package org.l2kserver.game.service
 
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
-import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.l2kserver.game.AbstractTests
+import org.l2kserver.game.extensions.next
 import org.l2kserver.game.handler.dto.request.CreateShortcutRequest
 import org.l2kserver.game.handler.dto.response.CreateShortcutResponse
 import org.l2kserver.game.model.actor.character.ShortcutType
+import org.l2kserver.game.network.session.sessionContextOf
 import org.l2kserver.game.repository.ShortcutRepository
 import org.springframework.beans.factory.annotation.Autowired
 import kotlin.test.Test
@@ -21,9 +22,8 @@ class ShortcutServiceTest(
 
     @Test
     fun shouldSuccessfullyCreateShortcut(): Unit = runBlocking {
-        val context = createTestSessionContext()
         val character = createTestCharacter()
-        context.setCharacterId(character.id)
+        val context = sessionContextOf(character.id)!!
 
         val testActionType = ShortcutType.ACTION
         val testActionId = 2
@@ -36,28 +36,25 @@ class ShortcutServiceTest(
         )
         withContext(context) { shortcutService.registerShortcut(request) }
 
-        val response = assertIs<CreateShortcutResponse>(context.responseChannel.receive())
+        val response = assertIs<CreateShortcutResponse>(context.responseChannel.next())
 
         assertEquals(testActionType, response.shortcut.type)
         assertEquals(testIndex, response.shortcut.index)
         assertEquals(testActionId, response.shortcut.shortcutActionId)
 
-        transaction {
-            val savedShortcut = assertNotNull(shortcutRepository.findBy(
-                testIndex, character.id, character.activeSubclass
-            ))
+        val savedShortcut = assertNotNull(shortcutRepository.findBy(
+            testIndex, character.id, character.activeSubclass
+        ))
 
-            assertEquals(testActionType, savedShortcut.type)
-            assertEquals(testIndex, savedShortcut.index)
-            assertEquals(testActionId, savedShortcut.shortcutActionId)
-        }
+        assertEquals(testActionType, savedShortcut.type)
+        assertEquals(testIndex, savedShortcut.index)
+        assertEquals(testActionId, savedShortcut.shortcutActionId)
     }
 
     @Test
     fun shouldSuccessfullyCreateShortcutOfSkill(): Unit = runBlocking {
-        val context = createTestSessionContext()
         val character = createTestCharacter()
-        context.setCharacterId(character.id)
+        val context = sessionContextOf(character.id)!!
 
         val testActionType = ShortcutType.SKILL
         val testActionId = 3
@@ -73,25 +70,23 @@ class ShortcutServiceTest(
         )
         withContext(context){ shortcutService.registerShortcut(request) }
 
-        val response = assertIs<CreateShortcutResponse>(context.responseChannel.receive())
+        val response = assertIs<CreateShortcutResponse>(context.responseChannel.next())
 
         assertEquals(testActionType, response.shortcut.type)
         assertEquals(testIndex, response.shortcut.index)
         assertEquals(testActionId, response.shortcut.shortcutActionId)
         assertEquals(testSkillLevel, response.shortcut.actionLevel)
 
-        transaction {
-            val savedShortcut = assertNotNull(shortcutRepository.findBy(
-                testIndex,
-                character.id,
-                character.activeSubclass
-            ))
+        val savedShortcut = assertNotNull(shortcutRepository.findBy(
+            testIndex,
+            character.id,
+            character.activeSubclass
+        ))
 
-            assertEquals(testActionType, savedShortcut.type)
-            assertEquals(testIndex, savedShortcut.index)
-            assertEquals(testActionId, savedShortcut.shortcutActionId)
-            assertEquals(testSkillLevel, savedShortcut.actionLevel)
-        }
+        assertEquals(testActionType, savedShortcut.type)
+        assertEquals(testIndex, savedShortcut.index)
+        assertEquals(testActionId, savedShortcut.shortcutActionId)
+        assertEquals(testSkillLevel, savedShortcut.actionLevel)
     }
 
 }

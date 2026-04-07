@@ -4,10 +4,10 @@ import kotlinx.coroutines.channels.BufferOverflow
 import java.io.Closeable
 import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.currentCoroutineContext
 import org.l2kserver.game.handler.dto.response.ResponsePacket
 import org.l2kserver.game.model.session.AuthorizationKey
 import kotlin.coroutines.CoroutineContext
-import kotlin.coroutines.coroutineContext
 
 private const val RESPONSE_CHANNEL_CAPACITY = 127
 
@@ -108,12 +108,14 @@ class SessionContext(val sessionId: Int) : CoroutineContext.Element, Closeable {
  *
  * @throws IllegalStateException if current coroutine scope has no SessionContext
  */
-suspend inline fun sessionContext() = checkNotNull(coroutineContext[SessionContext]) {
+suspend inline fun sessionContext() = checkNotNull(currentCoroutineContext()[SessionContext]) {
     "Coroutine is not in SessionContext"
 }
 
+fun sessionContextOf(characterId: Int) = inGameSessionsMap[characterId]
+
 /** Sends [response] to the current session owner. If no SessionContext found - does nothing */
-suspend inline fun send(response:() -> ResponsePacket) = coroutineContext[SessionContext]
+suspend inline fun send(response:() -> ResponsePacket) = currentCoroutineContext()[SessionContext]
     ?.responseChannel
     ?.send(response())
 

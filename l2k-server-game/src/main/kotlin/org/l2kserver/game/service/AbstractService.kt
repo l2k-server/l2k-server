@@ -97,7 +97,7 @@ abstract class AbstractService {
 
     /** Makes this character to sit down (if he is standing) */
     protected suspend fun PlayerCharacterInstanceImpl.sitDown() {
-        if (this.posture == Posture.STANDING) {
+        if (this.posture != Posture.SITTING) {
             this.posture = Posture.SITTING
             this@AbstractService.broadcastAround( this.position) {
                 ChangePostureResponse(this.id, this.position, this.posture)
@@ -170,7 +170,7 @@ abstract class AbstractService {
         gameObject: GameWorldObject, movementDestination: Position?
     ) {
         this.knownGameWorldObjects.add(gameObject)
-        send { gameObject.toInfoResponse(this) }
+        sendTo(this.id) { gameObject.toInfoResponse(this) }
 
         if (gameObject is PlayerCharacterInstanceImpl) {
             gameObject.knownGameWorldObjects.add(this)
@@ -180,7 +180,7 @@ abstract class AbstractService {
                 sendTo(gameObject.id) { StartMovingResponse(this, destination) }
             }
             gameObject.privateStore?.let { store ->
-                send { PrivateStoreSellSetMessageResponse(gameObject.id, store.title) }
+                sendTo(this.id) { PrivateStoreSellSetMessageResponse(gameObject.id, store.title) }
             }
         }
     }

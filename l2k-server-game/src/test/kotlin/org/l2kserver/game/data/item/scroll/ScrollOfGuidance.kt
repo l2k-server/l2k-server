@@ -1,4 +1,4 @@
-package org.l2kserver.game.data.item.etc
+package org.l2kserver.game.data.item.scroll
 
 import org.l2kserver.game.model.actor.ActorInstance
 import org.l2kserver.game.model.item.of

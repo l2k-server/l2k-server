@@ -5,7 +5,7 @@ import org.jetbrains.exposed.v1.jdbc.deleteAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.junit.jupiter.api.BeforeEach
 import org.l2kserver.game.configuration.HazelcastInstanceTestConfiguration
-import org.l2kserver.game.data.character.classes.HumanFighter
+import org.l2kserver.game.data.characterclass.HumanFighter
 import org.l2kserver.game.domain.ItemEntity
 import org.l2kserver.game.model.session.AuthorizationKey
 import org.l2kserver.game.repository.GameObjectRepository
@@ -28,6 +28,7 @@ import org.l2kserver.game.network.session.SessionContext
 import org.l2kserver.game.repository.PlayerCharacterRepository
 import org.l2kserver.game.service.ActorStateService
 import org.l2kserver.game.service.AsyncTaskService
+import org.l2kserver.game.service.IntentionExecutorService
 import org.l2kserver.game.utils.IdUtils
 import org.l2kserver.game.utils.getPrivateProperty
 import org.springframework.beans.factory.annotation.Autowired
@@ -53,6 +54,9 @@ abstract class AbstractTests {
     @Autowired
     protected lateinit var playerCharacterRepository: PlayerCharacterRepository
 
+    @Autowired
+    private lateinit var intentionExecutorService: IntentionExecutorService
+
     protected val testLogin = "VitalyasAccount"
     protected val testCharacterName = "Vitaliy"
 
@@ -68,6 +72,7 @@ abstract class AbstractTests {
         gameObjectRepository.deleteAll()
         actorStateService.flushStates()
         asyncTaskService.cancelTask("REGENERATION_JOB")
+        intentionExecutorService.cancelAll()
         NpcRegistry.flush()
     }
 
@@ -93,13 +98,20 @@ abstract class AbstractTests {
             faceType = 0
         )
 
-        return if (enterGame) gameObjectRepository.save(character)
-        else character
+        if (enterGame) {
+            val context = createTestSessionContext(character.accountName)
+            context.setCharacterId(character.id)
+
+            gameObjectRepository.save(character)
+            intentionExecutorService.launchIntentionQueueListener(character)
+        }
+
+        return character
     }
 
-    protected fun createTestSessionContext(): SessionContext {
+    protected fun createTestSessionContext(accountName: String): SessionContext {
         val context = SessionContext(Random.nextInt())
-        context.setAccountName(testLogin)
+        context.setAccountName(accountName)
         context.setAuthorizationKey(createRandomAuthorizationKey())
 
         return context

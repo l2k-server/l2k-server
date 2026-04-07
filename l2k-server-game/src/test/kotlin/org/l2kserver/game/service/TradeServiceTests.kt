@@ -5,13 +5,14 @@ import kotlinx.coroutines.withContext
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.junit.jupiter.api.assertThrows
 import org.l2kserver.game.AbstractTests
-import org.l2kserver.game.data.item.arrows.BoneArrow
-import org.l2kserver.game.data.item.arrows.WoodenArrow
+import org.l2kserver.game.data.item.arrow.BoneArrow
+import org.l2kserver.game.data.item.arrow.WoodenArrow
 import org.l2kserver.game.data.item.etc.Adena
-import org.l2kserver.game.data.item.weapons.DemonSplinter
-import org.l2kserver.game.data.item.weapons.HeavensDivider
-import org.l2kserver.game.data.item.weapons.TallumBladeDarkLegionsEdge
+import org.l2kserver.game.data.item.weapon.DemonSplinter
+import org.l2kserver.game.data.item.weapon.HeavensDivider
+import org.l2kserver.game.data.item.weapon.TallumBladeDarkLegionsEdge
 import org.l2kserver.game.domain.ItemEntity
+import org.l2kserver.game.extensions.next
 import org.l2kserver.game.extensions.toItemInWishList
 import org.l2kserver.game.extensions.toItemOnSale
 import org.l2kserver.game.handler.dto.request.PrivateStoreBuySetMessageRequest
@@ -45,6 +46,7 @@ import org.l2kserver.game.handler.dto.response.operation
 import org.l2kserver.game.model.actor.Posture
 import org.l2kserver.game.model.actor.position.Position
 import org.l2kserver.game.model.store.PrivateStore
+import org.l2kserver.game.network.session.sessionContextOf
 import org.springframework.beans.factory.annotation.Autowired
 import kotlin.test.Test
 import kotlin.test.assertContains
@@ -63,9 +65,8 @@ class TradeServiceTests(
     @Test
     fun shouldSendCharactersSellableItems(): Unit = runBlocking {
         //Create our character
-        val context = createTestSessionContext()
         val character = createTestCharacter()
-        context.setCharacterId(character.id)
+        val context = sessionContextOf(character.id)!!
 
         //Create our goods
         val adena = createTestItem(Adena.id, character, 1000)
@@ -74,7 +75,7 @@ class TradeServiceTests(
 
         withContext(context) { tradeService.getItemsForPrivateStoreSell() }
 
-        val response = assertIs<ItemListForPrivateStoreSellResponse>(context.responseChannel.receive())
+        val response = assertIs<ItemListForPrivateStoreSellResponse>(context.responseChannel.next())
 
         assertFalse(response.packageSale)
         assertEquals(adena.amount, response.characterAdena)
@@ -86,14 +87,12 @@ class TradeServiceTests(
     @Test
     fun shouldStartPrivateStoreSell(): Unit = runBlocking {
         //Create our character
-        val context = createTestSessionContext()
         val character = createTestCharacter()
-        context.setCharacterId(character.id)
+        val context = sessionContextOf(character.id)!!
 
         //Create customer
-        val customerContext = createTestSessionContext()
         val customerCharacter = createTestCharacter(name = "MrCustomer")
-        customerContext.setCharacterId(customerCharacter.id)
+        val customerContext = sessionContextOf(customerCharacter.id)!!
 
         val testStoreMessage = "Baium Express"
 
@@ -120,13 +119,13 @@ class TradeServiceTests(
         }
 
         //Check our responses
-        val setStoreMessageResponse = assertIs<PrivateStoreSellSetMessageResponse>(context.responseChannel.receive())
+        val setStoreMessageResponse = assertIs<PrivateStoreSellSetMessageResponse>(context.responseChannel.next())
         assertEquals(testStoreMessage, setStoreMessageResponse.message)
 
-        val changePostureResponse = assertIs<ChangePostureResponse>(context.responseChannel.receive())
+        val changePostureResponse = assertIs<ChangePostureResponse>(context.responseChannel.next())
         assertEquals(Posture.SITTING, changePostureResponse.posture)
 
-        val characterResponse = assertIs<FullCharacterResponse>(context.responseChannel.receive())
+        val characterResponse = assertIs<FullCharacterResponse>(context.responseChannel.next())
         assertNotNull(characterResponse.character.privateStore)
 
         val store = assertIs<PrivateStore.Sell>(characterResponse.character.privateStore!!)
@@ -144,29 +143,28 @@ class TradeServiceTests(
         assertEquals(arrowsAmount, store.items[woodenArrow.id]!!.amount)
         assertEquals(arrowPrice, store.items[woodenArrow.id]!!.price)
 
-        val storeMessageResponse = assertIs<PrivateStoreSellSetMessageResponse>(context.responseChannel.receive())
+        val storeMessageResponse = assertIs<PrivateStoreSellSetMessageResponse>(context.responseChannel.next())
         assertEquals(testStoreMessage, storeMessageResponse.message)
 
         //Check customer responses
         val changePostureResponseForCustomer =
-            assertIs<ChangePostureResponse>(customerContext.responseChannel.receive())
+            assertIs<ChangePostureResponse>(customerContext.responseChannel.next())
         assertEquals(Posture.SITTING, changePostureResponseForCustomer.posture)
 
-        val characterResponseForCustomer = assertIs<CharacterInfoResponse>(customerContext.responseChannel.receive())
+        val characterResponseForCustomer = assertIs<CharacterInfoResponse>(customerContext.responseChannel.next())
         assertNotNull(characterResponseForCustomer.character.privateStore)
         assertIs<PrivateStore.Sell>(characterResponse.character.privateStore!!)
 
         val storeMessageResponseForCustomer =
-            assertIs<PrivateStoreSellSetMessageResponse>(customerContext.responseChannel.receive())
+            assertIs<PrivateStoreSellSetMessageResponse>(customerContext.responseChannel.next())
         assertEquals(testStoreMessage, storeMessageResponseForCustomer.message)
     }
 
     @Test
     fun shouldOpenCurrentStoreSettingsWindowIfStoreAlreadyExists(): Unit = runBlocking {
         //Create our character
-        val context = createTestSessionContext()
         val character = createTestCharacter()
-        context.setCharacterId(character.id)
+        val context = sessionContextOf(character.id)!!
 
         //Create our goods
         val arrowsForSaleAmount = 300
@@ -187,12 +185,12 @@ class TradeServiceTests(
         withContext(context) { tradeService.getItemsForPrivateStoreSell() }
 
         //Check responses
-        val standUpResponse = assertIs<ChangePostureResponse>(context.responseChannel.receive())
+        val standUpResponse = assertIs<ChangePostureResponse>(context.responseChannel.next())
         assertEquals(Posture.STANDING, standUpResponse.posture)
-        assertIs<FullCharacterResponse>(context.responseChannel.receive())
+        assertIs<FullCharacterResponse>(context.responseChannel.next())
 
         val itemsForPrivateStoreSellResponse = assertIs<ItemListForPrivateStoreSellResponse>(
-            context.responseChannel.receive()
+            context.responseChannel.next()
         )
 
         assertTrue(itemsForPrivateStoreSellResponse.packageSale, "packageSale must be 'true'")
@@ -213,9 +211,8 @@ class TradeServiceTests(
     @Test
     fun shouldFailStartingPrivateStoreSellNotEnoughItemsToSell(): Unit = runBlocking {
         //Create our character
-        val context = createTestSessionContext()
         val character = createTestCharacter()
-        context.setCharacterId(character.id)
+        val context = sessionContextOf(character.id)!!
 
         //Create our goods
         val arrowsAmount = 1000
@@ -241,9 +238,8 @@ class TradeServiceTests(
     @Test
     fun shouldFailStartingPrivateStoreSellSeveralSlotsWithSameItem(): Unit = runBlocking {
         //Create our character
-        val context = createTestSessionContext()
         val character = createTestCharacter()
-        context.setCharacterId(character.id)
+        val context = sessionContextOf(character.id)!!
 
         //Create our goods
         val arrowsAmount = 1000
@@ -272,9 +268,8 @@ class TradeServiceTests(
     @Test
     fun shouldFailStartingPrivateStoreSellTooManySlots(): Unit = runBlocking {
         //Create our character
-        val context = createTestSessionContext()
         val character = createTestCharacter()
-        context.setCharacterId(character.id)
+        val context = sessionContextOf(character.id)!!
 
         //Create our goods
         val amount = 1000
@@ -298,15 +293,14 @@ class TradeServiceTests(
                 )
             ))
         }
-        assertIs<SystemMessageResponse.YouHaveExceededPrivateStoreQuantity>(context.responseChannel.receive())
+        assertIs<SystemMessageResponse.YouHaveExceededPrivateStoreQuantity>(context.responseChannel.next())
     }
 
     @Test
     fun shouldFailStartingPrivateStoreSellNotSellableItems(): Unit = runBlocking {
         //Create our character
-        val context = createTestSessionContext()
         val character = createTestCharacter()
-        context.setCharacterId(character.id)
+        val context = sessionContextOf(character.id)!!
 
         //Create our goods
         val amount = 1000
@@ -329,9 +323,8 @@ class TradeServiceTests(
     @Test
     fun shouldStopPrivateStore(): Unit = runBlocking {
         //Create our character
-        val context = createTestSessionContext()
         val character = createTestCharacter()
-        context.setCharacterId(character.id)
+        val context = sessionContextOf(character.id)!!
 
         //Create our goods
         val arrowsForSaleAmount = 300
@@ -352,19 +345,18 @@ class TradeServiceTests(
         withContext(context) { withContext(context) { tradeService.stopPrivateStore() }}
 
         //Check responses
-        val changePostureResponse = assertIs<ChangePostureResponse>(context.responseChannel.receive())
+        val changePostureResponse = assertIs<ChangePostureResponse>(context.responseChannel.next())
         assertEquals(Posture.STANDING, changePostureResponse.posture)
 
-        val characterInfoResponse = assertIs<FullCharacterResponse>(context.responseChannel.receive())
+        val characterInfoResponse = assertIs<FullCharacterResponse>(context.responseChannel.next())
         assertNull(characterInfoResponse.character.privateStore)
     }
 
     @Test
     fun shouldOpenOtherCharactersPrivateStore(): Unit = runBlocking {
         //Create our character
-        val context = createTestSessionContext()
         val character = createTestCharacter()
-        context.setCharacterId(character.id)
+        val context = sessionContextOf(character.id)!!
 
         //Create our goods
         val arrowsForSaleAmount = 300
@@ -382,15 +374,14 @@ class TradeServiceTests(
         )
 
         //Create customer
-        val customerContext = createTestSessionContext()
         val customerCharacter = createTestCharacter(name = "Customer")
-        customerContext.setCharacterId(customerCharacter.id)
+        val customerContext = sessionContextOf(customerCharacter.id)!!
 
         //Get items for private store
         withContext(context) { withContext(customerContext) { tradeService.showPrivateStoreOf(character) }}
 
         //Check responses
-        val response = assertIs<ShowPrivateStoreSellResponse>(customerContext.responseChannel.receive())
+        val response = assertIs<ShowPrivateStoreSellResponse>(customerContext.responseChannel.next())
         assertEquals(character.id, response.ownerId)
         assertTrue(response.packageSale, "Package sale must be true")
         assertEquals((character.privateStore as? PrivateStore.Sell)?.items?.values, response.items)
@@ -400,9 +391,8 @@ class TradeServiceTests(
     @Suppress("LongMethod")
     fun shouldSuccessfullyBuyItemsFromPrivateStore(): Unit = runBlocking {
         // Create seller
-        val sellerContext = createTestSessionContext()
         val seller = createTestCharacter(name = "Seller")
-        sellerContext.setCharacterId(seller.id)
+        val sellerContext = sessionContextOf(seller.id)!!
 
         // Create goods for our store
         val arrowsAmount = 1000
@@ -424,9 +414,8 @@ class TradeServiceTests(
         )
 
         // Create customer
-        val buyerContext = createTestSessionContext()
         val buyer = createTestCharacter(name = "Buyer")
-        buyerContext.setCharacterId(buyer.id)
+        val buyerContext = sessionContextOf(buyer.id)!!
 
         // Create customer's adena
         val initialBuyerAdena = 1000000
@@ -451,17 +440,17 @@ class TradeServiceTests(
 
         // Check buyer's responses
         val buyerSystemMessageArrows = assertIs<SystemMessageResponse.YouHavePurchasedStackable>(
-            buyerContext.responseChannel.receive())
+            buyerContext.responseChannel.next())
         assertEquals(arrowsToBuyAmount, buyerSystemMessageArrows.amount)
         assertEquals(WoodenArrow.id, buyerSystemMessageArrows.item.templateId)
 
         val buyerSystemMessageDemonSplinter = assertIs<SystemMessageResponse.YouHavePurchasedNonStackable>(
-            buyerContext.responseChannel.receive())
+            buyerContext.responseChannel.next())
         assertEquals(1, buyerSystemMessageDemonSplinter.item.amount)
         assertEquals(DemonSplinter.id, buyerSystemMessageDemonSplinter.item.templateId)
 
         //Check items responses
-        val buyerUpdateItemsResponse = assertIs<UpdateItemsResponse>(buyerContext.responseChannel.receive())
+        val buyerUpdateItemsResponse = assertIs<UpdateItemsResponse>(buyerContext.responseChannel.next())
         assertEquals(3, buyerUpdateItemsResponse.operations.size)
 
         // Check adena update
@@ -486,23 +475,23 @@ class TradeServiceTests(
         assertEquals(1, buyerSplinterOperation.item.amount)
 
         // Check buyer's weight change
-        val buyerUpdateStatus = assertIs<UpdateStatusResponse>(buyerContext.responseChannel.receive())
+        val buyerUpdateStatus = assertIs<UpdateStatusResponse>(buyerContext.responseChannel.next())
         assertContains(buyerUpdateStatus.attributes, StatusAttribute.CUR_LOAD)
 
         // Check seller's responses
         val sellerSystemMessageArrows = assertIs<SystemMessageResponse.OtherHasPurchasedStackable>(
-            sellerContext.responseChannel.receive())
+            sellerContext.responseChannel.next())
         assertEquals(buyer.name, sellerSystemMessageArrows.customerName)
         assertEquals(arrowsToBuyAmount, sellerSystemMessageArrows.amount)
         assertEquals(WoodenArrow.id, sellerSystemMessageArrows.item.templateId)
 
         val sellerSystemMessageDemonSplinter = assertIs<SystemMessageResponse.OtherHasPurchasedNonStackable>(
-            sellerContext.responseChannel.receive())
+            sellerContext.responseChannel.next())
         assertEquals(buyer.name, sellerSystemMessageDemonSplinter.customerName)
         assertEquals(1, sellerSystemMessageDemonSplinter.item.amount)
         assertEquals(DemonSplinter.id, sellerSystemMessageDemonSplinter.item.templateId)
 
-        val sellerUpdateItems = assertIs<UpdateItemsResponse>(sellerContext.responseChannel.receive())
+        val sellerUpdateItems = assertIs<UpdateItemsResponse>(sellerContext.responseChannel.next())
         assertEquals(3, sellerUpdateItems.operations.size)
 
         // Check seller's adena update
@@ -523,7 +512,7 @@ class TradeServiceTests(
         assertNotNull(sellerSplinterOperation)
         assertEquals(UpdateItemOperation.REMOVE, sellerSplinterOperation.operation)
 
-        val sellerUpdateStatus = assertIs<UpdateStatusResponse>(sellerContext.responseChannel.receive())
+        val sellerUpdateStatus = assertIs<UpdateStatusResponse>(sellerContext.responseChannel.next())
         assertContains(sellerUpdateStatus.attributes, StatusAttribute.CUR_LOAD)
 
         transaction {
@@ -555,13 +544,10 @@ class TradeServiceTests(
     @Test
     fun shouldFailToBuyWhenNotEnoughAdena(): Unit = runBlocking {
         // Create seller and customer
-        val sellerContext = createTestSessionContext()
         val seller = createTestCharacter(name = "Seller")
-        sellerContext.setCharacterId(seller.id)
 
-        val buyerContext = createTestSessionContext()
         val buyer = createTestCharacter(name = "Buyer")
-        buyerContext.setCharacterId(buyer.id)
+        val buyerContext = sessionContextOf(buyer.id)!!
 
         // Create goods
         val woodenArrow = createTestItem(WoodenArrow.id, seller, 1000)
@@ -587,20 +573,17 @@ class TradeServiceTests(
         }
 
         // Check responses
-        assertIs<SystemMessageResponse.NotEnoughAdena>(buyerContext.responseChannel.receive())
-        assertIs<ActionFailedResponse>(buyerContext.responseChannel.receive())
+        assertIs<SystemMessageResponse.NotEnoughAdena>(buyerContext.responseChannel.next())
+        assertIs<ActionFailedResponse>(buyerContext.responseChannel.next())
     }
 
     @Test
     fun shouldFailToBuyMoreThanOnSale(): Unit = runBlocking {
         // Create seller and buyer
-        val sellerContext = createTestSessionContext()
         val seller = createTestCharacter(name = "Seller")
-        sellerContext.setCharacterId(seller.id)
 
-        val buyerContext = createTestSessionContext()
         val buyer = createTestCharacter(name = "Buyer")
-        buyerContext.setCharacterId(buyer.id)
+        val buyerContext = sessionContextOf(buyer.id)!!
 
         // Create goods
         val arrowsAmount = 1000
@@ -628,7 +611,7 @@ class TradeServiceTests(
         }
 
         // Check
-        assertIs<ActionFailedResponse>(buyerContext.responseChannel.receive())
+        assertIs<ActionFailedResponse>(buyerContext.responseChannel.next())
 
         transaction {
             val sellerArrow = ItemEntity.findAllByOwnerIdAndTemplateId(seller.id, WoodenArrow.id).firstOrNull()
@@ -643,13 +626,10 @@ class TradeServiceTests(
     @Test
     fun shouldFailToBuyWhenStoreClosed(): Unit = runBlocking {
         // Create seller and customer
-        val sellerContext = createTestSessionContext()
         val seller = createTestCharacter(name = "Seller")
-        sellerContext.setCharacterId(seller.id)
 
-        val buyerContext = createTestSessionContext()
         val buyer = createTestCharacter(name = "Buyer")
-        buyerContext.setCharacterId(buyer.id)
+        val buyerContext = sessionContextOf(buyer.id)!!
 
         // Create items and adena
         val woodenArrow = createTestItem(WoodenArrow.id, seller, 1000)
@@ -664,15 +644,14 @@ class TradeServiceTests(
         }
 
         // Check
-        assertIs<ActionFailedResponse>(buyerContext.responseChannel.receive())
+        assertIs<ActionFailedResponse>(buyerContext.responseChannel.next())
     }
 
     @Test
     fun shouldSendCharactersItemsForPrivateStoreBuy(): Unit = runBlocking {
         //Create our character
-        val context = createTestSessionContext()
         val character = createTestCharacter()
-        context.setCharacterId(character.id)
+        val context = sessionContextOf(character.id)!!
 
         //Create our goods
         val adena = createTestItem(Adena.id, character, 1000)
@@ -681,7 +660,7 @@ class TradeServiceTests(
 
         withContext(context) { tradeService.getItemsForPrivateStoreBuy() }
 
-        val response = assertIs<ItemListForPrivateStoreBuyResponse>(context.responseChannel.receive())
+        val response = assertIs<ItemListForPrivateStoreBuyResponse>(context.responseChannel.next())
 
         assertEquals(adena.amount, response.characterAdena)
         assertContains(response.itemsInInventory.map { it.itemId }, demonSplinter.id)
@@ -692,14 +671,12 @@ class TradeServiceTests(
     @Test
     fun shouldSuccessfullyStartPrivateStoreBuy(): Unit = runBlocking {
         //Create our character
-        val context = createTestSessionContext()
         val character = createTestCharacter()
-        context.setCharacterId(character.id)
+        val context = sessionContextOf(character.id)!!
 
         //Create customer
-        val customerContext = createTestSessionContext()
         val customerCharacter = createTestCharacter(name = "MrCustomer")
-        customerContext.setCharacterId(customerCharacter.id)
+        val customerContext = sessionContextOf(customerCharacter.id)!!
 
         val testStoreMessage = "Baium Express"
 
@@ -730,13 +707,13 @@ class TradeServiceTests(
         //Check our responses
 
         //First setMessageResponse is needed to it in private store interface
-        val setStoreMessageResponse = assertIs<PrivateStoreBuySetMessageResponse>(context.responseChannel.receive())
+        val setStoreMessageResponse = assertIs<PrivateStoreBuySetMessageResponse>(context.responseChannel.next())
         assertEquals(testStoreMessage, setStoreMessageResponse.message)
 
-        val changePostureResponse = assertIs<ChangePostureResponse>(context.responseChannel.receive())
+        val changePostureResponse = assertIs<ChangePostureResponse>(context.responseChannel.next())
         assertEquals(Posture.SITTING, changePostureResponse.posture)
 
-        val characterResponse = assertIs<FullCharacterResponse>(context.responseChannel.receive())
+        val characterResponse = assertIs<FullCharacterResponse>(context.responseChannel.next())
         assertNotNull(characterResponse.character.privateStore)
 
         val store = assertIs<PrivateStore.Buy>(characterResponse.character.privateStore!!)
@@ -757,29 +734,28 @@ class TradeServiceTests(
         assertEquals(arrowsAmount, wishedWoodenArrows.amount)
         assertEquals(arrowPrice, wishedWoodenArrows.price)
 
-        val storeMessageResponse = assertIs<PrivateStoreBuySetMessageResponse>(context.responseChannel.receive())
+        val storeMessageResponse = assertIs<PrivateStoreBuySetMessageResponse>(context.responseChannel.next())
         assertEquals(testStoreMessage, storeMessageResponse.message)
 
         //Check customer responses
         val changePostureResponseForCustomer =
-            assertIs<ChangePostureResponse>(customerContext.responseChannel.receive())
+            assertIs<ChangePostureResponse>(customerContext.responseChannel.next())
         assertEquals(Posture.SITTING, changePostureResponseForCustomer.posture)
 
-        val characterResponseForCustomer = assertIs<CharacterInfoResponse>(customerContext.responseChannel.receive())
+        val characterResponseForCustomer = assertIs<CharacterInfoResponse>(customerContext.responseChannel.next())
         assertNotNull(characterResponseForCustomer.character.privateStore)
         assertIs<PrivateStore.Buy>(characterResponse.character.privateStore!!)
 
         val storeMessageResponseForCustomer =
-            assertIs<PrivateStoreBuySetMessageResponse>(customerContext.responseChannel.receive())
+            assertIs<PrivateStoreBuySetMessageResponse>(customerContext.responseChannel.next())
         assertEquals(testStoreMessage, storeMessageResponseForCustomer.message)
     }
 
     @Test
     fun shouldFailToStartPrivateStoreBuyCauseOfNotEnoughAdena(): Unit = runBlocking {
         //Create our character
-        val context = createTestSessionContext()
         val character = createTestCharacter()
-        context.setCharacterId(character.id)
+        val context = sessionContextOf(character.id)!!
 
         val testStoreMessage = "Baium Express"
 
@@ -798,18 +774,17 @@ class TradeServiceTests(
         }
 
         //Check our responses
-        val setStoreMessageResponse = assertIs<PrivateStoreBuySetMessageResponse>(context.responseChannel.receive())
+        val setStoreMessageResponse = assertIs<PrivateStoreBuySetMessageResponse>(context.responseChannel.next())
         assertEquals(testStoreMessage, setStoreMessageResponse.message)
 
-        assertIs<SystemMessageResponse.NotEnoughAdena>(context.responseChannel.receive())
+        assertIs<SystemMessageResponse.NotEnoughAdena>(context.responseChannel.next())
     }
 
     @Test
     fun shouldFailToStartPrivateStoreBuyCauseOfNonSellableItems(): Unit = runBlocking {
         //Create our character
-        val context = createTestSessionContext()
         val character = createTestCharacter()
-        context.setCharacterId(character.id)
+        val context = sessionContextOf(character.id)!!
 
         val testStoreMessage = "Baium Express"
 
@@ -831,9 +806,8 @@ class TradeServiceTests(
     @Test
     fun shouldOpenCurrentStoreBuySettingsWindowIfStoreAlreadyExists(): Unit = runBlocking {
         //Create our character
-        val context = createTestSessionContext()
         val character = createTestCharacter()
-        context.setCharacterId(character.id)
+        val context = sessionContextOf(character.id)!!
 
         //Create our goods
         val arrowsToBuyAmount = 1000
@@ -853,12 +827,12 @@ class TradeServiceTests(
         withContext(context) { tradeService.getItemsForPrivateStoreBuy() }
 
         //Check responses
-        val standUpResponse = assertIs<ChangePostureResponse>(context.responseChannel.receive())
+        val standUpResponse = assertIs<ChangePostureResponse>(context.responseChannel.next())
         assertEquals(Posture.STANDING, standUpResponse.posture)
-        assertIs<FullCharacterResponse>(context.responseChannel.receive())
+        assertIs<FullCharacterResponse>(context.responseChannel.next())
 
         val itemsForPrivateStoreBuyResponse = assertIs<ItemListForPrivateStoreBuyResponse>(
-            context.responseChannel.receive())
+            context.responseChannel.next())
 
         assertEquals(1, itemsForPrivateStoreBuyResponse.itemsInInventory.size)
         val woodenArrowInInventory = assertNotNull(
@@ -876,14 +850,12 @@ class TradeServiceTests(
     @Test
     fun shouldOpenOtherCharactersPrivateStoreBuy(): Unit = runBlocking {
         //Create our character
-        val context = createTestSessionContext()
         val character = createTestCharacter()
-        context.setCharacterId(character.id)
+        val context = sessionContextOf(character.id)!!
 
         //Create customer
-        val customerContext = createTestSessionContext()
         val customerCharacter = createTestCharacter(name = "Customer")
-        customerContext.setCharacterId(customerCharacter.id)
+        val customerContext = sessionContextOf(customerCharacter.id)!!
 
         //Create goods
         val woodenArrowsToBuyAmount = 1000
@@ -911,7 +883,7 @@ class TradeServiceTests(
         withContext(context) { withContext(customerContext) { tradeService.showPrivateStoreOf(character) }}
 
         //Check responses
-        val response = assertIs<ShowPrivateStoreBuyResponse>(customerContext.responseChannel.receive())
+        val response = assertIs<ShowPrivateStoreBuyResponse>(customerContext.responseChannel.next())
         assertEquals(character.id, response.ownerId)
 
         val privateStoreItems = (character.privateStore as? PrivateStore.Buy)?.items?.map { it.templateId }
@@ -930,16 +902,14 @@ class TradeServiceTests(
     @Suppress("LongMethod")
     fun shouldSuccessfullySellItemsToPrivateStore(): Unit = runBlocking {
         // Create store owner
-        val storeOwnerContext = createTestSessionContext()
         val storeOwner = createTestCharacter(name = "StoreOwner")
-        storeOwnerContext.setCharacterId(storeOwner.id)
+        val storeOwnerContext = sessionContextOf(storeOwner.id)!!
         val storeOwnerAdenaAmount = 1000000
         createTestItem(Adena.id, storeOwner, storeOwnerAdenaAmount)
 
         // Create seller
-        val sellerContext = createTestSessionContext()
         val seller = createTestCharacter(name = "Seller")
-        sellerContext.setCharacterId(seller.id)
+        val sellerContext = sessionContextOf(seller.id)!!
 
         // Create items for sale
         val arrowsAmount = 1000
@@ -987,20 +957,20 @@ class TradeServiceTests(
 
         //System messages
         val soldArrowsSystemMessage = assertIs<SystemMessageResponse.OtherHasPurchasedStackable>(
-            sellerContext.responseChannel.receive()
+            sellerContext.responseChannel.next()
         )
         assertEquals(storeOwner.name, soldArrowsSystemMessage.customerName)
         assertEquals(500, soldArrowsSystemMessage.amount)
         assertEquals(WoodenArrow.id, soldArrowsSystemMessage.item.templateId)
 
         val soldDemonSplinterSystemMessage = assertIs<SystemMessageResponse.OtherHasPurchasedNonStackable>(
-            sellerContext.responseChannel.receive()
+            sellerContext.responseChannel.next()
         )
         assertEquals(storeOwner.name, soldDemonSplinterSystemMessage.customerName)
         assertEquals(DemonSplinter.id, soldDemonSplinterSystemMessage.item.templateId)
 
         // UpdateItems response of seller
-        val sellerUpdateItems = assertIs<UpdateItemsResponse>(sellerContext.responseChannel.receive())
+        val sellerUpdateItems = assertIs<UpdateItemsResponse>(sellerContext.responseChannel.next())
         assertEquals(3, sellerUpdateItems.operations.size)
 
         val sellerAdenaOperation = sellerUpdateItems.operations.find { it.item.templateId == Adena.id }
@@ -1018,25 +988,25 @@ class TradeServiceTests(
         assertEquals(UpdateItemOperation.REMOVE, sellerSplinterOperation.operation)
 
         // Update cur load of seller
-        val sellerUpdateStatus = assertIs<UpdateStatusResponse>(sellerContext.responseChannel.receive())
+        val sellerUpdateStatus = assertIs<UpdateStatusResponse>(sellerContext.responseChannel.next())
         assertEquals(StatusAttribute.CUR_LOAD, sellerUpdateStatus.attributes.keys.first())
 
         // Check store owner packets
         val boughtArrowsSystemMessage = assertIs<SystemMessageResponse.YouHavePurchasedStackable>(
-            storeOwnerContext.responseChannel.receive()
+            storeOwnerContext.responseChannel.next()
         )
         assertEquals(seller.name, boughtArrowsSystemMessage.sellerName)
         assertEquals(arrowsToSellAmount, boughtArrowsSystemMessage.amount)
         assertEquals(WoodenArrow.id, boughtArrowsSystemMessage.item.templateId)
 
         val storeOwnerSystemMessage = assertIs<SystemMessageResponse.YouHavePurchasedNonStackable>(
-            storeOwnerContext.responseChannel.receive()
+            storeOwnerContext.responseChannel.next()
         )
         assertEquals(seller.name, storeOwnerSystemMessage.sellerName)
         assertEquals(DemonSplinter.id, storeOwnerSystemMessage.item.templateId)
 
         // UpdateItems response of seller
-        val storeOwnerUpdateItems = assertIs<UpdateItemsResponse>(storeOwnerContext.responseChannel.receive())
+        val storeOwnerUpdateItems = assertIs<UpdateItemsResponse>(storeOwnerContext.responseChannel.next())
         assertEquals(3, storeOwnerUpdateItems.operations.size)
 
         val storeOwnerAdenaOperation = storeOwnerUpdateItems.operations.find { it.item.templateId == Adena.id }
@@ -1056,7 +1026,7 @@ class TradeServiceTests(
         assertEquals(UpdateItemOperation.ADD, storeOwnerSplinterOperation.operation)
         assertEquals(1, storeOwnerSplinterOperation.item.amount)
 
-        val storeOwnerUpdateStatus = assertIs<UpdateStatusResponse>(storeOwnerContext.responseChannel.receive())
+        val storeOwnerUpdateStatus = assertIs<UpdateStatusResponse>(storeOwnerContext.responseChannel.next())
         assertEquals(StatusAttribute.CUR_LOAD, storeOwnerUpdateStatus.attributes.keys.first())
 
         transaction {
@@ -1096,15 +1066,12 @@ class TradeServiceTests(
     @Test
     fun shouldFailToSellWhenStoreOwnerNotEnoughAdena(): Unit = runBlocking {
         // Create store owner and customer
-        val storeOwnerContext = createTestSessionContext()
         val storeOwner = createTestCharacter(name = "StoreOwner")
-        storeOwnerContext.setCharacterId(storeOwner.id)
         val storeOwnerAdenaAmountBefore = 500
         createTestItem(Adena.id, storeOwner, storeOwnerAdenaAmountBefore)
 
-        val sellerContext = createTestSessionContext()
         val seller = createTestCharacter(name = "Seller")
-        sellerContext.setCharacterId(seller.id)
+        val sellerContext = sessionContextOf(seller.id)!!
 
         // Create item to sell
         val woodenArrow = createTestItem(WoodenArrow.id, seller, 1000)
@@ -1133,7 +1100,7 @@ class TradeServiceTests(
         }
 
         // Check action failed response
-        assertIs<ActionFailedResponse>(sellerContext.responseChannel.receive())
+        assertIs<ActionFailedResponse>(sellerContext.responseChannel.next())
 
         // Verify that transaction did not occur by checking database state
         transaction {
@@ -1163,15 +1130,12 @@ class TradeServiceTests(
     @Test
     fun shouldFailToSellWhenItemsNotInInventory(): Unit = runBlocking {
         // Create store owner and customer
-        val storeOwnerContext = createTestSessionContext()
         val storeOwner = createTestCharacter(name = "StoreOwner")
-        storeOwnerContext.setCharacterId(storeOwner.id)
         val storeOwnerAdenaAmountBefore = 1_000_000
         createTestItem(Adena.id, storeOwner, storeOwnerAdenaAmountBefore)
 
-        val sellerContext = createTestSessionContext()
         val seller = createTestCharacter(name = "Seller")
-        sellerContext.setCharacterId(seller.id)
+        val sellerContext = sessionContextOf(seller.id)!!
 
         // Create item to sell
         val woodenArrowAmount = 1000
@@ -1202,7 +1166,7 @@ class TradeServiceTests(
         }
 
         // Check action failed
-        assertIs<ActionFailedResponse>(sellerContext.responseChannel.receive())
+        assertIs<ActionFailedResponse>(sellerContext.responseChannel.next())
 
         transaction {
             // Check items in database
@@ -1222,15 +1186,12 @@ class TradeServiceTests(
     @Test
     fun shouldFailToSellWhenStoreClosed(): Unit = runBlocking {
         // Create store owner and customer
-        val storeOwnerContext = createTestSessionContext()
         val storeOwner = createTestCharacter(name = "StoreOwner")
-        storeOwnerContext.setCharacterId(storeOwner.id)
         val storeOwnerAdenaAmountBefore = 1_000_000
         createTestItem(Adena.id, storeOwner, storeOwnerAdenaAmountBefore)
 
-        val sellerContext = createTestSessionContext()
         val seller = createTestCharacter(name = "Seller")
-        sellerContext.setCharacterId(seller.id)
+        val sellerContext = sessionContextOf(seller.id)!!
         val woodenArrowAmount = 1000
         val woodenArrow = createTestItem(WoodenArrow.id, seller, woodenArrowAmount)
 
@@ -1243,7 +1204,7 @@ class TradeServiceTests(
         }
 
         // Check action failed
-        assertIs<ActionFailedResponse>(sellerContext.responseChannel.receive())
+        assertIs<ActionFailedResponse>(sellerContext.responseChannel.next())
 
         transaction {
             // Check items in database
@@ -1263,15 +1224,12 @@ class TradeServiceTests(
     @Test
     fun shouldFailToSellWhenTooFar(): Unit = runBlocking {
         // Create store owner and customer
-        val storeOwnerContext = createTestSessionContext()
         val storeOwner = createTestCharacter(name = "StoreOwner")
-        storeOwnerContext.setCharacterId(storeOwner.id)
         val storeOwnerAdenaAmountBefore = 1_000_000
         createTestItem(Adena.id, storeOwner, storeOwnerAdenaAmountBefore)
 
-        val sellerContext = createTestSessionContext()
         val seller = createTestCharacter(name = "Seller")
-        sellerContext.setCharacterId(seller.id)
+        val sellerContext = sessionContextOf(seller.id)!!
         val arrowPrice = 2
         val woodenArrowAmount = 1000
         val woodenArrow = createTestItem(WoodenArrow.id, seller, woodenArrowAmount)
@@ -1295,10 +1253,10 @@ class TradeServiceTests(
         }
 
         // Check packets
-        val soundResponse = assertIs<PlaySoundResponse>(sellerContext.responseChannel.receive())
+        val soundResponse = assertIs<PlaySoundResponse>(sellerContext.responseChannel.next())
         assertEquals(Sound.ITEMSOUND_SYS_SHORTAGE, soundResponse.sound)
         
-        assertIs<ActionFailedResponse>(sellerContext.responseChannel.receive())
+        assertIs<ActionFailedResponse>(sellerContext.responseChannel.next())
 
         transaction {
             // Check items in database

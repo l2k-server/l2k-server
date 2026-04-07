@@ -4,9 +4,9 @@ spring:
   config.import:
     - file:./config/characters.yml
     - file:./config/chat.yml
+    - file:./config/game.yml
     - file:./config/database.yml
     - file:./config/reward.yml
-    - file:./config/pvp.yml
     - file:./config/server.yml
   datasource:
     username: ${database.user}
@@ -17,6 +17,6 @@ logging:
   pattern.console: "%d{HH:mm:ss.SSS} [%thread] %highlight(%-5level) %cyan(%logger{36}) - %X{remote}%msg%n"
   level:
     root: INFO
-    Exposed: DEBUG
+    Exposed: ERROR
     org.l2kserver: DEBUG
     com.hazelcast.system.logo: OFF

@@ -33,10 +33,10 @@ class RewardService(
     private val itemService: ItemService,
     override val gameObjectRepository: GameObjectRepository,
 
-    @param:Value($$"${pvp.karmaBaseAmount}") private val karmaBaseAmount: Int,
-    @param:Value($$"${pvp.karmaMaxAmount}") private val karmaMaxAmount: Int,
-    @param:Value($$"${pvp.karmaExpDivider}") private val karmaExpDivider: Int,
-    @param:Value($$"${pvp.karmaLostMin}") private val karmaLostMin: Int,
+    @param:Value($$"${game.karmaBaseAmount}") private val karmaBaseAmount: Int,
+    @param:Value($$"${game.karmaMaxAmount}") private val karmaMaxAmount: Int,
+    @param:Value($$"${game.karmaExpDivider}") private val karmaExpDivider: Int,
+    @param:Value($$"${game.karmaLostMin}") private val karmaLostMin: Int,
     @param:Value($$"${reward.minLevelDifferenceForPenalty}") private val minLevelDifferenceForPenalty: Int,
     @param:Value($$"${reward.maxLevelDifferenceForPenalty}") private val maxLevelDifferenceForPenalty: Int,
     @param:Value($$"${reward.levelPenaltyBaseValue}") private val levelPenaltyBaseValue: Double
@@ -208,7 +208,7 @@ class RewardService(
         character.currentHp = character.stats.maxHp.roundToInt()
         character.currentMp = character.stats.maxMp.roundToInt()
 
-        sendTo(character.id) { UpdateStatusResponse.hpMpCpOf(character) }
+        sendTo(character.id) { UpdateStatusResponse.currentHpMpCpOf(character) }
         sendTo(character.id) { SystemMessageResponse.YourLevelHasIncreased }
         broadcastAround(character.position) { SocialActionResponse(character.id, SocialAction.LEVEL_UP) }
 

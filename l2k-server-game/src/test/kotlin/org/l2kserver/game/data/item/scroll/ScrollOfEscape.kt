@@ -1,4 +1,4 @@
-package org.l2kserver.game.data.item.etc
+package org.l2kserver.game.data.item.scroll
 
 import org.l2kserver.game.model.item.of
 import org.l2kserver.game.model.item.template.MagicItem
@@ -21,7 +21,7 @@ private data object ScrollOfEscapeSkill: ActiveSkill {
     override fun affect(context: SkillContext) = listOf(EscapeEffect(context.caster.id))
 }
 
-object ScrollOfEscape: MagicItem {
+data object ScrollOfEscape: MagicItem {
     override val id = 736
     override val name = "Scroll of Escape"
     override val weight = 120

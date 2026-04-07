@@ -30,8 +30,8 @@ enum class ChatTab(val id: Int) {
     HERO(id = 17);
 
     companion object {
-        fun byId(id: Int) = requireNotNull(entries.find { it.id == id }) {
-            "No ChatTab found by id='$id'"
-        }
+        private val values = entries.associateBy { it.id }
+        fun byId(id: Int) = requireNotNull(values[id]) { "No ChatTab found by id='$id'" }
     }
+
 }
