@@ -2,6 +2,7 @@ package org.l2kserver.game.service
 
 import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
 import org.l2kserver.game.extensions.logger
+import org.l2kserver.game.extensions.model.actor.isAttacking
 import org.l2kserver.game.extensions.model.actor.isInteractableBy
 import org.l2kserver.game.handler.dto.request.ActionRequest
 import org.l2kserver.game.handler.dto.request.AttackRequest
@@ -166,11 +167,10 @@ class ActionService(
     }
 
     private suspend fun enqueueAttack(attacker: MutableActorInstance, target: MutableActorInstance) {
-        if (attacker.intentionQueue.contains(Intention.Attack(target))) {
+        if (attacker.isAttacking(target)) {
             log.debug("{} is already attacking {}", attacker, target)
             return
         }
-
         attacker.intentionQueue.enqueue(
             Intention.Move(target, requiredDistance = attacker.stats.attackRange),
             Intention.Attack(target)

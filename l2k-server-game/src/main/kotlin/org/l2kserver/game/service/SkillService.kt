@@ -58,7 +58,7 @@ import java.time.Instant
 import kotlin.collections.contains
 import kotlin.math.roundToInt
 
-private const val CAST_TIME_COEFFICIENT = 333
+private const val BASE_CASTING_SPEED = 333
 
 /** Handles learning, enchanting, using skills, etc. */
 @Service
@@ -201,9 +201,9 @@ class SkillService(
         var reuseDelay = skill.reuseDelay
 
         if (skill.usesCasterStats) {
-            castTime = (castTime * CAST_TIME_COEFFICIENT / castingSpeed).roundToInt()
-            repriseTime = (repriseTime * CAST_TIME_COEFFICIENT / castingSpeed).roundToInt()
-            reuseDelay = (reuseDelay * CAST_TIME_COEFFICIENT / castingSpeed).roundToInt()
+            castTime = (castTime * BASE_CASTING_SPEED / castingSpeed).roundToInt()
+            repriseTime = (repriseTime * BASE_CASTING_SPEED / castingSpeed).roundToInt()
+            reuseDelay = (reuseDelay * BASE_CASTING_SPEED / castingSpeed).roundToInt()
         }
 
         skill.nextUsageTime = Instant.now().plusMillis(reuseDelay.toLong())

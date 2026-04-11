@@ -4,7 +4,7 @@ import org.l2kserver.game.domain.TemporalEffects
 import org.l2kserver.game.model.actor.position.Heading
 import org.l2kserver.game.model.actor.position.Position
 
-/** Same as Actor, but with some mutable fields and stuff to be proceeded by server core */
+/** Same as [ActorInstance], but with some mutable fields and stuff to be proceeded by server core */
 sealed class MutableActorInstance: ActorInstance {
     abstract override var position: Position
     abstract override var heading: Heading

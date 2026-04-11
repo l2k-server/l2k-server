@@ -7,6 +7,8 @@ import kotlin.math.absoluteValue
 suspend inline fun<T> withDelay(millis: Long = 100L, action: suspend () -> T) {
     val actionStartTime = System.currentTimeMillis()
     action()
+    if (millis == 0L) return
+
     val delayMills = millis - (System.currentTimeMillis() - actionStartTime)
     if (delayMills < 0) System.err.println("Action took ${delayMills.absoluteValue} ms longer than time allotted!")
     delay(delayMills)
