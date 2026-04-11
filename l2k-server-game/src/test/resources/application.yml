@@ -20,3 +20,4 @@ logging:
     Exposed: ERROR
     org.l2kserver: DEBUG
     com.hazelcast.system.logo: OFF
+    org.l2kserver.game.network.L2GameTcpServer: TRACE

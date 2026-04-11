@@ -171,7 +171,10 @@ class ActorStateService(
             val updatedStatuses = mutableMapOf<StatusAttribute, Int>()
 
             // Regenerate HP
-            if (actor.stats.maxHp > actor.currentHp) {
+            // Rounding is required not to spam UpdateStatusResponse if real value is a bit greater than integer
+            val maxHp = actor.stats.maxHp.roundToInt()
+
+            if (maxHp > actor.currentHp) {
                 val hpRegeneration = actor.stats.hpRegen
                 actor.currentHp = minOf(
                     actor.stats.maxHp.roundToInt(), actor.currentHp + hpRegeneration.roundToInt())
@@ -182,7 +185,8 @@ class ActorStateService(
             }
 
             // Regenerate MP
-            if (actor.stats.maxMp > actor.currentMp) {
+            val maxMp = actor.stats.maxMp.roundToInt()
+            if (maxMp > actor.currentMp) {
                 val mpRegeneration = actor.stats.mpRegen
                 actor.currentMp = minOf(
                     actor.stats.maxMp.roundToInt(), actor.currentMp + mpRegeneration.roundToInt())
@@ -193,7 +197,7 @@ class ActorStateService(
             }
 
             // Regenerate CP
-            if (actor is PlayerCharacterInstanceImpl && actor.stats.maxCp > actor.currentCp) {
+            if (actor is PlayerCharacterInstanceImpl && actor.stats.maxCp.roundToInt() > actor.currentCp) {
                 val cpRegeneration = actor.stats.cpRegen
                 actor.currentCp = minOf(
                     actor.stats.maxCp.roundToInt(), actor.currentCp + cpRegeneration.roundToInt())
@@ -201,10 +205,9 @@ class ActorStateService(
                 updatedStatuses[StatusAttribute.CUR_CP] = actor.currentCp
             }
 
-            if (updatedStatuses.isNotEmpty())
-                this@ActorStateService.broadcastAround(actor.position) {
-                    UpdateStatusResponse(actor.id, updatedStatuses)
-                }
+            if (updatedStatuses.isNotEmpty()) broadcastAround(actor.position) {
+                UpdateStatusResponse(actor.id, updatedStatuses)
+            }
         }
     }
 

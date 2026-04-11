@@ -28,6 +28,11 @@ fun ActorInstance.isInteractableBy(character: PlayerCharacterInstance): Boolean 
     return isFriendlyNpc || isPlayerSeller
 }
 
+/** Checks if actor is already attacking [target] */
+fun MutableActorInstance.isAttacking(
+    target: MutableActorInstance
+) = this.intentionQueue.contains(Intention.Attack(target))
+
 /** Checks if PlayerCharacter has enough consumable item in the inventory to cast [skill]*/
 fun PlayerCharacterInstanceImpl.hasEnoughConsumableItemFor(skill: ActiveSkillInstance): Boolean {
     val consumableToStart = skill.consumesToStart?.item

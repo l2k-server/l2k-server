@@ -74,6 +74,7 @@ class TemporalEffects : MutableCollection<TemporalAbnormalEffect> {
         result
     }
 
+    /** Bitwise sum of all the [org.l2kserver.game.model.skill.effect.AbnormalVisualEffect] on the owner */
     val visible: Int get() = effects.values.fold(0) { acc, effect ->
         acc or (effect.abnormalVisualEffect?.bit ?: 0)
     }
