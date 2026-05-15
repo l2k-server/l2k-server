@@ -118,9 +118,11 @@ class ActorStateService(
      * Notifies surrounding characters about this and flushes combatState end time
      */
     suspend fun disableCombatState(actor: MutableActorInstance) {
-        broadcastAround(actor.position) { StopFightingResponse(actor.id) }
-        actor.isFighting = false
-        fightingActors.remove(actor)
+        if (actor.isFighting) {
+            broadcastAround(actor.position) { StopFightingResponse(actor.id) }
+            actor.isFighting = false
+            fightingActors.remove(actor)
+        }
     }
 
     /**
@@ -151,14 +153,14 @@ class ActorStateService(
         when {
             pvpTimeLeft <= 0 -> suspendTransaction {
                 character.pvpState = PvpState.NOT_IN_PVP
-                this@ActorStateService.broadcastAround(character.position) { PvPStatusResponse(character) }
+                broadcastAround(character.position) { PvPStatusResponse(character) }
                 charactersInPvpState.remove(character)
                 log.debug("'{}' is now not in PVP", character)
             }
 
             pvpTimeLeft <= pvpFlagEndingTimeMs -> suspendTransaction {
                 character.pvpState = PvpState.PVP_ENDING
-                this@ActorStateService.broadcastAround(character.position) { PvPStatusResponse(character) }
+                broadcastAround(character.position) { PvPStatusResponse(character) }
                 log.debug("Switched PVP state of '{}' to '{}'", character, character.pvpState)
             }
         }

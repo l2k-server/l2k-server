@@ -20,6 +20,8 @@ import org.l2kserver.game.model.zone.SpawnZone
  * Non-player character
  *
  * @property opponents Map of characters, who fights with his NPC to their damage dealt to this NPC
+ * @property overhitDamage Damage dealt by an over-hit, if this NPC was killed by an over-hit.
+ * "mob had 10 HP left, over-hit skill did 50 damage total, over-hit damage is 40" - l2jserver
  */
 interface NpcInstance: ActorInstance {
     override val id: Int
@@ -45,7 +47,9 @@ interface NpcInstance: ActorInstance {
     override val moveType: MoveType
     val equippedWeaponTemplate: Weapon? get() = null
     val equippedShieldTemplate: Armor? get() = null
-    val opponents: Map<ActorInstance, Int> //TODO State Machine
+
+    val opponents: Map<ActorInstance, Int>
+    val overhitDamage: Int get() = 0
 
     override val weaponType: WeaponType? get() = equippedWeaponTemplate?.type
     override val hasShield: Boolean get() = equippedShieldTemplate != null
@@ -73,6 +77,6 @@ class SpawnedAt private constructor(
 
     override fun toString(): String {
         return if (spawnZone != null ) "SpawnedAt(spawnZone=$spawnZone)"
-        else "SpawnedAt(spawnPosition=$spawnPosition"
+        else "SpawnedAt(spawnPosition=$spawnPosition)"
     }
 }

@@ -49,7 +49,7 @@ class AiService(
         if (!currentCoroutineContext().isActive) return@forEach
         when (intent) {
             is WaitIntent -> delay(intent.waitTimeMillis)
-            is SayIntent -> this@AiService.broadcastAround(npc.position) {
+            is SayIntent -> broadcastAround(npc.position) {
                 ChatMessageResponse(
                     speakerId = npc.id,
                     chatTab = ChatTab.GENERAL,

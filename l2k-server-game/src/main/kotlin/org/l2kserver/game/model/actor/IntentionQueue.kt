@@ -90,7 +90,7 @@ class IntentionQueue {
      *
      * Prefer [onNext] for reacting to changes. This property is a snapshot.
      */
-    val current: Intention? get() = currentIntentionFlow.value
+    val current: Intention? by currentIntentionFlow::value
 
     /**
      * Contains all the next intentions.

@@ -13,10 +13,12 @@ import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
 import org.l2kserver.game.extensions.logger
 import org.l2kserver.game.handler.dto.response.AttackResponse
 import org.l2kserver.game.handler.dto.response.CancelCastingResponse
+import org.l2kserver.game.handler.dto.response.FullCharacterResponse
 import org.l2kserver.game.handler.dto.response.GaugeColor
 import org.l2kserver.game.handler.dto.response.GaugeResponse
 import org.l2kserver.game.handler.dto.response.NpcDiedResponse
 import org.l2kserver.game.handler.dto.response.PlayerDiedResponse
+import org.l2kserver.game.handler.dto.response.PvPStatusResponse
 import org.l2kserver.game.handler.dto.response.SystemMessageResponse
 import org.l2kserver.game.handler.dto.response.UpdateItemsResponse
 import org.l2kserver.game.handler.dto.response.UpdateStatusResponse
@@ -57,7 +59,7 @@ class CombatService(
     /** Key - actor ID, value - time when actor can hit again */
     private val nextAttackAvailableTimeMap = ConcurrentHashMap<Int, Long>()
 
-    /** Move [attacker] enough close to hit and attack [attacked] */
+    /** Executes single attack **/
     suspend fun attack(attacker: MutableActorInstance, attacked: MutableActorInstance) {
         log.debug("Started attacking '{}' by '{}'", attacked, attacker)
 
@@ -71,40 +73,22 @@ class CombatService(
 
         try {
             val requiredDistance = (attacker.stats.attackRange + attacked.collisionBox.radius).roundToInt()
-            if (!attacker.position.isCloseTo(attacked.position, requiredDistance)) {
-                attacker.intentionQueue.enqueue(
-                    Intention.Move(attacked, requiredDistance = attacker.stats.attackRange),
-                    Intention.Attack(attacked)
-                )
-            }
+            if (!attacker.position.isCloseTo(attacked.position, requiredDistance)) return
 
             // If next attack is not available, wait for a while and try again
             if ((nextAttackAvailableTimeMap[attacker.id] ?: 0) > currentTimeMillis()) {
                 delay(50L)
-                attacker.intentionQueue.enqueue(
-                    Intention.Move(attacked, requiredDistance = attacker.stats.attackRange),
-                    Intention.Attack(attacked)
-                )
                 return
             }
 
             suspendTransaction {
                 // Player character must spend mana and arrows for attack (if weapon requires)
-                if ((attacker as? PlayerCharacterInstanceImpl)?.spendResources() != false) when (attacker.weaponType) {
-                    WeaponType.BOW -> performBowAttack(attacker, attacked)
-                    WeaponType.FIST, WeaponType.DOUBLE_BLADES -> performSimpleAttacks(attacker, attacked, 2)
-                    else -> performSimpleAttacks(attacker, attacked, 1)
-                }
-
-                // Activate combat stance and pvp state (if fighters are characters)
-                actorStateService.activateCombatState(attacker)
-                actorStateService.activateCombatState(attacked)
-                if (
-                    attacker is PlayerCharacterInstance &&
-                    attacked is PlayerCharacterInstance &&
-                    attacked.karma == 0
-                ) {
-                    actorStateService.activatePvpState(attacker)
+                if ((attacker as? PlayerCharacterInstanceImpl)?.spendResources() != false) {
+                    when (attacker.weaponType) {
+                        WeaponType.BOW -> performBowAttack(attacker, attacked)
+                        WeaponType.FIST, WeaponType.DOUBLE_BLADES -> performSimpleAttacks(attacker, attacked, 2)
+                        else -> performSimpleAttacks(attacker, attacked, 1)
+                    }
                 }
 
                 //Enable SS if auto-use soulshot enabled
@@ -137,10 +121,8 @@ class CombatService(
         }
 
         // Calculate overhit damage.
-        // "mob had 10 HP left, over-hit skill did 50 damage total, over-hit damage is 40" (c) l2jserver
-        val overhitDamage = if (skill?.overhitPossible == true && attacked is NpcInstanceImpl)
-            maxOf(effect.damage - attacked.currentHp, 0)
-        else 0
+        if (skill?.overhitPossible == true && attacked is NpcInstanceImpl)
+           attacked.overhitDamage = maxOf(effect.damage - attacked.currentHp, 0)
 
         //Store damage for AI and reward ownership
         if (attacked is NpcInstanceImpl) synchronized(attacked.opponents) {
@@ -174,13 +156,30 @@ class CombatService(
             SystemMessageResponse.YouWereHitBy(attacker.name, effect.damage)
         }
 
-        if (overhitDamage > 0) send { SystemMessageResponse.OverHit }
+        if (((attacked as? NpcInstanceImpl)?.overhitDamage ?: 0) > 0) send { SystemMessageResponse.OverHit }
 
         val updatedStatus = UpdateStatusResponse.currentHpMpCpOf(attacked)
         sendTo(attacked.id) { updatedStatus }
         attacked.targetedBy.forEach { sendTo(it.id) { updatedStatus } }
 
-        if (attacked.currentHp == 0) killActor(attacked, attacker, overhitDamage)
+        // Activate combat stance of attacker
+        actorStateService.activateCombatState(attacker)
+
+        // Activate pvp state of attacker if fighters are characters
+        if (
+            attacker is PlayerCharacterInstance &&
+            attacked is PlayerCharacterInstance &&
+            attacked.karma == 0
+        ) {
+            actorStateService.activatePvpState(attacker)
+        }
+        // Activate combat stance of attacked
+        if (!attacked.isDead()) actorStateService.activateCombatState(attacked)
+
+        if (attacked.isDead()) {
+            rewardService.manageRewards(attacker, attacked)
+            killActor(attacked)
+        }
     }
 
     /**
@@ -265,18 +264,18 @@ class CombatService(
         }
 
         //Delay before launching an arrow
-        delay((attackDuration * 0.9).roundToLong())
+        delay((attackDuration * 0.7).roundToLong())
 
         withContext(currentCoroutineContext() + NonCancellable) {
             //Launch an arrow!
             CoroutineScope(currentCoroutineContext() + NonCancellable).launch {
                 //Delay for time it takes for the arrow to reach the target
                 delay((attacker.position.distanceTo(attacked.position) / ARROW_SPEED_PER_MS).toLong())
-                suspendTransaction { applyDamageEffect(attacker, damageEffect) }
+                applyDamageEffect(attacker, damageEffect)
             }
 
             //Delay for the time between the hit and the end of the attack animation
-            delay((attackDuration * 0.1).roundToLong())
+            delay((attackDuration * 0.3).roundToLong())
         }
     }
 
@@ -317,10 +316,9 @@ class CombatService(
 
     /**
      * Kills actor, notifies surrounding players about it, performs required actions on actors death
-     *
      * @param actor Actor, who was killed
      */
-    private suspend fun killActor(actor: MutableActorInstance, killer: MutableActorInstance, overhitDamage: Int) {
+    private suspend fun killActor(actor: MutableActorInstance) {
         if (actor.intentionQueue.current is Intention.Cast) {
             broadcastAround(actor.position) { CancelCastingResponse(actor.id) }
         }
@@ -334,13 +332,18 @@ class CombatService(
             is NpcInstanceImpl -> {
                 broadcastAround(actor.position) { NpcDiedResponse(actor) }
                 npcService.handleNpcDeath(actor)
-                if (killer is PlayerCharacterInstanceImpl)
-                    rewardService.manageRewardForKillingNpc(killer, actor, overhitDamage)
             }
 
             is PlayerCharacterInstanceImpl -> {
                 broadcastAround(actor.position) { PlayerDiedResponse(actor) }
-                if (killer is PlayerCharacterInstanceImpl) rewardService.manageRewardForKillingPlayer(actor, killer)
+
+                if (actor.karma != 0) {
+                    actor.karma = 0
+
+                    log.debug("{} was killed, decreased his karma to '{}'", actor, actor.karma)
+                    broadcastAround(actor.position) { PvPStatusResponse(actor) }
+                    sendTo(actor.id) { FullCharacterResponse(actor) }
+                }
             }
         }
     }

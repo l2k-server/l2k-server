@@ -76,6 +76,7 @@ class NpcInstanceImpl(
      */
     //TODO clean this map after fighting has ended
     override val opponents = ConcurrentHashMap<ActorInstance, Int>(0)
+    override var overhitDamage = 0
 
     override val isImmobilized: Boolean get() = isParalyzed //TODO check if rooted, stunned, paralyzed, casting, etc...
     override val isParalyzed: Boolean get() = false

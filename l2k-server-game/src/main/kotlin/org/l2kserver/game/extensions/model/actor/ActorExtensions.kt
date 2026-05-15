@@ -9,7 +9,7 @@ import org.l2kserver.game.model.actor.character.PlayerCharacterInstance
 import org.l2kserver.game.model.skill.instance.ActiveSkillInstance
 
 fun ActorInstance.asMutable() = requireNotNull(this as? MutableActorInstance) {
-    "$this cannot be mutable"
+    "$this cannot be proceeded by server. Was it created outside server core?"
 }
 
 /** Checks if actor has enough HP to cast [skill] */

@@ -28,6 +28,7 @@ import org.l2kserver.game.model.actor.position.Position
 import org.l2kserver.game.model.actor.GameWorldObject
 import org.l2kserver.game.model.actor.MoveType
 import org.l2kserver.game.model.actor.MutableActorInstance
+import org.l2kserver.game.model.actor.PlayerCharacterInstanceImpl
 import org.l2kserver.game.model.actor.character.PlayerCharacterInstance
 import org.l2kserver.game.network.session.send
 import org.l2kserver.game.network.session.sendTo
@@ -66,7 +67,7 @@ class MoveService(
         character.intentionQueue.enqueue(Intention.Move(DestinationPoint(request.targetPosition)))
     }
 
-    /** Handles position validation request. At the moment validates position by client */
+    /** Handles position validation request */
     suspend fun validatePosition(request: ValidatePositionRequest) = suspendTransaction {
         val characterId = sessionContext().getCharacterIdOrNull() ?: run {
             log.warn("Player '{}' has not selected character", sessionContext().getAccountNameOrNull())
@@ -80,8 +81,8 @@ class MoveService(
                 character, request.position, character.position)
             send { ValidatePositionResponse(characterId, character.position, character.heading) }
         }
+        else character.position = request.position
 
-        character.position = request.position
         //CRUTCH If this response is not sent - character becomes stuck
         send { ActionFailedResponse }
     }
@@ -228,20 +229,22 @@ class MoveService(
 
     /** Teleports [actor] to [targetPosition] */
 suspend fun teleport(actor: MutableActorInstance, targetPosition: Position) = asyncTaskService.launchOnce {
+        //TODO Checks if player can teleport ???
         log.debug("Teleporting '{}' to '{}'", actor, targetPosition)
         actor.intentionQueue.cancel()
 
+        val fixedPosition = targetPosition.copy(
+            z = geoDataService.getNearestZ(targetPosition.x, targetPosition.y, targetPosition.z)
+        )
+
         suspendTransaction {
-            val fixedPosition = targetPosition.copy(
-                z = geoDataService.getNearestZ(targetPosition.x, targetPosition.y, targetPosition.z)
-            )
-
-            //TODO Checks if player can teleport ???
-            sendTo(actor.id) { TeleportResponse(actor.id, fixedPosition) }
-
             actor.position = fixedPosition
-            updateObjectsAround(actor)
         }
+
+        if (actor is PlayerCharacterInstanceImpl) actor.knownGameWorldObjects.clear()
+
+        sendTo(actor.id) { TeleportResponse(actor.id, fixedPosition) }
+        updateObjectsAround(actor)
     }
 
     /**

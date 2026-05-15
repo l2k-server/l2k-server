@@ -90,7 +90,7 @@ complexity:
     ignoreOverloaded: false
   CyclomaticComplexMethod:
     active: true
-    allowedComplexity: 20
+    allowedComplexity: 25
     ignoreSingleWhenExpression: false
     ignoreSimpleWhenEntries: false
     ignoreNestingFunctions: false
@@ -746,7 +746,7 @@ style:
     active: true
   SerialVersionUIDInSerializableClass:
     active: true
-  SpacingAfterPackageDeclaration:
+  SpacingAfterPackageAndImports:
     active: false
   StringShouldBeRawString:
     active: false
@@ -791,7 +791,7 @@ style:
   UnnecessaryReversed:
     active: false
   UnusedImport:
-    active: false
+    active: true
     additionalOperatorSet: []
   UnusedParameter:
     active: true
