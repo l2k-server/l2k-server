@@ -230,8 +230,6 @@ class SkillService(
         withContext(NonCancellable) {
             //Time to finish cast animation
             withDelay(repriseTime.toLong()) {
-                applyEffects(skill, caster, target)
-
                 caster.spendResources(skill.consumes)
 
                 when (skill.targetType) {
@@ -254,6 +252,8 @@ class SkillService(
                     SkillTargetType.DEAD_NPC -> npcService.remove(target as NpcInstanceImpl)
                     else -> {}
                 }
+
+                applyEffects(skill, caster, target)
             }
         }
     }

@@ -98,9 +98,9 @@ class PlayerCharacterInstanceImpl(
     private val entity: PlayerCharacterEntity,
     override val characterClass: CharacterClass
 ): MutableActorInstance(), PlayerCharacterInstance {
-    override val id: Int = entity.id.value
-    override val accountName by entity::accountName
-    override val name by entity::name
+    override val id = entity.id.value
+    override val accountName = entity.accountName
+    override val name = entity.name
 
     override var title by entity::title
     override var clanId by entity::clanId
@@ -200,5 +200,5 @@ class PlayerCharacterInstanceImpl(
         return karma > 0 || pvpState != PvpState.NOT_IN_PVP
     }
 
-    override fun toString() = "Character(name=$name id=$id gender=$gender race=$race)"
+    override fun toString() = "Character(name=$name id=$id)"
 }

@@ -9,6 +9,7 @@ import org.l2kserver.game.handler.dto.response.SystemMessageResponse
 import org.l2kserver.game.handler.dto.response.UpdateStatusResponse
 import org.l2kserver.game.model.SocialAction
 import org.l2kserver.game.model.actor.ActorInstance
+import org.l2kserver.game.model.actor.MutableActorInstance
 import org.l2kserver.game.model.actor.NpcInstanceImpl
 import org.l2kserver.game.model.actor.PlayerCharacterInstanceImpl
 import org.l2kserver.game.model.actor.character.PlayerCharacterInstance
@@ -44,25 +45,31 @@ class RewardService(
 
     override val log = logger()
 
+    suspend fun manageRewards(killer: MutableActorInstance, killed: MutableActorInstance) {
+        if (killer !is PlayerCharacterInstanceImpl) return //Npc cannot get rewards for killing
+
+        when (killed) {
+            is NpcInstance -> manageRewardForKillingNpc(killer, killed)
+            is PlayerCharacterInstanceImpl ->  manageRewardForKillingPlayer(killer, killed)
+        }
+    }
+
     /**
      * Manages rewards for killing NPC.
      * Calculates exp, sp, item drops, distributes the reward among the players
      */
-    suspend fun manageRewardForKillingNpc(
-        killer: PlayerCharacterInstance,
-        killed: NpcInstance,
-        overhitDamage: Int
-    ) {
+    private suspend fun manageRewardForKillingNpc(killer: PlayerCharacterInstance, killed: NpcInstance) {
         manageItemRewards(killed)
-        manageExpAndSpGain(killer, killed, overhitDamage)
+        manageExpAndSpGain(killer, killed)
     }
 
     /**
      * Manages rewards for killing PlayerCharacter.
      * Calculates pvp and pk scores, karma gain, item drops
      */
-    suspend fun manageRewardForKillingPlayer(killed: PlayerCharacterInstanceImpl, killer: PlayerCharacterInstanceImpl) {
-
+    private suspend fun manageRewardForKillingPlayer(
+        killer: PlayerCharacterInstanceImpl, killed: PlayerCharacterInstanceImpl
+    ) {
         if (killed.pvpState != PvpState.NOT_IN_PVP || killed.karma > 0) {
             killer.pvpCount++
             log.debug("Updated PVP score of '{}': '{}", killer, killer.pvpCount)
@@ -73,16 +80,10 @@ class RewardService(
             killer.pkCount++
 
             log.debug("Updated PK state of '{}': PK score = '{}', Karma = '{}", killer, killer.pkCount, killer.karma)
+            broadcastAround(killer.position) { PvPStatusResponse(killer) }
         }
 
-        if (killed.karma != 0) {
-            killed.karma = 0
-
-            log.debug("{} was killed, decreased his karma to '{}'", killed, killed.karma)
-        }
-
-        sendTo(killed.id) { FullCharacterResponse(killed) }
-        broadcastAround(killed.position) { PvPStatusResponse(killed) }
+        sendTo(killer.id) { FullCharacterResponse(killer) }
     }
 
     /**
@@ -101,9 +102,7 @@ class RewardService(
     /**
      * Calculates exp and sp gain for all the attackers by level difference and damage dealt, and applies it to killer
      */
-    private suspend fun manageExpAndSpGain(
-        killer: PlayerCharacterInstance, killed: NpcInstance, overhitDamage: Int
-    ) {
+    private suspend fun manageExpAndSpGain(killer: PlayerCharacterInstance, killed: NpcInstance) {
         val allTheDamageReceived = killed.opponents.values.reduce { acc, i -> acc + i }
 
         for ((attacker: ActorInstance, damage: Int) in killed.opponents) {
@@ -128,9 +127,9 @@ class RewardService(
                 spShare = maxOf(0.0, spShare * levelDifferenceModifier)
             }
 
-            val overhitExp = if (attacker == killer && overhitDamage > 0) {
+            val overhitExp = if (attacker == killer && killed.overhitDamage > 0) {
                 val killedMaxHp = killed.stats.maxHp.roundToInt()
-                calculateOverhitExp(expShare.roundToInt(), overhitDamage, killedMaxHp)
+                calculateOverhitExp(expShare.roundToInt(), killed.overhitDamage, killedMaxHp)
             }
             else 0
 
@@ -218,7 +217,7 @@ class RewardService(
     }
 
     /** Get the overhit exp bonus according to the above over-hit damage percentage */
-    fun calculateOverhitExp(expGain: Int, overhitDamage: Int, killedMaxHp: Int): Int {
+    private fun calculateOverhitExp(expGain: Int, overhitDamage: Int, killedMaxHp: Int): Int {
         return (minOf(overhitDamage.toDouble() / killedMaxHp, 0.25) * expGain).roundToInt()
     }
 

@@ -23,7 +23,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter")
 
     // Ktor
-    implementation("io.ktor:ktor-network-jvm:3.4.1")
+    implementation("io.ktor:ktor-network-jvm:3.4.3")
 
     //Jackson
     implementation("com.fasterxml.jackson.core:jackson-core")
@@ -33,7 +33,7 @@ dependencies {
     implementation("org.bitbucket.l2jserver:l2j-server-commons:2.6.6.1")
 
     //Hazelcast
-    implementation("com.hazelcast:hazelcast:5.6.0")
+    implementation("com.hazelcast:hazelcast:5.7.0")
 
     // Database
     implementation("org.jetbrains.exposed:exposed-spring-boot4-starter:1.2.0")
@@ -41,7 +41,7 @@ dependencies {
     runtimeOnly("org.postgresql:postgresql")
 
     implementation("org.springframework.boot:spring-boot-starter-flyway")
-    runtimeOnly("org.flywaydb:flyway-database-postgresql:12.1.0")
+    runtimeOnly("org.flywaydb:flyway-database-postgresql:12.6.0")
 
     // Test
     testImplementation(kotlin("test"))

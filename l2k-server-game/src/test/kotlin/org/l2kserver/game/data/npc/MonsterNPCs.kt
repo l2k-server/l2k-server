@@ -151,7 +151,7 @@ data object FatDummyGremlin: Npc {
         atkSpd = 253,
         mAtk = 3,
         mDef = 32,
-        evasion = 33,
+        evasion = 0,
         speed = 50,
         castingSpd = 333,
         hpRegen = 3.16,

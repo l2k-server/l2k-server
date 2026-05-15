@@ -303,7 +303,7 @@ class CharacterService(
         log.debug("Start respawning '{}'", character)
 
         val respawnPosition = when (request.respawnAt) {
-            //TODO During a siege, character should be teleported to other town... or not?
+            //TODO During a siege, character should be teleported to other town
             RespawnAt.VILLAGE -> TownRegistry.getRandomSpawnPointByPosition(
                 character.position,
                 isOutlaw = character.karma > 0

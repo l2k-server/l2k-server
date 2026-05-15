@@ -49,9 +49,9 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 
-class SkillServiceTest(
-    @param:Autowired private val skillService: SkillService,
-    @param:Autowired private val npcService: NpcService
+class SkillServiceTest @Autowired constructor(
+    private val skillService: SkillService,
+    private val npcService: NpcService
 ) : AbstractTests() {
 
     @Test
@@ -137,33 +137,36 @@ class SkillServiceTest(
         assertEquals(PowerStrike.id, skillUsedResponse.skillId)
         assertEquals(calculatedReuseDelay, skillUsedResponse.reuseDelay)
 
-        val damageResponse = assertIs<SystemMessageResponse.YouHit>(
-            context.responseChannel.receiveIgnoring(
-                SystemMessageResponse.CriticalHit::class
-            )
-        )
-
         val updateStatusResponse = assertIs<UpdateStatusResponse>(
             context.responseChannel.receiveIgnoring(
                 SystemMessageResponse.OverHit::class
             )
         )
 
-        assertEquals(
-            damageResponse.damage,
-            target.stats.maxHp.roundToInt() - (updateStatusResponse.attributes[StatusAttribute.CUR_HP] ?: 0)
-        )
-
-        val updateCharacterStatusResponse = assertIs<UpdateStatusResponse>(context.responseChannel.next())
-        assertEquals(character.id, updateCharacterStatusResponse.objectId)
+        assertEquals(character.id, updateStatusResponse.objectId)
 
         val characterFightingResponse = assertIs<StartFightingResponse>(context.responseChannel.next())
         assertEquals(character.id, characterFightingResponse.actorId)
 
+        // After being attacked NPC changes it's moveType to RUN TODO delete after moving this logic to AI
         assertIs<ChangeMoveTypeResponse>(context.responseChannel.next())
 
         val targetFightingResponse = assertIs<StartFightingResponse>(context.responseChannel.next())
         assertEquals(target.id, targetFightingResponse.actorId)
+
+        val damageResponse = assertIs<SystemMessageResponse.YouHit>(
+            context.responseChannel.receiveIgnoring(
+                SystemMessageResponse.CriticalHit::class
+            )
+        )
+
+        val updateCharacterStatusResponse = assertIs<UpdateStatusResponse>(context.responseChannel.next())
+        assertEquals(target.id, updateCharacterStatusResponse.objectId)
+
+        assertEquals(
+            damageResponse.damage,
+            target.stats.maxHp.roundToInt() - (updateCharacterStatusResponse.attributes[StatusAttribute.CUR_HP] ?: 0)
+        )
     }
 
     @Test
@@ -190,20 +193,23 @@ class SkillServiceTest(
         assertIs<SystemMessageResponse.YouUse>(context.responseChannel.next())
         assertIs<GaugeResponse>(context.responseChannel.next())
         assertIs<SkillUsedResponse>(context.responseChannel.next())
+        assertIs<UpdateStatusResponse>(context.responseChannel.next())
+
+        //Consume target stance responses
+        val attackerStartedFighting = assertIs<StartFightingResponse>(context.responseChannel.next())
+        assertEquals(character.id, attackerStartedFighting.actorId)
+
+        val moveTypeChanged = assertIs<ChangeMoveTypeResponse>(context.responseChannel.next())
+        assertEquals(target.id, moveTypeChanged.actorId)
+
+        val targetStartedFighting = assertIs<StartFightingResponse>(context.responseChannel.next())
+        assertEquals(target.id, targetStartedFighting.actorId)
 
         assertIs<SystemMessageResponse.YouHit>(
             context.responseChannel.receiveIgnoring(
                 SystemMessageResponse.CriticalHit::class
             )
         )
-
-        assertIs<UpdateStatusResponse>(context.responseChannel.next())
-
-        //Consume target stance responses
-        assertIs<StartFightingResponse>(context.responseChannel.next())
-        assertIs<ChangeMoveTypeResponse>(context.responseChannel.next())
-
-        assertIs<StartFightingResponse>(context.responseChannel.next()) //attacker started fighting
 
         delay(1000)
         // Second skill usage
@@ -302,15 +308,24 @@ class SkillServiceTest(
             skillService.useSkill(UseSkillRequest(SelfHeal.id))
         }
 
+        val updateAfterManaSpentToStart = assertIs<UpdateStatusResponse>(context.responseChannel.next())
+        assertEquals(
+            character.stats.maxMp.roundToInt() - SelfHeal.consumesToStart.mp!![0],
+            updateAfterManaSpentToStart.attributes[StatusAttribute.CUR_MP])
 
-        assertIs<UpdateStatusResponse>(context.responseChannel.next())
-
-        // MP consumption update
         assertIs<SystemMessageResponse.YouUse>(context.responseChannel.next())
         assertIs<GaugeResponse>(context.responseChannel.next())
         assertIs<SkillUsedResponse>(context.responseChannel.next())
 
-        val updateAfterHeal = assertIs<UpdateStatusResponse>(context.responseChannel.next(timeout = 10000))
+        delay(10000) //Wait for casting completes
+
+        val updateAfterManaSpentAfterCast = assertIs<UpdateStatusResponse>(context.responseChannel.next())
+        assertEquals(
+            character.stats.maxMp.roundToInt() - SelfHeal.consumesToStart.mp!![0] - SelfHeal.consumes.mp!![0],
+            updateAfterManaSpentAfterCast.attributes[StatusAttribute.CUR_MP]
+        )
+
+        val updateAfterHeal = assertIs<UpdateStatusResponse>(context.responseChannel.next())
         assertEquals(43, updateAfterHeal.attributes[StatusAttribute.CUR_HP] ?: 0)
 
         assertIs<SystemMessageResponse.HpRestored>(context.responseChannel.next())
@@ -331,14 +346,26 @@ class SkillServiceTest(
         }
 
         // MP consumption update
-        assertIs<UpdateStatusResponse>(context.responseChannel.next())
+        val updateAfterManaSpentToStart = assertIs<UpdateStatusResponse>(context.responseChannel.next())
+        assertEquals(
+            character.stats.maxMp.roundToInt() - SelfHeal.consumesToStart.mp!![0],
+            updateAfterManaSpentToStart.attributes[StatusAttribute.CUR_MP])
+
         assertIs<SystemMessageResponse.YouUse>(context.responseChannel.next())
         assertIs<GaugeResponse>(context.responseChannel.next())
         assertIs<SkillUsedResponse>(context.responseChannel.next())
 
-        val updateAfterHeal = assertIs<UpdateStatusResponse>(context.responseChannel.next(10000))
-        val hpAfterHeal = updateAfterHeal.attributes[StatusAttribute.CUR_HP] ?: 0
-        assertEquals(character.stats.maxHp.roundToInt(), hpAfterHeal)
+        delay(10000) //Wait for casting completes
+
+        val updateAfterManaSpentAfterCast = assertIs<UpdateStatusResponse>(context.responseChannel.next())
+        assertEquals(
+            character.stats.maxMp.roundToInt() - SelfHeal.consumesToStart.mp!![0] - SelfHeal.consumes.mp!![0],
+            updateAfterManaSpentAfterCast.attributes[StatusAttribute.CUR_MP]
+        )
+
+        val updateAfterHeal = assertIs<UpdateStatusResponse>(context.responseChannel.next())
+        assertEquals(character.stats.maxHp.roundToInt(), updateAfterHeal.attributes[StatusAttribute.CUR_HP] ?: 0)
+
         assertIs<SystemMessageResponse.HpRestored>(context.responseChannel.next())
         transaction { assertEquals(character.stats.maxHp.roundToInt(), character.currentHp) }
     }
@@ -496,11 +523,11 @@ class SkillServiceTest(
         assertEquals(character.id, skillUsedResponse.targetId)
         assertEquals(DefenseAura.id, skillUsedResponse.skillId)
         assertEquals(calculatedReuseDelay, skillUsedResponse.reuseDelay)
+        assertIs<UpdateStatusResponse>(context.responseChannel.next(timeout = 10000)) //mana spent after casting
 
-        assertIs<FullCharacterResponse>(context.responseChannel.next(timeout = 10000))
+        assertIs<FullCharacterResponse>(context.responseChannel.next())
         val temporalEffectsResponse = assertIs<TemporalEffectsResponse>(context.responseChannel.next())
         assertEquals(1, temporalEffectsResponse.abnormals.size)
-        assertIs<UpdateStatusResponse>(context.responseChannel.next()) //mana spent after casting
 
         assertEquals(1, character.temporalEffects.size)
         assertEquals(AbnormalType.PD_UP, character.temporalEffects.firstOrNull()?.abnormalType)
@@ -516,13 +543,29 @@ class SkillServiceTest(
         //First usage of buff
         withContext(context) { skillService.useSkill(UseSkillRequest(DefenseAura.id)) }
 
-        assertIs<UpdateStatusResponse>(context.responseChannel.next()) //mana spent to start casting
+        val updateManaBeforeCasting = assertIs<UpdateStatusResponse>(context.responseChannel.next())
+        assertEquals(character.id, updateManaBeforeCasting.objectId)
+        assertEquals(
+            character.stats.maxMp.toInt() - DefenseAura.consumesToStart.mp!![0],
+            updateManaBeforeCasting.attributes[StatusAttribute.CUR_MP]
+        )
+
         assertIs<SystemMessageResponse.YouUse>(context.responseChannel.next())
         assertIs<GaugeResponse>(context.responseChannel.next())
         val skillUsedResponse = assertIs<SkillUsedResponse>(context.responseChannel.next())
-        assertIs<FullCharacterResponse>(context.responseChannel.next(timeout = 10000L))
+
+        delay(10000) //Wait for casting completes
+
+        val updateManaAfterCasting = assertIs<UpdateStatusResponse>(context.responseChannel.next())
+        assertEquals(character.id, updateManaAfterCasting.objectId)
+        assertEquals(
+            expected =
+                character.stats.maxMp.toInt() - DefenseAura.consumesToStart.mp!![0] - DefenseAura.consumes.mp!![0],
+            actual = updateManaAfterCasting.attributes[StatusAttribute.CUR_MP]
+        )
+
+        assertIs<FullCharacterResponse>(context.responseChannel.next())
         assertIs<TemporalEffectsResponse>(context.responseChannel.next())
-        assertIs<UpdateStatusResponse>(context.responseChannel.next()) //mana spent after casting
 
         //Wait for skill cooldown
         delay(skillUsedResponse.reuseDelay + 1L)
@@ -534,10 +577,13 @@ class SkillServiceTest(
         assertIs<SystemMessageResponse.YouUse>(context.responseChannel.next())
         assertIs<GaugeResponse>(context.responseChannel.next())
         assertIs<SkillUsedResponse>(context.responseChannel.next())
-        assertIs<FullCharacterResponse>(context.responseChannel.next(timeout = 10000L))
+
+        delay(10000) //Wait for casting completes
+
+        assertIs<UpdateStatusResponse>(context.responseChannel.next())
+        assertIs<FullCharacterResponse>(context.responseChannel.next())
         val temporalEffectsResponse = assertIs<TemporalEffectsResponse>(context.responseChannel.next())
         assertEquals(1, temporalEffectsResponse.abnormals.size)
-        assertIs<UpdateStatusResponse>(context.responseChannel.next())
 
         assertEquals(1, character.temporalEffects.size)
     }
@@ -660,7 +706,9 @@ class SkillServiceTest(
         assertEquals(Might.id, skillUsedResponse.skillId)
         assertEquals(calculatedReuseDelay, skillUsedResponse.reuseDelay)
 
-        assertIs<UpdateStatusResponse>(context.responseChannel.next(timeout = 10000)) //mana spent after casting
+        delay(10000) //Wait for casting ends
+
+        assertIs<UpdateStatusResponse>(context.responseChannel.next()) //mana spent after casting
 
         val pvpStatusResponse = assertIs<PvPStatusResponse>(context.responseChannel.next())
         assertEquals(PvpState.PVP, pvpStatusResponse.pvpState)
