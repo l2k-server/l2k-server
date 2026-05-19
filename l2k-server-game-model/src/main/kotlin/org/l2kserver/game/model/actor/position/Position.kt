@@ -18,6 +18,12 @@ data class Position(
     val z: Int = 0
 ) {
 
+    init {
+        require(x in MAP_MIN_X..MAP_MAX_X && y in MAP_MIN_Y..MAP_MAX_Y) {
+            "$this is beyond the borders of the world"
+        }
+    }
+
     companion object {
         const val GEO_CELL_SIZE = 16
         const val GEO_TILE_SIZE = 32768

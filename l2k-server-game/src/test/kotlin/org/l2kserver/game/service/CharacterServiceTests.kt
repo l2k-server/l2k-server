@@ -24,7 +24,7 @@ import org.junit.jupiter.api.assertThrows
 import org.l2kserver.game.data.characterclass.HumanFighter
 import org.l2kserver.game.domain.ItemEntity
 import org.l2kserver.game.domain.PlayerCharacterEntity
-import org.l2kserver.game.extensions.next
+import org.l2kserver.game.extensions.pullResponse
 import org.l2kserver.game.handler.dto.response.ExitGameResponse
 import org.l2kserver.game.handler.dto.response.FullCharacterResponse
 import org.l2kserver.game.handler.dto.response.InventoryResponse
@@ -72,7 +72,7 @@ class CharacterServiceTests(
             )
         }
 
-        val response = assertIs<CharacterListResponse>(context.responseChannel.next())
+        val response = assertIs<CharacterListResponse>(context.pullResponse())
 
         assertEquals(testCharacterName, response.playerCharacters[0].name)
         assertEquals(testRace, response.playerCharacters[0].race)
@@ -88,12 +88,12 @@ class CharacterServiceTests(
         val context = createTestSessionContext(testLogin)
 
         withContext(context) { characterService.createCharacter(createCreateCharacterRequest()) }
-        context.responseChannel.next()
+        context.pullResponse()
 
 
         withContext(context) { characterService.createCharacter(createCreateCharacterRequest(genderId = 1)) }
 
-        val response = assertIs<CreateCharacterFailResponse>(context.responseChannel.next())
+        val response = assertIs<CreateCharacterFailResponse>(context.pullResponse())
         assertEquals(CreateCharacterFailReason.NAME_ALREADY_EXISTS, response.reason)
     }
 
@@ -103,7 +103,7 @@ class CharacterServiceTests(
 
         withContext(context) { characterService.createCharacter(createCreateCharacterRequest(characterName = "13")) }
 
-        val response = assertIs<CreateCharacterFailResponse>(context.responseChannel.next())
+        val response = assertIs<CreateCharacterFailResponse>(context.pullResponse())
         assertEquals(CreateCharacterFailReason.NAME_EXCEED_16_CHARACTERS, response.reason)
     }
 
@@ -113,13 +113,13 @@ class CharacterServiceTests(
         withContext(context) {
             repeat(7) {
                 characterService.createCharacter(createCreateCharacterRequest(characterName = "kek$it"))
-                context.responseChannel.next()
+                context.pullResponse()
             }
 
             characterService.createCharacter(createCreateCharacterRequest())
         }
 
-        val response = assertIs<CreateCharacterFailResponse>(context.responseChannel.next())
+        val response = assertIs<CreateCharacterFailResponse>(context.pullResponse())
         assertEquals(CreateCharacterFailReason.TOO_MANY_CHARACTERS, response.reason)
     }
 
@@ -130,7 +130,7 @@ class CharacterServiceTests(
 
         withContext(context) { characterService.deleteCharacter(DeleteCharacterRequest(0)) }
 
-        val response = assertIs<CharacterListResponse>(context.responseChannel.next())
+        val response = assertIs<CharacterListResponse>(context.pullResponse())
         assertEquals(character.id, response.playerCharacters[0].id)
         assertNotNull(response.playerCharacters[0].deletionDate)
     }
@@ -140,7 +140,7 @@ class CharacterServiceTests(
         val context = createTestSessionContext(testLogin)
         withContext(context) { characterService.deleteCharacter(DeleteCharacterRequest(0)) }
 
-        val response = assertIs<DeleteCharacterFailResponse>(context.responseChannel.next())
+        val response = assertIs<DeleteCharacterFailResponse>(context.pullResponse())
         assertEquals(DeleteCharacterFailReason.DELETION_FAILED, response.reason)
     }
 
@@ -163,7 +163,7 @@ class CharacterServiceTests(
 
         withContext(context) { characterService.selectCharacter(SelectCharacterRequest(0)) }
 
-        val response = assertIs<SelectCharacterResponse>(context.responseChannel.next())
+        val response = assertIs<SelectCharacterResponse>(context.pullResponse())
         assertEquals(character.name, response.selectedPlayerCharacter.name)
         assertEquals(character.id, context.getCharacterId())
     }
@@ -184,7 +184,7 @@ class CharacterServiceTests(
             val context = createTestSessionContext(testLogin)
             runBlocking(context) {
                 characterService.sendCharactersList()
-                val response = assertIs<CharacterListResponse>(context.responseChannel.next())
+                val response = assertIs<CharacterListResponse>(context.pullResponse())
                 assertTrue(response.playerCharacters.isEmpty(), "Characters list must be empty")
             }
 
@@ -219,15 +219,15 @@ class CharacterServiceTests(
 
         withContext(context) { characterService.enterWorld() }
 
-        val characterResponse = assertIs<FullCharacterResponse>(context.responseChannel.next())
+        val characterResponse = assertIs<FullCharacterResponse>(context.pullResponse())
         assertEquals(character.id, characterResponse.character.id)
         assertNotNull(gameObjectRepository.findByIdOrNull(character.id))
 
-        assertIs<InventoryResponse>(context.responseChannel.next())
-        assertIs<SkillListResponse>(context.responseChannel.next())
-        assertIs<ShortcutPanelResponse>(context.responseChannel.next())
+        assertIs<InventoryResponse>(context.pullResponse())
+        assertIs<SkillListResponse>(context.pullResponse())
+        assertIs<ShortcutPanelResponse>(context.pullResponse())
 
-        assertIs<SystemMessageResponse>(context.responseChannel.next())
+        assertIs<SystemMessageResponse>(context.pullResponse())
 
         //TODO Other responses
     }
@@ -240,8 +240,8 @@ class CharacterServiceTests(
 
         withContext(context) { characterService.exitToCharactersMenu() }
 
-        assertIs<RestartResponse>(context.responseChannel.next())
-        assertIs<CharacterListResponse>(context.responseChannel.next())
+        assertIs<RestartResponse>(context.pullResponse())
+        assertIs<CharacterListResponse>(context.pullResponse())
         assertTrue(context.inCharacterMenu())
     }
 
@@ -262,7 +262,7 @@ class CharacterServiceTests(
         //Swallow BlockingCoroutineCancelledException
         runCatching { withContext(context) { characterService.exitGame() } }
 
-        assertIs<ExitGameResponse>(context.responseChannel.next())
+        assertIs<ExitGameResponse>(context.pullResponse())
     }
 
     @Suppress("LongParameterList")

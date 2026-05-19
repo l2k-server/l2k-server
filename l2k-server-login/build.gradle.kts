@@ -23,7 +23,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter")
 
     // Ktor
-    implementation("io.ktor:ktor-network-jvm:3.4.3")
+    implementation(libs.ktor.network.jvm)
 
     //Jackson
     implementation("com.fasterxml.jackson.core:jackson-core")
@@ -33,11 +33,11 @@ dependencies {
     implementation("org.bitbucket.l2jserver:l2j-server-commons:2.6.6.1")
 
     //Hazelcast
-    implementation("com.hazelcast:hazelcast:5.7.0")
+    implementation(libs.hazelcast)
 
     // Database
-    implementation("org.jetbrains.exposed:exposed-spring-boot4-starter:1.2.0")
-    implementation("org.jetbrains.exposed:exposed-java-time:1.2.0")
+    implementation(libs.exposed.spring.boot4.starter)
+    implementation(libs.exposed.java.time)
     runtimeOnly("org.postgresql:postgresql")
 
     implementation("org.springframework.boot:spring-boot-starter-flyway")

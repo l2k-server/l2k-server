@@ -3,7 +3,7 @@ package org.l2kserver.game.service
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import org.l2kserver.game.AbstractTests
-import org.l2kserver.game.extensions.next
+import org.l2kserver.game.extensions.pullResponse
 import org.l2kserver.game.handler.dto.request.CreateShortcutRequest
 import org.l2kserver.game.handler.dto.response.CreateShortcutResponse
 import org.l2kserver.game.model.actor.character.ShortcutType
@@ -36,7 +36,7 @@ class ShortcutServiceTest(
         )
         withContext(context) { shortcutService.registerShortcut(request) }
 
-        val response = assertIs<CreateShortcutResponse>(context.responseChannel.next())
+        val response = assertIs<CreateShortcutResponse>(context.pullResponse())
 
         assertEquals(testActionType, response.shortcut.type)
         assertEquals(testIndex, response.shortcut.index)
@@ -70,7 +70,7 @@ class ShortcutServiceTest(
         )
         withContext(context){ shortcutService.registerShortcut(request) }
 
-        val response = assertIs<CreateShortcutResponse>(context.responseChannel.next())
+        val response = assertIs<CreateShortcutResponse>(context.pullResponse())
 
         assertEquals(testActionType, response.shortcut.type)
         assertEquals(testIndex, response.shortcut.index)

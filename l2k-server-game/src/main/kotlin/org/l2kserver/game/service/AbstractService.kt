@@ -21,7 +21,6 @@ import org.l2kserver.game.model.actor.Posture
 import org.l2kserver.game.model.actor.ScatteredItem
 import org.l2kserver.game.model.actor.character.PlayerCharacterInstance
 import org.l2kserver.game.model.actor.npc.NpcInstance
-import org.l2kserver.game.network.session.send
 import org.l2kserver.game.repository.GameObjectRepository
 import org.l2kserver.game.network.session.sendTo
 import org.slf4j.Logger
@@ -135,7 +134,7 @@ abstract class AbstractService {
             //If known object now is too far - delete it.
             //If not - delete it from [newGameObjectsAround], to leave only not known objects for notifying
             if (newGameObjectsAround.contains(knownObject)) newGameObjectsAround.remove(knownObject)
-            else character.removeObjectFromKnowsAndNotify(knownObject)
+            else character.removeObjectFromKnownListAndNotify(knownObject)
         }
 
         // For all game objects that are now enough close to see them
@@ -144,14 +143,14 @@ abstract class AbstractService {
         }
     }
 
-    private suspend fun PlayerCharacterInstanceImpl.removeObjectFromKnowsAndNotify(gameObject: GameWorldObject) {
+    protected suspend fun PlayerCharacterInstanceImpl.removeObjectFromKnownListAndNotify(gameObject: GameWorldObject) {
         this.knownGameWorldObjects.remove(gameObject)
-        send { DeleteObjectResponse(gameObject.id) }
+        sendTo(this.id) { DeleteObjectResponse(gameObject.id) }
 
         if (this.targetId == gameObject.id) {
             this.targetId = null
             if (gameObject is MutableActorInstance) gameObject.targetedBy.remove(this)
-            send { SetTargetResponse(0, 0) }
+            sendTo(this.id) { SetTargetResponse(0, 0) }
         }
 
         if (gameObject is PlayerCharacterInstanceImpl) {

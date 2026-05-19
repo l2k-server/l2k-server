@@ -228,10 +228,11 @@ class MoveService(
         } 
 
     /** Teleports [actor] to [targetPosition] */
-suspend fun teleport(actor: MutableActorInstance, targetPosition: Position) = asyncTaskService.launchOnce {
+suspend fun teleport(actor: MutableActorInstance, targetPosition: Position) {
         //TODO Checks if player can teleport ???
         log.debug("Teleporting '{}' to '{}'", actor, targetPosition)
         actor.intentionQueue.cancel()
+        asyncTaskService.waitForAction(actor.id) // Wait for current action completes
 
         val fixedPosition = targetPosition.copy(
             z = geoDataService.getNearestZ(targetPosition.x, targetPosition.y, targetPosition.z)
@@ -241,7 +242,12 @@ suspend fun teleport(actor: MutableActorInstance, targetPosition: Position) = as
             actor.position = fixedPosition
         }
 
-        if (actor is PlayerCharacterInstanceImpl) actor.knownGameWorldObjects.clear()
+        // CRUTCH: Remove character from all characters around and clear his known objects list
+        // Otherwise client shows no objects around teleported character, if he teleports at position near previous
+        if (actor is PlayerCharacterInstanceImpl) {
+            actor.knownGameWorldObjects.forEach { obj -> actor.removeObjectFromKnownListAndNotify(obj) }
+            actor.knownGameWorldObjects.clear()
+        }
 
         sendTo(actor.id) { TeleportResponse(actor.id, fixedPosition) }
         updateObjectsAround(actor)

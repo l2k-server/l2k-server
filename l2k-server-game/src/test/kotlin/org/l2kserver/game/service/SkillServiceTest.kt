@@ -12,7 +12,7 @@ import org.l2kserver.game.data.skill.LifeScavenge
 import org.l2kserver.game.data.skill.PowerStrike
 import org.l2kserver.game.data.skill.SelfHeal
 import org.l2kserver.game.domain.SkillTable
-import org.l2kserver.game.extensions.receiveIgnoring
+import org.l2kserver.game.extensions.pullResponse
 import org.l2kserver.game.extensions.toSpawnPosition
 import org.l2kserver.game.handler.dto.request.UseSkillRequest
 import org.l2kserver.game.handler.dto.response.ActionFailedResponse
@@ -34,7 +34,6 @@ import org.l2kserver.game.data.npc.FatDummyGremlin
 import org.l2kserver.game.data.skill.DefenseAura
 import org.l2kserver.game.data.skill.Might
 import org.l2kserver.game.data.skill.PowerShot
-import org.l2kserver.game.extensions.next
 import org.l2kserver.game.handler.dto.response.TemporalEffectsResponse
 import org.l2kserver.game.handler.dto.response.FullCharacterResponse
 import org.l2kserver.game.handler.dto.response.NpcInfoResponse
@@ -61,7 +60,7 @@ class SkillServiceTest @Autowired constructor(
 
         withContext(context) { skillService.getSkillList() }
 
-        val skillListResponse = assertIs<SkillListResponse>(context.responseChannel.next())
+        val skillListResponse = assertIs<SkillListResponse>(context.pullResponse())
         assertEquals(0, skillListResponse.skills.size, "Skill list must be empty")
     }
 
@@ -90,13 +89,13 @@ class SkillServiceTest @Autowired constructor(
             template = NpcRegistry.register(FatDummyGremlin),
             spawnPosition = character.position.toSpawnPosition()
         )
-        context.responseChannel.next() //Skip NpcInfoResponse
+        context.pullResponse() //Skip NpcInfoResponse
         character.targetId = target.id
 
         withContext(context) { skillService.useSkill(UseSkillRequest(MortalBlow.id)) }
-        val playSoundResponse = assertIs<PlaySoundResponse>(context.responseChannel.next())
+        val playSoundResponse = assertIs<PlaySoundResponse>(context.pullResponse())
         assertEquals(Sound.ITEMSOUND_SYS_IMPOSSIBLE, playSoundResponse.sound)
-        assertIs<ActionFailedResponse>(context.responseChannel.next())
+        assertIs<ActionFailedResponse>(context.pullResponse())
     }
 
     @Test
@@ -114,7 +113,7 @@ class SkillServiceTest @Autowired constructor(
             spawnPosition = character.position.toSpawnPosition()
         )
 
-        context.responseChannel.next() //Skip NpcInfoResponse
+        context.pullResponse() //Skip NpcInfoResponse
 
         character.targetId = target.id
         target.targetedBy.add(character)
@@ -124,43 +123,41 @@ class SkillServiceTest @Autowired constructor(
         }
 
         // Check results
-        assertIs<StartMovingToTargetResponse>(context.responseChannel.next())
+        assertIs<StartMovingToTargetResponse>(context.pullResponse())
 
-        assertIs<SystemMessageResponse.YouUse>(context.responseChannel.next())
-        val gaugeResponse = assertIs<GaugeResponse>(context.responseChannel.next())
+        assertIs<SystemMessageResponse.YouUse>(context.pullResponse())
+        val gaugeResponse = assertIs<GaugeResponse>(context.pullResponse())
         assertEquals(GaugeColor.BLUE, gaugeResponse.gaugeColor)
 
         val calculatedReuseDelay = 10406
-        val skillUsedResponse = assertIs<SkillUsedResponse>(context.responseChannel.next())
+        val skillUsedResponse = assertIs<SkillUsedResponse>(context.pullResponse())
         assertEquals(character.id, skillUsedResponse.casterId)
         assertEquals(target.id, skillUsedResponse.targetId)
         assertEquals(PowerStrike.id, skillUsedResponse.skillId)
         assertEquals(calculatedReuseDelay, skillUsedResponse.reuseDelay)
 
         val updateStatusResponse = assertIs<UpdateStatusResponse>(
-            context.responseChannel.receiveIgnoring(
-                SystemMessageResponse.OverHit::class
-            )
+            context.pullResponse(SystemMessageResponse.OverHit::class)
         )
 
         assertEquals(character.id, updateStatusResponse.objectId)
 
-        val characterFightingResponse = assertIs<StartFightingResponse>(context.responseChannel.next())
+        val characterFightingResponse = assertIs<StartFightingResponse>(context.pullResponse())
         assertEquals(character.id, characterFightingResponse.actorId)
 
         // After being attacked NPC changes it's moveType to RUN TODO delete after moving this logic to AI
-        assertIs<ChangeMoveTypeResponse>(context.responseChannel.next())
+        assertIs<ChangeMoveTypeResponse>(context.pullResponse())
 
-        val targetFightingResponse = assertIs<StartFightingResponse>(context.responseChannel.next())
+        val targetFightingResponse = assertIs<StartFightingResponse>(context.pullResponse())
         assertEquals(target.id, targetFightingResponse.actorId)
 
         val damageResponse = assertIs<SystemMessageResponse.YouHit>(
-            context.responseChannel.receiveIgnoring(
+            context.pullResponse(
                 SystemMessageResponse.CriticalHit::class
             )
         )
 
-        val updateCharacterStatusResponse = assertIs<UpdateStatusResponse>(context.responseChannel.next())
+        val updateCharacterStatusResponse = assertIs<UpdateStatusResponse>(context.pullResponse())
         assertEquals(target.id, updateCharacterStatusResponse.objectId)
 
         assertEquals(
@@ -183,32 +180,30 @@ class SkillServiceTest @Autowired constructor(
             template = FatDummyGremlin,
             spawnPosition = character.position.toSpawnPosition()
         )
-        context.responseChannel.next() //Skip NpcInfoResponse
+        context.pullResponse() //Skip NpcInfoResponse
         character.targetId = target.id
 
         // First skill usage
         withContext(context) { skillService.useSkill(UseSkillRequest(PowerStrike.id)) }
 
-        assertIs<StartMovingToTargetResponse>(context.responseChannel.next())
-        assertIs<SystemMessageResponse.YouUse>(context.responseChannel.next())
-        assertIs<GaugeResponse>(context.responseChannel.next())
-        assertIs<SkillUsedResponse>(context.responseChannel.next())
-        assertIs<UpdateStatusResponse>(context.responseChannel.next())
+        assertIs<StartMovingToTargetResponse>(context.pullResponse())
+        assertIs<SystemMessageResponse.YouUse>(context.pullResponse())
+        assertIs<GaugeResponse>(context.pullResponse())
+        assertIs<SkillUsedResponse>(context.pullResponse())
+        assertIs<UpdateStatusResponse>(context.pullResponse())
 
         //Consume target stance responses
-        val attackerStartedFighting = assertIs<StartFightingResponse>(context.responseChannel.next())
+        val attackerStartedFighting = assertIs<StartFightingResponse>(context.pullResponse())
         assertEquals(character.id, attackerStartedFighting.actorId)
 
-        val moveTypeChanged = assertIs<ChangeMoveTypeResponse>(context.responseChannel.next())
+        val moveTypeChanged = assertIs<ChangeMoveTypeResponse>(context.pullResponse())
         assertEquals(target.id, moveTypeChanged.actorId)
 
-        val targetStartedFighting = assertIs<StartFightingResponse>(context.responseChannel.next())
+        val targetStartedFighting = assertIs<StartFightingResponse>(context.pullResponse())
         assertEquals(target.id, targetStartedFighting.actorId)
 
         assertIs<SystemMessageResponse.YouHit>(
-            context.responseChannel.receiveIgnoring(
-                SystemMessageResponse.CriticalHit::class
-            )
+            context.pullResponse(SystemMessageResponse.CriticalHit::class)
         )
 
         delay(1000)
@@ -216,14 +211,14 @@ class SkillServiceTest @Autowired constructor(
         withContext(context) { skillService.useSkill(UseSkillRequest(PowerStrike.id)) }
 
         val cooldownResponse = assertIs<SystemMessageResponse.IsBeingPreparedForReuse>(
-            context.responseChannel.receiveIgnoring(
+            context.pullResponse(
                 SystemMessageResponse.OverHit::class,
                 SystemMessageResponse.YouHaveAcquiredExpForOverHit::class
             )
         )
 
         assertEquals(PowerStrike.id, cooldownResponse.skill.skillId)
-        assertIs<ActionFailedResponse>(context.responseChannel.next())
+        assertIs<ActionFailedResponse>(context.pullResponse())
     }
 
     @Test
@@ -260,7 +255,7 @@ class SkillServiceTest @Autowired constructor(
         withContext(context) { skillService.useSkill(UseSkillRequest(PowerStrike.id)) }
 
         // Check results
-        assertIs<SystemMessageResponse.CannotUseThisOnYourself>(context.responseChannel.next())
+        assertIs<SystemMessageResponse.CannotUseThisOnYourself>(context.pullResponse())
     }
 
     @Test
@@ -275,7 +270,7 @@ class SkillServiceTest @Autowired constructor(
         withContext(context) { skillService.useSkill(UseSkillRequest(PowerStrike.id)) }
 
         // Check results
-        assertIs<SystemMessageResponse.YouMustSelectTarget>(context.responseChannel.next())
+        assertIs<SystemMessageResponse.YouMustSelectTarget>(context.pullResponse())
     }
 
     @Test
@@ -292,7 +287,7 @@ class SkillServiceTest @Autowired constructor(
         withContext(context) { skillService.useSkill(UseSkillRequest(PowerStrike.id)) }
 
         // Check results
-        assertIs<SystemMessageResponse.TargetCannotBeFound>(context.responseChannel.next())
+        assertIs<SystemMessageResponse.TargetCannotBeFound>(context.pullResponse())
     }
 
     @Test
@@ -308,27 +303,27 @@ class SkillServiceTest @Autowired constructor(
             skillService.useSkill(UseSkillRequest(SelfHeal.id))
         }
 
-        val updateAfterManaSpentToStart = assertIs<UpdateStatusResponse>(context.responseChannel.next())
+        val updateAfterManaSpentToStart = assertIs<UpdateStatusResponse>(context.pullResponse())
         assertEquals(
             character.stats.maxMp.roundToInt() - SelfHeal.consumesToStart.mp!![0],
             updateAfterManaSpentToStart.attributes[StatusAttribute.CUR_MP])
 
-        assertIs<SystemMessageResponse.YouUse>(context.responseChannel.next())
-        assertIs<GaugeResponse>(context.responseChannel.next())
-        assertIs<SkillUsedResponse>(context.responseChannel.next())
+        assertIs<SystemMessageResponse.YouUse>(context.pullResponse())
+        assertIs<GaugeResponse>(context.pullResponse())
+        assertIs<SkillUsedResponse>(context.pullResponse())
 
         delay(10000) //Wait for casting completes
 
-        val updateAfterManaSpentAfterCast = assertIs<UpdateStatusResponse>(context.responseChannel.next())
+        val updateAfterManaSpentAfterCast = assertIs<UpdateStatusResponse>(context.pullResponse())
         assertEquals(
             character.stats.maxMp.roundToInt() - SelfHeal.consumesToStart.mp!![0] - SelfHeal.consumes.mp!![0],
             updateAfterManaSpentAfterCast.attributes[StatusAttribute.CUR_MP]
         )
 
-        val updateAfterHeal = assertIs<UpdateStatusResponse>(context.responseChannel.next())
+        val updateAfterHeal = assertIs<UpdateStatusResponse>(context.pullResponse())
         assertEquals(43, updateAfterHeal.attributes[StatusAttribute.CUR_HP] ?: 0)
 
-        assertIs<SystemMessageResponse.HpRestored>(context.responseChannel.next())
+        assertIs<SystemMessageResponse.HpRestored>(context.pullResponse())
         transaction { assertEquals(43, character.currentHp) }
     }
 
@@ -346,27 +341,27 @@ class SkillServiceTest @Autowired constructor(
         }
 
         // MP consumption update
-        val updateAfterManaSpentToStart = assertIs<UpdateStatusResponse>(context.responseChannel.next())
+        val updateAfterManaSpentToStart = assertIs<UpdateStatusResponse>(context.pullResponse())
         assertEquals(
             character.stats.maxMp.roundToInt() - SelfHeal.consumesToStart.mp!![0],
             updateAfterManaSpentToStart.attributes[StatusAttribute.CUR_MP])
 
-        assertIs<SystemMessageResponse.YouUse>(context.responseChannel.next())
-        assertIs<GaugeResponse>(context.responseChannel.next())
-        assertIs<SkillUsedResponse>(context.responseChannel.next())
+        assertIs<SystemMessageResponse.YouUse>(context.pullResponse())
+        assertIs<GaugeResponse>(context.pullResponse())
+        assertIs<SkillUsedResponse>(context.pullResponse())
 
         delay(10000) //Wait for casting completes
 
-        val updateAfterManaSpentAfterCast = assertIs<UpdateStatusResponse>(context.responseChannel.next())
+        val updateAfterManaSpentAfterCast = assertIs<UpdateStatusResponse>(context.pullResponse())
         assertEquals(
             character.stats.maxMp.roundToInt() - SelfHeal.consumesToStart.mp!![0] - SelfHeal.consumes.mp!![0],
             updateAfterManaSpentAfterCast.attributes[StatusAttribute.CUR_MP]
         )
 
-        val updateAfterHeal = assertIs<UpdateStatusResponse>(context.responseChannel.next())
+        val updateAfterHeal = assertIs<UpdateStatusResponse>(context.pullResponse())
         assertEquals(character.stats.maxHp.roundToInt(), updateAfterHeal.attributes[StatusAttribute.CUR_HP] ?: 0)
 
-        assertIs<SystemMessageResponse.HpRestored>(context.responseChannel.next())
+        assertIs<SystemMessageResponse.HpRestored>(context.pullResponse())
         transaction { assertEquals(character.stats.maxHp.roundToInt(), character.currentHp) }
     }
 
@@ -381,7 +376,7 @@ class SkillServiceTest @Autowired constructor(
             template = NpcRegistry.register(FatDummyGremlin),
             spawnPosition = character.position.toSpawnPosition()
         )
-        context.responseChannel.next() // Skip NpcInfoResponse
+        context.pullResponse() // Skip NpcInfoResponse
 
         // Not enough MP to cast
         transaction { character.currentMp = 0 }
@@ -389,10 +384,10 @@ class SkillServiceTest @Autowired constructor(
 
         withContext(context) { skillService.useSkill(UseSkillRequest(PowerStrike.id)) }
 
-        val playSoundResponse = assertIs<PlaySoundResponse>(context.responseChannel.next())
+        val playSoundResponse = assertIs<PlaySoundResponse>(context.pullResponse())
         assertEquals(Sound.ITEMSOUND_SYS_IMPOSSIBLE, playSoundResponse.sound)
-        assertIs<SystemMessageResponse.NotEnoughMp>(context.responseChannel.next())
-        assertIs<ActionFailedResponse>(context.responseChannel.next())
+        assertIs<SystemMessageResponse.NotEnoughMp>(context.pullResponse())
+        assertIs<ActionFailedResponse>(context.pullResponse())
     }
 
     @Test
@@ -407,7 +402,7 @@ class SkillServiceTest @Autowired constructor(
         withContext(context) { skillService.useSkill(UseSkillRequest(SelfHeal.id)) }
 
         // Character is dead: only ActionFailed expected
-        assertIs<ActionFailedResponse>(context.responseChannel.next())
+        assertIs<ActionFailedResponse>(context.pullResponse())
     }
 
     @Test
@@ -428,7 +423,7 @@ class SkillServiceTest @Autowired constructor(
         withContext(context) { skillService.useSkill(UseSkillRequest(PowerStrike.id, holdPosition = true)) }
 
         // No movement occurs, should receive out of range message
-        assertIs<SystemMessageResponse.TargetOutOfRange>(context.responseChannel.next())
+        assertIs<SystemMessageResponse.TargetOutOfRange>(context.pullResponse())
     }
 
     @Test
@@ -442,7 +437,7 @@ class SkillServiceTest @Autowired constructor(
             template = NpcRegistry.register(FatDummyGremlin),
             spawnPosition = character.position.toSpawnPosition()
         )
-        context.responseChannel.next() // Skip NpcInfoResponse
+        context.pullResponse() // Skip NpcInfoResponse
 
         // Kill target
         transaction { target.currentHp = 0 }
@@ -450,8 +445,8 @@ class SkillServiceTest @Autowired constructor(
 
         withContext(context) { skillService.useSkill(UseSkillRequest(PowerStrike.id)) }
 
-        assertIs<SystemMessageResponse.IncorrectTarget>(context.responseChannel.next())
-        assertIs<ActionFailedResponse>(context.responseChannel.next())
+        assertIs<SystemMessageResponse.IncorrectTarget>(context.pullResponse())
+        assertIs<ActionFailedResponse>(context.pullResponse())
     }
 
     @Test
@@ -467,14 +462,14 @@ class SkillServiceTest @Autowired constructor(
             template = NpcRegistry.register(FatDummyGremlin),
             spawnPosition = character.position.toSpawnPosition()
         )
-        context.responseChannel.next() // Skip NpcInfoResponse
+        context.pullResponse() // Skip NpcInfoResponse
 
         character.targetId = target.id
 
         withContext(context) { skillService.useSkill(UseSkillRequest(LifeScavenge.id)) }
 
-        assertIs<SystemMessageResponse.IncorrectTarget>(context.responseChannel.next())
-        assertIs<ActionFailedResponse>(context.responseChannel.next())
+        assertIs<SystemMessageResponse.IncorrectTarget>(context.pullResponse())
+        assertIs<ActionFailedResponse>(context.pullResponse())
     }
 
     @Test
@@ -493,14 +488,14 @@ class SkillServiceTest @Autowired constructor(
             template = NpcRegistry.register(FatDummyGremlin),
             spawnPosition = character.position.toSpawnPosition()
         )
-        context.responseChannel.next() // Skip NpcInfoResponse
+        context.pullResponse() // Skip NpcInfoResponse
         character.targetId = target.id
 
         withContext(context) { skillService.useSkill(UseSkillRequest(PowerShot.id)) }
 
-        val playSoundResponse = assertIs<PlaySoundResponse>(context.responseChannel.next())
+        val playSoundResponse = assertIs<PlaySoundResponse>(context.pullResponse())
         assertEquals(Sound.ITEMSOUND_SYS_IMPOSSIBLE, playSoundResponse.sound)
-        assertIs<ActionFailedResponse>(context.responseChannel.next())
+        assertIs<ActionFailedResponse>(context.pullResponse())
     }
 
     @Test
@@ -511,22 +506,22 @@ class SkillServiceTest @Autowired constructor(
         character.skillsAndMagic.learn(DefenseAura.id, 1)
         withContext(context) { skillService.useSkill(UseSkillRequest(DefenseAura.id)) }
 
-        assertIs<UpdateStatusResponse>(context.responseChannel.next()) //mana spent to start casting
-        assertIs<SystemMessageResponse.YouUse>(context.responseChannel.next())
+        assertIs<UpdateStatusResponse>(context.pullResponse()) //mana spent to start casting
+        assertIs<SystemMessageResponse.YouUse>(context.pullResponse())
 
-        val gaugeResponse = assertIs<GaugeResponse>(context.responseChannel.next())
+        val gaugeResponse = assertIs<GaugeResponse>(context.pullResponse())
         assertEquals(GaugeColor.BLUE, gaugeResponse.gaugeColor)
 
         val calculatedReuseDelay = 9380
-        val skillUsedResponse = assertIs<SkillUsedResponse>(context.responseChannel.next())
+        val skillUsedResponse = assertIs<SkillUsedResponse>(context.pullResponse())
         assertEquals(character.id, skillUsedResponse.casterId)
         assertEquals(character.id, skillUsedResponse.targetId)
         assertEquals(DefenseAura.id, skillUsedResponse.skillId)
         assertEquals(calculatedReuseDelay, skillUsedResponse.reuseDelay)
-        assertIs<UpdateStatusResponse>(context.responseChannel.next(timeout = 10000)) //mana spent after casting
+        assertIs<UpdateStatusResponse>(context.pullResponse(timeout = 10000)) //mana spent after casting
 
-        assertIs<FullCharacterResponse>(context.responseChannel.next())
-        val temporalEffectsResponse = assertIs<TemporalEffectsResponse>(context.responseChannel.next())
+        assertIs<FullCharacterResponse>(context.pullResponse())
+        val temporalEffectsResponse = assertIs<TemporalEffectsResponse>(context.pullResponse())
         assertEquals(1, temporalEffectsResponse.abnormals.size)
 
         assertEquals(1, character.temporalEffects.size)
@@ -543,20 +538,20 @@ class SkillServiceTest @Autowired constructor(
         //First usage of buff
         withContext(context) { skillService.useSkill(UseSkillRequest(DefenseAura.id)) }
 
-        val updateManaBeforeCasting = assertIs<UpdateStatusResponse>(context.responseChannel.next())
+        val updateManaBeforeCasting = assertIs<UpdateStatusResponse>(context.pullResponse())
         assertEquals(character.id, updateManaBeforeCasting.objectId)
         assertEquals(
             character.stats.maxMp.toInt() - DefenseAura.consumesToStart.mp!![0],
             updateManaBeforeCasting.attributes[StatusAttribute.CUR_MP]
         )
 
-        assertIs<SystemMessageResponse.YouUse>(context.responseChannel.next())
-        assertIs<GaugeResponse>(context.responseChannel.next())
-        val skillUsedResponse = assertIs<SkillUsedResponse>(context.responseChannel.next())
+        assertIs<SystemMessageResponse.YouUse>(context.pullResponse())
+        assertIs<GaugeResponse>(context.pullResponse())
+        val skillUsedResponse = assertIs<SkillUsedResponse>(context.pullResponse())
 
         delay(10000) //Wait for casting completes
 
-        val updateManaAfterCasting = assertIs<UpdateStatusResponse>(context.responseChannel.next())
+        val updateManaAfterCasting = assertIs<UpdateStatusResponse>(context.pullResponse())
         assertEquals(character.id, updateManaAfterCasting.objectId)
         assertEquals(
             expected =
@@ -564,8 +559,8 @@ class SkillServiceTest @Autowired constructor(
             actual = updateManaAfterCasting.attributes[StatusAttribute.CUR_MP]
         )
 
-        assertIs<FullCharacterResponse>(context.responseChannel.next())
-        assertIs<TemporalEffectsResponse>(context.responseChannel.next())
+        assertIs<FullCharacterResponse>(context.pullResponse())
+        assertIs<TemporalEffectsResponse>(context.pullResponse())
 
         //Wait for skill cooldown
         delay(skillUsedResponse.reuseDelay + 1L)
@@ -573,16 +568,16 @@ class SkillServiceTest @Autowired constructor(
         //Second usage of buff
         withContext(context) { skillService.useSkill(UseSkillRequest(DefenseAura.id)) }
 
-        assertIs<UpdateStatusResponse>(context.responseChannel.next())
-        assertIs<SystemMessageResponse.YouUse>(context.responseChannel.next())
-        assertIs<GaugeResponse>(context.responseChannel.next())
-        assertIs<SkillUsedResponse>(context.responseChannel.next())
+        assertIs<UpdateStatusResponse>(context.pullResponse())
+        assertIs<SystemMessageResponse.YouUse>(context.pullResponse())
+        assertIs<GaugeResponse>(context.pullResponse())
+        assertIs<SkillUsedResponse>(context.pullResponse())
 
         delay(10000) //Wait for casting completes
 
-        assertIs<UpdateStatusResponse>(context.responseChannel.next())
-        assertIs<FullCharacterResponse>(context.responseChannel.next())
-        val temporalEffectsResponse = assertIs<TemporalEffectsResponse>(context.responseChannel.next())
+        assertIs<UpdateStatusResponse>(context.pullResponse())
+        assertIs<FullCharacterResponse>(context.pullResponse())
+        val temporalEffectsResponse = assertIs<TemporalEffectsResponse>(context.pullResponse())
         assertEquals(1, temporalEffectsResponse.abnormals.size)
 
         assertEquals(1, character.temporalEffects.size)
@@ -602,31 +597,33 @@ class SkillServiceTest @Autowired constructor(
         withContext(context) { skillService.useSkill(UseSkillRequest(Might.id)) }
 
         //Check caster's responses
-        assertIs<StartMovingToTargetResponse>(context.responseChannel.next())
-        assertIs<UpdateStatusResponse>(context.responseChannel.next()) //mana spent to start casting
-        assertIs<SystemMessageResponse.YouUse>(context.responseChannel.next())
+        assertIs<StartMovingToTargetResponse>(context.pullResponse())
+        assertIs<UpdateStatusResponse>(context.pullResponse()) //mana spent to start casting
+        assertIs<SystemMessageResponse.YouUse>(context.pullResponse())
 
-        val gaugeResponse = assertIs<GaugeResponse>(context.responseChannel.next())
+        val gaugeResponse = assertIs<GaugeResponse>(context.pullResponse())
         assertEquals(GaugeColor.BLUE, gaugeResponse.gaugeColor)
 
         val calculatedReuseDelay = 9380
-        val skillUsedResponse = assertIs<SkillUsedResponse>(context.responseChannel.next())
+        val skillUsedResponse = assertIs<SkillUsedResponse>(context.pullResponse())
         assertEquals(character.id, skillUsedResponse.casterId)
         assertEquals(targetCharacter.id, skillUsedResponse.targetId)
         assertEquals(Might.id, skillUsedResponse.skillId)
         assertEquals(calculatedReuseDelay, skillUsedResponse.reuseDelay)
 
-        assertIs<UpdateStatusResponse>(context.responseChannel.next(timeout = 10000)) //mana spent after casting
+        delay(10000) //Wait for casting completes
+
+        assertIs<UpdateStatusResponse>(context.pullResponse()) //mana spent after casting
 
         //Check target's responses
-        val skillUsedResponseForTarget = assertIs<SkillUsedResponse>(targetContext.responseChannel.next())
+        val skillUsedResponseForTarget = assertIs<SkillUsedResponse>(targetContext.pullResponse())
         assertEquals(character.id, skillUsedResponseForTarget.casterId)
         assertEquals(targetCharacter.id, skillUsedResponseForTarget.targetId)
         assertEquals(Might.id, skillUsedResponseForTarget.skillId)
         assertEquals(calculatedReuseDelay, skillUsedResponseForTarget.reuseDelay)
 
-        assertIs<FullCharacterResponse>(targetContext.responseChannel.next())
-        val temporalEffectsResponse = assertIs<TemporalEffectsResponse>(targetContext.responseChannel.next())
+        assertIs<FullCharacterResponse>(targetContext.pullResponse())
+        val temporalEffectsResponse = assertIs<TemporalEffectsResponse>(targetContext.pullResponse())
         assertEquals(1, temporalEffectsResponse.abnormals.size)
 
         assertEquals(1, targetCharacter.temporalEffects.size)
@@ -644,15 +641,15 @@ class SkillServiceTest @Autowired constructor(
             spawnPosition = character.position.toSpawnPosition()
         )
 
-        assertIs<NpcInfoResponse>(context.responseChannel.next())
+        assertIs<NpcInfoResponse>(context.pullResponse())
 
         character.skillsAndMagic.learn(Might.id, 1)
         character.targetId = target.id
         withContext(context) { skillService.useSkill(UseSkillRequest(Might.id)) }
 
         //Check caster's responses
-        assertIs<SystemMessageResponse.IncorrectTarget>(context.responseChannel.next())
-        assertIs<ActionFailedResponse>(context.responseChannel.next())
+        assertIs<SystemMessageResponse.IncorrectTarget>(context.pullResponse())
+        assertIs<ActionFailedResponse>(context.pullResponse())
     }
 
     @Test
@@ -670,8 +667,8 @@ class SkillServiceTest @Autowired constructor(
         withContext(context) { skillService.useSkill(UseSkillRequest(Might.id)) }
 
         //Check caster's responses
-        assertIs<SystemMessageResponse.IncorrectTarget>(context.responseChannel.next())
-        assertIs<ActionFailedResponse>(context.responseChannel.next())
+        assertIs<SystemMessageResponse.IncorrectTarget>(context.pullResponse())
+        assertIs<ActionFailedResponse>(context.pullResponse())
     }
 
     @Test
@@ -685,22 +682,22 @@ class SkillServiceTest @Autowired constructor(
             spawnPosition = character.position.toSpawnPosition()
         )
 
-        assertIs<NpcInfoResponse>(context.responseChannel.next())
+        assertIs<NpcInfoResponse>(context.pullResponse())
 
         character.skillsAndMagic.learn(Might.id, 1)
         character.targetId = target.id
         withContext(context) { skillService.useSkill(UseSkillRequest(Might.id, forced = true)) }
 
         //Check caster's responses
-        assertIs<StartMovingToTargetResponse>(context.responseChannel.next())
-        assertIs<UpdateStatusResponse>(context.responseChannel.next()) //mana spent to start casting
-        assertIs<SystemMessageResponse.YouUse>(context.responseChannel.next())
+        assertIs<StartMovingToTargetResponse>(context.pullResponse())
+        assertIs<UpdateStatusResponse>(context.pullResponse()) //mana spent to start casting
+        assertIs<SystemMessageResponse.YouUse>(context.pullResponse())
 
-        val gaugeResponse = assertIs<GaugeResponse>(context.responseChannel.next())
+        val gaugeResponse = assertIs<GaugeResponse>(context.pullResponse())
         assertEquals(GaugeColor.BLUE, gaugeResponse.gaugeColor)
 
         val calculatedReuseDelay = 9380
-        val skillUsedResponse = assertIs<SkillUsedResponse>(context.responseChannel.next())
+        val skillUsedResponse = assertIs<SkillUsedResponse>(context.pullResponse())
         assertEquals(character.id, skillUsedResponse.casterId)
         assertEquals(target.id, skillUsedResponse.targetId)
         assertEquals(Might.id, skillUsedResponse.skillId)
@@ -708,9 +705,9 @@ class SkillServiceTest @Autowired constructor(
 
         delay(10000) //Wait for casting ends
 
-        assertIs<UpdateStatusResponse>(context.responseChannel.next()) //mana spent after casting
+        assertIs<UpdateStatusResponse>(context.pullResponse()) //mana spent after casting
 
-        val pvpStatusResponse = assertIs<PvPStatusResponse>(context.responseChannel.next())
+        val pvpStatusResponse = assertIs<PvPStatusResponse>(context.pullResponse())
         assertEquals(PvpState.PVP, pvpStatusResponse.pvpState)
 
         //Check target

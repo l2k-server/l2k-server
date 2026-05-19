@@ -137,7 +137,7 @@ class L2GameTcpServer(
     }
 
     private fun createContext(sessionId: Int) = CoroutineScope(
-        Dispatchers.Default + SessionContext(sessionId) + MDCContext()
+        Dispatchers.IO + SessionContext(sessionId) + MDCContext()
     )
 
 }
