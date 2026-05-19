@@ -28,6 +28,11 @@ class TeleportCommand: AdminCommand() {
 }
 
 private fun String.toPosition(): Position {
-    require(this.matches("-?\\d+,-?\\d+,-?\\d+".toRegex())) {"'$this' cannot be parsed to valid Position"}
-    return with(this.split(",")) { Position(this[0].toInt(), this[1].toInt(), this[2].toInt()) }
+    require(this.matches("-?\\d+,-?\\d+,-?\\d+".toRegex())) {
+        "'$this' cannot be parsed to valid Position"
+    }
+
+    return with(this.split(",")) {
+        Position(this[0].toInt(), this[1].toInt(), this[2].toInt())
+    }
 }

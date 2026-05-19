@@ -40,8 +40,7 @@ import org.l2kserver.game.handler.dto.response.PickUpItemResponse
 import org.l2kserver.game.handler.dto.response.StatusAttribute
 import org.l2kserver.game.domain.ItemEntity
 import org.l2kserver.game.domain.ItemTable
-import org.l2kserver.game.extensions.next
-import org.l2kserver.game.handler.dto.response.StartMovingToTargetResponse
+import org.l2kserver.game.extensions.pullResponse
 import org.l2kserver.game.handler.dto.response.item
 import org.l2kserver.game.handler.dto.response.operation
 import org.l2kserver.game.model.actor.Posture
@@ -74,12 +73,12 @@ class ItemServiceTests(
 
         assertFalse(suspendTransaction { ItemEntity.existsById(itemId) }, "Item must not exist")
 
-        val updateResponse = assertIs<UpdateItemsResponse>(context.responseChannel.next())
+        val updateResponse = assertIs<UpdateItemsResponse>(context.pullResponse())
         val (item, operation) = updateResponse.operations[0]
         assertEquals(itemId, item.id)
         assertEquals(UpdateItemOperation.REMOVE, operation)
 
-        val updateStatusResponse = assertIs<UpdateStatusResponse>(context.responseChannel.next())
+        val updateStatusResponse = assertIs<UpdateStatusResponse>(context.pullResponse())
         assertEquals(StatusAttribute.CUR_LOAD, updateStatusResponse.attributes.keys.first())
     }
 
@@ -95,15 +94,15 @@ class ItemServiceTests(
         suspendTransaction {
             assertFalse(ItemEntity.existsById(itemId), "Deleted item should not exist")
 
-            assertIs<FullCharacterResponse>(context.responseChannel.next())
+            assertIs<FullCharacterResponse>(context.pullResponse())
 
-            val updateResponse = assertIs<UpdateItemsResponse>(context.responseChannel.next())
+            val updateResponse = assertIs<UpdateItemsResponse>(context.pullResponse())
             assertEquals(itemId, updateResponse.operations[0].item.id)
             assertEquals(UpdateItemOperation.MODIFY, updateResponse.operations[0].operation)
             assertEquals(itemId, updateResponse.operations[1].item.id)
             assertEquals(UpdateItemOperation.REMOVE, updateResponse.operations[1].operation)
 
-            val updateStatusResponse = assertIs<UpdateStatusResponse>(context.responseChannel.next())
+            val updateStatusResponse = assertIs<UpdateStatusResponse>(context.pullResponse())
             assertEquals(character.id, updateStatusResponse.objectId)
         }
 
@@ -121,7 +120,7 @@ class ItemServiceTests(
         suspendTransaction {
             assertEquals(9, ItemEntity.findById(itemId)?.amount)
 
-            val updatedItems = assertIs<UpdateItemsResponse>(context.responseChannel.next())
+            val updatedItems = assertIs<UpdateItemsResponse>(context.pullResponse())
             val (item, operation) = updatedItems.operations[0]
             assertEquals(itemId, item.id)
             assertEquals(UpdateItemOperation.MODIFY, operation)
@@ -144,7 +143,7 @@ class ItemServiceTests(
 
         suspendTransaction {
             assertEquals(testAmount, ItemEntity.findById(itemId)?.amount)
-            assertIs<SystemMessageResponse.NotEnoughItems>(context.responseChannel.next())
+            assertIs<SystemMessageResponse.NotEnoughItems>(context.pullResponse())
         }
     }
 
@@ -158,15 +157,15 @@ class ItemServiceTests(
         withContext(context) { itemService.useItem(UseItemRequest(itemId)) }
 
         suspendTransaction {
-            assertIs<SystemMessageResponse>(context.responseChannel.next())
-            val updateItemsResponse = assertIs<UpdateItemsResponse>(context.responseChannel.next())
+            assertIs<SystemMessageResponse>(context.pullResponse())
+            val updateItemsResponse = assertIs<UpdateItemsResponse>(context.pullResponse())
 
             val (item, operation) = updateItemsResponse.operations[0]
             assertEquals(itemId, item.id)
             assertEquals(UpdateItemOperation.MODIFY, operation)
 
 
-            assertIs<FullCharacterResponse>(context.responseChannel.next())
+            assertIs<FullCharacterResponse>(context.pullResponse())
 
             assertNull(ItemEntity.findById(itemId)!!.equippedAt)
         }
@@ -185,15 +184,15 @@ class ItemServiceTests(
         withContext(context) { itemService.takeOffItem(TakeOffItemRequest(Slot.RIGHT_HAND)) }
 
         suspendTransaction {
-            assertIs<SystemMessageResponse>(context.responseChannel.next())
-            val updateItemsResponse = assertIs<UpdateItemsResponse>(context.responseChannel.next())
+            assertIs<SystemMessageResponse>(context.pullResponse())
+            val updateItemsResponse = assertIs<UpdateItemsResponse>(context.pullResponse())
 
             val (item, operation) = updateItemsResponse.operations[0]
             assertEquals(itemId, item.id)
             assertEquals(UpdateItemOperation.MODIFY, operation)
 
 
-            assertIs<FullCharacterResponse>(context.responseChannel.next())
+            assertIs<FullCharacterResponse>(context.pullResponse())
 
             assertNull(ItemEntity.findById(itemId)!!.equippedAt)
         }
@@ -215,10 +214,10 @@ class ItemServiceTests(
         withContext(context) { itemService.useItem(UseItemRequest(items[1].id)) }
 
         suspendTransaction {
-            assertIs<SystemMessageResponse>(context.responseChannel.next())
-            assertIs<SystemMessageResponse>(context.responseChannel.next())
-            assertIs<FullCharacterResponse>(context.responseChannel.next())
-            val updatedItemsResponse = assertIs<UpdateItemsResponse>(context.responseChannel.next())
+            assertIs<SystemMessageResponse>(context.pullResponse())
+            assertIs<SystemMessageResponse>(context.pullResponse())
+            assertIs<FullCharacterResponse>(context.pullResponse())
+            val updatedItemsResponse = assertIs<UpdateItemsResponse>(context.pullResponse())
 
             val (takenOffItem, operation1) = updatedItemsResponse.operations[0]
             assertEquals(items[0].id, takenOffItem.id)
@@ -229,7 +228,7 @@ class ItemServiceTests(
             assertEquals(items[1].id, usedItem.id)
             assertEquals(UpdateItemOperation.MODIFY, operation2)
 
-            assertIs<FullCharacterResponse>(context.responseChannel.next())
+            assertIs<FullCharacterResponse>(context.pullResponse())
 
             assertEquals(Slot.RIGHT_HAND, ItemEntity.findById(usedItem.id)!!.equippedAt)
         }
@@ -252,12 +251,12 @@ class ItemServiceTests(
         withContext(context) { itemService.useItem(UseItemRequest(items[2].id)) }
 
         suspendTransaction {
-            assertIs<SystemMessageResponse>(context.responseChannel.next())
-            assertIs<SystemMessageResponse>(context.responseChannel.next())
-            assertIs<SystemMessageResponse>(context.responseChannel.next())
-            assertIs<FullCharacterResponse>(context.responseChannel.next())
+            assertIs<SystemMessageResponse>(context.pullResponse())
+            assertIs<SystemMessageResponse>(context.pullResponse())
+            assertIs<SystemMessageResponse>(context.pullResponse())
+            assertIs<FullCharacterResponse>(context.pullResponse())
 
-            val updateItemsResponse = assertIs<UpdateItemsResponse>(context.responseChannel.next())
+            val updateItemsResponse = assertIs<UpdateItemsResponse>(context.pullResponse())
             assertEquals(3, updateItemsResponse.operations.size)
 
             val (takenOffItem1, operation1) = updateItemsResponse.operations[0]
@@ -274,7 +273,7 @@ class ItemServiceTests(
             assertEquals(items[2].id, usedItem.id)
             assertEquals(UpdateItemOperation.MODIFY, operation3)
 
-            assertIs<FullCharacterResponse>(context.responseChannel.next())
+            assertIs<FullCharacterResponse>(context.pullResponse())
 
             assertEquals(Slot.TWO_HANDS, ItemEntity.findById(usedItem.id)!!.equippedAt)
         }
@@ -302,16 +301,16 @@ class ItemServiceTests(
         }
 
         suspendTransaction {
-            val droppedItemResponse = assertIs<DroppedItemResponse>(context.responseChannel.next())
+            val droppedItemResponse = assertIs<DroppedItemResponse>(context.pullResponse())
             assertEquals(character.id, droppedItemResponse.dropperId)
             assertFalse(ItemEntity.existsById(item.id), "Item must not exist")
 
-            val updateItemResponse = assertIs<UpdateItemsResponse>(context.responseChannel.next())
+            val updateItemResponse = assertIs<UpdateItemsResponse>(context.pullResponse())
             val (updatedItem, operation) = updateItemResponse.operations[0]
             assertEquals(item.id, updatedItem.id)
             assertEquals(UpdateItemOperation.REMOVE, operation)
 
-            val updateStatusResponse = assertIs<UpdateStatusResponse>(context.responseChannel.next())
+            val updateStatusResponse = assertIs<UpdateStatusResponse>(context.pullResponse())
             assertEquals(character.id, updateStatusResponse.objectId)
 
             assertNotNull(gameObjectRepository.findByIdOrNull(droppedItemResponse.scatteredItem.id))
@@ -343,19 +342,19 @@ class ItemServiceTests(
         suspendTransaction {
             assertFalse(ItemEntity.existsById(itemId), "Deleted item should not exist")
 
-            val droppedItemResponse = assertIs<DroppedItemResponse>(context.responseChannel.next())
+            val droppedItemResponse = assertIs<DroppedItemResponse>(context.pullResponse())
             assertEquals(character.id, droppedItemResponse.dropperId)
             assertEquals(1, droppedItemResponse.scatteredItem.amount)
 
-            assertIs<FullCharacterResponse>(context.responseChannel.next())
+            assertIs<FullCharacterResponse>(context.pullResponse())
 
-            val updateResponse = assertIs<UpdateItemsResponse>(context.responseChannel.next())
+            val updateResponse = assertIs<UpdateItemsResponse>(context.pullResponse())
             assertEquals(itemId, updateResponse.operations[0].item.id)
             assertEquals(UpdateItemOperation.MODIFY, updateResponse.operations[0].operation)
             assertEquals(itemId, updateResponse.operations[1].item.id)
             assertEquals(UpdateItemOperation.REMOVE, updateResponse.operations[1].operation)
 
-            assertIs<UpdateStatusResponse>(context.responseChannel.next())
+            assertIs<UpdateStatusResponse>(context.pullResponse())
         }
 
     }
@@ -386,16 +385,16 @@ class ItemServiceTests(
         suspendTransaction {
             assertEquals(8, ItemEntity.findById(itemId)!!.amount)
 
-            val droppedItemResponse = assertIs<DroppedItemResponse>(context.responseChannel.next())
+            val droppedItemResponse = assertIs<DroppedItemResponse>(context.pullResponse())
             assertEquals(character.id, droppedItemResponse.dropperId)
             assertEquals(2, droppedItemResponse.scatteredItem.amount)
 
-            val updatedItems = assertIs<UpdateItemsResponse>(context.responseChannel.next())
+            val updatedItems = assertIs<UpdateItemsResponse>(context.pullResponse())
             val (item, operation) = updatedItems.operations[0]
             assertEquals(itemId, item.id)
             assertEquals(UpdateItemOperation.MODIFY, operation)
 
-            assertIs<UpdateStatusResponse>(context.responseChannel.next())
+            assertIs<UpdateStatusResponse>(context.pullResponse())
         }
 
     }
@@ -424,7 +423,7 @@ class ItemServiceTests(
 
         assertEquals(testAmount, suspendTransaction { ItemEntity.findById(itemId)!!.amount })
 
-        assertIs<SystemMessageResponse.NotEnoughItems>(context.responseChannel.next())
+        assertIs<SystemMessageResponse.NotEnoughItems>(context.pullResponse())
     }
 
     @Test
@@ -497,7 +496,7 @@ class ItemServiceTests(
             )
         }
 
-        assertIs<SystemMessageResponse.CannotDiscardItem>(context.responseChannel.next())
+        assertIs<SystemMessageResponse.CannotDiscardItem>(context.pullResponse())
     }
 
     @Test
@@ -521,7 +520,7 @@ class ItemServiceTests(
             )
         }
 
-        assertIs<SystemMessageResponse.TooFarToDiscard>(context.responseChannel.next())
+        assertIs<SystemMessageResponse.TooFarToDiscard>(context.pullResponse())
     }
 
     @Test
@@ -546,7 +545,7 @@ class ItemServiceTests(
         withContext(context) { itemService.deleteItem(DeleteItemRequest(boneArrowId, 1)) }
 
         // Check responses
-        assertIs<SystemMessageResponse.CannotDiscardDestroyOrTradeWhileInShop>(context.responseChannel.next())
+        assertIs<SystemMessageResponse.CannotDiscardDestroyOrTradeWhileInShop>(context.pullResponse())
     }
 
     @Test
@@ -571,7 +570,7 @@ class ItemServiceTests(
         withContext(context) { itemService.dropItem(DropItemRequest(boneArrowId, 1, character.position)) }
 
         // Check responses
-        assertIs<SystemMessageResponse.CannotDiscardDestroyOrTradeWhileInShop>(context.responseChannel.next())
+        assertIs<SystemMessageResponse.CannotDiscardDestroyOrTradeWhileInShop>(context.pullResponse())
     }
 
     @Test
@@ -595,7 +594,7 @@ class ItemServiceTests(
         withContext(context) { itemService.useItem(UseItemRequest(heavensDivider.id)) }
 
         // Check responses
-        val response = assertIs<SystemMessageResponse.ItemCannotBeUsed>(context.responseChannel.next())
+        val response = assertIs<SystemMessageResponse.ItemCannotBeUsed>(context.pullResponse())
         assertEquals(heavensDivider.id, response.item.id, "Used and failed to use item ids must be equal")
     }
 
@@ -613,25 +612,25 @@ class ItemServiceTests(
             character.position, ItemTemplateRegistry.findByIdOrNull(HeavensDivider.id)!!)
 
         //Pick up item!
-        runBlocking(context) { itemService.pickUp(character, scatteredItem) }
+        withContext(context) { itemService.pickUp(character, scatteredItem) }
 
         //Assert pick up animation
-        val pickUpResponse = assertIs<PickUpItemResponse>(context.responseChannel.next())
+        val pickUpResponse = assertIs<PickUpItemResponse>(context.pullResponse())
         assertEquals(character.id, pickUpResponse.characterId, "Must get PickUpResponse of $character")
         assertEquals(scatteredItem, pickUpResponse.item)
 
         //Assert deleting scatteredItem notification
-        val deleteObjectResponse = assertIs<DeleteObjectResponse>(context.responseChannel.next())
+        val deleteObjectResponse = assertIs<DeleteObjectResponse>(context.pullResponse())
         assertEquals(scatteredItem.id, deleteObjectResponse.gameObjectId)
 
-        val updateItemsResponse = assertIs<UpdateItemsResponse>(context.responseChannel.next())
+        val updateItemsResponse = assertIs<UpdateItemsResponse>(context.pullResponse())
         assertEquals(UpdateItemOperation.ADD, updateItemsResponse.operations.first().operation)
         assertEquals(HeavensDivider.id, updateItemsResponse.operations.first().first.templateId)
         assertNotEquals(existingItem.id, updateItemsResponse.operations.first().item.id)
 
-        assertIs<UpdateStatusResponse>(context.responseChannel.next())
+        assertIs<UpdateStatusResponse>(context.pullResponse())
 
-        assertIs<SystemMessageResponse.YouHaveObtained>(context.responseChannel.next())
+        assertIs<SystemMessageResponse.YouHaveObtained>(context.pullResponse())
         assertFalse(gameObjectRepository.existsById(scatteredItem.id), "Picked up item must disappear")
         suspendTransaction {
             assertEquals(2, ItemEntity.findAllByOwnerIdAndTemplateId(character.id, HeavensDivider.id).toList().size)
@@ -657,21 +656,21 @@ class ItemServiceTests(
         }
 
         //Assert pick up animation
-        val pickUpResponse = assertIs<PickUpItemResponse>(context.responseChannel.next())
+        val pickUpResponse = assertIs<PickUpItemResponse>(context.pullResponse())
         assertEquals(character.id, pickUpResponse.characterId, "Must get PickUpResponse of $character")
         assertEquals(scatteredItem, pickUpResponse.item)
 
         //Assert deleting scatteredItem notification
-        val deleteObjectResponse = assertIs<DeleteObjectResponse>(context.responseChannel.next())
+        val deleteObjectResponse = assertIs<DeleteObjectResponse>(context.pullResponse())
         assertEquals(scatteredItem.id, deleteObjectResponse.gameObjectId)
 
-        val updateItemsResponse = assertIs<UpdateItemsResponse>(context.responseChannel.next())
+        val updateItemsResponse = assertIs<UpdateItemsResponse>(context.pullResponse())
         assertEquals(UpdateItemOperation.MODIFY, updateItemsResponse.operations.first().operation)
         assertEquals(WoodenArrow.id, updateItemsResponse.operations.first().first.templateId)
 
-        assertIs<UpdateStatusResponse>(context.responseChannel.next())
+        assertIs<UpdateStatusResponse>(context.pullResponse())
 
-        assertIs<SystemMessageResponse.YouHaveObtained>(context.responseChannel.next())
+        assertIs<SystemMessageResponse.YouHaveObtained>(context.pullResponse())
         assertFalse(gameObjectRepository.existsById(scatteredItem.id), "Picked up item must disappear")
 
         val arrows = suspendTransaction {
@@ -701,8 +700,8 @@ class ItemServiceTests(
             assertTrue(weapon.soulshotCharged, "Weapon should be charged with soulshot")
 
             //Check responses
-            assertIs<SystemMessageResponse.SoulshotEnabled>(context.responseChannel.next())
-            val updateItemsResponse = assertIs<UpdateItemsResponse>(context.responseChannel.next())
+            assertIs<SystemMessageResponse.SoulshotEnabled>(context.pullResponse())
+            val updateItemsResponse = assertIs<UpdateItemsResponse>(context.pullResponse())
             assertEquals(soulshot.id, updateItemsResponse.operations[0].item.id)
             assertEquals(UpdateItemOperation.MODIFY, updateItemsResponse.operations[0].operation)
         }
@@ -728,7 +727,7 @@ class ItemServiceTests(
         }
 
         //Check response
-        assertIs<SystemMessageResponse.CannotUseSoulshot>(context.responseChannel.next())
+        assertIs<SystemMessageResponse.CannotUseSoulshot>(context.pullResponse())
     }
 
     @Test
@@ -749,7 +748,7 @@ class ItemServiceTests(
             assertFalse(weapon.soulshotCharged, "Weapon should not be charged with wrong grade soulshot")
             
             // Check response
-            assertIs<SystemMessageResponse.SoulshotGradeMismatch>(context.responseChannel.next())
+            assertIs<SystemMessageResponse.SoulshotGradeMismatch>(context.pullResponse())
         }
     }
 
@@ -795,8 +794,8 @@ class ItemServiceTests(
             assertTrue(weaponInstance.soulshotCharged, "Weapon should be charged with soulshot")
 
             // Check responses
-            assertIs<SystemMessageResponse.SoulshotEnabled>(context.responseChannel.next())
-            val updateItemsResponse = assertIs<UpdateItemsResponse>(context.responseChannel.next())
+            assertIs<SystemMessageResponse.SoulshotEnabled>(context.pullResponse())
+            val updateItemsResponse = assertIs<UpdateItemsResponse>(context.pullResponse())
             assertEquals(soulshot.id, updateItemsResponse.operations[0].item.id)
             assertEquals(UpdateItemOperation.REMOVE, updateItemsResponse.operations[0].operation)
         }
@@ -814,7 +813,7 @@ class ItemServiceTests(
         withContext(context) { itemService.useItem(UseItemRequest(scroll.id)) }
 
         // Check responses - item consumed at start of cast
-        val updateItemsResponse = assertIs<UpdateItemsResponse>(context.responseChannel.next())
+        val updateItemsResponse = assertIs<UpdateItemsResponse>(context.pullResponse())
         assertEquals(scroll.id, updateItemsResponse.operations[0].item.id)
         assertEquals(UpdateItemOperation.REMOVE, updateItemsResponse.operations[0].operation)
 
@@ -823,17 +822,17 @@ class ItemServiceTests(
         assertNull(scrollAfterUsage, "Scroll should be consumed")
 
         // Check skill casting responses
-        assertIs<SystemMessageResponse.YouUse>(context.responseChannel.next())
-        val gaugeResponse = assertIs<GaugeResponse>(context.responseChannel.next())
+        assertIs<SystemMessageResponse.YouUse>(context.pullResponse())
+        val gaugeResponse = assertIs<GaugeResponse>(context.pullResponse())
         assertEquals(GaugeColor.BLUE, gaugeResponse.gaugeColor)
 
-        val skillUsedResponse = assertIs<SkillUsedResponse>(context.responseChannel.next())
+        val skillUsedResponse = assertIs<SkillUsedResponse>(context.pullResponse())
         assertEquals(character.id, skillUsedResponse.casterId)
         assertEquals(character.id, skillUsedResponse.targetId)
         assertEquals(ScrollOfGuidance.skill.id, skillUsedResponse.skillId)
 
-        assertIs<FullCharacterResponse>(context.responseChannel.next())
-        val temporalEffectsResponse = assertIs<TemporalEffectsResponse>(context.responseChannel.next())
+        assertIs<FullCharacterResponse>(context.pullResponse())
+        val temporalEffectsResponse = assertIs<TemporalEffectsResponse>(context.pullResponse())
         assertEquals(1, temporalEffectsResponse.abnormals.size)
 
         // Check that character has the effect applied

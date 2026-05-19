@@ -134,6 +134,11 @@ class IntentionQueue {
     fun contains(intention: Intention) = intention == current || queue.contains(intention)
 
     /**
+     * Checks if queue is empty and no current action is performed
+     */
+    fun isEmpty() = current == null && queue.isEmpty()
+
+    /**
      * Enqueues one or more intentions applying the queue conflict-resolution rules.
      * See the class-level documentation for the detailed rule set.
      */

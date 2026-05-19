@@ -7,6 +7,40 @@ pluginManagement {
         id("io.spring.dependency-management") version "1.1.7"
     }
 }
+
+dependencyResolutionManagement {
+    versionCatalogs {
+        create("libs") {
+            version("ktor", "3.4.3")
+            version("exposed", "1.3.0")
+            version("hazelcast", "5.7.0")
+
+            library(
+                "ktor-network-jvm",
+                "io.ktor",
+                "ktor-network-jvm"
+            ).versionRef("ktor")
+
+            library(
+                "exposed-spring-boot4-starter",
+                "org.jetbrains.exposed",
+                "exposed-spring-boot4-starter"
+            ).versionRef("exposed")
+            library(
+                "exposed-java-time",
+                "org.jetbrains.exposed",
+                "exposed-java-time"
+            ).versionRef("exposed")
+
+            library(
+                "hazelcast",
+                "com.hazelcast",
+                "hazelcast"
+            ).versionRef("hazelcast")
+        }
+    }
+}
+
 plugins {
     id("org.gradle.toolchains.foojay-resolver-convention") version "0.8.0"
 }

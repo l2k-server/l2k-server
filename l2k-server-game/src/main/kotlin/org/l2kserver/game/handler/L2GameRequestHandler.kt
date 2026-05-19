@@ -1,6 +1,7 @@
 package org.l2kserver.game.handler
 
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.l2kserver.game.handler.dto.request.AuthorizationRequest
 import org.l2kserver.game.handler.dto.request.CancelActionRequest
@@ -68,7 +69,6 @@ import org.l2kserver.game.service.SocialService
 import org.l2kserver.game.service.TradeService
 import org.l2kserver.game.service.UserCommandService
 import org.springframework.stereotype.Component
-import kotlin.coroutines.coroutineContext
 
 @Component
 class L2GameRequestHandler(
@@ -87,7 +87,7 @@ class L2GameRequestHandler(
 ) {
 
     @Suppress("CyclomaticComplexMethod")
-    suspend fun handleAsync(key: ByteArray, request: RequestPacket?) = CoroutineScope(coroutineContext).launch {
+    suspend fun handleAsync(key: ByteArray, request: RequestPacket?) = scope().launch {
         when (request) {
             is InitialRequest -> authorizationService.checkProtocolVersion(request, key)
             is AuthorizationRequest -> authorizationService.authorize(request)
@@ -160,5 +160,7 @@ class L2GameRequestHandler(
 
         sessionContext().close()
     }
+
+    private suspend fun scope() = CoroutineScope(Dispatchers.Default + sessionContext())
 
 }

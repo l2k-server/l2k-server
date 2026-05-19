@@ -64,6 +64,9 @@ class AsyncTaskService {
     /** Checks if actor with [actorId] has launched action */
     fun hasActionByActorId(actorId: Int) = actionJobMap.containsKey(actorId)
 
+    /** Waits for action of this actor completes */
+    suspend fun waitForAction(actorId: Int) = actionJobMap[actorId]?.join()
+
     /**
      * Launches a task that will be called once.
      *

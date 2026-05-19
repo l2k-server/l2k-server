@@ -82,8 +82,8 @@ class AdminCommandService(
         val characterToTeleport = command.name?.let { gameObjectRepository.findCharacterByName(it) }
             ?: gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
 
-        send { SystemMessageResponse("'${characterToTeleport.name}' was teleported to '${command.position}'") }
         moveService.teleport(characterToTeleport, command.position)
+        send { SystemMessageResponse("'${characterToTeleport.name}' was teleported to '${command.position}'") }
     }
 
     /**

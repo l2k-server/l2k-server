@@ -12,7 +12,7 @@ import org.l2kserver.game.data.item.weapon.DemonSplinter
 import org.l2kserver.game.data.item.weapon.HeavensDivider
 import org.l2kserver.game.data.item.weapon.TallumBladeDarkLegionsEdge
 import org.l2kserver.game.domain.ItemEntity
-import org.l2kserver.game.extensions.next
+import org.l2kserver.game.extensions.pullResponse
 import org.l2kserver.game.extensions.toItemInWishList
 import org.l2kserver.game.extensions.toItemOnSale
 import org.l2kserver.game.handler.dto.request.PrivateStoreBuySetMessageRequest
@@ -75,7 +75,7 @@ class TradeServiceTests(
 
         withContext(context) { tradeService.getItemsForPrivateStoreSell() }
 
-        val response = assertIs<ItemListForPrivateStoreSellResponse>(context.responseChannel.next())
+        val response = assertIs<ItemListForPrivateStoreSellResponse>(context.pullResponse())
 
         assertFalse(response.packageSale)
         assertEquals(adena.amount, response.characterAdena)
@@ -119,13 +119,13 @@ class TradeServiceTests(
         }
 
         //Check our responses
-        val setStoreMessageResponse = assertIs<PrivateStoreSellSetMessageResponse>(context.responseChannel.next())
+        val setStoreMessageResponse = assertIs<PrivateStoreSellSetMessageResponse>(context.pullResponse())
         assertEquals(testStoreMessage, setStoreMessageResponse.message)
 
-        val changePostureResponse = assertIs<ChangePostureResponse>(context.responseChannel.next())
+        val changePostureResponse = assertIs<ChangePostureResponse>(context.pullResponse())
         assertEquals(Posture.SITTING, changePostureResponse.posture)
 
-        val characterResponse = assertIs<FullCharacterResponse>(context.responseChannel.next())
+        val characterResponse = assertIs<FullCharacterResponse>(context.pullResponse())
         assertNotNull(characterResponse.character.privateStore)
 
         val store = assertIs<PrivateStore.Sell>(characterResponse.character.privateStore!!)
@@ -143,20 +143,20 @@ class TradeServiceTests(
         assertEquals(arrowsAmount, store.items[woodenArrow.id]!!.amount)
         assertEquals(arrowPrice, store.items[woodenArrow.id]!!.price)
 
-        val storeMessageResponse = assertIs<PrivateStoreSellSetMessageResponse>(context.responseChannel.next())
+        val storeMessageResponse = assertIs<PrivateStoreSellSetMessageResponse>(context.pullResponse())
         assertEquals(testStoreMessage, storeMessageResponse.message)
 
         //Check customer responses
         val changePostureResponseForCustomer =
-            assertIs<ChangePostureResponse>(customerContext.responseChannel.next())
+            assertIs<ChangePostureResponse>(customerContext.pullResponse())
         assertEquals(Posture.SITTING, changePostureResponseForCustomer.posture)
 
-        val characterResponseForCustomer = assertIs<CharacterInfoResponse>(customerContext.responseChannel.next())
+        val characterResponseForCustomer = assertIs<CharacterInfoResponse>(customerContext.pullResponse())
         assertNotNull(characterResponseForCustomer.character.privateStore)
         assertIs<PrivateStore.Sell>(characterResponse.character.privateStore!!)
 
         val storeMessageResponseForCustomer =
-            assertIs<PrivateStoreSellSetMessageResponse>(customerContext.responseChannel.next())
+            assertIs<PrivateStoreSellSetMessageResponse>(customerContext.pullResponse())
         assertEquals(testStoreMessage, storeMessageResponseForCustomer.message)
     }
 
@@ -185,12 +185,12 @@ class TradeServiceTests(
         withContext(context) { tradeService.getItemsForPrivateStoreSell() }
 
         //Check responses
-        val standUpResponse = assertIs<ChangePostureResponse>(context.responseChannel.next())
+        val standUpResponse = assertIs<ChangePostureResponse>(context.pullResponse())
         assertEquals(Posture.STANDING, standUpResponse.posture)
-        assertIs<FullCharacterResponse>(context.responseChannel.next())
+        assertIs<FullCharacterResponse>(context.pullResponse())
 
         val itemsForPrivateStoreSellResponse = assertIs<ItemListForPrivateStoreSellResponse>(
-            context.responseChannel.next()
+            context.pullResponse()
         )
 
         assertTrue(itemsForPrivateStoreSellResponse.packageSale, "packageSale must be 'true'")
@@ -293,7 +293,7 @@ class TradeServiceTests(
                 )
             ))
         }
-        assertIs<SystemMessageResponse.YouHaveExceededPrivateStoreQuantity>(context.responseChannel.next())
+        assertIs<SystemMessageResponse.YouHaveExceededPrivateStoreQuantity>(context.pullResponse())
     }
 
     @Test
@@ -345,10 +345,10 @@ class TradeServiceTests(
         withContext(context) { withContext(context) { tradeService.stopPrivateStore() }}
 
         //Check responses
-        val changePostureResponse = assertIs<ChangePostureResponse>(context.responseChannel.next())
+        val changePostureResponse = assertIs<ChangePostureResponse>(context.pullResponse())
         assertEquals(Posture.STANDING, changePostureResponse.posture)
 
-        val characterInfoResponse = assertIs<FullCharacterResponse>(context.responseChannel.next())
+        val characterInfoResponse = assertIs<FullCharacterResponse>(context.pullResponse())
         assertNull(characterInfoResponse.character.privateStore)
     }
 
@@ -381,7 +381,7 @@ class TradeServiceTests(
         withContext(context) { withContext(customerContext) { tradeService.showPrivateStoreOf(character) }}
 
         //Check responses
-        val response = assertIs<ShowPrivateStoreSellResponse>(customerContext.responseChannel.next())
+        val response = assertIs<ShowPrivateStoreSellResponse>(customerContext.pullResponse())
         assertEquals(character.id, response.ownerId)
         assertTrue(response.packageSale, "Package sale must be true")
         assertEquals((character.privateStore as? PrivateStore.Sell)?.items?.values, response.items)
@@ -440,17 +440,17 @@ class TradeServiceTests(
 
         // Check buyer's responses
         val buyerSystemMessageArrows = assertIs<SystemMessageResponse.YouHavePurchasedStackable>(
-            buyerContext.responseChannel.next())
+            buyerContext.pullResponse())
         assertEquals(arrowsToBuyAmount, buyerSystemMessageArrows.amount)
         assertEquals(WoodenArrow.id, buyerSystemMessageArrows.item.templateId)
 
         val buyerSystemMessageDemonSplinter = assertIs<SystemMessageResponse.YouHavePurchasedNonStackable>(
-            buyerContext.responseChannel.next())
+            buyerContext.pullResponse())
         assertEquals(1, buyerSystemMessageDemonSplinter.item.amount)
         assertEquals(DemonSplinter.id, buyerSystemMessageDemonSplinter.item.templateId)
 
         //Check items responses
-        val buyerUpdateItemsResponse = assertIs<UpdateItemsResponse>(buyerContext.responseChannel.next())
+        val buyerUpdateItemsResponse = assertIs<UpdateItemsResponse>(buyerContext.pullResponse())
         assertEquals(3, buyerUpdateItemsResponse.operations.size)
 
         // Check adena update
@@ -475,23 +475,23 @@ class TradeServiceTests(
         assertEquals(1, buyerSplinterOperation.item.amount)
 
         // Check buyer's weight change
-        val buyerUpdateStatus = assertIs<UpdateStatusResponse>(buyerContext.responseChannel.next())
+        val buyerUpdateStatus = assertIs<UpdateStatusResponse>(buyerContext.pullResponse())
         assertContains(buyerUpdateStatus.attributes, StatusAttribute.CUR_LOAD)
 
         // Check seller's responses
         val sellerSystemMessageArrows = assertIs<SystemMessageResponse.OtherHasPurchasedStackable>(
-            sellerContext.responseChannel.next())
+            sellerContext.pullResponse())
         assertEquals(buyer.name, sellerSystemMessageArrows.customerName)
         assertEquals(arrowsToBuyAmount, sellerSystemMessageArrows.amount)
         assertEquals(WoodenArrow.id, sellerSystemMessageArrows.item.templateId)
 
         val sellerSystemMessageDemonSplinter = assertIs<SystemMessageResponse.OtherHasPurchasedNonStackable>(
-            sellerContext.responseChannel.next())
+            sellerContext.pullResponse())
         assertEquals(buyer.name, sellerSystemMessageDemonSplinter.customerName)
         assertEquals(1, sellerSystemMessageDemonSplinter.item.amount)
         assertEquals(DemonSplinter.id, sellerSystemMessageDemonSplinter.item.templateId)
 
-        val sellerUpdateItems = assertIs<UpdateItemsResponse>(sellerContext.responseChannel.next())
+        val sellerUpdateItems = assertIs<UpdateItemsResponse>(sellerContext.pullResponse())
         assertEquals(3, sellerUpdateItems.operations.size)
 
         // Check seller's adena update
@@ -512,7 +512,7 @@ class TradeServiceTests(
         assertNotNull(sellerSplinterOperation)
         assertEquals(UpdateItemOperation.REMOVE, sellerSplinterOperation.operation)
 
-        val sellerUpdateStatus = assertIs<UpdateStatusResponse>(sellerContext.responseChannel.next())
+        val sellerUpdateStatus = assertIs<UpdateStatusResponse>(sellerContext.pullResponse())
         assertContains(sellerUpdateStatus.attributes, StatusAttribute.CUR_LOAD)
 
         transaction {
@@ -573,8 +573,8 @@ class TradeServiceTests(
         }
 
         // Check responses
-        assertIs<SystemMessageResponse.NotEnoughAdena>(buyerContext.responseChannel.next())
-        assertIs<ActionFailedResponse>(buyerContext.responseChannel.next())
+        assertIs<SystemMessageResponse.NotEnoughAdena>(buyerContext.pullResponse())
+        assertIs<ActionFailedResponse>(buyerContext.pullResponse())
     }
 
     @Test
@@ -611,7 +611,7 @@ class TradeServiceTests(
         }
 
         // Check
-        assertIs<ActionFailedResponse>(buyerContext.responseChannel.next())
+        assertIs<ActionFailedResponse>(buyerContext.pullResponse())
 
         transaction {
             val sellerArrow = ItemEntity.findAllByOwnerIdAndTemplateId(seller.id, WoodenArrow.id).firstOrNull()
@@ -644,7 +644,7 @@ class TradeServiceTests(
         }
 
         // Check
-        assertIs<ActionFailedResponse>(buyerContext.responseChannel.next())
+        assertIs<ActionFailedResponse>(buyerContext.pullResponse())
     }
 
     @Test
@@ -660,7 +660,7 @@ class TradeServiceTests(
 
         withContext(context) { tradeService.getItemsForPrivateStoreBuy() }
 
-        val response = assertIs<ItemListForPrivateStoreBuyResponse>(context.responseChannel.next())
+        val response = assertIs<ItemListForPrivateStoreBuyResponse>(context.pullResponse())
 
         assertEquals(adena.amount, response.characterAdena)
         assertContains(response.itemsInInventory.map { it.itemId }, demonSplinter.id)
@@ -707,13 +707,13 @@ class TradeServiceTests(
         //Check our responses
 
         //First setMessageResponse is needed to it in private store interface
-        val setStoreMessageResponse = assertIs<PrivateStoreBuySetMessageResponse>(context.responseChannel.next())
+        val setStoreMessageResponse = assertIs<PrivateStoreBuySetMessageResponse>(context.pullResponse())
         assertEquals(testStoreMessage, setStoreMessageResponse.message)
 
-        val changePostureResponse = assertIs<ChangePostureResponse>(context.responseChannel.next())
+        val changePostureResponse = assertIs<ChangePostureResponse>(context.pullResponse())
         assertEquals(Posture.SITTING, changePostureResponse.posture)
 
-        val characterResponse = assertIs<FullCharacterResponse>(context.responseChannel.next())
+        val characterResponse = assertIs<FullCharacterResponse>(context.pullResponse())
         assertNotNull(characterResponse.character.privateStore)
 
         val store = assertIs<PrivateStore.Buy>(characterResponse.character.privateStore!!)
@@ -734,20 +734,20 @@ class TradeServiceTests(
         assertEquals(arrowsAmount, wishedWoodenArrows.amount)
         assertEquals(arrowPrice, wishedWoodenArrows.price)
 
-        val storeMessageResponse = assertIs<PrivateStoreBuySetMessageResponse>(context.responseChannel.next())
+        val storeMessageResponse = assertIs<PrivateStoreBuySetMessageResponse>(context.pullResponse())
         assertEquals(testStoreMessage, storeMessageResponse.message)
 
         //Check customer responses
         val changePostureResponseForCustomer =
-            assertIs<ChangePostureResponse>(customerContext.responseChannel.next())
+            assertIs<ChangePostureResponse>(customerContext.pullResponse())
         assertEquals(Posture.SITTING, changePostureResponseForCustomer.posture)
 
-        val characterResponseForCustomer = assertIs<CharacterInfoResponse>(customerContext.responseChannel.next())
+        val characterResponseForCustomer = assertIs<CharacterInfoResponse>(customerContext.pullResponse())
         assertNotNull(characterResponseForCustomer.character.privateStore)
         assertIs<PrivateStore.Buy>(characterResponse.character.privateStore!!)
 
         val storeMessageResponseForCustomer =
-            assertIs<PrivateStoreBuySetMessageResponse>(customerContext.responseChannel.next())
+            assertIs<PrivateStoreBuySetMessageResponse>(customerContext.pullResponse())
         assertEquals(testStoreMessage, storeMessageResponseForCustomer.message)
     }
 
@@ -774,10 +774,10 @@ class TradeServiceTests(
         }
 
         //Check our responses
-        val setStoreMessageResponse = assertIs<PrivateStoreBuySetMessageResponse>(context.responseChannel.next())
+        val setStoreMessageResponse = assertIs<PrivateStoreBuySetMessageResponse>(context.pullResponse())
         assertEquals(testStoreMessage, setStoreMessageResponse.message)
 
-        assertIs<SystemMessageResponse.NotEnoughAdena>(context.responseChannel.next())
+        assertIs<SystemMessageResponse.NotEnoughAdena>(context.pullResponse())
     }
 
     @Test
@@ -827,12 +827,12 @@ class TradeServiceTests(
         withContext(context) { tradeService.getItemsForPrivateStoreBuy() }
 
         //Check responses
-        val standUpResponse = assertIs<ChangePostureResponse>(context.responseChannel.next())
+        val standUpResponse = assertIs<ChangePostureResponse>(context.pullResponse())
         assertEquals(Posture.STANDING, standUpResponse.posture)
-        assertIs<FullCharacterResponse>(context.responseChannel.next())
+        assertIs<FullCharacterResponse>(context.pullResponse())
 
         val itemsForPrivateStoreBuyResponse = assertIs<ItemListForPrivateStoreBuyResponse>(
-            context.responseChannel.next())
+            context.pullResponse())
 
         assertEquals(1, itemsForPrivateStoreBuyResponse.itemsInInventory.size)
         val woodenArrowInInventory = assertNotNull(
@@ -883,7 +883,7 @@ class TradeServiceTests(
         withContext(context) { withContext(customerContext) { tradeService.showPrivateStoreOf(character) }}
 
         //Check responses
-        val response = assertIs<ShowPrivateStoreBuyResponse>(customerContext.responseChannel.next())
+        val response = assertIs<ShowPrivateStoreBuyResponse>(customerContext.pullResponse())
         assertEquals(character.id, response.ownerId)
 
         val privateStoreItems = (character.privateStore as? PrivateStore.Buy)?.items?.map { it.templateId }
@@ -957,20 +957,20 @@ class TradeServiceTests(
 
         //System messages
         val soldArrowsSystemMessage = assertIs<SystemMessageResponse.OtherHasPurchasedStackable>(
-            sellerContext.responseChannel.next()
+            sellerContext.pullResponse()
         )
         assertEquals(storeOwner.name, soldArrowsSystemMessage.customerName)
         assertEquals(500, soldArrowsSystemMessage.amount)
         assertEquals(WoodenArrow.id, soldArrowsSystemMessage.item.templateId)
 
         val soldDemonSplinterSystemMessage = assertIs<SystemMessageResponse.OtherHasPurchasedNonStackable>(
-            sellerContext.responseChannel.next()
+            sellerContext.pullResponse()
         )
         assertEquals(storeOwner.name, soldDemonSplinterSystemMessage.customerName)
         assertEquals(DemonSplinter.id, soldDemonSplinterSystemMessage.item.templateId)
 
         // UpdateItems response of seller
-        val sellerUpdateItems = assertIs<UpdateItemsResponse>(sellerContext.responseChannel.next())
+        val sellerUpdateItems = assertIs<UpdateItemsResponse>(sellerContext.pullResponse())
         assertEquals(3, sellerUpdateItems.operations.size)
 
         val sellerAdenaOperation = sellerUpdateItems.operations.find { it.item.templateId == Adena.id }
@@ -988,25 +988,25 @@ class TradeServiceTests(
         assertEquals(UpdateItemOperation.REMOVE, sellerSplinterOperation.operation)
 
         // Update cur load of seller
-        val sellerUpdateStatus = assertIs<UpdateStatusResponse>(sellerContext.responseChannel.next())
+        val sellerUpdateStatus = assertIs<UpdateStatusResponse>(sellerContext.pullResponse())
         assertEquals(StatusAttribute.CUR_LOAD, sellerUpdateStatus.attributes.keys.first())
 
         // Check store owner packets
         val boughtArrowsSystemMessage = assertIs<SystemMessageResponse.YouHavePurchasedStackable>(
-            storeOwnerContext.responseChannel.next()
+            storeOwnerContext.pullResponse()
         )
         assertEquals(seller.name, boughtArrowsSystemMessage.sellerName)
         assertEquals(arrowsToSellAmount, boughtArrowsSystemMessage.amount)
         assertEquals(WoodenArrow.id, boughtArrowsSystemMessage.item.templateId)
 
         val storeOwnerSystemMessage = assertIs<SystemMessageResponse.YouHavePurchasedNonStackable>(
-            storeOwnerContext.responseChannel.next()
+            storeOwnerContext.pullResponse()
         )
         assertEquals(seller.name, storeOwnerSystemMessage.sellerName)
         assertEquals(DemonSplinter.id, storeOwnerSystemMessage.item.templateId)
 
         // UpdateItems response of seller
-        val storeOwnerUpdateItems = assertIs<UpdateItemsResponse>(storeOwnerContext.responseChannel.next())
+        val storeOwnerUpdateItems = assertIs<UpdateItemsResponse>(storeOwnerContext.pullResponse())
         assertEquals(3, storeOwnerUpdateItems.operations.size)
 
         val storeOwnerAdenaOperation = storeOwnerUpdateItems.operations.find { it.item.templateId == Adena.id }
@@ -1026,7 +1026,7 @@ class TradeServiceTests(
         assertEquals(UpdateItemOperation.ADD, storeOwnerSplinterOperation.operation)
         assertEquals(1, storeOwnerSplinterOperation.item.amount)
 
-        val storeOwnerUpdateStatus = assertIs<UpdateStatusResponse>(storeOwnerContext.responseChannel.next())
+        val storeOwnerUpdateStatus = assertIs<UpdateStatusResponse>(storeOwnerContext.pullResponse())
         assertEquals(StatusAttribute.CUR_LOAD, storeOwnerUpdateStatus.attributes.keys.first())
 
         transaction {
@@ -1100,7 +1100,7 @@ class TradeServiceTests(
         }
 
         // Check action failed response
-        assertIs<ActionFailedResponse>(sellerContext.responseChannel.next())
+        assertIs<ActionFailedResponse>(sellerContext.pullResponse())
 
         // Verify that transaction did not occur by checking database state
         transaction {
@@ -1166,7 +1166,7 @@ class TradeServiceTests(
         }
 
         // Check action failed
-        assertIs<ActionFailedResponse>(sellerContext.responseChannel.next())
+        assertIs<ActionFailedResponse>(sellerContext.pullResponse())
 
         transaction {
             // Check items in database
@@ -1204,7 +1204,7 @@ class TradeServiceTests(
         }
 
         // Check action failed
-        assertIs<ActionFailedResponse>(sellerContext.responseChannel.next())
+        assertIs<ActionFailedResponse>(sellerContext.pullResponse())
 
         transaction {
             // Check items in database
@@ -1253,10 +1253,10 @@ class TradeServiceTests(
         }
 
         // Check packets
-        val soundResponse = assertIs<PlaySoundResponse>(sellerContext.responseChannel.next())
+        val soundResponse = assertIs<PlaySoundResponse>(sellerContext.pullResponse())
         assertEquals(Sound.ITEMSOUND_SYS_SHORTAGE, soundResponse.sound)
         
-        assertIs<ActionFailedResponse>(sellerContext.responseChannel.next())
+        assertIs<ActionFailedResponse>(sellerContext.pullResponse())
 
         transaction {
             // Check items in database

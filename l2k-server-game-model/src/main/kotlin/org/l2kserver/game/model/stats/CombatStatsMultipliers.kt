@@ -14,7 +14,6 @@ data class CombatStatsMultipliers(
     val atkSpd: Double = 1.0,
     val mAtk: Double = 1.0,
     val mDef: Double = 1.0,
-    val evasion: Int = 0,
     val speed: Double = 1.0,
     val castingSpd: Double = 1.0,
 
