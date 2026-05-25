@@ -22,6 +22,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.currentCoroutineContext
 import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
 import org.l2kserver.game.domain.AccessLevel
+import org.l2kserver.game.handler.dto.request.ConfirmDialogAnswerRequest
 import org.l2kserver.game.handler.dto.request.RespawnAt
 import org.l2kserver.game.handler.dto.request.RespawnRequest
 import org.l2kserver.game.handler.dto.response.ChangePostureResponse
@@ -37,7 +38,6 @@ import org.l2kserver.game.handler.dto.response.SkillListResponse
 import org.l2kserver.game.handler.dto.response.SystemMessageResponse
 import org.l2kserver.game.handler.dto.response.UpdateStatusResponse
 import org.l2kserver.game.model.actor.PlayerCharacterInstanceImpl
-import org.l2kserver.game.model.actor.position.Position
 import org.l2kserver.game.model.actor.character.CharacterRace
 import org.l2kserver.game.model.actor.character.Gender
 import org.l2kserver.game.model.map.TownRegistry
@@ -319,7 +319,31 @@ class CharacterService(
             RespawnAt.JAIL -> TODO()
         }
 
-        respawnCharacterAt(character, respawnPosition)
+        suspendTransaction {
+            character.expLostAfterDeath = 0
+            character.expRestoredByResurrection = 0
+        }
+
+        moveService.teleport(character, respawnPosition)
+        reviveCharacter(character)
+    }
+
+    suspend fun resurrectCharacter(request: ConfirmDialogAnswerRequest.Resurrection) = suspendTransaction {
+        val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
+        log.debug("{} has {} resurrection request", character, if (request.confirmed) "confirmed" else "declined")
+
+        val expToRestore = character.expRestoredByResurrection ?: run {
+            log.warn("Cannot confirm resurrection - {} is not resurrected!!!", character)
+            return@suspendTransaction
+        }
+
+        if (request.confirmed) {
+            character.exp += expToRestore
+            reviveCharacter(character)
+        }
+
+        character.expLostAfterDeath = 0
+        character.expRestoredByResurrection = null
     }
 
     suspend fun exitToCharactersMenu() {
@@ -390,11 +414,9 @@ class CharacterService(
     }
 
     /**
-     * Respawns [character] at provided [position] - teleports character at position,
-     * restores character's cp, hp and mp and revives him
+     * Respawns [character] - restores character's cp, hp and mp and revives him
      */
-    private suspend fun respawnCharacterAt(character: PlayerCharacterInstanceImpl, position: Position) {
-        moveService.teleport(character, position)
+    private suspend fun reviveCharacter(character: PlayerCharacterInstanceImpl) {
         broadcastAround(character.position) { ReviveResponse(character.id) }
 
         suspendTransaction {

@@ -127,10 +127,9 @@ open class SystemMessageResponse private constructor(
     data class YouUse(val skill: ActiveSkillInstance): SystemMessageResponse(
         systemMessageId = 46, skill)
 
-    /** Message: "You have earned [earnedExp] experience and [earnedSp] SP" */
-    data class YouHaveEarnedExpAndSp(
-        val earnedExp: Int, val earnedSp: Int
-    ): SystemMessageResponse(systemMessageId = 95, earnedExp, earnedSp)
+    /** Message: "You have earned [exp] experience and [sp] SP" */
+    data class YouHaveEarnedExpAndSp(val exp: Int, val sp: Int): SystemMessageResponse(
+        systemMessageId = 95, exp, sp)
 
     /** Message: "Over-hit!" */
     data object OverHit: SystemMessageResponse(systemMessageId = 361)
@@ -256,6 +255,9 @@ open class SystemMessageResponse private constructor(
 
     /** Message: You have learned [skill] */
     data class LearnedSkill(val skill: SkillInstance): SystemMessageResponse(systemMessageId = 277, skill)
+
+    /** Message: Resurrection has already been proposed. */
+    data object ResurrectionAlreadyProposed: SystemMessageResponse(systemMessageId = 1513)
 
     override val data = littleEndianByteArray {
         putUByte(SYSTEM_MESSAGE_RESPONSE_PACKET_ID)

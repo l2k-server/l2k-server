@@ -68,6 +68,9 @@ enum class WeaponType(override val availableSlots: Set<Slot>, val damageSpread: 
     ETC(setOf(Slot.TWO_HANDS), 0.1);
 
     fun calculateRandomDamageModifier() = 1.0 + this.damageSpread.let { Random.nextDouble(-it, it) }
+
+    fun isSword() = this == SWORD_ONE_HANDED || this == SWORD_TWO_HANDED
+    fun isBlunt() = this == BLUNT_ONE_HANDED || this == BLUNT_TWO_HANDED
 }
 
 fun WeaponType?.calculateRandomDamageModifier() = this?.calculateRandomDamageModifier() ?: 1.0

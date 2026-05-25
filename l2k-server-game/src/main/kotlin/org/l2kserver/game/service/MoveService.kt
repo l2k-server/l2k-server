@@ -231,8 +231,9 @@ class MoveService(
 suspend fun teleport(actor: MutableActorInstance, targetPosition: Position) {
         //TODO Checks if player can teleport ???
         log.debug("Teleporting '{}' to '{}'", actor, targetPosition)
+
         actor.intentionQueue.cancel()
-        asyncTaskService.waitForAction(actor.id) // Wait for current action completes
+        asyncTaskService.cancelActionByActorId(actor.id)
 
         val fixedPosition = targetPosition.copy(
             z = geoDataService.getNearestZ(targetPosition.x, targetPosition.y, targetPosition.z)

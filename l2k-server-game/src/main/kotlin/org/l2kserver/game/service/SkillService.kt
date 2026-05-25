@@ -6,13 +6,17 @@ import kotlinx.coroutines.withContext
 import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
 import org.l2kserver.game.model.skill.instance.SkillTargetType
 import org.l2kserver.game.extensions.logger
+import org.l2kserver.game.extensions.model.actor.asMutable
 import org.l2kserver.game.extensions.model.actor.hasEnoughConsumableItemFor
 import org.l2kserver.game.extensions.model.actor.hasEnoughHpToCast
 import org.l2kserver.game.extensions.model.actor.hasEnoughMpToCast
+import org.l2kserver.game.extensions.model.skill.isCastableOnSelf
 import org.l2kserver.game.extensions.model.skill.isOnCooldown
+import org.l2kserver.game.extensions.model.skill.isTargetTypeCorrect
 import org.l2kserver.game.handler.dto.request.UseSkillRequest
 import org.l2kserver.game.handler.dto.response.TemporalEffectsResponse
 import org.l2kserver.game.handler.dto.response.ActionFailedResponse
+import org.l2kserver.game.handler.dto.response.ConfirmDialogResponse
 import org.l2kserver.game.handler.dto.response.FullCharacterResponse
 import org.l2kserver.game.handler.dto.response.PlaySoundResponse
 import org.l2kserver.game.handler.dto.response.GaugeColor
@@ -42,11 +46,13 @@ import org.l2kserver.game.model.skill.effect.EffectOnTimeAbnormalEffect
 import org.l2kserver.game.model.skill.effect.EscapeEffect
 import org.l2kserver.game.model.skill.effect.HealEffect
 import org.l2kserver.game.model.skill.effect.ResistedEffect
+import org.l2kserver.game.model.skill.effect.ResurrectionEffect
 import org.l2kserver.game.model.skill.effect.TemporalAbnormalEffect
 import org.l2kserver.game.model.skill.instance.ActiveSkillInstance
 import org.l2kserver.game.model.skill.instance.PassiveSkillInstance
 import org.l2kserver.game.model.skill.instance.SkillConsumables
 import org.l2kserver.game.model.skill.instance.SkillInstance
+import org.l2kserver.game.model.skill.template.SkillConditionFailed
 import org.l2kserver.game.model.skill.template.SkillRegistry
 import org.l2kserver.game.network.session.send
 import org.l2kserver.game.network.session.sendTo
@@ -57,6 +63,7 @@ import org.springframework.stereotype.Service
 import java.time.Instant
 import kotlin.collections.contains
 import kotlin.math.roundToInt
+import kotlin.math.roundToLong
 
 private const val BASE_CASTING_SPEED = 333
 
@@ -119,7 +126,7 @@ class SkillService(
     }
 
     /**
-     * Handles [actor]'s intent to use `ACTIVE` [skill]
+     * Handles [actor]'s request to use `ACTIVE` [skill]
      *
      * @param forced Skill will be applied even to wrong target (if possible)
      * @param holdPosition actor won't move closer to use skill
@@ -304,94 +311,95 @@ class SkillService(
      * and returns false
      *
      * @param skill Skill that the actor is trying to use
-     * @param target Skill target
-     * @param forced Is this skill forced to use (ctrl pressed)
+     * @param context Context of skill usage
+     *
      * @return true - if actor can use [skill], false if not
      */
     @Suppress("CyclomaticComplexMethod")
     private suspend fun ActorInstance.canUseSkill(
         skill: ActiveSkillInstance, target: ActorInstance, forced: Boolean
-    ): Boolean = when {
+    ): Boolean {
+        val skillConditionFailed = skill.canBeUsed(this, target)
+
+        return when {
         //TODO Physical/Magical silence
-        this.isParalyzed || this.isDead() -> {
-            send { ActionFailedResponse }
-            false
-        }
+            this.isParalyzed || this.isDead() -> {
+                send { ActionFailedResponse }
+                false
+            }
 
-        skill.requires?.weaponTypes?.contains(this.weaponType) == false -> {
-            send { PlaySoundResponse(Sound.ITEMSOUND_SYS_IMPOSSIBLE) }
-            send { ActionFailedResponse }
-            false
-        }
+            skill.requires?.weaponTypes?.contains(this.weaponType) == false -> {
+                send { PlaySoundResponse(Sound.ITEMSOUND_SYS_IMPOSSIBLE) }
+                send { ActionFailedResponse }
+                false
+            }
 
-        skill.isOnCooldown() -> {
-            send { SystemMessageResponse.IsBeingPreparedForReuse(skill) }
-            send { ActionFailedResponse }
-            false
-        }
+            skill.isOnCooldown() -> {
+                send { SystemMessageResponse.IsBeingPreparedForReuse(skill) }
+                send { ActionFailedResponse }
+                false
+            }
 
-        !this.hasEnoughHpToCast(skill) -> {
-            send { PlaySoundResponse(Sound.ITEMSOUND_SYS_IMPOSSIBLE) }
-            send { SystemMessageResponse.NotEnoughHp }
-            send { ActionFailedResponse }
-            false
-        }
+            !this.hasEnoughHpToCast(skill) -> {
+                send { PlaySoundResponse(Sound.ITEMSOUND_SYS_IMPOSSIBLE) }
+                send { SystemMessageResponse.NotEnoughHp }
+                send { ActionFailedResponse }
+                false
+            }
 
-        !this.hasEnoughMpToCast(skill) -> {
-            send { PlaySoundResponse(Sound.ITEMSOUND_SYS_IMPOSSIBLE) }
-            send { SystemMessageResponse.NotEnoughMp }
-            send { ActionFailedResponse }
-            false
-        }
+            !this.hasEnoughMpToCast(skill) -> {
+                send { PlaySoundResponse(Sound.ITEMSOUND_SYS_IMPOSSIBLE) }
+                send { SystemMessageResponse.NotEnoughMp }
+                send { ActionFailedResponse }
+                false
+            }
 
-        this is PlayerCharacterInstanceImpl && !this.hasEnoughConsumableItemFor(skill) -> {
-            send { PlaySoundResponse(Sound.ITEMSOUND_SYS_IMPOSSIBLE) }
-            send { SystemMessageResponse.NotEnoughItems }
-            send { ActionFailedResponse }
-            false
-        }
+            this is PlayerCharacterInstanceImpl && !this.hasEnoughConsumableItemFor(skill) -> {
+                send { PlaySoundResponse(Sound.ITEMSOUND_SYS_IMPOSSIBLE) }
+                send { SystemMessageResponse.NotEnoughItems }
+                send { ActionFailedResponse }
+                false
+            }
 
-        skill.targetType != SkillTargetType.SELF && this.targetId == null -> {
-            send { SystemMessageResponse.YouMustSelectTarget }
-            send { PlaySoundResponse(Sound.ITEMSOUND_SYS_IMPOSSIBLE) }
-            send { ActionFailedResponse }
-            false
-        }
+            skill.targetType != SkillTargetType.SELF && this.targetId == null -> {
+                send { SystemMessageResponse.YouMustSelectTarget }
+                send { PlaySoundResponse(Sound.ITEMSOUND_SYS_IMPOSSIBLE) }
+                send { ActionFailedResponse }
+                false
+            }
 
-        skill.targetType !in listOf(SkillTargetType.SELF, SkillTargetType.FRIEND) && this == target -> {
-            send { SystemMessageResponse.CannotUseThisOnYourself }
-            send { PlaySoundResponse(Sound.ITEMSOUND_SYS_IMPOSSIBLE) }
-            send { ActionFailedResponse }
-            false
-        }
+            !skill.isCastableOnSelf() && this == target -> {
+                send { SystemMessageResponse.CannotUseThisOnYourself }
+                send { PlaySoundResponse(Sound.ITEMSOUND_SYS_IMPOSSIBLE) }
+                send { ActionFailedResponse }
+                false
+            }
 
-        skill.targetType == SkillTargetType.FRIEND && (target.isDead() || target.isEnemyOf(this) && !forced) -> {
-            send { SystemMessageResponse.IncorrectTarget }
-            send { ActionFailedResponse }
-            false
-        }
+            !skill.isTargetTypeCorrect(this, target, forced) -> {
+                send { SystemMessageResponse.IncorrectTarget }
+                send { ActionFailedResponse }
+                false
+            }
 
-        skill.targetType == SkillTargetType.DEAD_NPC && (!target.isDead() || target !is NpcInstance) -> {
-            send { SystemMessageResponse.IncorrectTarget }
-            send { ActionFailedResponse }
-            false
-        }
+            skillConditionFailed != null -> {
+                when(skillConditionFailed) {
+                    is SkillConditionFailed.TargetIsPendingResurrection -> {
+                        send { SystemMessageResponse.ResurrectionAlreadyProposed }
+                        send { ActionFailedResponse }
+                    }
+                    else -> {
+                        skillConditionFailed.message?.let { send { SystemMessageResponse(it) }}
+                        send { PlaySoundResponse(Sound.ITEMSOUND_SYS_IMPOSSIBLE) }
+                        send { ActionFailedResponse }
+                    }
+                }
+                false
+            }
 
-        skill.targetType == SkillTargetType.DEAD_PLAYER && (!target.isDead() || target !is PlayerCharacterInstance) -> {
-            send { SystemMessageResponse.IncorrectTarget }
-            send { ActionFailedResponse }
-            false
+            //TODO Check PeaceZone
+            //TODO Check geodata (can see target)
+            else -> true
         }
-
-        skill.targetType == SkillTargetType.ENEMY && (target.isDead() || (!target.isEnemyOf(this) && !forced)) -> {
-            send { SystemMessageResponse.IncorrectTarget }
-            send { ActionFailedResponse }
-            false
-        }
-
-        //TODO Check PeaceZone
-        //TODO Check geodata (can see target)
-        else -> true
     }
 
     /** Applies cast by [caster] [skill] effects on [target] */
@@ -415,6 +423,8 @@ class SkillService(
             emptyList()
         }
 
+        val caster = context.caster.asMutable()
+
         //Use SS and re-enable it if auto-use enabled
         if (skill.isMagic) {
             if (context.usedSpiritshotType != null && caster is PlayerCharacterInstanceImpl) {
@@ -428,7 +438,8 @@ class SkillService(
             }
         }
 
-        applyEffects(effects, caster, skill)
+        //Some effects like stun or teleport cancel actor's action, so they should be applied by other coroutine
+        asyncTaskService.launchOnce { applyEffects(effects, caster, skill) }
     }
 
     private suspend fun applyEffects(
@@ -449,7 +460,7 @@ class SkillService(
                     SystemMessageResponse.YouHaveResistedMagic(caster.name)
                 }
             }
-
+            is ResurrectionEffect -> applyResurrectionEffect(caster, effect)
             is EscapeEffect -> applyEscapeEffect(effect)
         }
     }
@@ -508,6 +519,14 @@ class SkillService(
         )
 
         moveService.teleport(target, targetPosition)
+    }
+
+    private suspend fun applyResurrectionEffect(caster: ActorInstance, effect: ResurrectionEffect) {
+        val target = gameObjectRepository.findCharacterById(effect.targetId)
+        target.expLostAfterDeath
+
+        target.expRestoredByResurrection = (target.expLostAfterDeath * effect.restoredExp).roundToLong()
+        sendTo(effect.targetId) { ConfirmDialogResponse.Resurrection(caster.name) }
     }
 
 }

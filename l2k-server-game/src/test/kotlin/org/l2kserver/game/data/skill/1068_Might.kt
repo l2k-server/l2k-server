@@ -13,7 +13,7 @@ import java.time.Duration
 
 class MightEffect(
     override val targetId: Int,
-    override val effectLevel: Int
+    override val effectLevel: Int,
 ): TemporalAbnormalEffect(Duration.ofMinutes(2)) {
     override val skillId = Might.id
     override val abnormalType = AbnormalType.PA_UP

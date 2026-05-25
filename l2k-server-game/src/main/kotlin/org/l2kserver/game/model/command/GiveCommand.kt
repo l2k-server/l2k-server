@@ -1,20 +1,19 @@
 package org.l2kserver.game.model.command
 
 import com.github.ajalt.clikt.parameters.arguments.argument
-import com.github.ajalt.clikt.parameters.arguments.optional
+import com.github.ajalt.clikt.parameters.arguments.check
 import com.github.ajalt.clikt.parameters.options.check
 import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.option
-import com.github.ajalt.clikt.parameters.options.required
 import com.github.ajalt.clikt.parameters.types.int
 import org.l2kserver.game.model.item.template.ItemTemplateRegistry
 
 class GiveCommand: AdminCommand() {
 
-    val name by argument("character name").optional()
-
-    val templateId by option("-item").int().required()
+    val templateId by argument("item").int()
         .check({ "No item found in game data by id = '$it'" }) { ItemTemplateRegistry.existsById(it) }
+
+    val name by option("-to")
 
     val amount by option("-amount").int().default(1)
         .check("Item amount must be greater than 0") { it > 0 }
@@ -28,8 +27,8 @@ class GiveCommand: AdminCommand() {
                 "If you don't provide a character name, it will give item to your current character.\n" +
                 "Usage: //give <characterName> -item <itemTemplateId> " +
                     "-amount <itemAmount> -enchantedBy <enchantLevel>\n" +
-                "Example: //give Nagibator777 -item 6372 -amount 10\n" +
-                "Example to give current character 1 item: //give -item 6372"
+                "Example: //give 6372 -to Nagibator777 -amount 10\n" +
+                "Example to give current character 1 item: //give 6372"
     }
 
     override fun toString() = "GiveCommand(name=$name, templateId=$templateId, amount=$amount)"

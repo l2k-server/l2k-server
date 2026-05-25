@@ -5,6 +5,7 @@ import org.l2kserver.game.model.item.ConsumableItem
 import org.l2kserver.game.model.skill.context.SkillContext
 import org.l2kserver.game.model.skill.effect.AbnormalEffect
 import org.l2kserver.game.model.skill.effect.Effect
+import org.l2kserver.game.model.skill.template.SkillConditionFailed
 import org.l2kserver.game.model.skill.template.SkillRequirements
 import java.time.Instant
 
@@ -55,6 +56,7 @@ interface ActiveSkillInstance: SkillInstance {
     val usesCasterStats: Boolean
     var nextUsageTime: Instant
 
+    fun canBeUsed(caster: ActorInstance, target: ActorInstance): SkillConditionFailed?
     fun affect(context: SkillContext): Iterable<Effect>
 }
 

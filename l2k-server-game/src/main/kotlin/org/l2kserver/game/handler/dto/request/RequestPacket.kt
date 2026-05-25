@@ -74,6 +74,8 @@ fun RequestPacket(data: ByteArray): RequestPacket {
         SET_PRIVATE_STORE_BUY_MESSAGE_REQUEST_PACKET_ID -> PrivateStoreBuySetMessageRequest(buffer)
         SELL_TO_PRIVATE_STORE_BUY_REQUEST_PACKET_ID -> SellToPrivateStoreRequest(buffer)
 
+        CONFIRM_DIALOG_ANSWER_RESPONSE_PACKET_ID -> ConfirmDialogAnswerRequest(buffer)
+
         EXTENDED_PACKET -> ExtendedRequestPacket(buffer)
 
         else -> throw IllegalArgumentException("Unknown packet type '$requestPacketId'")

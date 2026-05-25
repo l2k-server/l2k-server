@@ -9,19 +9,23 @@ import org.l2kserver.game.handler.dto.response.Sound
 import org.l2kserver.game.handler.dto.response.SystemMessageResponse
 import org.l2kserver.game.handler.dto.response.UpdateItemsResponse
 import org.l2kserver.game.handler.dto.response.UpdateStatusResponse
+import org.l2kserver.game.model.actor.PlayerCharacterInstanceImpl
 import org.l2kserver.game.network.session.send
 import org.l2kserver.game.network.session.sessionContext
 import org.l2kserver.game.repository.GameObjectRepository
 import org.l2kserver.game.model.command.AdminCommand
 import org.l2kserver.game.model.command.CommandDescription
 import org.l2kserver.game.model.command.EnchantCommand
+import org.l2kserver.game.model.command.ExpCommand
 import org.l2kserver.game.model.command.GiveCommand
 import org.l2kserver.game.model.command.HelpCommand
 import org.l2kserver.game.model.command.ItemToEnchant
+import org.l2kserver.game.model.command.KillCommand
 import org.l2kserver.game.model.command.LearnCommand
 import org.l2kserver.game.model.command.RestoreCommand
 import org.l2kserver.game.model.command.StatToRestore
 import org.l2kserver.game.model.command.TeleportCommand
+import org.l2kserver.game.model.skill.effect.DamageEffect
 import org.l2kserver.game.network.session.sendTo
 import org.springframework.stereotype.Service
 import kotlin.math.roundToInt
@@ -32,7 +36,9 @@ class AdminCommandService(
     override val gameObjectRepository: GameObjectRepository,
     private val moveService: MoveService,
     private val itemService: ItemService,
-    private val skillService: SkillService
+    private val skillService: SkillService,
+    private val combatService: CombatService,
+    private val rewardService: RewardService
 ) : AbstractService() {
 
     override val log = logger()
@@ -52,7 +58,10 @@ class AdminCommandService(
                 is GiveCommand -> handleGiveCommand(adminCommand)
                 is RestoreCommand -> handleRestoreCommand(adminCommand)
                 is LearnCommand -> handleLearnCommand(adminCommand)
+                is KillCommand -> handleKillCommand(adminCommand)
+                is ExpCommand -> handleExpCommand(adminCommand)
             }
+            send { SystemMessageResponse("Successfully executed command '${commandRequest.commandString}'") }
         } catch (e: Exception) {
             log.error("Failed executing command '{}'", commandRequest.commandString, e)
             send {
@@ -193,7 +202,7 @@ class AdminCommandService(
             }
         }
 
-        send { UpdateStatusResponse.currentHpMpCpOf(character) }
+        sendTo(character.id) { UpdateStatusResponse.currentHpMpCpOf(character) }
     }
 
     private suspend fun handleLearnCommand(command: LearnCommand) {
@@ -201,6 +210,30 @@ class AdminCommandService(
             ?: gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
 
         skillService.learnSkill(character, command.skillId, command.level)
+    }
+
+    private suspend fun handleKillCommand(command: KillCommand) {
+        val adminCharacter = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
+        val target = command.victimName?.let { gameObjectRepository.findCharacterByName(it) }
+            ?: adminCharacter.targetId?.let { gameObjectRepository.findActorById(it) }
+            ?: run {
+                send { SystemMessageResponse("No target for command 'kill'") }
+                return
+            }
+        val damage = target.stats.maxHp + ((target as? PlayerCharacterInstanceImpl)?.stats?.maxCp ?: 0.0)
+        val damageEffect = DamageEffect(target.id, damage.roundToInt())
+
+        combatService.applyDamageEffect(adminCharacter, damageEffect)
+    }
+
+    private suspend fun handleExpCommand(command: ExpCommand) {
+        val adminCharacter = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
+
+        val target = command.characterName?.let { gameObjectRepository.findCharacterByName(it) }
+            ?: adminCharacter.targetId?.let { gameObjectRepository.findCharacterByIdOrNull(it) }
+            ?: adminCharacter
+
+        rewardService.giveExpAndSp(target, command.amount)
     }
 
 }

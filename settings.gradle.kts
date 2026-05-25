@@ -11,7 +11,7 @@ pluginManagement {
 dependencyResolutionManagement {
     versionCatalogs {
         create("libs") {
-            version("ktor", "3.4.3")
+            version("ktor", "3.5.0")
             version("exposed", "1.3.0")
             version("hazelcast", "5.7.0")
 

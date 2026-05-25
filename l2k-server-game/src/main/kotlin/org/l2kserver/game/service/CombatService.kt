@@ -35,6 +35,7 @@ import org.l2kserver.game.model.skill.instance.ActiveSkillInstance
 import org.l2kserver.game.network.session.send
 import org.l2kserver.game.network.session.sendTo
 import org.l2kserver.game.repository.GameObjectRepository
+import org.l2kserver.game.utils.ExpLossCalculator
 import org.springframework.stereotype.Service
 import kotlin.math.roundToInt
 import kotlin.math.roundToLong
@@ -50,6 +51,7 @@ class CombatService(
     private val npcService: NpcService,
     private val rewardService: RewardService,
     private val itemService: ItemService,
+    private val expLossCalculator: ExpLossCalculator,
 
     override val gameObjectRepository: GameObjectRepository
 ) : AbstractService() {
@@ -167,8 +169,8 @@ class CombatService(
 
         // Activate pvp state of attacker if fighters are characters
         if (
-            attacker is PlayerCharacterInstance &&
-            attacked is PlayerCharacterInstance &&
+            attacker is PlayerCharacterInstanceImpl &&
+            attacked is PlayerCharacterInstanceImpl &&
             attacked.karma == 0
         ) {
             actorStateService.activatePvpState(attacker)
@@ -337,13 +339,25 @@ class CombatService(
             is PlayerCharacterInstanceImpl -> {
                 broadcastAround(actor.position) { PlayerDiedResponse(actor) }
 
-                if (actor.karma != 0) {
+                val karmaLost = if (actor.karma != 0) {
                     actor.karma = 0
 
                     log.debug("{} was killed, decreased his karma to '{}'", actor, actor.karma)
                     broadcastAround(actor.position) { PvPStatusResponse(actor) }
+
+                    true
+                } else false
+
+                val expLoss = expLossCalculator[actor.level]
+                val expLost = if (expLoss > 0) {
+                    actor.exp = maxOf(0L, actor.exp - expLoss)
+                    actor.expLostAfterDeath = expLoss
+
+                    true
+                } else false
+
+                if (karmaLost || expLost)
                     sendTo(actor.id) { FullCharacterResponse(actor) }
-                }
             }
         }
     }
