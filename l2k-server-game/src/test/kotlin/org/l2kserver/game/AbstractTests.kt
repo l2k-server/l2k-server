@@ -85,14 +85,15 @@ abstract class AbstractTests {
 
     protected fun createTestCharacter(
         enterGame: Boolean = true,
-        name: String = testCharacterName
+        name: String = testCharacterName,
+        classId: Int = HumanFighter.id
     ): PlayerCharacterInstanceImpl {
         val character = playerCharacterRepository.create(
             accountName = testLogin,
             characterName = name,
             race = CharacterRace.HUMAN,
             gender = Gender.MALE,
-            classId = HumanFighter.id,
+            classId = classId,
             hairStyle = 0,
             hairColor = 0,
             faceType = 0

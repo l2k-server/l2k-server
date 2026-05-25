@@ -4,9 +4,12 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import org.jetbrains.exposed.v1.jdbc.insert
+import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import org.junit.jupiter.api.assertNotNull
 import org.junit.jupiter.api.assertThrows
 import org.l2kserver.game.AbstractTests
+import org.l2kserver.game.data.characterclass.HumanMystic
 import org.l2kserver.game.data.skill.MortalBlow
 import org.l2kserver.game.data.skill.LifeScavenge
 import org.l2kserver.game.data.skill.PowerStrike
@@ -34,6 +37,8 @@ import org.l2kserver.game.data.npc.FatDummyGremlin
 import org.l2kserver.game.data.skill.DefenseAura
 import org.l2kserver.game.data.skill.Might
 import org.l2kserver.game.data.skill.PowerShot
+import org.l2kserver.game.data.skill.Resurrection
+import org.l2kserver.game.handler.dto.response.ConfirmDialogResponse
 import org.l2kserver.game.handler.dto.response.TemporalEffectsResponse
 import org.l2kserver.game.handler.dto.response.FullCharacterResponse
 import org.l2kserver.game.handler.dto.response.NpcInfoResponse
@@ -46,7 +51,9 @@ import kotlin.math.roundToInt
 import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
+import kotlin.test.assertTrue
 
 class SkillServiceTest @Autowired constructor(
     private val skillService: SkillService,
@@ -713,6 +720,74 @@ class SkillServiceTest @Autowired constructor(
         //Check target
         assertEquals(1, target.temporalEffects.size)
         assertEquals(AbnormalType.PA_UP, target.temporalEffects.firstOrNull()?.abnormalType)
+    }
+
+    @Test
+    fun shouldSuccessfullyResurrectCharacter(): Unit = runBlocking {
+        // Spawn alive target
+        val targetCharacter = createTestCharacter(name = "FriendlyFriend")
+        transaction { targetCharacter.currentHp = 0 }
+        val targetContext = sessionContextOf(targetCharacter.id)!!
+
+        //Create character and learn Resurrection
+        val character = createTestCharacter(classId = HumanMystic.id)
+        val context = sessionContextOf(character.id)!!
+        transaction { character.position = targetCharacter.position }
+
+        character.skillsAndMagic.learn(Resurrection.id, 1)
+        character.targetId = targetCharacter.id
+
+        withContext(context) { skillService.useSkill(UseSkillRequest(Resurrection.id)) }
+
+        //Check caster's responses
+        assertIs<StartMovingToTargetResponse>(context.pullResponse())
+        assertIs<UpdateStatusResponse>(context.pullResponse()) //mana spent to start casting
+        assertIs<SystemMessageResponse.YouUse>(context.pullResponse())
+
+        val gaugeResponse = assertIs<GaugeResponse>(context.pullResponse())
+        assertEquals(GaugeColor.BLUE, gaugeResponse.gaugeColor)
+
+        val calculatedReuseDelay = 120000
+        val skillUsedResponse = assertIs<SkillUsedResponse>(context.pullResponse())
+        assertEquals(character.id, skillUsedResponse.casterId)
+        assertEquals(targetCharacter.id, skillUsedResponse.targetId)
+        assertEquals(Resurrection.id, skillUsedResponse.skillId)
+        assertEquals(calculatedReuseDelay, skillUsedResponse.reuseDelay)
+
+        delay(10000) //Wait for casting ends
+
+        assertIs<UpdateStatusResponse>(context.pullResponse()) //mana spent after casting
+
+        //Check target
+        val skillUsedResponseForTarget = assertIs<SkillUsedResponse>(targetContext.pullResponse())
+        assertEquals(character.id, skillUsedResponseForTarget.casterId)
+
+        val resurrectionResponse = assertIs<ConfirmDialogResponse.Resurrection>(targetContext.pullResponse())
+        assertEquals(character.name, resurrectionResponse.resurrectedBy)
+
+        assertTrue(targetCharacter.resurrectionIsPending)
+        assertNotNull(targetCharacter.expRestoredByResurrection)
+    }
+
+    @Test
+    fun shouldFailResurrectingTargetIsAlreadyResurrected(): Unit = runBlocking {
+        // Spawn alive target
+        val targetCharacter = createTestCharacter(name = "FriendlyFriend")
+        transaction { targetCharacter.currentHp = 0 }
+        targetCharacter.expRestoredByResurrection = 1000
+
+        //Create character and learn Resurrection
+        val character = createTestCharacter(classId = HumanMystic.id)
+        val context = sessionContextOf(character.id)!!
+        transaction { character.position = targetCharacter.position }
+
+        character.skillsAndMagic.learn(Resurrection.id, 1)
+        character.targetId = targetCharacter.id
+
+        withContext(context) { skillService.useSkill(UseSkillRequest(Resurrection.id)) }
+
+        //Check caster's responses
+        assertIs<SystemMessageResponse.ResurrectionAlreadyProposed>(context.pullResponse())
     }
 
 }

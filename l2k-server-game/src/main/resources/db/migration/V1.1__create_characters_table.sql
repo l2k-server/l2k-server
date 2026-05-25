@@ -15,6 +15,7 @@ CREATE TABLE characters(
     current_cp                 INT NOT NULL,
     sp                         INT NOT NULL,
     exp                        BIGINT NOT NULL,
+    exp_lost_after_death       BIGINT NOT NULL,
     karma                      INT NOT NULL,
     pvp_count                  INT NOT NULL,
     pk_count                   INT NOT NULL,

@@ -14,7 +14,21 @@ import org.l2kserver.game.model.skill.effect.TemporalAbnormalEffect
 import org.l2kserver.game.model.skill.instance.SkillInstance
 
 /**
- * Player character instance.
+ * Player-controlled character in the game world.
+ *
+ * This class encapsulates all data for a player character, providing:
+ * - Access to core identifiers and attributes (name, gender, race, clan, title);
+ * - Current resource stats (CP/HP/MP), experience/level, and reputation (karma, PK/PvP);
+ * - World position and heading, movement/combat stats, and targeting information;
+ * - Inventory and equipment that influence calculated combat statistics;
+ * - Character skills (considering active subclass) and utilities for skill management;
+ *
+ * It also maintains auxiliary states (PvP, paralysis/posture, auto soulshot/spiritshot)
+ * and provides relationship logic (e.g., [isEnemyOf]).
+ *
+ * Notes on computed properties:
+ * - [level] is determined based on [exp];
+ * - [stats] are assembled from class base parameters, equipment, and modifiers;
  */
 interface PlayerCharacterInstance: ActorInstance {
     override val id: Int
@@ -34,6 +48,7 @@ interface PlayerCharacterInstance: ActorInstance {
 
     val sp: Int
     val exp: Long
+    val expLostAfterDeath: Long
     val karma: Int
     val pvpCount: Int
     val pkCount: Int
@@ -63,9 +78,11 @@ interface PlayerCharacterInstance: ActorInstance {
     override val targetId: Int?
     override val targetedBy: Set<ActorInstance>
 
-    var pvpState get() = PvpState.NOT_IN_PVP; set(_) {}
+    val pvpState: PvpState
 
     override val collisionBox: CollisionBox
     override val stats: CombatStats
     override val basicStats: BasicStats
+
+    val resurrectionIsPending: Boolean
 }

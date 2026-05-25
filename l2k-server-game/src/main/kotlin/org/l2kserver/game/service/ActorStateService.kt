@@ -56,7 +56,7 @@ class ActorStateService(
     /**
      * Key - character, value - time when character's PVP state ends
      */
-    private val charactersInPvpState = ConcurrentHashMap<PlayerCharacterInstance, Long>()
+    private val charactersInPvpState = ConcurrentHashMap<PlayerCharacterInstanceImpl, Long>()
 
     @EventListener(ApplicationReadyEvent::class)
     fun init() {
@@ -79,7 +79,7 @@ class ActorStateService(
      * broadcasts to all surrounding characters that actor is in PVP,
      * else - updates this actor combat time
      */
-    suspend fun activatePvpState(character: PlayerCharacterInstance) {
+    suspend fun activatePvpState(character: PlayerCharacterInstanceImpl) {
         log.debug("Enabling (or updating) PVP state of '{}'", character)
         charactersInPvpState[character] = currentTimeMillis() + pvpFlagTimeMs
 

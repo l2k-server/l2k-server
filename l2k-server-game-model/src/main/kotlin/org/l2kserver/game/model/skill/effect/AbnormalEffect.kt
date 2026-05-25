@@ -38,6 +38,7 @@ enum class AbnormalVisualEffect(val bit: Int) {
  * Abnormal (buffs, debuffs, passives) - effect, that changes actor stats, add triggers, etc.
  *
  * @property abnormalType - Type of this abnormal. Only one abnormal of each type can affect
+ * @property abnormalVisualEffect
  */
 interface AbnormalEffect {
     val abnormalType: String
@@ -59,7 +60,7 @@ interface AbnormalEffect {
 /**
  * Skill, that provides negative temporal abnormal effect
  *
- * @property magicLevel Magic level of skill
+ * @magicLevel Magic level of skill, that produced this effect
  * @property basicProperty Basic property, that provides resistance to this skill
  * @property levelBonusRate How much does level difference affects success chance
  * @property activateRate Basic chance of this debuff. Must be from 0 to 100

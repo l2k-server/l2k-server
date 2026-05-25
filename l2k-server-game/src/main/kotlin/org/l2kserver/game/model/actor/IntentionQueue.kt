@@ -1,6 +1,7 @@
 package org.l2kserver.game.model.actor
 
 import kotlinx.coroutines.flow.MutableStateFlow
+import org.l2kserver.game.model.skill.context.SkillContext
 import org.l2kserver.game.model.skill.instance.ActiveSkillInstance
 
 /**
@@ -29,7 +30,7 @@ sealed interface Intention {
     ): Intention
 
     /**
-     * Intention to cast [skill] at [target] with the provided behavioral flags:
+     * Intention to cast [skill] at [SkillContext.mainTarget] with the provided behavioral flags:
      * - [forced]: bypass some target checks (f.e. cast healing on enemy target)
      * - [holdPosition]: do not move towards target if it is not enough close
      */

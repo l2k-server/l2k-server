@@ -15,8 +15,18 @@ game.karmaBaseAmount: 240
 game.karmaMaxAmount: 10_000
 
 # When killing a monster, karma points will be reduced by the amount of experience / this coefficient.
-# Default: 40_000
+# Default: 260
 game.karmaExpDivider: 260
 
 # Minimum amount of karma lost when killing a monster. Default: 0
 game.karmaLostMin: 0
+
+# How many exp is lost after death
+# Key - minimum level from which the parameter is applied, value - loss amount (percent)
+# For example, 40: 4 means that if character is 40 level or above, he will lose 4% of his exp after death
+# Default:   0: 0; 10: 7; 40: 4; 76: 2
+game.exp-loss:
+  0:  0
+  10: 7
+  40: 4
+  76: 2

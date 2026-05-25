@@ -62,7 +62,31 @@ interface ActiveSkill: Skill {
     val forcedUsageAllowed: Boolean get() = true
     val usesCasterStats: Boolean get() = true
 
+    /**
+     * Checks if this skill can be used
+     *
+     * @return null if all checks passed, or [SkillConditionFailed] with additional info why skill cannot be used
+     */
+    fun canBeUsed(caster: ActorInstance, target: ActorInstance): SkillConditionFailed? { return null }
+
+    /**
+     * Calculates skill effects
+     *
+     * @param context Context of skill usage (see [SkillContext])
+     * @return Iterable of Effects, that were produced by this skill
+     */
     fun affect(context: SkillContext): Iterable<Effect>
+}
+
+/**
+ * Why does the skill cannot be used
+ *
+ * @property message System message text to send to the client
+ **/
+open class SkillConditionFailed(val message: String? = null) {
+
+    /** Skill cannot be used because target is already resurrected by someone else */
+    object TargetIsPendingResurrection: SkillConditionFailed()
 }
 
 /**

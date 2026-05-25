@@ -36,6 +36,7 @@ import org.l2kserver.game.handler.dto.request.PrivateStoreBuyStartRequest
 import org.l2kserver.game.handler.dto.request.PrivateStoreBuyStopRequest
 import org.l2kserver.game.handler.dto.request.BuyInPrivateStoreRequest
 import org.l2kserver.game.handler.dto.request.BypassToServerRequest
+import org.l2kserver.game.handler.dto.request.ConfirmDialogAnswerRequest
 import org.l2kserver.game.handler.dto.request.ExchangeRequest
 import org.l2kserver.game.handler.dto.request.LinkRequest
 import org.l2kserver.game.handler.dto.request.RespawnRequest
@@ -102,6 +103,7 @@ class L2GameRequestHandler(
             is RestartRequest -> characterService.exitToCharactersMenu()
             is RespawnRequest -> characterService.respawnCharacter(request)
             is AppearRequest -> characterService.sendCharacterInfo()
+            is ConfirmDialogAnswerRequest.Resurrection -> characterService.resurrectCharacter(request)
 
             is ManorListRequest -> send { ManorListResponse }
 

@@ -22,6 +22,7 @@ object PlayerCharacterTable: IntIdTable("characters") {
     val currentCp = integer("current_cp")
     val sp = integer("sp").default(defaultValue = 0)
     val exp = long("exp").default(defaultValue = 0)
+    val expLostAfterDeath = long("exp_lost_after_death").default(defaultValue = 0)
     val karma = integer("karma").default(defaultValue = 0)
     val pvpCount = integer("pvp_count").default(defaultValue = 0)
     val pkCount = integer("pk_count").default(defaultValue = 0)
@@ -59,6 +60,7 @@ class PlayerCharacterEntity(id: EntityID<Int>): IntEntity(id) {
 
     var sp by PlayerCharacterTable.sp
     var exp by PlayerCharacterTable.exp
+    var expLostAfterDeath by PlayerCharacterTable.expLostAfterDeath
     var karma by PlayerCharacterTable.karma
     var pvpCount by PlayerCharacterTable.pvpCount
     var pkCount by PlayerCharacterTable.pkCount

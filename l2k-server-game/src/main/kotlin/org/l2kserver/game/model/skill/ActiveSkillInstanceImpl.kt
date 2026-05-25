@@ -1,6 +1,7 @@
 package org.l2kserver.game.model.skill
 
 import org.l2kserver.game.domain.SkillEntity
+import org.l2kserver.game.model.actor.ActorInstance
 import org.l2kserver.game.model.skill.context.SkillContext
 import org.l2kserver.game.model.skill.instance.ActiveSkillInstance
 import org.l2kserver.game.model.skill.instance.SkillConsumables
@@ -55,6 +56,7 @@ class ActiveSkillInstanceImpl(
             cooldowns[skillEntityId] = value
         }
 
+    override fun canBeUsed(caster: ActorInstance, target: ActorInstance) = template.canBeUsed(caster, target)
     override fun affect(context: SkillContext) = template.affect(context)
 
     override fun toString() = "ActiveSkill(id=$skillId name=$skillName level=$skillLevel)"

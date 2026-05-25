@@ -120,5 +120,5 @@ suspend inline fun send(response:() -> ResponsePacket) = currentCoroutineContext
     ?.send(response())
 
 /** Sends [response] to character with id = [addresseeCharacterId]. If no characters session found, does nothing */
-suspend inline fun sendTo(addresseeCharacterId: Int, response:() -> ResponsePacket) = inGameSessionsMap[addresseeCharacterId]
-    ?.responseChannel?.send(response())
+suspend inline fun sendTo(addresseeCharacterId: Int, response:() -> ResponsePacket) =
+    inGameSessionsMap[addresseeCharacterId]?.responseChannel?.send(response())

@@ -25,7 +25,6 @@ import kotlin.collections.component2
 import kotlin.collections.iterator
 import kotlin.math.pow
 import kotlin.math.roundToInt
-import kotlin.math.roundToLong
 import kotlin.random.Random
 
 /** Service for rewards calculation and management */
@@ -44,6 +43,28 @@ class RewardService(
 ) : AbstractService() {
 
     override val log = logger()
+
+    /** Gives [exp] and [sp] to character, reduces his karma, and manages LevelUp (if needed) */
+    suspend fun giveExpAndSp(
+        character: PlayerCharacterInstanceImpl, exp: Int, overhitExp: Int = 0, sp: Int = 0
+    ) = suspendTransaction {
+        val levelBefore = character.level
+
+        character.exp += (exp + overhitExp)
+        character.sp += sp
+
+        if (character.karma > 0)
+            character.karma = maxOf(character.karma - calculateKarmaLossForExp(exp), 0)
+
+        sendTo(character.id) { SystemMessageResponse.YouHaveEarnedExpAndSp(exp, sp) }
+
+        if (overhitExp > 0) sendTo(character.id) {
+            SystemMessageResponse.YouHaveAcquiredExpForOverHit(overhitExp)
+        }
+
+        sendTo(character.id) { FullCharacterResponse(character) }
+        if (character.level > levelBefore) handleLevelUp(character)
+    }
 
     suspend fun manageRewards(killer: MutableActorInstance, killed: MutableActorInstance) {
         if (killer !is PlayerCharacterInstanceImpl) return //Npc cannot get rewards for killing
@@ -133,27 +154,7 @@ class RewardService(
             }
             else 0
 
-            suspendTransaction {
-                attacker.exp += (expShare.roundToLong() + overhitExp)
-                attacker.sp += spShare.roundToInt()
-
-                if (attacker.karma > 0)
-                    attacker.karma = maxOf(attacker.karma - calculateKarmaLossForExp(expShare.roundToInt()), 0)
-
-                sendTo(attacker.id) {
-                    SystemMessageResponse.YouHaveEarnedExpAndSp(
-                        expShare.roundToInt(),
-                        spShare.roundToInt()
-                    )
-                }
-
-                if (overhitExp > 0) sendTo(attacker.id) {
-                    SystemMessageResponse.YouHaveAcquiredExpForOverHit(overhitExp)
-                }
-
-                sendTo(attacker.id) { FullCharacterResponse(attacker) }
-                if (attacker.level > killerLevel) handleLevelUp(attacker)
-            }
+            giveExpAndSp(attacker, expShare.roundToInt(), overhitExp, spShare.roundToInt())
         }
     }
 

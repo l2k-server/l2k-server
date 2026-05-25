@@ -114,6 +114,10 @@ class PlayerCharacterInstanceImpl(
 
     override var sp by entity::sp
     override var exp by entity::exp
+    override var expLostAfterDeath by entity::expLostAfterDeath
+
+    @Volatile var expRestoredByResurrection: Long? = null
+
     override var karma by entity::karma
     override var pvpCount by entity::pvpCount
     override var pkCount by entity::pkCount
@@ -166,6 +170,8 @@ class PlayerCharacterInstanceImpl(
     override val level: Int get() = LevelUtils.getLevelByExp(exp)
 
     override val basicStats: BasicStats get() = characterClass.basicStats //TODO + Henna, set bonuses, augmentations
+
+    override val resurrectionIsPending: Boolean get() = expRestoredByResurrection != null
 
     //TODO Cache?
     override val stats: CombatStats get() = characterClass.getCombatStats(level)
