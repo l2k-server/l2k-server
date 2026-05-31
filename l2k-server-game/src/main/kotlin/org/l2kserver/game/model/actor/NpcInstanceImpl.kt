@@ -9,9 +9,9 @@ import org.l2kserver.game.model.actor.position.Position
 import org.l2kserver.game.model.actor.npc.Npc
 import org.l2kserver.game.model.actor.npc.SpawnedAt
 import org.l2kserver.game.model.actor.position.Heading
-import org.l2kserver.game.model.item.template.Armor
-import org.l2kserver.game.model.item.template.ItemTemplateRegistry
-import org.l2kserver.game.model.item.template.Weapon
+import org.l2kserver.game.model.item.Armor
+import org.l2kserver.game.model.item.ItemRegistry
+import org.l2kserver.game.model.item.Weapon
 import org.l2kserver.game.utils.IdUtils
 import kotlin.math.roundToInt
 
@@ -62,11 +62,11 @@ class NpcInstanceImpl(
     override var moveType = MoveType.WALK
 
     override var equippedWeaponTemplate = template.equippedWeaponTemplateId?.let {
-        ItemTemplateRegistry.findByIdOrNull(it) as? Weapon
+        ItemRegistry.findByIdOrNull(it) as? Weapon
     }
 
     override var equippedShieldTemplate: Armor? = template.equippedShieldTemplateId?.let {
-        ItemTemplateRegistry.findByIdOrNull(it) as? Armor
+        ItemRegistry.findByIdOrNull(it) as? Armor
     }
 
     /**

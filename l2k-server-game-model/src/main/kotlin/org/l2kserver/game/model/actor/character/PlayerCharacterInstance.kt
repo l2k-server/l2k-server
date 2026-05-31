@@ -6,10 +6,10 @@ import org.l2kserver.game.model.actor.position.Heading
 import org.l2kserver.game.model.actor.MoveType
 import org.l2kserver.game.model.actor.Posture
 import org.l2kserver.game.model.actor.CollisionBox
-import org.l2kserver.game.model.item.instance.ItemInstance
+import org.l2kserver.game.model.item.ItemInstance
 import org.l2kserver.game.model.stats.BasicStats
 import org.l2kserver.game.model.stats.CombatStats
-import org.l2kserver.game.model.item.template.WeaponType
+import org.l2kserver.game.model.item.WeaponType
 import org.l2kserver.game.model.skill.effect.TemporalAbnormalEffect
 import org.l2kserver.game.model.skill.instance.SkillInstance
 

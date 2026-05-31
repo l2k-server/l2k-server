@@ -1,8 +1,8 @@
 package org.l2kserver.game.data.item.book
 
 import org.l2kserver.game.model.html.HtmlRegistry
-import org.l2kserver.game.model.item.template.Book
-import org.l2kserver.game.model.item.template.Grade
+import org.l2kserver.game.model.item.Book
+import org.l2kserver.game.model.item.Grade
 
 data object TutorialGuide: Book() {
     override val id = 5588

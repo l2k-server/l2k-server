@@ -25,6 +25,9 @@ dependencies {
     // Ktor
     implementation(libs.ktor.network.jvm)
 
+    //Logging
+    implementation(libs.kotlin.logging.jvm)
+
     //Jackson
     implementation("com.fasterxml.jackson.core:jackson-core")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
@@ -41,7 +44,7 @@ dependencies {
     runtimeOnly("org.postgresql:postgresql")
 
     implementation("org.springframework.boot:spring-boot-starter-flyway")
-    runtimeOnly("org.flywaydb:flyway-database-postgresql:12.6.0")
+    runtimeOnly(libs.flyway.database.postgresql)
 
     // Test
     testImplementation(kotlin("test"))

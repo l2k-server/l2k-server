@@ -4,10 +4,10 @@ import org.l2kserver.game.extensions.littleEndianByteArray
 import org.l2kserver.game.extensions.putUByte
 import org.l2kserver.game.model.actor.character.PlayerCharacterInstance
 import org.l2kserver.game.model.actor.position.Position
-import org.l2kserver.game.model.item.instance.ShotInstance
-import org.l2kserver.game.model.item.instance.SoulshotInstance
-import org.l2kserver.game.model.item.instance.SpiritshotInstance
-import org.l2kserver.game.model.item.template.Grade
+import org.l2kserver.game.model.item.ShotInstance
+import org.l2kserver.game.model.item.SoulshotInstance
+import org.l2kserver.game.model.item.SpiritshotInstance
+import org.l2kserver.game.model.item.Grade
 
 private const val SKILL_USED_RESPONSE_PACKET_ID: UByte = 72u
 

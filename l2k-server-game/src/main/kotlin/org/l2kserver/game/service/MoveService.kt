@@ -56,13 +56,10 @@ class MoveService(
         val context = sessionContext()
         val character = gameObjectRepository.findCharacterById(context.getCharacterId())
 
-        log.debug(
-            "Player '{}' is trying to move character '{}' to position '{}' {}",
-            context.getAccountName(),
-            character.name,
-            request.targetPosition,
-            if (request.byMouse) "by mouse" else "by arrow keys"
-        )
+        log.debug {
+            "Player '${context.getAccountName()}' is trying to move character '${character.name}' " +
+                "to position '${request.targetPosition}' ${if (request.byMouse) "by mouse" else "by arrow keys"}"
+        }
 
         character.intentionQueue.enqueue(Intention.Move(DestinationPoint(request.targetPosition)))
     }
@@ -70,15 +67,16 @@ class MoveService(
     /** Handles position validation request */
     suspend fun validatePosition(request: ValidatePositionRequest) = suspendTransaction {
         val characterId = sessionContext().getCharacterIdOrNull() ?: run {
-            log.warn("Player '{}' has not selected character", sessionContext().getAccountNameOrNull())
+            val accountName = sessionContext().getAccountNameOrNull()
+            log.warn { "Player '$accountName' has not selected character" }
             return@suspendTransaction
         }
 
         val character = gameObjectRepository.findCharacterById(characterId)
 
         if (!character.position.isCloseTo(request.position, Position.GEO_CELL_SIZE)) {
-            log.warn("{} position at the client side differs from server one greatly! Client: '{}', Server: '{}'",
-                character, request.position, character.position)
+            log.warn { "$character position at the client side differs from server one greatly!" +
+                    " Client: '${request.position}', Server: '${character.position}'" }
             send { ValidatePositionResponse(characterId, character.position, character.heading) }
         }
         else character.position = request.position
@@ -109,7 +107,7 @@ class MoveService(
 
     /** Moves [actor] according to his [intention] */
     suspend fun executeMoving(actor: MutableActorInstance, intention: Intention.Move) = suspendTransaction {
-        if (actor is PlayerCharacterInstance) log.debug("Start moving '{}' to '{}'", actor, intention.destination)
+        if (actor is PlayerCharacterInstance) log.debug { "Start moving '$actor' to '${intention.destination}'" }
 
         //If target of moving is actor himself (f.e. if he casts target skill on self) - do nothing
         if (actor == intention.destination) return@suspendTransaction
@@ -139,7 +137,7 @@ class MoveService(
                 && !actor.position.isCloseTo(destination)
             ) withDelay {
                 if (actor.isImmobilized) {
-                    log.trace("Actor '{}' is immobilized", actor)
+                    log.trace { "Actor '$actor' is immobilized" }
                     return@suspendTransaction
                 }
                 target = intention.destination
@@ -186,11 +184,11 @@ class MoveService(
             }
             //Join turning only if target is DestinationPoint, otherwise
             if (target is DestinationPoint) turningJob?.join()
-            log.trace("'{}' has arrived", actor)
+            log.trace { "'$actor' has arrived" }
         } catch (e: CancellationException) {
-            log.trace("MoveToTarget job was cancelled for reason: {}", e.message)
+            log.trace { "MoveToTarget job was cancelled for reason: ${e.message}" }
         } catch (e: Exception) {
-            log.error("An error occurred while trying to update position of character '{}'", actor, e)
+            log.error(e) { "An error occurred while trying to update position of character '$actor'" }
         } finally {
             updateObjectsAround(actor)
             broadcastAround(actor.position) { ArrivedResponse(actor.id, actor.position, actor.heading) }
@@ -206,9 +204,9 @@ class MoveService(
     // Client shows turning by itself, so there is no need to send some responses here
     suspend fun launchTurning(actor: MutableActorInstance, targetPosition: Position) =
         CoroutineScope(currentCoroutineContext()).launch {
-            if (actor is PlayerCharacterInstance) log.debug(
-                "Started turning actor '{}' to target position '{}'", actor, targetPosition
-            )
+            if (actor is PlayerCharacterInstance) log.debug {
+                "Started turning '$actor' to target position '$targetPosition'"
+            }
 
             val newHeading = actor.position.headingTo(targetPosition)
 
@@ -224,13 +222,13 @@ class MoveService(
                 }
 
             }
-            log.trace("Successfully turned actor '{}' to target position '{}'", actor, targetPosition)
+            log.trace { "Successfully turned '$actor' to target position '$targetPosition'" }
         } 
 
     /** Teleports [actor] to [targetPosition] */
-suspend fun teleport(actor: MutableActorInstance, targetPosition: Position) {
+    suspend fun teleport(actor: MutableActorInstance, targetPosition: Position) {
         //TODO Checks if player can teleport ???
-        log.debug("Teleporting '{}' to '{}'", actor, targetPosition)
+        log.debug { "Teleporting '$actor' to '$targetPosition'" }
 
         actor.intentionQueue.cancel()
         asyncTaskService.cancelActionByActorId(actor.id)
@@ -282,7 +280,7 @@ suspend fun teleport(actor: MutableActorInstance, targetPosition: Position) {
         val newPosition = actor.position.copy(x = newX, y = newY, z = newZ)
 
         actor.position = newPosition
-        log.trace("Updated position of actor '{}' to '{}'", actor, newPosition)
+        log.trace { "Updated position of actor '$actor' to '$newPosition'" }
         if (updateObjects) updateObjectsAround(actor, destination)
     }
 

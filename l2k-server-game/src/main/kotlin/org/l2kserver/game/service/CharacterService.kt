@@ -18,8 +18,6 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.currentCoroutineContext
 import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
 import org.l2kserver.game.domain.AccessLevel
 import org.l2kserver.game.handler.dto.request.ConfirmDialogAnswerRequest
@@ -60,6 +58,7 @@ class CharacterService(
     private val actorStateService: ActorStateService,
     private val moveService: MoveService,
     private val intentionExecutorService: IntentionExecutorService,
+    private val itemService: ItemService,
 
     private val playerCharacterRepository: PlayerCharacterRepository,
     private val shortcutRepository: ShortcutRepository,
@@ -110,7 +109,7 @@ class CharacterService(
         val context = sessionId?.let { SessionContext.getById(it) } ?: sessionContext()
 
         try {
-            log.debug("Loading characters of user '{}'...", context.getAccountName())
+            log.debug { "Loading characters of user '${context.getAccountName()}'..." }
             val playerCharacters = playerCharacterRepository.findAllByAccountName(context.getAccountName())
 
             //Send characters list to
@@ -122,7 +121,7 @@ class CharacterService(
                 )
             }
         } catch (e: Exception) {
-            log.error("Error occurred while getting characters of user ${context.getAccountName()}", e)
+            log.error(e) { "Error occurred while getting characters of user ${context.getAccountName()}" }
         }
     }
 
@@ -161,10 +160,9 @@ class CharacterService(
                 sendCharactersList()
             }
         } catch (e: Exception) {
-            log.error(
-                "Error occurred while creating character '{}' at the account '{}'",
-                request.characterName, accountName, e
-            )
+            log.error(e) {
+                "Error occurred while creating character '${request.characterName}' at the account '$accountName'"
+            }
 
             send { CreateCharacterFailResponse(CreateCharacterFailReason.CREATION_FAILED) }
         }
@@ -176,7 +174,7 @@ class CharacterService(
     suspend fun deleteCharacter(request: DeleteCharacterRequest) {
         val accountName = sessionContext().getAccountName()
 
-        log.debug("Deleting character at slot '{}' of user '{}'...", request.characterSlot, accountName)
+        log.debug { "Deleting character at slot '${request.characterSlot}' of user '$accountName'..." }
 
         suspendTransaction {
             val playerCharacter = playerCharacterRepository.findAllByAccountName(accountName)
@@ -185,7 +183,7 @@ class CharacterService(
             if (playerCharacter != null) {
                 //TODO Checks - cannot delete clan leader
                 if (playerCharacter.clanId != 0) {
-                    log.debug("Cannot delete clan member")
+                    log.debug { "Cannot delete clan member" }
                     send { DeleteCharacterFailResponse(DeleteCharacterFailReason.YOU_MAY_NOT_DELETE_CLAN_MEMBER) }
                 } else {
                     val deletionDate = if (playerCharacter.level > 10)
@@ -194,13 +192,11 @@ class CharacterService(
 
                     playerCharacter.deletionDate = deletionDate
 
-                    log.info("Character '{}' was assigned for deletion at '{}'", playerCharacter.name, deletionDate)
+                    log.info { "'$playerCharacter' was assigned for deletion at '$deletionDate'" }
                 }
             } else {
-                log.debug(
-                    "Cannot delete character, because character slot {} of the account {} is empty",
-                    request.characterSlot, accountName
-                )
+                log.debug { "Cannot delete character, because character " +
+                    "slot ${request.characterSlot} of the account $accountName is empty" }
                 send { DeleteCharacterFailResponse(DeleteCharacterFailReason.DELETION_FAILED) }
             }
         }
@@ -215,16 +211,16 @@ class CharacterService(
         suspendTransaction {
             val accountName = sessionContext().getAccountName()
 
-            log.debug("Restoring character at slot '{}' of user '{}'", request.characterSlot, accountName)
+            log.debug { "Restoring character at slot '${request.characterSlot}' of user '$accountName'" }
 
             val playerCharacter = playerCharacterRepository.findAllByAccountName(accountName)
                 .getOrNull(request.characterSlot)
 
             if (playerCharacter?.deletionDate == null)
-                log.warn("Got restoreCharacterRequest for non-existing or not assigned for deletion character")
+                log.warn { "Got restoreCharacterRequest for non-existing or not assigned for deletion character" }
             else {
                 playerCharacter.deletionDate = null
-                log.info("User {} has restored character {}", accountName, playerCharacter.name)
+                log.info { "User $accountName has restored character $playerCharacter" }
             }
         }
 
@@ -238,7 +234,7 @@ class CharacterService(
         val context = sessionContext()
         val accountName = context.getAccountName()
 
-        log.debug("Player {} is trying to select character at slot {}", accountName, request.characterSlot)
+        log.debug { "Player $accountName is trying to select character at slot ${request.characterSlot}" }
 
         check(context.inCharacterMenu()) { "Player $accountName cannot enter the game" }
 
@@ -251,7 +247,7 @@ class CharacterService(
         context.setCharacterId(selectedPlayerCharacter.id)
         selectedPlayerCharacter.lastAccess = LocalDateTime.now()
 
-        log.debug("Player {} has successfully selected character {}", accountName, selectedPlayerCharacter.name)
+        log.debug { "Player $accountName has successfully selected character $selectedPlayerCharacter" }
 
         send { SelectCharacterResponse(context.getAuthorizationKey(), selectedPlayerCharacter) }
     }
@@ -269,7 +265,7 @@ class CharacterService(
 
         check(gameObjectRepository.findByIdOrNull(characterId) == null) { "Player $accountName is already in game" }
 
-        log.debug("User {} is entering game world with character id={}...", accountName, characterId)
+        log.debug { "User $accountName is entering game world with character id=$characterId..." }
 
         val character = requireNotNull(playerCharacterRepository.findById(characterId)) {
             "Cannot enter game: no character with id $characterId exists!"
@@ -289,7 +285,7 @@ class CharacterService(
         if (character.isDead()) send { PlayerDiedResponse(character) }
 
         updateObjectsAround(character)
-        log.info("Player {} has entered world with character {}", accountName, character.name)
+        log.info { "Player $accountName has entered world with character $character" }
     }
 
     suspend fun sendCharacterInfo() = send {
@@ -300,7 +296,7 @@ class CharacterService(
         val context = sessionContext()
         val character = gameObjectRepository.findCharacterById(context.getCharacterId())
 
-        log.debug("Start respawning '{}'", character)
+        log.debug { "Start respawning '$character'" }
 
         val respawnPosition = when (request.respawnAt) {
             //TODO During a siege, character should be teleported to other town
@@ -330,10 +326,10 @@ class CharacterService(
 
     suspend fun resurrectCharacter(request: ConfirmDialogAnswerRequest.Resurrection) = suspendTransaction {
         val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
-        log.debug("{} has {} resurrection request", character, if (request.confirmed) "confirmed" else "declined")
+        log.debug { "$character has ${if (request.confirmed) "confirmed" else "declined"} resurrection request" }
 
         val expToRestore = character.expRestoredByResurrection ?: run {
-            log.warn("Cannot confirm resurrection - {} is not resurrected!!!", character)
+            log.warn { "Cannot confirm resurrection - $character is not resurrected!!!" }
             return@suspendTransaction
         }
 
@@ -347,71 +343,55 @@ class CharacterService(
     }
 
     suspend fun exitToCharactersMenu() {
-        val context = sessionContext()
-        val accountName = context.getAccountName()
+        val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
 
-        log.debug("Player {} is exiting to characters menu", accountName)
+        log.debug { "'$character' is exiting to characters menu" }
 
-        val character = gameObjectRepository.findCharacterById(context.getCharacterId())
-
-        if (character.canExitWorld()) {
-            removeFromGameWorld(character)
-            intentionExecutorService.disableIntentionQueueListener(character.id)
-            context.setCharacterId(null)
+        if (exitWorld()) {
             send { RestartResponse }
             sendCharactersList()
 
-            log.info("Player {} has quit to characters menu", accountName)
+            log.info { "'$character' has quit to characters menu" }
         }
-        else {
-            log.debug("Player {} cannot quit to characters menu", accountName)
-        }
+        else log.debug { "'$character' cannot quit to characters menu" }
     }
 
     suspend fun exitGame() {
         val context = sessionContext()
         val accountName = context.getAccountName()
 
-        log.debug("Player {} is exiting game", accountName)
+        val character = context.getCharacterIdOrNull()?.let { gameObjectRepository.findCharacterByIdOrNull(it) }
+        character?.let { if (exitWorld()) send { ExitGameResponse } }
 
-        val character = gameObjectRepository.findCharacterById(context.getCharacterId())
-
-        if (character.canExitWorld()) {
-            send { ExitGameResponse }
-            currentCoroutineContext().cancel()
-            log.info("Player {} has quit game", context.getAccountName())
-        }
-    }
-
-    suspend fun disconnectGame() {
-        sessionContext().getCharacterIdOrNull()?.let { characterId ->
-            gameObjectRepository.findCharacterByIdOrNull(characterId)?.let { removeFromGameWorld(it) }
-        }
+        log.info { "Player $accountName has quit the game" }
     }
 
     /**
-     * Removes [character] from game world and stop all the related jobs
+     * Removes character from game world and stop all the related jobs. Broadcasts deleteResponse
+     * @param forced - do not check if player can exit game
+     *
+     * @return `true` if character has exited game world (or if it even was not in game), `false` if not
      */
-    suspend fun removeFromGameWorld(character: PlayerCharacterInstanceImpl) {
-        asyncTaskService.cancelActionByActorId(character.id)
+    suspend fun exitWorld(forced: Boolean = false): Boolean = sessionContext().getCharacterIdOrNull()?.let {
+        gameObjectRepository.findCharacterByIdOrNull(it)?.let { character ->
+            //TODO Other checks if player cannot leave game
+            if (!forced && character.isFighting) {
+                send { SystemMessageResponse.CannotRestartInCombat }
+                return false
+            }
 
-        broadcastAround(character) { DeleteObjectResponse(character.id) }
-        actorStateService.stopUpdatingStates(character)
-        gameObjectRepository.deleteById(character.id)
-    }
+            itemService.clearEnchantSession(character)
+            asyncTaskService.cancelActionByActorId(character.id)
+            intentionExecutorService.disableIntentionQueueListener(character.id)
+            actorStateService.stopUpdatingStates(character)
+            gameObjectRepository.deleteById(character.id)
 
-    /**
-     * Checks if player can exit game world
-     */
-    private suspend fun PlayerCharacterInstanceImpl.canExitWorld(): Boolean {
-        //TODO Other checks if player cannot leave game
-        if (this.isFighting) {
-            send { SystemMessageResponse.CannotRestartInCombat }
-            return false
+            broadcastAround(character) { DeleteObjectResponse(character.id) }
+            //TODO Notify friends, clan, wife, favourite cat, etc.
         }
-
+        sessionContext().setCharacterId(null)
         return true
-    }
+    } ?: true
 
     /**
      * Respawns [character] - restores character's cp, hp and mp and revives him

@@ -5,7 +5,7 @@ import org.l2kserver.game.handler.dto.request.ChatMessageRequest
 import org.l2kserver.game.handler.dto.response.ChatMessageResponse
 import org.l2kserver.game.handler.dto.response.SystemMessageResponse
 import org.l2kserver.game.handler.dto.ChatTab
-import org.l2kserver.game.model.extensions.forEachMatching
+import org.l2kserver.game.extensions.forEachMatching
 import org.l2kserver.game.model.map.TownRegistry
 import org.l2kserver.game.network.session.send
 import org.l2kserver.game.network.session.sendTo
@@ -28,7 +28,7 @@ class SocialService(
 
     suspend fun handleChatMessageRequest(request: ChatMessageRequest) {
         val speaker = gameObjectRepository.findActorById(sessionContext().getCharacterId())
-        log.debug("Player '{}' tries to say '{}'", speaker, request.message)
+        log.debug { "Player '$speaker' tries to say '${request.message}'" }
 
         if (request.message.isBlank()) return
         //TODO Check chat banned and censorship

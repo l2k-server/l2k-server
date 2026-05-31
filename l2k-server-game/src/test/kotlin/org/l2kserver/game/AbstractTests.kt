@@ -23,7 +23,7 @@ import org.l2kserver.game.model.actor.character.Gender
 import org.l2kserver.game.model.actor.character.InitialItem
 import org.l2kserver.game.model.actor.npc.NpcRegistry
 import org.l2kserver.game.model.actor.position.Position
-import org.l2kserver.game.model.item.template.Item
+import org.l2kserver.game.model.item.Item
 import org.l2kserver.game.network.session.SessionContext
 import org.l2kserver.game.repository.PlayerCharacterRepository
 import org.l2kserver.game.service.ActorStateService
@@ -121,8 +121,10 @@ abstract class AbstractTests {
     protected suspend fun createTestItem(
         templateId: Int, owner: PlayerCharacterInstanceImpl, amount: Int = 1, isEquipped: Boolean = false
     ) = transaction {
-        val item = ItemEntity.createAllFrom(owner.id, listOf(InitialItem(templateId, amount, isEquipped)))
-            .first().toItemInstance()!!
+        val item = ItemEntity.createAllFrom(
+            owner.id,
+            listOf(InitialItem(templateId, amount, isEquipped))
+        ).first().toItemInstance()
         owner.inventory.reload()
 
         item

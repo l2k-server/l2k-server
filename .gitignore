@@ -6,3 +6,11 @@
 
 **/build
 
+# Kotlin/Gradle/IDE generated outputs (must not be committed)
+**/bin
+out/
+.classpath
+.project
+.settings/
+*.iml
+

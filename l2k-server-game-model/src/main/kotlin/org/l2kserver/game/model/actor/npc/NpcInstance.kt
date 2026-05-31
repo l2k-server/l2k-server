@@ -8,9 +8,9 @@ import org.l2kserver.game.model.actor.position.Heading
 import org.l2kserver.game.model.actor.position.Position
 import org.l2kserver.game.model.actor.position.SpawnPosition
 import org.l2kserver.game.model.actor.npc.ai.AiIntents
-import org.l2kserver.game.model.item.template.Armor
-import org.l2kserver.game.model.item.template.Weapon
-import org.l2kserver.game.model.item.template.WeaponType
+import org.l2kserver.game.model.item.Armor
+import org.l2kserver.game.model.item.Weapon
+import org.l2kserver.game.model.item.WeaponType
 import org.l2kserver.game.model.reward.Reward
 import org.l2kserver.game.model.stats.BasicStats
 import org.l2kserver.game.model.stats.CombatStats

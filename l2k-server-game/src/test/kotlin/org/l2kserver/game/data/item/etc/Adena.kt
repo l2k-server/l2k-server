@@ -1,7 +1,7 @@
 package org.l2kserver.game.data.item.etc
 
-import org.l2kserver.game.model.item.template.Grade
-import org.l2kserver.game.model.item.template.Item
+import org.l2kserver.game.model.item.Grade
+import org.l2kserver.game.model.item.Item
 
 data object Adena: Item {
     override val id = 57

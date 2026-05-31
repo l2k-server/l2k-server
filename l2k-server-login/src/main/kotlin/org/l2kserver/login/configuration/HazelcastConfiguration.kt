@@ -21,10 +21,10 @@ class HazelcastConfiguration {
         hazelcast.clientService.addClientListener(object: ClientListener {
             private val log = logger()
 
-            override fun clientConnected(client: Client) = log.info("Connected gameserver ${client.name}")
+            override fun clientConnected(client: Client) = log.info { "Connected gameserver ${client.name}" }
 
             override fun clientDisconnected(client: Client) {
-                log.info("Disconnected gameserver '{}'", client.name)
+                log.info { "Disconnected gameserver '${client.name}'" }
                 hazelcast.getMap<String, String>("${client.name}-loggedInUsers").clear()
             }
         })

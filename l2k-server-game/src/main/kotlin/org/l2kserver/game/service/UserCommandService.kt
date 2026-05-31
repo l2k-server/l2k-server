@@ -19,7 +19,7 @@ class UserCommandService(
 
     suspend fun handleUserCommand(request: UserCommandRequest) {
         val context = sessionContext()
-        log.debug("Got command '{}' of user with 'session' {}", request.command, context.sessionId)
+        log.debug { "Got command '${request.command}' of user with 'session' ${context.sessionId}" }
 
         when (request.command) {
             UserCommand.LOC -> handleLocCommand()

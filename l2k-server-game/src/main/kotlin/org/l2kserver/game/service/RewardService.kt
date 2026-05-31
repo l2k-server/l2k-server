@@ -1,6 +1,7 @@
 package org.l2kserver.game.service
 
 import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
+import org.l2kserver.game.configuration.properties.LevelProperties
 import org.l2kserver.game.extensions.logger
 import org.l2kserver.game.handler.dto.response.FullCharacterResponse
 import org.l2kserver.game.handler.dto.response.PvPStatusResponse
@@ -32,6 +33,7 @@ import kotlin.random.Random
 class RewardService(
     private val itemService: ItemService,
     override val gameObjectRepository: GameObjectRepository,
+    private val levelProperties: LevelProperties,
 
     @param:Value($$"${game.karmaBaseAmount}") private val karmaBaseAmount: Int,
     @param:Value($$"${game.karmaMaxAmount}") private val karmaMaxAmount: Int,
@@ -50,7 +52,7 @@ class RewardService(
     ) = suspendTransaction {
         val levelBefore = character.level
 
-        character.exp += (exp + overhitExp)
+        character.exp = (character.exp + exp + overhitExp).coerceIn(levelProperties.getExpRange())
         character.sp += sp
 
         if (character.karma > 0)
@@ -93,14 +95,14 @@ class RewardService(
     ) {
         if (killed.pvpState != PvpState.NOT_IN_PVP || killed.karma > 0) {
             killer.pvpCount++
-            log.debug("Updated PVP score of '{}': '{}", killer, killer.pvpCount)
+            log.debug { "Updated PVP score of '$killer': '${killer.pvpCount}'" }
         } else {
             //Apply karma points for killing player, not greater than karmaMaxAmount
             val newKarma = minOf(killer.karma + calculateKarmaGainForKillingPlayer(killer, killed), karmaMaxAmount)
             killer.karma = newKarma
             killer.pkCount++
 
-            log.debug("Updated PK state of '{}': PK score = '{}', Karma = '{}", killer, killer.pkCount, killer.karma)
+            log.debug { "Updated PK state of '$killer': PK score = '${killer.pkCount}', Karma = '${killer.karma}'" }
             broadcastAround(killer.position) { PvPStatusResponse(killer) }
         }
 
@@ -173,7 +175,7 @@ class RewardService(
         val levelMultiplier = maxOf(1.0, (killer.level / killed.level).toDouble())
 
         val karmaGain = (karmaBaseAmount * pkCountMultiplier * levelMultiplier).roundToInt()
-        log.debug("Calculated '{}' karma gain of '{}' for killing '{}'", karmaGain, killer, killed)
+        log.debug { "Calculated '$karmaGain' karma gain of '$killer' for killing '$killed'" }
 
         return karmaGain
     }

@@ -50,11 +50,11 @@ class L2LoginTcpServer(
     @PostConstruct
     fun start() = executor.launch {
         val serverSocket = aSocket(selectorManager).tcp().bind(port = port)
-        log.info("Server is listening on port $port")
+        log.info { "Server is listening on port $port" }
 
         while (isActive) {
             val socket = serverSocket.accept()
-            log.info("Got connection {}", socket.remoteAddress)
+            log.info { "Got connection ${socket.remoteAddress}" }
 
             val readChannel = socket.openReadChannel()
             val sendChannel = socket.openWriteChannel(autoFlush = true)
@@ -86,17 +86,14 @@ class L2LoginTcpServer(
                             data, blowfishKey, keyPair.private as RSAPrivateKey
                         )
 
-                        log.debug("Got request {}", request)
+                        log.debug { "Got request $request" }
                         sendChannel.writeFully(handler.handle(sessionId, request).getEncryptedData(blowfishKey))
                     }
                 } catch (_: ClosedReceiveChannelException) {
                 } catch (e: Exception) {
-                    log.error(
-                        "An error occurred on handling connection with {}",
-                        socket.remoteAddress, e
-                    )
+                    log.error(e) { "An error occurred on handling connection with ${socket.remoteAddress}" }
                 } finally {
-                    log.info("Disconnected {}", socket.remoteAddress)
+                    log.info { "Disconnected ${socket.remoteAddress}" }
                     sessionRepository.deleteById(sessionId)
                     socket.close()
                 }
@@ -109,7 +106,7 @@ class L2LoginTcpServer(
         executor.cancel("The server is stopped")
 
         selectorManager.close()
-        log.debug("The server is stopped")
+        log.debug { "The server is stopped" }
     }
 
 }

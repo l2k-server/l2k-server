@@ -1,11 +1,11 @@
 package org.l2kserver.game.model.actor
 
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import org.l2kserver.game.configuration.properties.LevelProperties
 import org.l2kserver.game.domain.TemporalEffects
 import java.util.concurrent.ConcurrentHashMap
 import org.l2kserver.game.domain.Inventory
 import org.l2kserver.game.model.actor.position.Position
-import org.l2kserver.game.utils.LevelUtils
 import org.l2kserver.game.domain.PlayerCharacterEntity
 import org.l2kserver.game.domain.SkillsAndMagic
 import org.l2kserver.game.extensions.model.stats.applyBasicStats
@@ -18,8 +18,8 @@ import org.l2kserver.game.model.actor.character.CharacterClass
 import org.l2kserver.game.model.actor.character.PlayerCharacterInstance
 import org.l2kserver.game.model.actor.character.PvpState
 import org.l2kserver.game.model.actor.position.Heading
-import org.l2kserver.game.model.item.instance.SoulshotInstance
-import org.l2kserver.game.model.item.instance.SpiritshotInstance
+import org.l2kserver.game.model.item.SoulshotInstance
+import org.l2kserver.game.model.item.SpiritshotInstance
 import org.l2kserver.game.model.stats.BasicStats
 import org.l2kserver.game.model.stats.CombatStats
 import org.l2kserver.game.model.stats.TradeAndInventoryStats
@@ -96,7 +96,8 @@ import org.l2kserver.game.model.store.PrivateStore
  */
 class PlayerCharacterInstanceImpl(
     private val entity: PlayerCharacterEntity,
-    override val characterClass: CharacterClass
+    override val characterClass: CharacterClass,
+    private val levelProperties: LevelProperties
 ): MutableActorInstance(), PlayerCharacterInstance {
     override val id = entity.id.value
     override val accountName = entity.accountName
@@ -167,7 +168,7 @@ class PlayerCharacterInstanceImpl(
 
     override var pvpState = PvpState.NOT_IN_PVP
 
-    override val level: Int get() = LevelUtils.getLevelByExp(exp)
+    override val level: Int get() = levelProperties.getLevelByExp(exp)
 
     override val basicStats: BasicStats get() = characterClass.basicStats //TODO + Henna, set bonuses, augmentations
 

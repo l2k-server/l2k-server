@@ -1,7 +1,7 @@
 package org.l2kserver.game.data.item.arrow
 
-import org.l2kserver.game.model.item.template.Arrow
-import org.l2kserver.game.model.item.template.Grade
+import org.l2kserver.game.model.item.Arrow
+import org.l2kserver.game.model.item.Grade
 
 data object WoodenArrow: Arrow() {
     override val id = 17

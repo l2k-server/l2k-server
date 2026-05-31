@@ -41,14 +41,14 @@ class ShortcutService(
         )
 
         send { CreateShortcutResponse(newShortcut) }
-        log.info("Registered new shortcut '{}'", newShortcut)
+        log.info { "Registered new shortcut '$newShortcut'" }
     }
 
     suspend fun deleteShortcut(request: DeleteShortcutRequest) = suspendTransaction {
         val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
         shortcutRepository.deleteBy(character.id, character.activeSubclass, request.index)
 
-        log.info("Successfully deleted shortcut with index {} of character {}", request.index, character)
+        log.info { "Successfully deleted shortcut with index ${request.index} of character $character" }
     }
 
 }

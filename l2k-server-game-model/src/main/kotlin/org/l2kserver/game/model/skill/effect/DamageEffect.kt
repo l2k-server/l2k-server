@@ -1,8 +1,7 @@
 package org.l2kserver.game.model.skill.effect
 
 import org.l2kserver.game.model.actor.ActorInstance
-import org.l2kserver.game.model.item.template.SpiritshotType
-import org.l2kserver.game.model.item.template.calculateRandomDamageModifier
+import org.l2kserver.game.model.item.Spiritshot
 import org.l2kserver.game.model.utils.MAGIC_ATTACK_BASE
 import org.l2kserver.game.model.utils.PHYSICAL_ATTACK_BASE
 import org.l2kserver.game.model.utils.PHYSICAL_DMG_FROM_BACK_MODIFIER
@@ -71,7 +70,7 @@ data class DamageEffect(
             val isCritical = !isBlocked && calculateIsPhysicalAttackCritical(caster, target)
 
             var damage = power.toDouble() + caster.stats.pAtk / attackPowerDivider
-            damage *= (caster.weaponType.calculateRandomDamageModifier())
+            damage *= (caster.weaponType?.calculateRandomDamageModifier() ?: 1.0)
 
             if (caster.isOnSideOf(target)) damage *= PHYSICAL_DMG_FROM_SIDE_MODIFIER
             if (caster.isBehind(target)) damage *= PHYSICAL_DMG_FROM_BACK_MODIFIER
@@ -96,14 +95,14 @@ data class DamageEffect(
             target: ActorInstance,
             power: Int,
             magicLevel: Int,
-            usedSpiritshotType: SpiritshotType? = null,
+            usedSpiritshotType: Spiritshot.Type? = null,
             canBeResisted: Boolean = true,
             canBeCritical: Boolean = true
         ): DamageEffect {
             val spiritshotMultiplier = when(usedSpiritshotType) {
                 null -> 1
-                SpiritshotType.SPIRITSHOT -> 2
-                SpiritshotType.BLESSED_SPIRITSHOT -> 4
+                Spiritshot.Type.SPIRITSHOT -> 2
+                Spiritshot.Type.BLESSED_SPIRITSHOT -> 4
             }
 
             var damage = MAGIC_ATTACK_BASE * sqrt(caster.stats.mAtk.toDouble() * spiritshotMultiplier) * power
@@ -151,7 +150,7 @@ data class DamageEffect(
             var damage = (caster.stats.pAtk * if (usedSoulshot) 2 else 1).toDouble()
             damage += power * if (usedSoulshot) 1.5 else 1.0
 
-            damage *= caster.weaponType.calculateRandomDamageModifier()
+            damage *= (caster.weaponType?.calculateRandomDamageModifier() ?: 1.0)
             damage *= calculatePositionCritChanceMultiplier(caster, target)
             //TODO * Critical chance percent bonus * 0.5
             damage += caster.stats.critDamage * 6

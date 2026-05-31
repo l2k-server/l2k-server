@@ -7,6 +7,8 @@ import kotlin.random.Random
  *
  * If [chance] is greater than 1, integer part will mean how many times action will be performed for sure.
  * For example, [chance] 2.5 guarantees 2 actions and one with 50% chance
+ *
+ * @return List of action results
  **/
 inline fun <T> withChance(chance: Double, action: () -> T): List<T> {
     val results = mutableListOf<T>()

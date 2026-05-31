@@ -38,6 +38,7 @@ fun RequestPacket(data: ByteArray): RequestPacket {
         DISARM_ITEM_REQUEST_PACKET_ID -> TakeOffItemRequest(buffer)
         DELETE_ITEM_REQUEST_PACKET_ID -> DeleteItemRequest(buffer)
         DROP_ITEM_REQUEST_PACKET_ID -> DropItemRequest(buffer)
+        ENCHANT_ITEM_REQUEST_PACKET_ID -> EnchantRequest(buffer)
 
         USE_SKILL_REQUEST_PACKET_ID -> UseSkillRequest(buffer)
         SKILL_LIST_REQUEST_PACKET_ID -> SkillListRequest

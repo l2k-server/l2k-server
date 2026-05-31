@@ -19,6 +19,7 @@ import org.l2kserver.game.data.item.weapon.WillowStaff
 import org.l2kserver.game.data.item.soulshot.SoulshotNoGrade
 import org.l2kserver.game.data.item.soulshot.SoulshotSGrade
 import org.l2kserver.game.data.item.scroll.ScrollOfGuidance
+import org.l2kserver.game.data.item.scroll.enchant.ScrollEnchantWeaponS
 import org.l2kserver.game.handler.dto.request.DeleteItemRequest
 import org.l2kserver.game.handler.dto.request.DropItemRequest
 import org.l2kserver.game.handler.dto.request.TakeOffItemRequest
@@ -41,11 +42,12 @@ import org.l2kserver.game.handler.dto.response.StatusAttribute
 import org.l2kserver.game.domain.ItemEntity
 import org.l2kserver.game.domain.ItemTable
 import org.l2kserver.game.extensions.pullResponse
+import org.l2kserver.game.handler.dto.response.ChooseItemToEnchantResponse
 import org.l2kserver.game.handler.dto.response.item
 import org.l2kserver.game.handler.dto.response.operation
 import org.l2kserver.game.model.actor.Posture
-import org.l2kserver.game.model.item.template.ItemTemplateRegistry
-import org.l2kserver.game.model.item.template.Slot
+import org.l2kserver.game.model.item.ItemRegistry
+import org.l2kserver.game.model.item.Slot
 import org.l2kserver.game.model.skill.effect.AbnormalType
 import org.l2kserver.game.model.store.PrivateStore
 import org.l2kserver.game.network.session.sessionContextOf
@@ -144,6 +146,27 @@ class ItemServiceTests(
         suspendTransaction {
             assertEquals(testAmount, ItemEntity.findById(itemId)?.amount)
             assertIs<SystemMessageResponse.NotEnoughItems>(context.pullResponse())
+        }
+    }
+
+    @Test
+    fun shouldFailDeletingActiveEnchantScroll() = runBlocking{
+        val character = createTestCharacter()
+        val context = sessionContextOf(character.id)!!
+
+        val enchantScrollId = createTestItem(ScrollEnchantWeaponS.id, character).id
+        withContext(context) { itemService.useItem(UseItemRequest(enchantScrollId)) }
+
+        assertIs<SystemMessageResponse.SelectItemToEnchant>(context.pullResponse())
+        val chooseItemResponse = assertIs<ChooseItemToEnchantResponse>(context.pullResponse())
+        assertEquals(ScrollEnchantWeaponS.id, chooseItemResponse.enchantScrollId)
+
+        withContext(context) { itemService.deleteItem(DeleteItemRequest(enchantScrollId, 1)) }
+
+        assertIs<SystemMessageResponse.CannotDiscardItem>(context.pullResponse())
+
+        suspendTransaction {
+            assertEquals(1, character.inventory.findById(enchantScrollId).amount)
         }
     }
 
@@ -500,6 +523,29 @@ class ItemServiceTests(
     }
 
     @Test
+    fun shouldFailDroppingActiveEnchantScroll() = runBlocking {
+        val character = createTestCharacter()
+        val context = sessionContextOf(character.id)!!
+
+        val enchantScrollId = createTestItem(ScrollEnchantWeaponS.id, character).id
+        withContext(context) { itemService.useItem(UseItemRequest(enchantScrollId)) }
+
+        assertIs<SystemMessageResponse.SelectItemToEnchant>(context.pullResponse())
+        val chooseItemResponse = assertIs<ChooseItemToEnchantResponse>(context.pullResponse())
+        assertEquals(ScrollEnchantWeaponS.id, chooseItemResponse.enchantScrollId)
+
+        withContext(context) {
+            itemService.dropItem(DropItemRequest(enchantScrollId, 1, character.position))
+        }
+
+        assertIs<SystemMessageResponse.CannotDiscardItem>(context.pullResponse())
+
+        suspendTransaction {
+            assertEquals(1, character.inventory.findById(enchantScrollId).amount)
+        }
+    }
+
+    @Test
     fun shouldGetErrorWhenDroppingItemTooFar(): Unit = runBlocking {
         val character = createTestCharacter()
         val context = sessionContextOf(character.id)!!
@@ -609,7 +655,7 @@ class ItemServiceTests(
 
         //Create scattered item
         val scatteredItem = createTestScatteredItem(
-            character.position, ItemTemplateRegistry.findByIdOrNull(HeavensDivider.id)!!)
+            character.position, ItemRegistry.findByIdOrNull(HeavensDivider.id)!!)
 
         //Pick up item!
         withContext(context) { itemService.pickUp(character, scatteredItem) }
@@ -648,7 +694,7 @@ class ItemServiceTests(
 
         //Create scattered item
         val scatteredItem = createTestScatteredItem(
-            character.position, ItemTemplateRegistry.findByIdOrNull(WoodenArrow.id)!!, 100)
+            character.position, ItemRegistry.findByIdOrNull(WoodenArrow.id)!!, 100)
 
         //Pick up item!
         withContext(context) {

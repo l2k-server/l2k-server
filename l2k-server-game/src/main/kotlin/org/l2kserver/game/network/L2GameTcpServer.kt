@@ -5,6 +5,7 @@ import io.ktor.network.sockets.aSocket
 import io.ktor.network.sockets.openReadChannel
 import io.ktor.network.sockets.openWriteChannel
 import io.ktor.utils.io.ByteWriteChannel
+import io.ktor.utils.io.ClosedByteChannelException
 import io.ktor.utils.io.bits.reverseByteOrder
 import io.ktor.utils.io.readShort
 import io.ktor.utils.io.writeFully
@@ -31,9 +32,11 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 import java.util.concurrent.Executors
 import kotlinx.coroutines.slf4j.MDCContext
+import kotlinx.coroutines.withContext
 import org.l2kserver.game.handler.dto.request.RequestPacket
 import org.l2kserver.game.network.session.sessionContext
 import org.slf4j.MDC
+import java.io.EOFException
 
 private const val MIN_PACKET_SIZE = 3
 private const val MAX_PACKET_SIZE = 65535
@@ -56,11 +59,11 @@ class L2GameTcpServer(
     @PostConstruct
     fun start() = executor.launch {
         val serverSocket = aSocket(selectorManager).tcp().bind(port = port)
-        log.info("Server is listening on port $port")
+        log.info { "Server is listening on port $port" }
 
         while (isActive) {
             val socket = serverSocket.accept()
-            log.info("Got connection {}", socket.remoteAddress)
+            log.info { "Got connection ${socket.remoteAddress}" }
 
             val readChannel = socket.openReadChannel()
             val sendChannel = socket.openWriteChannel(autoFlush = true)
@@ -68,14 +71,14 @@ class L2GameTcpServer(
             val gameCrypt = GameCrypt()
             val sessionId = idGenerator.next()
 
-            val context = createContext(sessionId)
+            val context = CoroutineScope(Dispatchers.IO + SessionContext(sessionId))
+            val sendingJob = context.launchSendingJob(
+                sessionId, gameCrypt, sendChannel, socket.remoteAddress.toString()
+            )
 
-            MDC.put("remote", "[${socket.remoteAddress}] ")
-
-            val sendingJob = context.launchSendingJob(sessionId, gameCrypt, sendChannel)
             context.launch {
                 try {
-                    while (coroutineContext.isActive) {
+                    while (coroutineContext.isActive) withMDCContext(socket.remoteAddress.toString()) {
                         //L2 uses LittleEndian byte order
                         val dataSize = readChannel.readShort().reverseByteOrder().toUShort().toInt()
                         require(dataSize in MIN_PACKET_SIZE..MAX_PACKET_SIZE) {
@@ -87,17 +90,20 @@ class L2GameTcpServer(
                         }
 
                         val request = runCatching { RequestPacket(gameCrypt.decrypt(data)) }
-                            .onFailure { log.error("An error occurred on decoding request", it) }
+                            .onFailure { log.error(it) { "An error occurred on decoding request" } }
                             .getOrNull()
 
-                        log.trace("Got request {}", request)
+                        log.trace { "Got request $request" }
                         l2GameRequestHandler.handleAsync(gameCrypt.initialKey, request)
                     }
+                //Skipped exceptions that just say that connection is closed
                 } catch (_: ClosedReceiveChannelException) {
+                } catch (_: ClosedByteChannelException) {
+                } catch (_: EOFException) {
                 } catch (e: Throwable) {
-                    log.error("An error occurred on handling connection with {}", socket.remoteAddress, e)
+                    log.error(e) { "An error occurred on handling connection" }
                 } finally {
-                    log.info("Disconnected {}", socket.remoteAddress)
+                    log.info { "Disconnected" }
                     l2GameRequestHandler.handleDisconnect()
 
                     delay(timeMillis = 2000) // wait for 2 seconds to send remaining packets
@@ -107,7 +113,7 @@ class L2GameTcpServer(
             }
         }
 
-        log.info("GameServer executor is cancelled")
+        log.info { "GameServer executor is cancelled" }
         serverSocket.close()
     }
 
@@ -116,18 +122,19 @@ class L2GameTcpServer(
         executor.cancel("The server is stopped")
 
         selectorManager.close()
-        log.info("The server is stopped")
+        log.info { "The server is stopped" }
     }
 
     private fun CoroutineScope.launchSendingJob(
         sessionId: Int,
         gameCrypt: GameCrypt,
-        sendChannel: ByteWriteChannel
+        sendChannel: ByteWriteChannel,
+        remoteAddress: String
     ) = launch {
-        log.debug("Started response sending job for session {}", sessionId)
+        log.debug { "Started response sending job for session $sessionId" }
         val context = sessionContext()
-        for (responsePacket in context.responseChannel) {
-            log.trace("Sending response '{}'", responsePacket)
+        for (responsePacket in context.responseChannel) withMDCContext(remoteAddress) {
+            log.trace { "Sending response '$responsePacket'" }
             val responseData = gameCrypt.encrypt(responsePacket.data)
 
             //L2 uses LittleEndian byte order
@@ -136,8 +143,12 @@ class L2GameTcpServer(
         }
     }
 
-    private fun createContext(sessionId: Int) = CoroutineScope(
-        Dispatchers.IO + SessionContext(sessionId) + MDCContext()
-    )
+}
 
+private suspend inline fun <T> withMDCContext(
+    remoteAddress: String, noinline action: suspend CoroutineScope.() -> T
+): T {
+    MDC.put("remote", "[${remoteAddress}] ")
+    sessionContext().getAccountNameOrNull()?.let { MDC.put("account", "[${it}] ")}
+    return withContext(MDCContext(), action)
 }

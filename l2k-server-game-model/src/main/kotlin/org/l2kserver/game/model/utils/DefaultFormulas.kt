@@ -2,8 +2,8 @@
 package org.l2kserver.game.model.utils
 
 import org.l2kserver.game.model.actor.ActorInstance
-import org.l2kserver.game.model.item.template.SpiritshotType
-import org.l2kserver.game.model.item.template.WeaponType
+import org.l2kserver.game.model.item.Spiritshot
+import org.l2kserver.game.model.item.WeaponType
 import org.l2kserver.game.model.skill.effect.Debuff
 import kotlin.math.pow
 import kotlin.math.roundToInt
@@ -92,7 +92,7 @@ fun calculateDebuffSuccess(
     target: ActorInstance,
     debuff: Debuff,
     isMagic: Boolean = false,
-    usedSpiritshotType: SpiritshotType? = null
+    usedSpiritshotType: Spiritshot.Type? = null
 ): Boolean {
     val levelDifferenceBonus = minOf(debuff.magicLevel - target.level + 3, 0) * debuff.levelBonusRate
     val basicProperty = target.basicStats[debuff.basicProperty]
@@ -102,8 +102,8 @@ fun calculateDebuffSuccess(
     if (isMagic) {
         val spiritshotBonus = when (usedSpiritshotType) {
             null -> 1.0
-            SpiritshotType.SPIRITSHOT -> 2.0
-            SpiritshotType.BLESSED_SPIRITSHOT -> 4.0
+            Spiritshot.Type.SPIRITSHOT -> 2.0
+            Spiritshot.Type.BLESSED_SPIRITSHOT -> 4.0
         }
 
         chance *= MAGIC_DEBUFF_MULTIPLIER_BASE * sqrt(spiritshotBonus * caster.stats.mAtk) / target.stats.mDef

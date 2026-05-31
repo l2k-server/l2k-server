@@ -1,8 +1,8 @@
 package org.l2kserver.game.data.item.armor
 
-import org.l2kserver.game.model.item.template.Armor
-import org.l2kserver.game.model.item.template.ArmorType
-import org.l2kserver.game.model.item.template.Grade
+import org.l2kserver.game.model.item.Armor
+import org.l2kserver.game.model.item.ArmorType
+import org.l2kserver.game.model.item.Grade
 import org.l2kserver.game.model.stats.CombatStats
 
 data object LeatherShield: Armor() {

@@ -2,7 +2,7 @@ package org.l2kserver.game.model.actor
 
 import org.l2kserver.game.model.actor.position.Heading
 import org.l2kserver.game.model.actor.position.Position
-import org.l2kserver.game.model.item.template.WeaponType
+import org.l2kserver.game.model.item.WeaponType
 import org.l2kserver.game.model.skill.effect.TemporalAbnormalEffect
 import org.l2kserver.game.model.stats.BasicStats
 import org.l2kserver.game.model.stats.CombatStats

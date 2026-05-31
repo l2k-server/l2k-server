@@ -23,13 +23,13 @@ import org.l2kserver.game.model.actor.character.PlayerCharacterInstance
 import org.l2kserver.game.model.actor.npc.NpcInstance
 import org.l2kserver.game.repository.GameObjectRepository
 import org.l2kserver.game.network.session.sendTo
-import org.slf4j.Logger
+import io.github.oshai.kotlinlogging.KLogger
 
 const val VISION_RANGE = 5_000
 
 abstract class AbstractService {
     protected abstract val gameObjectRepository: GameObjectRepository
-    protected abstract val log: Logger
+    protected abstract val log: KLogger
 
     /**
      * Sends [responsePacket] to all characters near provided [position] on given [distance] (default - vision range).

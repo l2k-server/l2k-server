@@ -20,7 +20,7 @@ class HazelcastConfiguration(
         config.instanceName = serverName
         config.clusterName = "L2K"
 
-        return HazelcastClient.newHazelcastClient(config).also { log.info("Started GameServer hazelcast client") }
+        return HazelcastClient.newHazelcastClient(config).also { log.info { "Started GameServer hazelcast client" } }
     }
 
 }

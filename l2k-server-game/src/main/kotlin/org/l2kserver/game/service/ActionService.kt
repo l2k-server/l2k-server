@@ -49,7 +49,7 @@ class ActionService(
         val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
         val target = gameObjectRepository.findActorById(attackRequest.targetId)
 
-        log.debug("Player {} requested to attack {}", character, target)
+        log.debug { "Player $character requested to attack $target" }
 
         if (character.targetId != target.id) character.setTarget(target)
         else enqueueAttack(character, target)
@@ -58,7 +58,7 @@ class ActionService(
     /** Handles left-click on some game object */
     suspend fun performAction(request: ActionRequest) {
         val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
-        log.debug("Player '{}' left-clicked target with id='{}'", character, request.targetId)
+        log.debug { "Player '$character' left-clicked target with id='${request.targetId}'" }
 
         //Second click to the player's own character
         if (character.targetId == request.targetId && character.targetId == character.id)
@@ -66,7 +66,7 @@ class ActionService(
 
         when (val target = gameObjectRepository.findByIdOrNull(request.targetId)) {
             null -> {
-                log.warn("'{}' tries to interact with non-existent object '{}'", character, request.targetId)
+                log.warn { "'$character' tries to interact with non-existent object '${request.targetId}'" }
                 send { ActionFailedResponse }
             }
             is ScatteredItem -> character.intentionQueue.enqueue(
@@ -88,7 +88,7 @@ class ActionService(
     /** Cancels casting if character is casting or cancels target if character targets something */
     suspend fun cancelAction() {
         val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
-        log.debug("Player '{}' cancelled current action", character)
+        log.debug { "Player '$character' cancelled current action" }
 
         // Cancel casting if character casts
         if (character.intentionQueue.current is Intention.Cast) {
@@ -111,14 +111,14 @@ class ActionService(
 
         when (request.action) {
             BasicAction.TOGGLE_SIT_STAND -> {
-                log.debug("Got request to toggle sit/stand")
+                log.debug { "Got request to toggle sit/stand" }
                 if (character.privateStore != null) return
                 if (character.posture == Posture.STANDING) character.sitDown()
                 else character.standUp()
             }
 
             BasicAction.TOGGLE_WALK_RUN -> suspendTransaction {
-                log.debug("Got request to toggle walk/run")
+                log.debug { "Got request to toggle walk/run" }
 
                 if (character.moveType == MoveType.RUN) character.moveType = MoveType.WALK
                 else character.moveType = MoveType.RUN
@@ -168,7 +168,7 @@ class ActionService(
 
     private suspend fun enqueueAttack(attacker: MutableActorInstance, target: MutableActorInstance) {
         if (attacker.isAttacking(target)) {
-            log.debug("{} is already attacking {}", attacker, target)
+            log.debug { "$attacker is already attacking $target" }
             return
         }
         attacker.intentionQueue.enqueue(

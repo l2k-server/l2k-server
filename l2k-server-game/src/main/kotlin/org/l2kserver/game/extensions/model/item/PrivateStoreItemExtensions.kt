@@ -5,8 +5,8 @@ import org.l2kserver.game.handler.dto.request.RequestedToBuyItem
 import org.l2kserver.game.handler.dto.request.RequestedToSellItem
 import org.l2kserver.game.handler.dto.request.RequestedToSellToPrivateStoreItem
 import org.l2kserver.game.model.actor.PlayerCharacterInstanceImpl
-import org.l2kserver.game.model.item.instance.ItemInstance
-import org.l2kserver.game.model.item.template.ItemTemplateRegistry
+import org.l2kserver.game.model.item.ItemInstance
+import org.l2kserver.game.model.item.ItemRegistry
 import org.l2kserver.game.model.store.ItemInInventory
 import org.l2kserver.game.model.store.ItemInWishList
 import org.l2kserver.game.model.store.ItemOnSale
@@ -50,7 +50,7 @@ fun RequestedToSellItem.toItemOnSale(owner: PlayerCharacterInstanceImpl): ItemOn
 
 fun RequestedToBuyItem.toItemInWishList(ownerId: Int): ItemInWishList = transaction {
     val requestedItem = this@toItemInWishList
-    val itemTemplate = requireNotNull(ItemTemplateRegistry.findByIdOrNull(requestedItem.templateId)) {
+    val itemTemplate = requireNotNull(ItemRegistry.findByIdOrNull(requestedItem.templateId)) {
         "No item template found by id ${requestedItem.templateId}"
     }
     require(itemTemplate.isSellable) { "Player '$ownerId' is trying to buy non-sellable item in private store (buy)!" }

@@ -9,6 +9,7 @@ import org.jetbrains.exposed.v1.jdbc.deleteReturning
 import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import org.l2kserver.game.configuration.properties.LevelProperties
 import org.l2kserver.game.domain.ItemEntity
 import org.l2kserver.game.domain.PlayerCharacterEntity
 import org.l2kserver.game.domain.PlayerCharacterTable
@@ -18,7 +19,6 @@ import org.l2kserver.game.model.actor.PlayerCharacterInstanceImpl
 import org.l2kserver.game.model.actor.character.CharacterRace
 import org.l2kserver.game.model.actor.character.Gender
 import org.l2kserver.game.model.actor.character.CharacterClassRegistry
-import org.l2kserver.game.utils.LevelUtils
 import org.springframework.stereotype.Component
 import java.time.LocalDateTime
 import kotlin.math.roundToInt
@@ -29,7 +29,8 @@ private const val DEFAULT_TITLE = ""
 
 @Component
 class PlayerCharacterRepository(
-    private val shortcutRepository: ShortcutRepository
+    private val shortcutRepository: ShortcutRepository,
+    private val levelProperties: LevelProperties
 ) {
 
     private val log = logger()
@@ -67,7 +68,7 @@ class PlayerCharacterRepository(
             this.titleColor = DEFAULT_TITLE_COLOR
         }
 
-        val characterLevel = LevelUtils.getLevelByExp(characterEntity.exp)
+        val characterLevel = levelProperties.getLevelByExp(characterEntity.exp)
 
         for ((requiredLevel, skillsToLearn) in characterClass.skillTree) {
             if (requiredLevel > characterLevel) continue
@@ -145,9 +146,9 @@ class PlayerCharacterRepository(
     private fun PlayerCharacterEntity.toPlayerCharacter(): PlayerCharacterInstanceImpl? {
         val characterClass = CharacterClassRegistry.findByIdOrNull(this.classId)
         return if (characterClass != null)
-            PlayerCharacterInstanceImpl(this, characterClass)
+            PlayerCharacterInstanceImpl(this, characterClass, levelProperties)
         else {
-            log.warn("No character class exists by Id")
+            log.warn { "No character class exists by id='${this.classId}" }
             null
         }
     }

@@ -32,7 +32,7 @@ class AiService(
     fun init() = asyncTaskService.launchRepeated("AI_JOB", 1000) {
         gameObjectRepository.findAllNpc().forEach { npc ->
             if (!npc.isDead()) runCatching { launchOnIdleAction(npc) }
-                .onFailure { log.error("An error occurred when handling {}'s ai", npc, it) }
+                .onFailure { log.error(it) { "An error occurred when handling $npc's ai" } }
         }
 
         //TODO Idle actions should be performed less frequently, but what if the npc is fighting?
