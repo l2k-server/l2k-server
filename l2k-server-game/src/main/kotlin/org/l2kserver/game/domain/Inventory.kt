@@ -5,26 +5,27 @@ import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.l2kserver.game.extensions.model.item.toItemInstance
 import org.l2kserver.game.model.actor.PlayerCharacterInstanceImpl
-import org.l2kserver.game.model.extensions.filterIsInstanceAnd
+import org.l2kserver.game.extensions.filterIsInstanceAnd
 import org.l2kserver.game.model.item.ArmorInstanceImpl
 import org.l2kserver.game.model.item.JewelryInstanceImpl
+import org.l2kserver.game.model.item.EquippableItemInstanceImpl
 import org.l2kserver.game.model.item.WeaponInstanceImpl
-import org.l2kserver.game.model.item.instance.EquippableItemInstance
-import org.l2kserver.game.model.item.instance.ItemInstance
-import org.l2kserver.game.model.item.template.ItemTemplateRegistry
-import org.l2kserver.game.model.item.template.Slot
+import org.l2kserver.game.model.item.ItemInstance
+import org.l2kserver.game.model.item.ItemInstanceImpl
+import org.l2kserver.game.model.item.ItemRegistry
+import org.l2kserver.game.model.item.Slot
 import java.util.EnumMap
 import java.util.concurrent.ConcurrentHashMap
 
 private const val ADENA_TEMPLATE_ID = 57
 
 /**
- * DAO class to access all the items of some character or pet
+ * DAO class to access all the items of character
  */
 class Inventory(val owner: PlayerCharacterInstanceImpl): Collection<ItemInstance> {
 
-    private val items: MutableMap<Int, ItemInstance> = ConcurrentHashMap()
-    private lateinit var equippedItems: EnumMap<Slot, EquippableItemInstance>
+    private val items: MutableMap<Int, ItemInstanceImpl> = ConcurrentHashMap()
+    private lateinit var equippedItems: EnumMap<Slot, EquippableItemInstanceImpl>
 
     init {
         reload()
@@ -55,7 +56,7 @@ class Inventory(val owner: PlayerCharacterInstanceImpl): Collection<ItemInstance
     val weapon: WeaponInstanceImpl? get() = this.oneHanded ?: this.twoHanded
 
     operator fun get(key: Slot) = equippedItems[key]
-    operator fun set(key: Slot, value: EquippableItemInstance?) {
+    operator fun set(key: Slot, value: EquippableItemInstanceImpl?) {
         if (value != null) require(items.values.contains(value)) {
             "$owner tries to equip the item he does not own!!!"
         }
@@ -64,7 +65,7 @@ class Inventory(val owner: PlayerCharacterInstanceImpl): Collection<ItemInstance
 
     /** Creates new item at the inventory */
     fun createItem(templateId: Int, amount: Int = 1, equippedAt: Slot? = null, enchantLevel: Int = 0) = transaction {
-        val itemTemplate = requireNotNull(ItemTemplateRegistry.findByIdOrNull(templateId)) {
+        val itemTemplate = requireNotNull(ItemRegistry.findByIdOrNull(templateId)) {
             "Cannot add new item to the database - no template found by id=$templateId"
         }
 
@@ -81,7 +82,7 @@ class Inventory(val owner: PlayerCharacterInstanceImpl): Collection<ItemInstance
             item.amount += amount
         }
 
-        val instance = item.toItemInstance()!!
+        val instance = item.toItemInstance()
 
         items[instance.id] = instance
         if (instance.isEquipped) updateEquippedItems()
@@ -158,7 +159,7 @@ class Inventory(val owner: PlayerCharacterInstanceImpl): Collection<ItemInstance
      *
      * @return equipped item
      */
-    fun equipItem(item: EquippableItemInstance, slot: Slot): EquippableItemInstance = transaction {
+    fun equipItem(item: EquippableItemInstanceImpl, slot: Slot): EquippableItemInstanceImpl = transaction {
         require(item.type.availableSlots.contains(slot)) { "$item cannot be equipped to $slot" }
         item.equippedAt = slot
         this@Inventory[slot] = item
@@ -171,7 +172,7 @@ class Inventory(val owner: PlayerCharacterInstanceImpl): Collection<ItemInstance
      *
      * @return disarmed item
      */
-    fun disarmItem(item: EquippableItemInstance): EquippableItemInstance = transaction {
+    fun disarmItem(item: EquippableItemInstanceImpl): EquippableItemInstanceImpl = transaction {
         item.equippedAt?.let {
             this@Inventory[it] = null
             item.equippedAt = null
@@ -188,13 +189,13 @@ class Inventory(val owner: PlayerCharacterInstanceImpl): Collection<ItemInstance
     /** Reloads items from the database */
     private fun updateItems() = transaction {
         items.clear()
-        items += ItemEntity.findAllByOwnerId(owner.id).mapNotNull { it.toItemInstance() }.associateBy { it.id }
+        items += ItemEntity.findAllByOwnerId(owner.id).map { it.toItemInstance() }.associateBy { it.id }
     }
 
     /** Updates the equipped items list */
     private fun updateEquippedItems() {
         equippedItems = items.values
-            .filterIsInstanceAnd<EquippableItemInstance> { it.equippedAt != null }
+            .filterIsInstanceAnd<EquippableItemInstanceImpl> { it.equippedAt != null }
             .associateByTo(EnumMap(Slot::class.java)) { it.equippedAt!! }
     }
 

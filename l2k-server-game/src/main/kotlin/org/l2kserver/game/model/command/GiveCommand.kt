@@ -6,12 +6,12 @@ import com.github.ajalt.clikt.parameters.options.check
 import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.types.int
-import org.l2kserver.game.model.item.template.ItemTemplateRegistry
+import org.l2kserver.game.model.item.ItemRegistry
 
 class GiveCommand: AdminCommand() {
 
     val templateId by argument("item").int()
-        .check({ "No item found in game data by id = '$it'" }) { ItemTemplateRegistry.existsById(it) }
+        .check({ "No item found in game data by id = '$it'" }) { ItemRegistry.existsById(it) }
 
     val name by option("-to")
 

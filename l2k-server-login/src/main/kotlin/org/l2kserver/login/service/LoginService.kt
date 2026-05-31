@@ -66,13 +66,13 @@ class LoginService(
      * @return AuthSuccessResponse is user is successfully authorized
      */
     suspend fun authorizeUser(sessionId: Int, request: AuthLoginRequest): ResponsePacket {
-        log.debug("Authorizing user '{}'", request.login)
+        log.debug { "Authorizing user '${request.login}'" }
         var account = Account.findByLogin(request.login)
         val sessionData = sessionRepository.findById(sessionId)
 
         if (account == null && autoRegistrationEnabled) {
             account = Account.create(request.login, request.password)
-            log.info("Automatically registered new account '{}'", request.login)
+            log.info { "Automatically registered new account '${request.login}'" }
         }
 
         return if (PasswordUtils.encode(request.password) == account?.password) {
@@ -80,17 +80,17 @@ class LoginService(
                 loggedInUsersRepository.existsByLogin(account.login)
             ) {
                 //TODO Kick account?
-                log.debug("Account '{}' is in use", request.login)
+                log.debug { "Account '${request.login}' is in use" }
                 return AuthFailedResponse(FailReason.ACCOUNT_IN_USE)
             }
             val sessionKey = AuthorizationKey()
             sessionRepository.save(sessionData.toAuthorized(account.login, sessionKey))
             account.updateLastActive()
-            log.info("User '{}' successfully authorized", request.login)
+            log.info { "User '${request.login}' successfully authorized" }
 
             AuthSuccessResponse(sessionKey.loginSessionKey1, sessionKey.loginSessionKey2)
         } else {
-            log.debug("'{}' Wrong login or password", request.login)
+            log.debug { "'${request.login}' Wrong login or password" }
             AuthFailedResponse(FailReason.USER_OR_PASS_WRONG)
         }
     }
@@ -145,7 +145,7 @@ class LoginService(
         val maxPlayers = gameserverInfo.maxPlayers
 
         if (currentOnline >= maxPlayers) {
-            log.warn("Server '${request.selectedGameserverId}' is overloaded")
+            log.warn { "Server '${request.selectedGameserverId}' is overloaded" }
             return SelectGameserverFailedResponse(FailReason.SERVER_OVERLOADED)
         }
 
@@ -157,7 +157,7 @@ class LoginService(
         }
 
         if (account.accessLevel < gameserverInfo.accessLevel) {
-            log.debug("User '{}' is not allowed to join gameserver '{}'", account.login, gameserverInfo.id)
+            log.debug {"User '${account.login}' is not allowed to join gameserver '${gameserverInfo.id}'" }
             return SelectGameserverFailedResponse(FailReason.ACCESS_FAILED)
         }
 
@@ -180,9 +180,7 @@ class LoginService(
         delay(connectionToGameServerTimeout)
         loggedInUsersRepository.findByLogin(login, gameserverName)?.let {
             if (it.state != LoggedInUserState.CONNECTED_TO_GAME_SERVER) {
-                log.warn(
-                    "Player '{}' has not connected to Game Server in $connectionToGameServerTimeout ms", login
-                )
+                log.warn { "Player '$login' has not connected to Game Server in $connectionToGameServerTimeout ms" }
                 loggedInUsersRepository.deleteByLogin(login, gameserverName)
             }
         }

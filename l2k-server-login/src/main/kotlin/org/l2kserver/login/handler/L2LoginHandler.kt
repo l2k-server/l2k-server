@@ -18,22 +18,22 @@ class L2LoginHandler(
 
     suspend fun handle(sessionId: Int, request: RequestPacket) = when (request) {
         is AuthGameGuardRequest -> {
-            log.debug("Got authGG packet for session = '${request.sessionId}'")
+            log.debug { "Got authGG packet for session = '${request.sessionId}'" }
             loginService.authorizeGameGuard(sessionId, request)
         }
 
         is AuthLoginRequest -> {
-            log.debug("Got authLogin packet of user '{}'", request.login)
+            log.debug { "Got authLogin packet of user '${request.login}'" }
             loginService.authorizeUser(sessionId, request)
         }
 
         is ServerListRequest -> {
-            log.debug("Got ServerList request packet '{}'", request)
+            log.debug { "Got ServerList request packet '$request'" }
             loginService.getGameServers(sessionId, request)
         }
 
         is SelectGameserverRequest -> {
-            log.debug("Got SelectGameserver request packet '{}'", request)
+            log.debug { "Got SelectGameserver request packet '$request'" }
             loginService.selectGameserver(sessionId, request)
         }
     }

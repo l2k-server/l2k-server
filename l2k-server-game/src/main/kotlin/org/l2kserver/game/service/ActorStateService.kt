@@ -17,7 +17,6 @@ import org.l2kserver.game.model.actor.NpcInstanceImpl
 import org.l2kserver.game.model.actor.PlayerCharacterInstanceImpl
 import org.l2kserver.game.model.actor.MoveType
 import org.l2kserver.game.model.actor.MutableActorInstance
-import org.l2kserver.game.model.actor.character.PlayerCharacterInstance
 import org.l2kserver.game.model.actor.character.PvpState
 import org.l2kserver.game.network.session.sendTo
 import org.l2kserver.game.repository.GameObjectRepository
@@ -80,7 +79,7 @@ class ActorStateService(
      * else - updates this actor combat time
      */
     suspend fun activatePvpState(character: PlayerCharacterInstanceImpl) {
-        log.debug("Enabling (or updating) PVP state of '{}'", character)
+        log.debug { "Enabling (or updating) PVP state of '$character'" }
         charactersInPvpState[character] = currentTimeMillis() + pvpFlagTimeMs
 
         if (character.pvpState != PvpState.PVP) {
@@ -95,7 +94,7 @@ class ActorStateService(
      * else - updates this actor combat time
      */
     suspend fun activateCombatState(actor: MutableActorInstance) {
-        log.debug("Enabling (or updating) combat state of '{}'", actor)
+        log.debug { "Enabling (or updating) combat state of '$actor'" }
         if (!actor.isFighting) {
             actor.isFighting = true
 
@@ -131,7 +130,7 @@ class ActorStateService(
     fun stopUpdatingStates(actor: ActorInstance) {
         fightingActors.remove(actor)
         charactersInPvpState.remove(actor)
-        log.debug("Stopped updating state of '{}'", actor)
+        log.debug { "Stopped updating state of '$actor'" }
     }
 
     private suspend fun updateActorsFightingState() = fightingActors.forEach { (actor, inCombatEndTimeMs) ->
@@ -155,13 +154,13 @@ class ActorStateService(
                 character.pvpState = PvpState.NOT_IN_PVP
                 broadcastAround(character.position) { PvPStatusResponse(character) }
                 charactersInPvpState.remove(character)
-                log.debug("'{}' is now not in PVP", character)
+                log.debug { "'$character' is now not in PVP" }
             }
 
             pvpTimeLeft <= pvpFlagEndingTimeMs -> suspendTransaction {
                 character.pvpState = PvpState.PVP_ENDING
                 broadcastAround(character.position) { PvPStatusResponse(character) }
-                log.debug("Switched PVP state of '{}' to '{}'", character, character.pvpState)
+                log.debug { "Switched PVP state of '$character' to '${character.pvpState}'" }
             }
         }
     }
@@ -218,7 +217,7 @@ class ActorStateService(
 
         if (outdatedEffects.isNotEmpty()) {
             if (actor.temporalEffects.removeAll(outdatedEffects)) suspendTransaction {
-                log.debug("Successfully removed '{}' from '{}'", outdatedEffects, actor)
+                log.debug { "Successfully removed '$outdatedEffects' from '$actor'" }
 
                 if (outdatedEffects.any { it.abnormalVisualEffect != null }) broadcastActorInfo(actor)
                 else if (actor is PlayerCharacterInstanceImpl) sendTo(actor.id) {

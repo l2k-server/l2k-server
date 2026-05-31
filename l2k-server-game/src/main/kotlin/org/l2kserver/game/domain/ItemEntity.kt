@@ -8,8 +8,8 @@ import org.jetbrains.exposed.v1.dao.IntEntity
 import org.jetbrains.exposed.v1.dao.IntEntityClass
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.l2kserver.game.model.actor.character.InitialItem
-import org.l2kserver.game.model.item.template.ItemTemplateRegistry
-import org.l2kserver.game.model.item.template.Slot
+import org.l2kserver.game.model.item.ItemRegistry
+import org.l2kserver.game.model.item.Slot
 
 /**
  * Item data, stored at the database
@@ -39,7 +39,7 @@ class ItemEntity(id: EntityID<Int>): IntEntity(id) {
          * Saves new items to DB
          */
         fun createAllFrom(ownerId: Int, initialItems: List<InitialItem>) = initialItems.mapNotNull {
-            val itemTemplate = ItemTemplateRegistry.findByIdOrNull(it.id)
+            val itemTemplate = ItemRegistry.findByIdOrNull(it.id)
 
             if (itemTemplate == null) null
             else new {

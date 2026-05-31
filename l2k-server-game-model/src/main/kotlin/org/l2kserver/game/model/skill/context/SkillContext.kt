@@ -1,7 +1,7 @@
 package org.l2kserver.game.model.skill.context
 
 import org.l2kserver.game.model.actor.ActorInstance
-import org.l2kserver.game.model.item.template.SpiritshotType
+import org.l2kserver.game.model.item.Spiritshot
 
 /**
  * Skill usage context
@@ -25,5 +25,5 @@ data class SkillContext(
     val additionalEnemyTargets: Iterable<ActorInstance>,
     val additionalFriendlyTargets: Iterable<ActorInstance>,
     val usedSoulshot: Boolean = false,
-    val usedSpiritshotType: SpiritshotType? = null
+    val usedSpiritshotType: Spiritshot.Type? = null
 )

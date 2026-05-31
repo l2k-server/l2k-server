@@ -47,7 +47,7 @@ class AsyncTaskService {
         }
 
         job.invokeOnCompletion {
-            it?.let { log.warn("Job for actor '{}' completed with error", actorId, it) }
+            it?.let { log.warn(it) { "Job for actor '$actorId' completed with error" } }
             actionJobMap.remove(actorId)
         }
 
@@ -57,7 +57,7 @@ class AsyncTaskService {
 
     /** Cancels action job of actor with provided [actorId] */
     suspend fun cancelActionByActorId(actorId: Int) = actionJobMap.remove(actorId)?.let {
-        log.debug("Action job for actor '{}' was cancelled", actorId)
+        log.debug { "Action job for actor '$actorId' was cancelled" }
         it.cancelAndJoin()
     }
 
@@ -88,7 +88,7 @@ class AsyncTaskService {
         taskJobMap[taskName] = CoroutineScope(Dispatchers.Default + CoroutineName(taskName)).launch {
             while (isActive) withDelay(millis) { action() }
         }
-        log.info("Started $taskName")
+        log.info { "Started $taskName" }
     }
 
     fun cancelTask(taskName: String) = taskJobMap[taskName]?.cancel()
@@ -96,7 +96,7 @@ class AsyncTaskService {
     @PreDestroy
     fun shutdown() = runBlocking {
         taskJobMap.forEach { (name, task) ->
-            log.info("Cancelling $name}")
+            log.info { "Cancelling $name}" }
             task.cancel()
         }
 

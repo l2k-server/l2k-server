@@ -3,6 +3,7 @@ package org.l2kserver.game.data
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.jetbrains.exposed.v1.jdbc.update
+import org.l2kserver.game.configuration.properties.LevelProperties
 import org.l2kserver.game.data.characterclass.HumanFighter
 import org.l2kserver.game.data.characterclass.HumanMystic
 import org.l2kserver.game.data.skill.DefenseAura
@@ -23,12 +24,11 @@ import org.l2kserver.game.model.actor.character.CharacterRace
 import org.l2kserver.game.model.actor.character.ShortcutType
 import org.l2kserver.game.model.actor.npc.NpcRegistry
 import org.l2kserver.game.model.html.HtmlRegistry
-import org.l2kserver.game.model.item.template.ItemTemplateRegistry
+import org.l2kserver.game.model.item.ItemRegistry
 import org.l2kserver.game.model.map.TownRegistry
 import org.l2kserver.game.model.skill.template.SkillRegistry
 import org.l2kserver.game.repository.PlayerCharacterRepository
 import org.l2kserver.game.repository.ShortcutRepository
-import org.l2kserver.game.utils.LevelUtils
 import org.springframework.boot.context.event.ApplicationStartedEvent
 import org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider
 import org.springframework.context.event.EventListener
@@ -47,6 +47,7 @@ private const val TEST_MYSTIC_CHARACTER_NAME = "TesterWoman"
 class TestDataLoader(
     private val playerCharacterRepository: PlayerCharacterRepository,
     private val shortcutRepository: ShortcutRepository,
+    private val levelProperties: LevelProperties
 ) {
     private val log = logger()
 
@@ -63,7 +64,7 @@ class TestDataLoader(
         HtmlRegistry.loadResource("data/html")
         NpcRegistry.autoRegisterGameData("org.l2kserver.game.data.npc")
         CharacterClassRegistry.autoRegisterGameData("org.l2kserver.game.data.characterclass")
-        ItemTemplateRegistry.autoRegisterGameData("org.l2kserver.game.data.item")
+        ItemRegistry.autoRegisterGameData("org.l2kserver.game.data.item")
         SkillRegistry.autoRegisterGameData("org.l2kserver.game.data.skill")
         TownRegistry.autoRegisterGameData("org.l2kserver.game.data.town")
     }
@@ -80,7 +81,7 @@ class TestDataLoader(
             faceType = 3
         )
 
-        testFighter.exp = LevelUtils.getRequiredExpForLevel(80)
+        testFighter.exp = levelProperties.getRequiredExpForLevel(80)
         PlayerCharacterTable.update({ PlayerCharacterTable.id eq testFighter.id }) {
             it[accessLevel] = AccessLevel.GAME_MASTER
         }
@@ -140,7 +141,7 @@ class TestDataLoader(
                     clazz.objectInstance != null -> clazz.objectInstance!!
                     clazz.constructors.any { it.parameters.isEmpty() } -> clazz.createInstance()
                     else -> {
-                        log.warn("GameData {} must be object or have empty constructor", clazz.qualifiedName)
+                        log.warn { "GameData ${clazz.qualifiedName} must be object or have empty constructor" }
                         continue
                     }
                 }

@@ -1,7 +1,7 @@
 package org.l2kserver.game.model.skill.effect
 
 import org.l2kserver.game.model.actor.ActorInstance
-import org.l2kserver.game.model.item.template.SpiritshotType
+import org.l2kserver.game.model.item.Spiritshot
 import kotlin.math.roundToInt
 
 /**
@@ -15,11 +15,11 @@ data class HealEffect(
 ): Effect
 
 /** Calculates healing effect */
-fun HealEffect(target: ActorInstance, power: Int, usedSpiritshotType: SpiritshotType? = null): HealEffect {
+fun HealEffect(target: ActorInstance, power: Int, usedSpiritshotType: Spiritshot.Type? = null): HealEffect {
     var healPower = power.toDouble()
     when (usedSpiritshotType) {
-        SpiritshotType.SPIRITSHOT -> healPower *= 1.3
-        SpiritshotType.BLESSED_SPIRITSHOT -> healPower *= 1.5
+        Spiritshot.Type.SPIRITSHOT -> healPower *= 1.3
+        Spiritshot.Type.BLESSED_SPIRITSHOT -> healPower *= 1.5
         null -> {}
     }
     //TODO Heal effectiveness buffs/debuffs (like Prayer or Touch of Death)

@@ -1,11 +1,12 @@
-package org.l2kserver.game.model.item.template
+package org.l2kserver.game.model.item
 
 import org.l2kserver.game.model.GameData
 import org.l2kserver.game.model.GameDataRegistry
+import org.l2kserver.game.model.skill.template.ActiveSkill
 import org.l2kserver.game.model.stats.CombatStats
 
 /** Stores all the item templates */
-object ItemTemplateRegistry: GameDataRegistry<Item>()
+object ItemRegistry: GameDataRegistry<Item>()
 
 /**
  * Data, common to all items of this type
@@ -25,8 +26,9 @@ interface Item: GameData {
     override val id: Int
     val name: String
     val type: ItemType get() = NonEquippableItemType
+    val group: ItemGroup get() = ItemGroup.ETC
     val popupHintType: PopupHintType get() = PopupHintType.OTHER
-    val grade: Grade //TODO Only for equippable items???
+    val grade: Grade get() = Grade.NO_GRADE
     val weight: Int
     val price: Int
     val isSellable: Boolean
@@ -46,20 +48,91 @@ interface EquippableItem: Item {
     override val isStackable: Boolean get() = false
 
     val stats: CombatStats
-    val fixedBonusStats: CombatStats?
+    val fixedBonusStats: CombatStats? get() = null
+}
+
+abstract class Book: Item {
+    abstract val text: String
+    final override val isStackable = false
+}
+
+abstract class Arrow: Item {
+    final override val isStackable = true
+    final override val type = ArrowItemType
 }
 
 /**
- * Type of item
+ * Scroll that enchant weapons, armor or jewelry
  *
- * @property availableSlots Slots, where item of this type will be placed when equipped
+ * @property target What item type does the scroll enchant
+ * @property isBlessed If true, the enchanted item won't crystallize on enchant failure
  */
-interface ItemType {
-    val availableSlots: Set<Slot>
+abstract class EnchantScroll: Item {
+    abstract val target: Target
+    abstract val isBlessed: Boolean
+
+    enum class Target {
+        WEAPON,
+        ARMOR
+    }
 }
 
-object NonEquippableItemType : ItemType {
-    override val availableSlots: Set<Slot> = emptySet()
+abstract class MagicItem: Item {
+    final override val grade = Grade.NO_GRADE
+
+    /**
+     * Skill template that will be used when this item is used
+     * Contains skill template and level
+     */
+    abstract val skill: ActiveSkill
+}
+
+sealed interface Shot: Item
+
+abstract class Soulshot: Shot {
+    abstract override val grade: Grade
+    final override val isStackable = true
+}
+
+abstract class Spiritshot: Shot {
+    abstract override val grade: Grade
+    abstract val spiritshotType: Type
+
+    final override val isStackable = true
+
+    enum class Type {
+        SPIRITSHOT,
+        BLESSED_SPIRITSHOT
+    }
+}
+
+abstract class Armor: EquippableItem, Crystallizable {
+    abstract override val type: ArmorType
+
+    final override val group = ItemGroup.ARMOR
+    final override val popupHintType = PopupHintType.ARMOR
+}
+
+abstract class Jewelry: EquippableItem, Crystallizable {
+    abstract override val type: JewelryType
+
+    final override val group = ItemGroup.WEAPON_OR_JEWELRY
+    final override val popupHintType = PopupHintType.JEWELRY
+}
+
+abstract class Weapon: EquippableItem, Crystallizable {
+    abstract override val type: WeaponType
+
+    abstract val isMagicWeapon: Boolean
+
+    abstract val soulshotUsed: Int
+    abstract val spiritshotUsed: Int
+
+    open val consumes: ConsumableItem? get() = null
+    open val manaCost: Int get() = 0
+
+    final override val group = ItemGroup.WEAPON_OR_JEWELRY
+    final override val popupHintType = PopupHintType.WEAPON
 }
 
 /** Some item group. I don't know what does it affect ¯\_(ツ)_/¯ */

@@ -14,6 +14,8 @@ dependencyResolutionManagement {
             version("ktor", "3.5.0")
             version("exposed", "1.3.0")
             version("hazelcast", "5.7.0")
+            version("flyway", "12.7.0")
+            version("kotlin-logging", "8.0.4")
 
             library(
                 "ktor-network-jvm",
@@ -37,6 +39,18 @@ dependencyResolutionManagement {
                 "com.hazelcast",
                 "hazelcast"
             ).versionRef("hazelcast")
+
+            library(
+                "flyway-database-postgresql",
+                "org.flywaydb",
+                "flyway-database-postgresql"
+            ).versionRef("flyway")
+
+            library(
+                "kotlin-logging-jvm",
+                "io.github.oshai",
+                "kotlin-logging-jvm"
+            ).versionRef("kotlin-logging")
         }
     }
 }

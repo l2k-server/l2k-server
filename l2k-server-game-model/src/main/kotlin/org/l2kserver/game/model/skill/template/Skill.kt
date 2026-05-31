@@ -4,8 +4,8 @@ import org.l2kserver.game.model.GameData
 import org.l2kserver.game.model.GameDataRegistry
 import org.l2kserver.game.model.actor.ActorInstance
 import org.l2kserver.game.model.item.ConsumableItem
-import org.l2kserver.game.model.item.template.ArmorType
-import org.l2kserver.game.model.item.template.WeaponType
+import org.l2kserver.game.model.item.ArmorType
+import org.l2kserver.game.model.item.WeaponType
 import org.l2kserver.game.model.skill.context.SkillContext
 import org.l2kserver.game.model.skill.effect.AbnormalEffect
 import org.l2kserver.game.model.skill.effect.Effect

@@ -1,7 +1,7 @@
 @file:Suppress("MatchingDeclarationName")
 package org.l2kserver.game.data.skill
 
-import org.l2kserver.game.model.item.template.SpiritshotType
+import org.l2kserver.game.model.item.Spiritshot
 import org.l2kserver.game.model.skill.context.SkillContext
 import org.l2kserver.game.model.skill.effect.effects
 import org.l2kserver.game.model.skill.effect.HealEffect
@@ -34,8 +34,8 @@ data object LifeScavenge: ActiveSkill {
         var restoredHp = (power.getOrNull(context.skillLevel - 1) ?: 0).toDouble()
 
         when (context.usedSpiritshotType) {
-            SpiritshotType.SPIRITSHOT -> restoredHp *= 1.3
-            SpiritshotType.BLESSED_SPIRITSHOT -> restoredHp *= 1.5
+            Spiritshot.Type.SPIRITSHOT -> restoredHp *= 1.3
+            Spiritshot.Type.BLESSED_SPIRITSHOT -> restoredHp *= 1.5
             null -> {}
         }
 

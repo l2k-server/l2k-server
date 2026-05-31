@@ -46,7 +46,7 @@ class AdminCommandService(
     suspend fun handleAdminCommand(commandRequest: AdminCommandRequest) {
         val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
         if (character.accessLevel != AccessLevel.GAME_MASTER) {
-            log.warn("Player '{}' has no privileges to use admin commands!", character)
+            log.warn { "Player '$character' has no privileges to use admin commands!" }
             return
         }
 
@@ -63,7 +63,7 @@ class AdminCommandService(
             }
             send { SystemMessageResponse("Successfully executed command '${commandRequest.commandString}'") }
         } catch (e: Exception) {
-            log.error("Failed executing command '{}'", commandRequest.commandString, e)
+            log.error(e) { "Failed executing command '${commandRequest.commandString}'" }
             send {
                 SystemMessageResponse(
                     "Failed executing command '${commandRequest.commandString}' - ${e.message}"
@@ -105,12 +105,9 @@ class AdminCommandService(
             ?.let { gameObjectRepository.findCharacterByName(it) }
             ?: gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
 
-        log.debug(
-            "Got command to enchant '{}' of '{}' by '{}'",
-            command.itemToEnchant,
-            characterToEnchant,
-            command.enchantLevel
-        )
+        log.debug {
+            "Got command to enchant '${command.itemToEnchant}' of '$characterToEnchant' by '${command.enchantLevel}'"
+        }
 
         val item = when (command.itemToEnchant) {
             ItemToEnchant.UNDERWEAR -> characterToEnchant.inventory.underwear

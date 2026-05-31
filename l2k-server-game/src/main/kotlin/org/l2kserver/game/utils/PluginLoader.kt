@@ -26,10 +26,10 @@ object PluginLoader {
                 .listFiles { file -> file.isFile && file.name.endsWith(".jar") }
                 ?.flatMap(this::loadFile) ?: emptyList()
 
-            log.info("Loaded {} plugins", this.plugins.size )
+            log.info { "Loaded ${this.plugins.size} plugins" }
         }
         else {
-            log.warn("No plugin directory exists")
+            log.warn { "No plugin directory exists" }
             this.plugins = emptyList()
         }
     }
@@ -40,7 +40,7 @@ object PluginLoader {
         }
     }
     catch (e: Throwable) {
-        log.error("An error occurred while loading plugin ${file.name}", e)
+        log.error(e) { "An error occurred while loading plugin ${file.name}" }
         emptyList()
     }
 

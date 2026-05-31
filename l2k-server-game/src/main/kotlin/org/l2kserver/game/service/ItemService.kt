@@ -1,16 +1,21 @@
 package org.l2kserver.game.service
 
 import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
-import org.l2kserver.game.model.extensions.forEachInstanceMatching
+import org.l2kserver.game.configuration.properties.EnchantProperties
+import org.l2kserver.game.extensions.forEachInstanceMatching
 import org.l2kserver.game.extensions.logger
+import org.l2kserver.game.extensions.model.item.canBeEnchantedBy
 import org.l2kserver.game.extensions.model.item.toScatteredItem
 import org.l2kserver.game.handler.dto.request.AutoUseSsRequest
 import org.l2kserver.game.handler.dto.request.DeleteItemRequest
 import org.l2kserver.game.handler.dto.request.DropItemRequest
+import org.l2kserver.game.handler.dto.request.EnchantRequest
 import org.l2kserver.game.handler.dto.request.TakeOffItemRequest
 import org.l2kserver.game.handler.dto.request.UseItemRequest
 import org.l2kserver.game.handler.dto.response.ActionFailedResponse
 import org.l2kserver.game.handler.dto.response.AutoUseSsResponse
+import org.l2kserver.game.handler.dto.response.ChooseItemToEnchantResponse
+import org.l2kserver.game.handler.dto.response.CloseChooseItemToEnchantResponse
 import org.l2kserver.game.handler.dto.response.DeleteObjectResponse
 import org.l2kserver.game.handler.dto.response.FullCharacterResponse
 import org.l2kserver.game.handler.dto.response.DroppedItemResponse
@@ -24,28 +29,36 @@ import org.l2kserver.game.model.actor.position.Position
 import org.l2kserver.game.model.actor.ActorInstance
 import org.l2kserver.game.model.actor.PlayerCharacterInstanceImpl
 import org.l2kserver.game.model.actor.ScatteredItem
+import org.l2kserver.game.model.item.ArmorInstance
 import org.l2kserver.game.model.item.ArrowInstanceImpl
 import org.l2kserver.game.model.item.BookInstanceImpl
+import org.l2kserver.game.model.item.EnchantScrollInstanceImpl
 import org.l2kserver.game.model.item.MagicItemInstanceImpl
+import org.l2kserver.game.model.item.EquippableItemInstanceImpl
+import org.l2kserver.game.model.item.Grade
 import org.l2kserver.game.model.item.SoulshotInstanceImpl
 import org.l2kserver.game.model.item.SpiritshotInstanceImpl
-import org.l2kserver.game.model.item.instance.EquippableItemInstance
-import org.l2kserver.game.model.item.instance.ItemInstance
-import org.l2kserver.game.model.item.template.Slot
+import org.l2kserver.game.model.item.ItemInstance
+import org.l2kserver.game.model.item.ItemInstanceImpl
+import org.l2kserver.game.model.item.Slot
 import org.l2kserver.game.model.item.WeaponInstanceImpl
-import org.l2kserver.game.model.item.instance.ShotInstance
-import org.l2kserver.game.model.item.instance.SoulshotInstance
-import org.l2kserver.game.model.item.instance.SpiritshotInstance
-import org.l2kserver.game.model.item.template.ItemTemplateRegistry
-import org.l2kserver.game.model.item.template.WeaponType
+import org.l2kserver.game.model.item.ShotInstance
+import org.l2kserver.game.model.item.SoulshotInstance
+import org.l2kserver.game.model.item.SpiritshotInstance
+import org.l2kserver.game.model.item.ItemRegistry
+import org.l2kserver.game.model.item.JewelryInstance
+import org.l2kserver.game.model.item.WeaponInstance
+import org.l2kserver.game.model.item.WeaponType
 import org.l2kserver.game.model.reward.RewardItem
 import org.l2kserver.game.model.store.PrivateStore
+import org.l2kserver.game.model.utils.withChance
 import org.l2kserver.game.network.session.send
 import org.l2kserver.game.network.session.sendTo
 import org.l2kserver.game.network.session.sessionContext
 import org.l2kserver.game.repository.GameObjectRepository
 import org.springframework.stereotype.Service
 import org.springframework.context.annotation.Lazy
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.roundToInt
 import kotlin.ranges.random
 
@@ -59,19 +72,25 @@ private const val DROP_REWARD_DISTANCE = 25
 class ItemService(
     private val geoDataService: GeoDataService,
     @param:Lazy private val skillService: SkillService,
+    private val enchantProperties: EnchantProperties,
 
     override val gameObjectRepository: GameObjectRepository
 ) : AbstractService() {
 
     override val log = logger()
 
+    /**
+     * Opened enchant sessions. Key - character id, value - scroll item id
+     */
+    private val enchantSessions = ConcurrentHashMap<Int, Int>()
+
     /** Handles request to toggle ss auto usage */
     suspend fun toggleAutoUseSs(request: AutoUseSsRequest) {
         val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
 
         val shot = character.inventory.findAllByTemplateId(request.ssTemplateId).firstOrNull() as? ShotInstance ?: run {
-            log.warn("Character does not have item with template id='{}', or it is not a soul- or spiritshot",
-                request.ssTemplateId)
+            log.warn { "Character does not have item " +
+                    "with template id='${request.ssTemplateId}', or it is not a soul- or spiritshot" }
             return
         }
 
@@ -85,30 +104,35 @@ class ItemService(
     suspend fun useItem(request: UseItemRequest) {
         val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
         val item = character.inventory.findByIdOrNull(request.itemId) ?: run {
-            log.warn("No item with id='{}' was found in {}'s inventory", character, request.itemId)
+            log.warn { "No item with id='${request.itemId}' was found in $character's inventory" }
             return
         }
 
-        log.info("Character '{}' tries to use item '{}'", character.name, item)
+        log.info { "'$character' tries to use item '$item'" }
 
         when {
             character.isDead() -> {
-                log.debug("{} is dead and cannot use items", character)
+                log.debug { "$character is dead and cannot use items" }
                 send { SystemMessageResponse.ItemCannotBeUsed(item) }
                 send { ActionFailedResponse }
                 return
             }
             (character.privateStore as? PrivateStore.Sell)?.items?.contains(item.id) == true -> {
-                log.debug("{} is in {}'s private store and cannot be used", item, character)
+                log.debug { "$item is in $character's private store and cannot be used" }
                 send { SystemMessageResponse.ItemCannotBeUsed(item) }
                 send { ActionFailedResponse }
                 return
             }
-            item is EquippableItemInstance -> equipOrDisarmItem(character, item)
+            item is EquippableItemInstanceImpl -> equipOrDisarmItem(character, item)
             item is SoulshotInstanceImpl -> useSoulshot(character, item)
             item is SpiritshotInstanceImpl -> useSpiritshot(character, item)
             item is BookInstanceImpl -> useBook(item)
             item is MagicItemInstanceImpl -> useMagicItem(character, item)
+            item is EnchantScrollInstanceImpl -> {
+                enchantSessions[character.id] = item.id
+                send { SystemMessageResponse.SelectItemToEnchant }
+                send { ChooseItemToEnchantResponse(item.templateId) }
+            }
         }
     }
 
@@ -116,54 +140,55 @@ class ItemService(
     suspend fun takeOffItem(request: TakeOffItemRequest) {
         val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
         val item = character.inventory[request.slot] ?: run {
-            log.warn("Character has no item equipped at slot ${request.slot}")
+            log.warn { "Character has no item equipped at slot ${request.slot}" }
             return
         }
 
-        log.debug("Player '{}' tries to take off item {}", character.name, item)
+        log.debug { "'$character' tries to take off item $item" }
         equipOrDisarmItem(character, item)
-        log.info("Player '{}' has successfully taken off item {}", character.name, item)
+        log.info { "'$character' has successfully taken off item $item" }
     }
 
     /** Handles request to delete item */
     suspend fun deleteItem(request: DeleteItemRequest) {
         val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
         val item = character.inventory.findById(request.itemId)
-        log.debug("'{}' tries to delete '{}' items '{}'", character, request.amount, item)
+        log.debug { "'$character' tries to delete '${request.amount}' items '$item'" }
 
         when {
             character.privateStore != null -> {
-                log.debug("{} holds private store and cannot delete items", character)
+                log.debug { "$character holds private store and cannot delete items" }
                 send { SystemMessageResponse.CannotDiscardDestroyOrTradeWhileInShop }
                 send { ActionFailedResponse }
                 return
             }
-            !item.isDestroyable -> {
-                log.debug("Character '{}' tried to delete undeletable item '{}'", character.name, item)
+            !item.isDestroyable || enchantSessions[character.id] == item.id -> {
+                log.debug { "'$character' tried to delete undeletable item '$item'" }
                 send { SystemMessageResponse.CannotDiscardItem }
                 return
             }
             else -> {
                 deleteItem(item, request.amount, character)
-                log.info("Character '{}' has deleted item '{}'", character.name, item)
+                log.info { "'$character' has deleted item '$item'" }
             }
         }
     }
 
+    /** Handles request to drop item on the ground */
     suspend fun dropItem(request: DropItemRequest) {
         val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
         val item = character.inventory.findById(request.itemId)
 
-        log.debug("'{}' tries to drop '{}' items '{}'", character, request.amount, item)
+        log.debug { "'$character' tries to drop '${request.amount}' items '$item'" }
 
         when {
             character.privateStore != null -> {
-                log.debug("{} holds private store and cannot drop items", character)
+                log.debug { "$character holds private store and cannot drop items" }
                 send { SystemMessageResponse.CannotDiscardDestroyOrTradeWhileInShop }
                 send { ActionFailedResponse }
                 return
             }
-            !item.isDroppable -> {
+            !item.isDroppable || enchantSessions[character.id] == item.id-> {
                 send { SystemMessageResponse.CannotDiscardItem }
                 return
             }
@@ -191,8 +216,91 @@ class ItemService(
                     DroppedItemResponse(character.id, scatteredItem)
                 }
                 deleteItem(item, request.amount, character)
-                log.info("Character '{}' has dropped item '{}'", character.name, item)
+                log.info { "'$character' has dropped item '$item'" }
             }
+        }
+    }
+
+    suspend fun enchantItem(request: EnchantRequest) {
+        val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
+        if (request.itemId == -1) clearEnchantSession(character)
+
+        log.debug { "'$character' tries to enchant item with id='${request.itemId}'" }
+
+        val item = character.inventory.findByIdOrNull(request.itemId) ?: run {
+            log.debug { "'$character has no item with id='${request.itemId} in inventory" }
+            return
+        }
+
+        val enchantScroll = enchantSessions[character.id]
+            ?.let { character.inventory.findByIdOrNull(it) as? EnchantScrollInstanceImpl }
+            ?: run {
+                log.warn { "'$character has no scroll registered to enchant '$item'" }
+                send { SystemMessageResponse.InappropriateEnchantConditions }
+                return
+            }
+
+        if (!item.canBeEnchantedBy(enchantScroll)) {
+            log.debug { "'$character' tries to enchant '$item', that cannot be enchanted by '$enchantScroll'" }
+            send { SystemMessageResponse.InappropriateEnchantConditions }
+            return
+        }
+
+        val chancePercents = when {
+            item is WeaponInstance -> {
+                if (item.isMagicWeapon && item.grade > Grade.D)
+                    enchantProperties.magicWeaponChance.floorEntry(item.enchantLevel)?.value
+                else
+                    enchantProperties.weaponChance.floorEntry(item.enchantLevel)?.value
+            }
+            (item is ArmorInstance || item is JewelryInstance) -> {
+                enchantProperties.armorChance.floorEntry(item.enchantLevel)?.value
+            }
+            else -> null
+        }
+
+        if (chancePercents == null) {
+            log.debug { "'$character' tries to enchant non-enchantable '$item'" }
+            send { SystemMessageResponse.InappropriateEnchantConditions }
+            return
+        }
+
+        suspendTransaction {
+            deleteItem(enchantScroll, 1, character)
+
+            withChance(chancePercents/100) {
+                item.enchantLevel++
+                send { UpdateItemsResponse().wasModified(item) }
+                send { SystemMessageResponse.YourItemHasBeenSuccessfullyEnchanted(item) }
+
+                // broadcast updated glow
+                if (item is WeaponInstanceImpl && item.isEquipped) broadcastActorInfo(character)
+                log.debug { "'$character' has successfully enchanted $item" }
+                return@suspendTransaction
+            }
+
+            //If enchantment failed
+            if (enchantScroll.isBlessed) {
+                item.enchantLevel = 0
+                send { UpdateItemsResponse().wasModified(item) }
+                send { SystemMessageResponse.BlessedEnchantmentFailed }
+            }
+            else {
+                send { SystemMessageResponse.EnchantmentFailed(item) }
+                deleteItem(item, 1, character)
+                //TODO Item Crystallization https://github.com/l2k-server/l2k-server/issues/130
+            }
+        }
+        send { CloseChooseItemToEnchantResponse }
+    }
+
+    /** Cancels enchant session and notifies client (if necessary) */
+    suspend fun clearEnchantSession(character: PlayerCharacterInstanceImpl) {
+        log.debug { "'$character' has quit enchant session" }
+
+        enchantSessions.remove(character.id)?.let {
+            send { SystemMessageResponse.EnchantmentCancelled }
+            send { CloseChooseItemToEnchantResponse }
         }
     }
 
@@ -201,8 +309,8 @@ class ItemService(
      * random position in [DROP_REWARD_DISTANCE] radius and drops it by [dropper]
      */
     suspend fun dropRewardItem(item: RewardItem, dropper: ActorInstance) {
-        val template = ItemTemplateRegistry.findByIdOrNull(item.id) ?: run {
-            log.warn("No item template found by id {}", item.id)
+        val template = ItemRegistry.findByIdOrNull(item.id) ?: run {
+            log.warn { "No item template found by id $item.id" }
             return
         }
 
@@ -231,7 +339,7 @@ class ItemService(
 
     /** Picks up [scatteredItem] by [character] */
     suspend fun pickUp(character: PlayerCharacterInstanceImpl, scatteredItem: ScatteredItem) {
-        log.debug("Start picking up item '{}' by '{}'", scatteredItem, character.name)
+        log.debug { "Start picking up item '$scatteredItem' by '$character'" }
 
         val enoughCloseToPickUp = character.position.isCloseTo(
             other = scatteredItem.position,
@@ -270,7 +378,7 @@ class ItemService(
         itemReceiver: PlayerCharacterInstanceImpl, itemTemplateId: Int, amount: Int, enchantLevel: Int
     ) = suspendTransaction {
         val existingItem = itemReceiver.inventory.findAllByTemplateId(itemTemplateId).firstOrNull()
-        val itemTemplate = ItemTemplateRegistry.findById(itemTemplateId)
+        val itemTemplate = ItemRegistry.findById(itemTemplateId)
 
         val consumableId = itemReceiver.inventory.weapon?.consumes?.templateId
         val equippedAt = if (consumableId == itemTemplate.id) Slot.LEFT_HAND else null
@@ -296,7 +404,7 @@ class ItemService(
         send { UpdateStatusResponse.weightOf(itemReceiver) }
         items.forEach { sendTo(itemReceiver.id) { SystemMessageResponse.YouHaveObtained(it) }}
 
-        log.info("Character '{}' has received items '{}'", itemReceiver.name, items)
+        log.info { "'$itemReceiver' has received items '$items'" }
 
         commit()
         return@suspendTransaction items
@@ -309,8 +417,14 @@ class ItemService(
      * @param amount Amount of items to delete
      * @param owner Owner of this [item]
      */
-    suspend fun deleteItem(item: ItemInstance, amount: Int, owner: PlayerCharacterInstanceImpl) = suspendTransaction {
-        require(item.isStackable || amount == 1) { "Cannot remove '$amount' of non-stackable '$item' of '${owner}'!" }
+    suspend fun deleteItem(
+        item: ItemInstanceImpl,
+        amount: Int,
+        owner: PlayerCharacterInstanceImpl
+    ) = suspendTransaction {
+        require(item.isStackable || amount == 1) {
+            "Cannot remove '$amount' of non-stackable '$item' of '${owner}'!"
+        }
 
         if (amount > item.amount) {
             sendTo(owner.id) { SystemMessageResponse.NotEnoughItems }
@@ -322,7 +436,7 @@ class ItemService(
             sendTo(owner.id) { UpdateItemsResponse().wasModified(item) }
         } else {
             val response = UpdateItemsResponse()
-            if (item is EquippableItemInstance && item.isEquipped) {
+            if (item is EquippableItemInstanceImpl && item.isEquipped) {
                 owner.inventory.disarmItem(item)
                 owner.inventory
                 response.wasModified(item)
@@ -462,7 +576,7 @@ class ItemService(
      * The item will be consumed immediately when skill casting starts
      */
     suspend fun useMagicItem(character: PlayerCharacterInstanceImpl, magicItem: MagicItemInstanceImpl) {
-        log.info("Character '{}' tries to use magic item '{}'", character.name, magicItem)
+        log.info { "'$character' tries to use magic item '$magicItem'" }
         // Create skill instance with character's ID for individual cooldowns
         val skill = magicItem.createSkill(character.id)
 
@@ -477,7 +591,10 @@ class ItemService(
      * @param item Item, that will be equipped/taken off
      */
     @Suppress("NestedBlockDepth", "CyclomaticComplexMethod") //TODO Refactor?
-    private suspend fun equipOrDisarmItem(character: PlayerCharacterInstanceImpl, item: EquippableItemInstance) {
+    private suspend fun equipOrDisarmItem(
+        character: PlayerCharacterInstanceImpl,
+        item: EquippableItemInstanceImpl
+    ) {
         val updatedItems = ArrayList<ItemInstance>(3)
         suspendTransaction {
             val paperDoll = character.inventory
@@ -598,7 +715,7 @@ class ItemService(
             }
 
             broadcastActorInfo(character)
-            log.info("Character '{}' has equipped item '{}'", character.name, item)
+            log.info { "'$character' has equipped item '$item'" }
             //TODO Recalculate skillList
         }
     }

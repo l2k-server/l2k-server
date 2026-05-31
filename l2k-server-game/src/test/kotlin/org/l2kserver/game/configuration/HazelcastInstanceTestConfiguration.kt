@@ -16,7 +16,7 @@ class HazelcastInstanceTestConfiguration {
         val config = Config()
         config.clusterName = "L2K"
 
-        return Hazelcast.newHazelcastInstance(config).also { log.info("Started TEST hazelcast instance") }
+        return Hazelcast.newHazelcastInstance(config).also { log.info { "Started TEST hazelcast instance" } }
     }
 
 }

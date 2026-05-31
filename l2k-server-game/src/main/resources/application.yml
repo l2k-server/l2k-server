@@ -4,8 +4,10 @@ spring:
   config.import:
     - file:./config/characters.yml
     - file:./config/chat.yml
-    - file:./config/game.yml
     - file:./config/database.yml
+    - file:./config/enchantment.yml
+    - file:./config/game.yml
+    - file:./config/level.yml
     - file:./config/reward.yml
     - file:./config/server.yml
   datasource:
@@ -14,7 +16,8 @@ spring:
     url: jdbc:postgresql://${database.url}
 
 logging:
-  pattern.console: "%d{HH:mm:ss.SSS} [%thread] %highlight(%-5level) %cyan(%logger{36}) - %X{remote}%msg%n"
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %highlight(%-5level) %cyan(%logger{36}) - %X{remote}%X{account}%msg%n"
   level:
     root: INFO
     com.hazelcast.system.logo: OFF

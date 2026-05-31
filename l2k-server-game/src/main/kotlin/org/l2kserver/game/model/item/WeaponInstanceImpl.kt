@@ -1,11 +1,6 @@
 package org.l2kserver.game.model.item
 
 import org.l2kserver.game.domain.ItemEntity
-import org.l2kserver.game.model.item.instance.WeaponInstance
-import org.l2kserver.game.model.item.template.Grade
-import org.l2kserver.game.model.item.template.SpiritshotType
-import org.l2kserver.game.model.item.template.Weapon
-import org.l2kserver.game.model.item.template.WeaponType
 import org.l2kserver.game.model.stats.CombatStats
 
 private const val WEAPON_SAFE_ENCHANT_LEVEL = 3
@@ -30,38 +25,33 @@ private const val TWO_HANDED_WEAPON_S_GRADE_PER_ENCHANT_P_ATK_BONUS = 6
 private const val BOW_S_GRADE_PER_ENCHANT_P_ATK_BONUS = 10
 private const val WEAPON_S_GRADE_PER_ENCHANT_M_ATK_BONUS = 4
 
-class WeaponInstanceImpl(itemEntity: ItemEntity, private val itemTemplate: Weapon): WeaponInstance {
-    override val id: Int = itemEntity.id.value
-    override val templateId = itemEntity.templateId
+class WeaponInstanceImpl(
+    entity: ItemEntity,
+    private val template: Weapon
+): WeaponInstance, EquippableItemInstanceImpl(entity, template) {
+    override val name = template.name
+    override val grade = template.grade
+    override val weight = template.weight
+    override val price = template.price
+    override val isSellable = template.isSellable
+    override val isDroppable = template.isDroppable
+    override val isDestroyable = template.isDestroyable
+    override val isExchangeable = template.isExchangeable
+    override val type = template.type
+    override val isMagicWeapon = template.isMagicWeapon
+    override val crystalCount = template.crystalCount
 
-    override var ownerId by itemEntity::ownerId
-    override var amount by itemEntity::amount
-    override var equippedAt by itemEntity::equippedAt
-    override var enchantLevel by itemEntity::enchantLevel
-    override var augmentationId by itemEntity::augmentationId
-
-    override val name = itemTemplate.name
-    override val grade = itemTemplate.grade
-    override val weight = itemTemplate.weight
-    override val price = itemTemplate.price
-    override val isSellable = itemTemplate.isSellable
-    override val isDroppable = itemTemplate.isDroppable
-    override val isDestroyable = itemTemplate.isDestroyable
-    override val isExchangeable = itemTemplate.isExchangeable
-    override val type = itemTemplate.type
-    override val crystalCount = itemTemplate.crystalCount
-
-    override val soulshotUsed = itemTemplate.soulshotUsed
-    override val spiritshotUsed = itemTemplate.spiritshotUsed
+    override val soulshotUsed = template.soulshotUsed
+    override val spiritshotUsed = template.spiritshotUsed
 
     override var soulshotCharged = false
-    override var spiritshotChargedType: SpiritshotType? = null
+    override var spiritshotChargedType: Spiritshot.Type? = null
 
-    override val manaCost = itemTemplate.manaCost
-    override val consumes = itemTemplate.consumes
+    override val manaCost = template.manaCost
+    override val consumes = template.consumes
 
     override val stats: CombatStats get() {
-        val initialStats = itemTemplate.stats
+        val initialStats = template.stats
 
         val (pAtkPerEnchantBonus, mAtkPerEnchantBonus) = when (grade) {
             Grade.NO_GRADE -> 0 to 0
@@ -127,7 +117,7 @@ class WeaponInstanceImpl(itemEntity: ItemEntity, private val itemTemplate: Weapo
         )
     }
 
-    override val fixedBonusStats = itemTemplate.fixedBonusStats
+    override val fixedBonusStats = template.fixedBonusStats
 
     override fun toString() = "Weapon(name=$name id=$id enchantLevel=$enchantLevel)"
 }

@@ -3,7 +3,7 @@ package org.l2kserver.game.data.item.scroll
 import org.l2kserver.game.model.actor.ActorInstance
 import org.l2kserver.game.model.actor.character.PlayerCharacterInstance
 import org.l2kserver.game.model.item.of
-import org.l2kserver.game.model.item.template.MagicItem
+import org.l2kserver.game.model.item.MagicItem
 import org.l2kserver.game.model.skill.context.SkillContext
 import org.l2kserver.game.model.skill.effect.ResurrectionEffect
 import org.l2kserver.game.model.skill.instance.SkillTargetType
@@ -31,7 +31,7 @@ private data object ScrollOfResurrectionSkill: ActiveSkill {
     override fun affect(context: SkillContext) = listOf(ResurrectionEffect(context.mainTarget.id))
 }
 
-data object ScrollOfResurrection: MagicItem {
+data object ScrollOfResurrection: MagicItem() {
     override val id = 737
     override val name = "Scroll of Resurrection"
     override val weight = 120

@@ -24,8 +24,9 @@ dependencies {
     // Ktor
     implementation(libs.ktor.network.jvm)
 
-    // Kotlin
+    // Logging
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-slf4j:1.11.0")
+    implementation(libs.kotlin.logging.jvm)
 
     // Jackson
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
@@ -39,7 +40,7 @@ dependencies {
     implementation("org.postgresql:postgresql")
 
     implementation("org.springframework.boot:spring-boot-starter-flyway")
-    runtimeOnly("org.flywaydb:flyway-database-postgresql:12.6.1")
+    runtimeOnly(libs.flyway.database.postgresql)
 
     // Hazelcast (for sharing data with LoginServer)
     implementation(libs.hazelcast)

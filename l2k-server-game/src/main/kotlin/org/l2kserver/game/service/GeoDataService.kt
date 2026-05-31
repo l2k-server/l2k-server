@@ -31,10 +31,10 @@ class GeoDataService(
                 val geoDataFile = File("$GEODATA_PATH/${i}_${j}.l2j")
                 if (geoDataFile.exists()) {
                     geoDriver.loadRegion(geoDataFile.toPath(), i, j)
-                    log.debug("Successfully loaded region {}_{}", i, j)
+                    log.debug { "Successfully loaded region ${i}_${j}" }
                 }
                 else
-                    log.warn("GeoData file '{}' does not exist!", geoDataFile)
+                    log.warn { "GeoData file '$geoDataFile' does not exist!" }
             }
         }
     }

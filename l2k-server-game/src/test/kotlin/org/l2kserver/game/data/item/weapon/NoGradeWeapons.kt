@@ -1,9 +1,9 @@
 package org.l2kserver.game.data.item.weapon
 
 import org.l2kserver.game.data.item.arrow.WoodenArrow
-import org.l2kserver.game.model.item.template.Grade
-import org.l2kserver.game.model.item.template.Weapon
-import org.l2kserver.game.model.item.template.WeaponType
+import org.l2kserver.game.model.item.Grade
+import org.l2kserver.game.model.item.Weapon
+import org.l2kserver.game.model.item.WeaponType
 import org.l2kserver.game.model.item.of
 import org.l2kserver.game.model.stats.CombatStats
 
@@ -18,6 +18,7 @@ data object ApprenticesWand: Weapon() {
     override val isDestroyable = true
     override val isExchangeable = true
     override val type = WeaponType.BLUNT_ONE_HANDED
+    override val isMagicWeapon = true
     override val stats = CombatStats.ofOneHandedBlunt(
         pAtk = 5,
         mAtk = 7
@@ -38,6 +39,7 @@ data object WillowStaff: Weapon() {
     override val isDestroyable = true
     override val isExchangeable = true
     override val type = WeaponType.BLUNT_TWO_HANDED
+    override val isMagicWeapon = true
     override val stats = CombatStats.ofTwoHandedBlunt(
         pAtk = 11,
         mAtk = 12
@@ -58,6 +60,7 @@ data object Dagger: Weapon() {
     override val isDestroyable = true
     override val isExchangeable = false
     override val type = WeaponType.DAGGER
+    override val isMagicWeapon = false
     override val stats = CombatStats.ofDagger(
         pAtk = 5,
         mAtk = 5
@@ -78,6 +81,7 @@ data object Bow: Weapon() {
     override val isDestroyable = true
     override val isExchangeable = true
     override val type = WeaponType.BOW
+    override val isMagicWeapon = false
     override val stats = CombatStats.ofBow(
         pAtk = 23,
         mAtk = 9
@@ -100,6 +104,7 @@ data object ShortSpear: Weapon() {
     override val isDestroyable = true
     override val isExchangeable = true
     override val type = WeaponType.POLE
+    override val isMagicWeapon = false
     override val stats = CombatStats.ofPole(
         pAtk = 24,
         mAtk = 17
@@ -120,6 +125,7 @@ data object SquiresSword: Weapon() {
     override val isDestroyable = true
     override val isExchangeable = false
     override val type = WeaponType.SWORD_ONE_HANDED
+    override val isMagicWeapon = false
     override val stats = CombatStats.ofOneHandedSword(
         pAtk = 6,
         mAtk = 5

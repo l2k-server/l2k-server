@@ -33,7 +33,7 @@ class AuthorizationService(
      * Checks the player is authorized at login server and
      */
     suspend fun authorize(request: AuthorizationRequest) {
-        log.debug("User {} is trying to login", request.login)
+        log.debug { "User ${request.login} is trying to login" }
         val loggedInUser = checkNotNull(loggedInUsersRepository.findByLogin(request.login)) {
             "User ${request.login} was not correctly authorized"
         }
@@ -47,7 +47,7 @@ class AuthorizationService(
         sessionContext.setAccountName(request.login)
         sessionContext.setAuthorizationKey(loggedInUser.authorizationKey)
 
-        log.info("User {} is successfully authorized", request.login)
+        log.info { "User ${request.login} is successfully authorized" }
 
         characterService.sendCharactersList()
     }

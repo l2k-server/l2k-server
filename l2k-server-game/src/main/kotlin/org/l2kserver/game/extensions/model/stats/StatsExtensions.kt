@@ -4,7 +4,7 @@ import org.l2kserver.game.model.actor.ActorInstance
 import org.l2kserver.game.model.actor.PlayerCharacterInstanceImpl
 import org.l2kserver.game.model.actor.Posture
 import org.l2kserver.game.model.actor.npc.NpcInstance
-import org.l2kserver.game.model.item.template.Slot
+import org.l2kserver.game.model.item.Slot
 import org.l2kserver.game.model.stats.CombatStats
 import org.l2kserver.game.model.stats.CombatStatsMultipliers
 import kotlin.collections.fold

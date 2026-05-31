@@ -1,8 +1,7 @@
 package org.l2kserver.game.data.item.soulshot
 
-import org.l2kserver.game.model.item.template.Grade
-import org.l2kserver.game.model.item.template.Spiritshot
-import org.l2kserver.game.model.item.template.SpiritshotType
+import org.l2kserver.game.model.item.Grade
+import org.l2kserver.game.model.item.Spiritshot
 
 data object SpiritshotNoGrade: Spiritshot() {
     override val id = 2509
@@ -14,7 +13,7 @@ data object SpiritshotNoGrade: Spiritshot() {
     override val isDroppable = true
     override val isDestroyable = true
     override val isExchangeable = true
-    override val spiritshotType = SpiritshotType.SPIRITSHOT
+    override val spiritshotType = Type.SPIRITSHOT
 }
 
 data object BlessedSpiritshotNoGrade: Spiritshot() {
@@ -27,5 +26,5 @@ data object BlessedSpiritshotNoGrade: Spiritshot() {
     override val isDroppable = true
     override val isDestroyable = true
     override val isExchangeable = true
-    override val spiritshotType = SpiritshotType.BLESSED_SPIRITSHOT
+    override val spiritshotType = Type.BLESSED_SPIRITSHOT
 }

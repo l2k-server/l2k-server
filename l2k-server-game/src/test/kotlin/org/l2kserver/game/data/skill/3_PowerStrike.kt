@@ -1,7 +1,7 @@
 @file:Suppress("MatchingDeclarationName")
 package org.l2kserver.game.data.skill
 
-import org.l2kserver.game.model.item.template.WeaponType
+import org.l2kserver.game.model.item.WeaponType
 import org.l2kserver.game.model.skill.context.SkillContext
 import org.l2kserver.game.model.skill.effect.DamageEffect
 import org.l2kserver.game.model.skill.instance.SkillTargetType

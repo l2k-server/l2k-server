@@ -1,6 +1,6 @@
 package org.l2kserver.game.extensions
 
-import org.l2kserver.game.model.item.instance.ItemInstance
+import org.l2kserver.game.model.item.ItemInstance
 import org.l2kserver.game.model.store.ItemInWishList
 import org.l2kserver.game.model.store.ItemOnSale
 

@@ -3,7 +3,7 @@ package org.l2kserver.game.service
 import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.sync.withLock
 import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
-import org.l2kserver.game.model.extensions.allUniqueBy
+import org.l2kserver.game.extensions.allUniqueBy
 import org.l2kserver.game.extensions.logger
 import org.l2kserver.game.extensions.model.item.canBeSold
 import org.l2kserver.game.extensions.model.item.toItemInstance
@@ -32,7 +32,7 @@ import org.l2kserver.game.handler.dto.response.SystemMessageResponse
 import org.l2kserver.game.handler.dto.response.UpdateItemsResponse
 import org.l2kserver.game.handler.dto.response.UpdateStatusResponse
 import org.l2kserver.game.model.actor.PlayerCharacterInstanceImpl
-import org.l2kserver.game.model.item.instance.ItemInstance
+import org.l2kserver.game.model.item.ItemInstance
 import org.l2kserver.game.model.store.ItemInWishList
 import org.l2kserver.game.model.store.ItemOnSale
 import org.l2kserver.game.model.store.PrivateStore
@@ -49,6 +49,7 @@ private const val PRIVATE_STORE_MESSAGE_MAX_SIZE = 29
 
 @Service
 class TradeService(
+    private val itemService: ItemService,
     override val gameObjectRepository: GameObjectRepository
 ) : AbstractService() {
 
@@ -78,14 +79,14 @@ class TradeService(
     suspend fun stopPrivateStore() = suspendTransaction {
         val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
         if (character.privateStore != null) {
-            log.debug("Cancelling private store of character '{}'", character)
+            log.debug { "Cancelling private store of character '$character'" }
             privateStoreTitlesCache.remove(character.id)
 
             character.privateStore = null
             character.standUp()
             broadcastActorInfo(character)
 
-            log.debug("Private store of character '{}' was successfully cancelled", character)
+            log.debug { "Private store of character '$character' was successfully cancelled" }
         }
     }
 
@@ -93,6 +94,7 @@ class TradeService(
     suspend fun getItemsForPrivateStoreSell() = suspendTransaction {
         val context = sessionContext()
         val character = gameObjectRepository.findCharacterById(context.getCharacterId())
+        itemService.clearEnchantSession(character)
 
         //Check that player has no private store, or it's private store is PrivateStore.Sell
         if (character.privateStore !is PrivateStore.Sell?) {
@@ -135,10 +137,10 @@ class TradeService(
     /** Start private store (sell) */
     suspend fun startPrivateStoreSell(request: PrivateStoreSellStartRequest) = suspendTransaction {
         val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
-        log.debug("Starting private store by request '{}' of character '{}'", request, character)
+        log.debug { "Starting private store by request '$request' of character '$character'" }
 
         if (request.items.isEmpty()) {
-            log.warn("{} is trying to start private store (sell), but without items", character)
+            log.warn { "$character is trying to start private store (sell), but without items" }
             send { ActionFailedResponse }
             return@suspendTransaction
         }
@@ -161,27 +163,27 @@ class TradeService(
         character.privateStore = privateStore
 
         broadcastActorInfo(character)
-        log.info("Started PrivateStoreSell='{}' of character '{}'", privateStore, character)
+        log.info { "Started PrivateStoreSell='$privateStore' of character '$character'" }
     }
 
     /** Buy items in private store */
     suspend fun buyInPrivateStore(request: BuyInPrivateStoreRequest) {
         val customer = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
         val seller = gameObjectRepository.findCharacterById(request.storeOwnerId)
-        log.debug("Start purchasing items='{}' from '{}' by '{}'", request.items, customer, seller)
+        log.debug { "Start purchasing items='${request.items}' from '$customer' by '$seller'" }
 
         val requiredDistance = INTERACTION_DISTANCE +
                 (customer.collisionBox.radius + seller.collisionBox.radius).roundToInt()
 
         if (!customer.position.isCloseTo(seller.position, requiredDistance)) {
-            log.debug("StoreOwner is too far to buy")
+            log.debug { "StoreOwner is too far to buy" }
             send { PlaySoundResponse(Sound.ITEMSOUND_SYS_SHORTAGE) }
             send { ActionFailedResponse }
             return
         }
 
         val privateStore = seller.privateStore as? PrivateStore.Sell ?: run {
-            log.debug("Cannot buy anything from '{}', because he has no private store (sell) opened", seller)
+            log.debug { "Cannot buy anything from '$seller', because he has no private store (sell) opened" }
             send { ActionFailedResponse }
             return
         }
@@ -191,10 +193,8 @@ class TradeService(
             var itemsOnSale = privateStore.items
             suspendTransaction(transactionIsolation = Connection.TRANSACTION_SERIALIZABLE) {
                 if (!checkAllPresent(privateStore.items, request.items, seller)) {
-                    log.debug(
-                        "[SELL] '{}' or '{}' inventory does not contain all required items from request '{}'",
-                        privateStore, seller, request
-                    )
+                    log.debug { "[SELL] '$privateStore' or '$seller' inventory does not contain " +
+                            "all required items from request '$request'" }
                     send { ActionFailedResponse }
                     return@suspendTransaction
                 }
@@ -257,7 +257,7 @@ class TradeService(
     /** Shows [character]'s private store info */
     suspend fun showPrivateStoreOf(character: PlayerCharacterInstanceImpl) {
         val privateStore = character.privateStore ?: run {
-            log.warn("No private store of character '{}' found", character)
+            log.warn { "No private store of '$character' found" }
             send { ActionFailedResponse }
             return
         }
@@ -308,10 +308,10 @@ class TradeService(
     /** Start private store (buy) */
     suspend fun startPrivateStoreBuy(request: PrivateStoreBuyStartRequest): Unit = suspendTransaction {
         val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
-        log.debug("Starting private store (Buy) by request '{}' of character '{}'", request, character)
+        log.debug { "Starting private store (Buy) by request '$request' of '$character'" }
 
         if (request.items.isEmpty()) {
-            log.warn("{} is trying to start private store (buy), but without items", character)
+            log.warn { "$character is trying to start private store (buy), but without items" }
             send { ActionFailedResponse }
             return@suspendTransaction
         }
@@ -340,26 +340,26 @@ class TradeService(
         character.privateStore = privateStore
 
         broadcastActorInfo(character)
-        log.info("Started PrivateStoreBuy='{}' of character '{}'", privateStore, character)
+        log.info { "Started PrivateStoreBuy='$privateStore' of character '$character'" }
     }
 
     suspend fun sellToPrivateStore(request: SellToPrivateStoreRequest) {
         val seller = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
         val storeOwner = gameObjectRepository.findCharacterById(request.storeOwnerId)
-        log.debug("Start selling items='{}' from '{}' by '{}'", request.items, seller, storeOwner)
+        log.debug { "Start selling items='$request.items' from '$seller' by '$storeOwner'" }
 
         val requiredDistance = INTERACTION_DISTANCE +
                 (seller.collisionBox.radius + storeOwner.collisionBox.radius).roundToInt()
 
         if (!seller.position.isCloseTo(storeOwner.position, requiredDistance)) {
-            log.debug("StoreOwner is too far to sell")
+            log.debug { "StoreOwner is too far to sell" }
             send { PlaySoundResponse(Sound.ITEMSOUND_SYS_SHORTAGE) }
             send { ActionFailedResponse }
             return
         }
 
         val privateStore = storeOwner.privateStore as? PrivateStore.Buy ?: run {
-            log.debug("Cannot buy anything from '{}', because he has no private store (buy) opened", seller)
+            log.debug { "Cannot buy anything from '$seller', because he has no private store (buy) opened" }
             send { ActionFailedResponse }
             return
         }
@@ -369,10 +369,8 @@ class TradeService(
             var itemsInWishList = privateStore.items
             suspendTransaction(transactionIsolation = Connection.TRANSACTION_SERIALIZABLE) {
                 if (!checkAllPresent(privateStore.items, request.items, seller)) {
-                    log.debug(
-                        "[BUY] '{}' or '{}' inventory does not contain all required items from request '{}'",
-                        privateStore, seller, request
-                    )
+                    log.debug { "[BUY] '$privateStore' or '$seller' inventory does not contain" +
+                            " all required items from request '$request'" }
                     send { ActionFailedResponse }
                     return@suspendTransaction
                 }
@@ -460,7 +458,7 @@ class TradeService(
     private suspend fun setPrivateStoreMessage(message: String): String? {
         val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
         if (message.length > PRIVATE_STORE_MESSAGE_MAX_SIZE) {
-            log.warn("'{}' was trying to set too big private store (Buy) message!", character)
+            log.warn { "'$character' was trying to set too big private store (Buy) message!" }
             send { ActionFailedResponse }
             return null
         }

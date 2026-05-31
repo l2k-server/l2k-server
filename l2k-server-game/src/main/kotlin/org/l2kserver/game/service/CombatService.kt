@@ -10,6 +10,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
+import org.l2kserver.game.configuration.properties.LevelProperties
 import org.l2kserver.game.extensions.logger
 import org.l2kserver.game.handler.dto.response.AttackResponse
 import org.l2kserver.game.handler.dto.response.CancelCastingResponse
@@ -27,15 +28,13 @@ import org.l2kserver.game.model.actor.Intention
 import org.l2kserver.game.model.actor.MutableActorInstance
 import org.l2kserver.game.model.actor.NpcInstanceImpl
 import org.l2kserver.game.model.actor.PlayerCharacterInstanceImpl
-import org.l2kserver.game.model.actor.character.PlayerCharacterInstance
-import org.l2kserver.game.model.extensions.toInt
-import org.l2kserver.game.model.item.template.WeaponType
+import org.l2kserver.game.extensions.toInt
+import org.l2kserver.game.model.item.WeaponType
 import org.l2kserver.game.model.skill.effect.DamageEffect
 import org.l2kserver.game.model.skill.instance.ActiveSkillInstance
 import org.l2kserver.game.network.session.send
 import org.l2kserver.game.network.session.sendTo
 import org.l2kserver.game.repository.GameObjectRepository
-import org.l2kserver.game.utils.ExpLossCalculator
 import org.springframework.stereotype.Service
 import kotlin.math.roundToInt
 import kotlin.math.roundToLong
@@ -51,7 +50,7 @@ class CombatService(
     private val npcService: NpcService,
     private val rewardService: RewardService,
     private val itemService: ItemService,
-    private val expLossCalculator: ExpLossCalculator,
+    private val levelProperties: LevelProperties,
 
     override val gameObjectRepository: GameObjectRepository
 ) : AbstractService() {
@@ -63,10 +62,10 @@ class CombatService(
 
     /** Executes single attack **/
     suspend fun attack(attacker: MutableActorInstance, attacked: MutableActorInstance) {
-        log.debug("Started attacking '{}' by '{}'", attacked, attacker)
+        log.debug { "Started attacking '$attacked' by '$attacker'" }
 
         if (attacked.isDead()) {
-            log.debug("'{}' is dead and cannot be attacked", attacked)
+            log.debug { "'$attacked' is dead and cannot be attacked" }
             send { SystemMessageResponse.IncorrectTarget }
             return
         }
@@ -99,7 +98,7 @@ class CombatService(
                 }
             }
         } catch (e: Exception) {
-            log.error("An error occurred while attacking target {} by {}", attacked, attacker, e)
+            log.error(e) { "An error occurred while attacking target $attacked by $attacker" }
             currentCoroutineContext().cancel()
         }
     }
@@ -112,7 +111,7 @@ class CombatService(
         //For double weapon, if target was killed by first hit, or if actor is already killed by smth else
         if (attacked.isDead()) return@suspendTransaction
 
-        log.debug("{} has dealt {} damage to {}", attacker, effect.damage, attacked)
+        log.debug { "$attacker has dealt ${effect.damage} damage to $attacked" }
 
         if (effect.isAvoided) {
             sendTo(attacker.id) { SystemMessageResponse.YouMissed }
@@ -194,7 +193,7 @@ class CombatService(
     private suspend fun performSimpleAttacks(
         attacker: MutableActorInstance, attacked: MutableActorInstance, hitAmount: Int
     ) {
-        log.debug("{} tries to perform {} attacks on {}", attacker, hitAmount, attacked)
+        log.debug { "$attacker tries to perform $hitAmount attacks on $attacked" }
 
         val attackDuration = calculateAttackTime(attacker.stats.atkSpd)
         nextAttackAvailableTimeMap[attacker.id] = currentTimeMillis() + attackDuration
@@ -246,7 +245,7 @@ class CombatService(
      * @param attacked Actor, who is a target for this attack
      */
     private suspend fun performBowAttack(attacker: MutableActorInstance, attacked: MutableActorInstance) {
-        log.debug("{} tries to hit {} by bow", attacker, attacked)
+        log.debug { "$attacker tries to hit $attacked by bow" }
 
         val attackDuration = calculateAttackTime(attacker.stats.atkSpd)
         val reuseDelay = calculateBowAttackReuseTime(attacker.stats.atkSpd)
@@ -342,17 +341,16 @@ class CombatService(
                 val karmaLost = if (actor.karma != 0) {
                     actor.karma = 0
 
-                    log.debug("{} was killed, decreased his karma to '{}'", actor, actor.karma)
+                    log.debug { "$actor was killed, decreased his karma to '${actor.karma}'" }
                     broadcastAround(actor.position) { PvPStatusResponse(actor) }
 
                     true
                 } else false
 
-                val expLoss = expLossCalculator[actor.level]
+                val expLoss = calculateExpLoss(actor.level)
                 val expLost = if (expLoss > 0) {
                     actor.exp = maxOf(0L, actor.exp - expLoss)
                     actor.expLostAfterDeath = expLoss
-
                     true
                 } else false
 
@@ -408,6 +406,18 @@ class CombatService(
         }
 
         return true
+    }
+
+    private fun calculateExpLoss(characterLevel: Int): Long {
+        val percentage = levelProperties.expLoss.floorEntry(characterLevel).value ?: 0.0
+
+        val minExpForLevel = levelProperties.getRequiredExpForLevel(characterLevel)
+        val minExpForNextLevel = levelProperties.getRequiredExpForLevel(characterLevel + 1)
+        val totalExpAmountAtLevel = minExpForNextLevel - minExpForLevel
+        val expLoss = (totalExpAmountAtLevel * percentage / 100).roundToLong()
+
+        log.debug { "Calculated exp loss is $expLoss ($percentage% of max EXP for level $characterLevel)" }
+        return expLoss
     }
 
 }

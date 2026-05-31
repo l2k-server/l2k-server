@@ -18,11 +18,11 @@ class PluginService(
 
     @EventListener(ApplicationStartedEvent::class)
     fun invokePlugins() {
-        log.debug("Start launching plugins")
+        log.debug { "Start launching plugins" }
         pluginLoader.plugins.forEach {
             it.invoke()
         }
 
-        log.info("Applied {} plugins", pluginLoader.plugins.size)
+        log.info { "Applied ${pluginLoader.plugins.size} plugins" }
     }
 }

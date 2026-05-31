@@ -1,7 +1,7 @@
 package org.l2kserver.game.data.item.soulshot
 
-import org.l2kserver.game.model.item.template.Grade
-import org.l2kserver.game.model.item.template.Soulshot
+import org.l2kserver.game.model.item.Grade
+import org.l2kserver.game.model.item.Soulshot
 
 data object SoulshotNoGrade: Soulshot() {
     override val id = 1835

@@ -37,6 +37,7 @@ import org.l2kserver.game.handler.dto.request.PrivateStoreBuyStopRequest
 import org.l2kserver.game.handler.dto.request.BuyInPrivateStoreRequest
 import org.l2kserver.game.handler.dto.request.BypassToServerRequest
 import org.l2kserver.game.handler.dto.request.ConfirmDialogAnswerRequest
+import org.l2kserver.game.handler.dto.request.EnchantRequest
 import org.l2kserver.game.handler.dto.request.ExchangeRequest
 import org.l2kserver.game.handler.dto.request.LinkRequest
 import org.l2kserver.game.handler.dto.request.RespawnRequest
@@ -111,6 +112,7 @@ class L2GameRequestHandler(
             is TakeOffItemRequest -> itemService.takeOffItem(request)
             is DeleteItemRequest -> itemService.deleteItem(request)
             is DropItemRequest -> itemService.dropItem(request)
+            is EnchantRequest -> itemService.enchantItem(request)
             is AutoUseSsRequest -> itemService.toggleAutoUseSs(request)
 
             is MoveRequest -> moveService.moveCharacter(request)
@@ -158,8 +160,7 @@ class L2GameRequestHandler(
 
     suspend fun handleDisconnect() {
         authorizationService.logOut()
-        characterService.disconnectGame()
-
+        characterService.exitWorld()
         sessionContext().close()
     }
 

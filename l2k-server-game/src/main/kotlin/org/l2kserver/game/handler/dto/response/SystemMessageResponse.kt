@@ -1,11 +1,11 @@
 package org.l2kserver.game.handler.dto.response
 
-import org.l2kserver.game.model.extensions.forEachNotNull
+import org.l2kserver.game.extensions.forEachNotNull
 import org.l2kserver.game.extensions.littleEndianByteArray
 import org.l2kserver.game.extensions.putUTF16String
 import org.l2kserver.game.extensions.putUByte
-import org.l2kserver.game.model.item.instance.ItemInstance
-import org.l2kserver.game.model.item.instance.ShotInstance
+import org.l2kserver.game.model.item.ItemInstance
+import org.l2kserver.game.model.item.ShotInstance
 import org.l2kserver.game.model.skill.instance.ActiveSkillInstance
 import org.l2kserver.game.model.skill.instance.SkillInstance
 
@@ -197,6 +197,28 @@ open class SystemMessageResponse private constructor(
         if (item.enchantLevel > 1) item.enchantLevel - 1 else null,
         item
     )
+
+    /**
+     * If item was not enchanted before - message: "The enchantment has failed! Your [item] has been crystallized.",
+     * if it already was - "The enchantment has failed! +[Item.enchantLevel][item] has been crystallized."
+     */
+    data class EnchantmentFailed(val item: ItemInstance): SystemMessageResponse(
+        systemMessageId = if (item.enchantLevel > 1) 65 else 64,
+        if (item.enchantLevel > 1) item.enchantLevel else null,
+        item
+    )
+
+    /** Message: Failed in Blessed Enchant. The enchant value of the item became 0. */
+    data object BlessedEnchantmentFailed: SystemMessageResponse(systemMessageId = 1517)
+
+    /** Message: You have canceled the enchanting process. */
+    data object EnchantmentCancelled: SystemMessageResponse(systemMessageId = 423)
+
+    /** Message: Select item to enchant. */
+    data object SelectItemToEnchant: SystemMessageResponse(systemMessageId = 303)
+
+    /** Message: Inappropriate enchant conditions.*/
+    data object InappropriateEnchantConditions: SystemMessageResponse(systemMessageId = 355)
 
     /** Message: [skill] is not available at this time: being prepared for reuse. */
     data class IsBeingPreparedForReuse(val skill: SkillInstance): SystemMessageResponse(

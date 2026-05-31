@@ -2,8 +2,7 @@ package org.l2kserver.game.data.item.scroll
 
 import org.l2kserver.game.model.actor.ActorInstance
 import org.l2kserver.game.model.item.of
-import org.l2kserver.game.model.item.template.Grade
-import org.l2kserver.game.model.item.template.MagicItem
+import org.l2kserver.game.model.item.MagicItem
 import org.l2kserver.game.model.skill.context.SkillContext
 import org.l2kserver.game.model.skill.effect.AbnormalType
 import org.l2kserver.game.model.skill.effect.TemporalAbnormalEffect
@@ -39,10 +38,9 @@ private data object ScrollOfGuidanceSkill: ActiveSkill {
 
 }
 
-data object ScrollOfGuidance: MagicItem {
+data object ScrollOfGuidance: MagicItem() {
     override val id = 3926
     override val name = "Scroll of Guidance"
-    override val grade = Grade.NO_GRADE
     override val weight = 120
     override val price = 1
     override val isSellable = true

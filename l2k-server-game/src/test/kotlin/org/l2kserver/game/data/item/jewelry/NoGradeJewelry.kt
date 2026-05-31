@@ -1,8 +1,8 @@
 package org.l2kserver.game.data.item.jewelry
 
-import org.l2kserver.game.model.item.template.Grade
-import org.l2kserver.game.model.item.template.Jewelry
-import org.l2kserver.game.model.item.template.JewelryType
+import org.l2kserver.game.model.item.Grade
+import org.l2kserver.game.model.item.Jewelry
+import org.l2kserver.game.model.item.JewelryType
 import org.l2kserver.game.model.stats.CombatStats
 
 data object EarringOfStrength: Jewelry() {

@@ -20,7 +20,7 @@ class GameserversConfiguration @Autowired constructor(
         require(gameserver.ip.split('.').map { it.toByte() }.toByteArray().size == 4) {
             "Wrong ip address ${gameserver.ip}"
         }
-        log.info("Registered gameserver: {}", gameserver)
+        log.info { "Registered gameserver: $gameserver" }
     }
 
     @Bean(name = ["gameserverSettings"])

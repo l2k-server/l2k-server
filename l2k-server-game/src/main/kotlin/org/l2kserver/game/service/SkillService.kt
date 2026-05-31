@@ -33,11 +33,10 @@ import org.l2kserver.game.model.actor.ActorInstance
 import org.l2kserver.game.model.actor.MutableActorInstance
 import org.l2kserver.game.model.actor.NpcInstanceImpl
 import org.l2kserver.game.model.actor.PlayerCharacterInstanceImpl
-import org.l2kserver.game.model.actor.character.PlayerCharacterInstance
 import org.l2kserver.game.model.actor.npc.NpcInstance
-import org.l2kserver.game.model.extensions.forEachInstance
-import org.l2kserver.game.model.extensions.safePlus
-import org.l2kserver.game.model.item.template.SpiritshotType
+import org.l2kserver.game.extensions.forEachInstance
+import org.l2kserver.game.extensions.safePlus
+import org.l2kserver.game.model.item.Spiritshot
 import org.l2kserver.game.model.map.TownRegistry
 import org.l2kserver.game.model.skill.context.SkillContext
 import org.l2kserver.game.model.skill.effect.DamageEffect
@@ -87,7 +86,7 @@ class SkillService(
         val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
         send { SkillListResponse(character.skillsAndMagic) }
 
-        log.info("Successfully sent skill list to character {}", character)
+        log.debug { "Successfully sent skill list to character $character" }
     }
 
     suspend fun learnSkill(character: PlayerCharacterInstanceImpl, skillId: Int, skillLevel: Int) = suspendTransaction {
@@ -116,7 +115,7 @@ class SkillService(
     suspend fun useSkill(
         actor: MutableActorInstance, skill: SkillInstance, forced: Boolean = false, holdPosition: Boolean = false
     ) {
-        log.debug("'{}' tries to use skill '{}'", actor, skill)
+        log.debug { "'$actor' tries to use skill '$skill'" }
         when (skill) {
             is ActiveSkillInstance -> useActiveSkill(
                 actor, skill, forced = forced && skill.forcedUsageAllowed, holdPosition
@@ -163,7 +162,7 @@ class SkillService(
     suspend fun executeCasting(actor: MutableActorInstance, intention: Intention.Cast) {
          //If skill must be used on target - move to target
         val (skill, target, forced) = intention
-        log.debug("Start casting {} on {} by {}", skill, target, actor)
+        log.debug { "Start casting $skill on $target by $actor" }
 
         if (actor != target) {
             //canUseSkill method also checks that target exists, so here we can use unsafe call
@@ -199,7 +198,7 @@ class SkillService(
         else caster.stats.atkSpd.toDouble()
 
         val blessedSpiritshotCharged = (caster as? PlayerCharacterInstanceImpl)
-            ?.inventory?.weapon?.spiritshotChargedType == SpiritshotType.BLESSED_SPIRITSHOT
+            ?.inventory?.weapon?.spiritshotChargedType == Spiritshot.Type.BLESSED_SPIRITSHOT
 
         if (skill.isMagic && blessedSpiritshotCharged) castingSpeed *= 1.5
 
@@ -419,7 +418,7 @@ class SkillService(
         val effects = try {
             skill.affect(context)
         } catch (e: Exception) {
-            log.error("An error occurred while trying to apply effect of {}", skill, e)
+            log.error(e) { "An error occurred while trying to apply effect of $skill" }
             emptyList()
         }
 
@@ -510,7 +509,7 @@ class SkillService(
 
     private suspend fun applyEscapeEffect(effect: EscapeEffect) {
         val target = gameObjectRepository.findActorByIdOrNull(effect.targetId) ?: run {
-            log.warn("Cannot apply effect on target {} - it has disappeared", effect.targetId)
+            log.warn { "Cannot apply $effect on target ${effect.targetId} - it has disappeared" }
             return
         }
         val targetPosition = TownRegistry.getRandomSpawnPointByPosition(

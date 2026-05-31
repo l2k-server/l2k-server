@@ -35,7 +35,7 @@ class IntentionExecutorService(
 
     fun launchIntentionQueueListener(actor: MutableActorInstance) {
         intentionListeners[actor.id]?.let {
-            log.warn("There is already launched listener for {} - stopping it", actor)
+            log.warn { "There is already launched listener for $actor - stopping it" }
             runBlocking { it.cancelAndJoin() }
         }
 
@@ -44,7 +44,7 @@ class IntentionExecutorService(
 
         val listener = CoroutineScope(context).launch {
             actor.intentionQueue.onNext { intention ->
-                log.debug("Start handling '{}' of '{}'", intention, actor)
+                log.debug { "Start handling '$intention' of '$actor'" }
                 asyncTaskService.cancelActionByActorId(actor.id)
 
                 val job = when (intention) {
@@ -87,14 +87,14 @@ class IntentionExecutorService(
                 }
 
                 job?.invokeOnCompletion { e ->
-                    if (e != null) log.error("An error occurred during execution of {}", intention, e)
-                    else log.debug("Executed intention {}", intention)
+                    if (e != null) log.error(e) { "An error occurred during execution of $intention" }
+                    else log.debug { "Executed intention $intention" }
                 }
             }
         }
         listener.invokeOnCompletion { intentionListeners.remove(actor.id) }
         intentionListeners[actor.id] = listener
-        log.debug("Launched new intention queue listener for {}", actor)
+        log.debug { "Launched new intention queue listener for $actor" }
     }
 
     fun disableIntentionQueueListener(actorId: Int) = intentionListeners[actorId]?.cancel()

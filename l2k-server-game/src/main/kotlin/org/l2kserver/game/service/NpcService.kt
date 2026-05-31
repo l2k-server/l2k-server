@@ -80,7 +80,7 @@ class NpcService(
             npc.heading = heading
 
             spawnNpc(npc)
-            log.debug("Respawned {} at {}", npc, npc.spawnedAt.spawnPosition?: npc.spawnedAt.spawnZone)
+            log.debug { "Respawned $npc at ${npc.spawnedAt.spawnPosition?: npc.spawnedAt.spawnZone}" }
         }
     }
 
@@ -101,7 +101,7 @@ class NpcService(
         val npc = NpcInstanceImpl(template, SpawnedAt(spawnPosition), position, heading)
         spawnNpc(npc)
 
-        log.debug("Spawned {} at {}", npc, position)
+        log.debug { "Spawned $npc at $position" }
         return npc
     }
 
@@ -116,7 +116,7 @@ class NpcService(
         val npc = NpcInstanceImpl(template, SpawnedAt(zone), position, heading)
         spawnNpc(npc)
 
-        log.debug("Spawned {} at {} inside of {}", npc, position, zone)
+        log.debug { "Spawned $npc at $position inside of $zone" }
         return npc
     }
 
