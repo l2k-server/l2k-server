@@ -5,7 +5,7 @@ import kotlin.math.hypot
 import kotlin.math.roundToInt
 
 /**
- * Data class that represents object position in the lineage 2 world
+ * Data class that represents object position in the game world
  *
  * @property x X coordinate
  * @property y Y coordinate
@@ -93,9 +93,9 @@ data class Position(
     }
 
     /** Returns the X index of the geodata tile where this position is located */
-    fun getTileX() = (x shr 0xF) + 20
+    val tileX = (x shr 0xF) + 20
 
     /** Returns the Y index of the geodata tile where this position is located */
-    fun getTileY() = (y shr 0xF) + 18
+    val tileY = (y shr 0xF) + 18
 
 }

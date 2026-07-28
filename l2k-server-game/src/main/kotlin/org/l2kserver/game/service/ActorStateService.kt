@@ -18,6 +18,7 @@ import org.l2kserver.game.model.actor.PlayerCharacterInstanceImpl
 import org.l2kserver.game.model.actor.MoveType
 import org.l2kserver.game.model.actor.MutableActorInstance
 import org.l2kserver.game.model.actor.character.PvpState
+import org.l2kserver.game.model.actor.npc.NpcState
 import org.l2kserver.game.network.session.sendTo
 import org.l2kserver.game.repository.GameObjectRepository
 import org.springframework.beans.factory.annotation.Value
@@ -122,6 +123,8 @@ class ActorStateService(
             actor.isFighting = false
             fightingActors.remove(actor)
         }
+
+        if (actor is NpcInstanceImpl) actor.state = NpcState.Idle()
     }
 
     /**
@@ -157,7 +160,7 @@ class ActorStateService(
                 log.debug { "'$character' is now not in PVP" }
             }
 
-            pvpTimeLeft <= pvpFlagEndingTimeMs -> suspendTransaction {
+            pvpTimeLeft <= pvpFlagEndingTimeMs && character.pvpState != PvpState.PVP_ENDING -> suspendTransaction {
                 character.pvpState = PvpState.PVP_ENDING
                 broadcastAround(character.position) { PvPStatusResponse(character) }
                 log.debug { "Switched PVP state of '$character' to '${character.pvpState}'" }

@@ -44,6 +44,7 @@ import org.l2kserver.game.handler.dto.response.FullCharacterResponse
 import org.l2kserver.game.handler.dto.response.NpcInfoResponse
 import org.l2kserver.game.handler.dto.response.PvPStatusResponse
 import org.l2kserver.game.model.actor.character.PvpState
+import org.l2kserver.game.model.actor.position.Position
 import org.l2kserver.game.model.skill.effect.AbnormalType
 import org.l2kserver.game.network.session.sessionContextOf
 import org.springframework.beans.factory.annotation.Autowired
@@ -422,7 +423,11 @@ class SkillServiceTest @Autowired constructor(
         // Spawn target far away so that castRange is insufficient
         val target = npcService.spawnAtPosition(
             template = NpcRegistry.register(FatDummyGremlin),
-            spawnPosition = character.position.copy(x = character.position.x + 10_000).toSpawnPosition()
+            spawnPosition = Position(
+                character.position.x + 10_000,
+                character.position.y,
+                character.position.z
+            ).toSpawnPosition()
         )
 
         character.targetId = target.id

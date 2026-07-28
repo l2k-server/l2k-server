@@ -1,7 +1,5 @@
 package org.l2kserver.game.utils
 
-import java.util.concurrent.atomic.AtomicInteger
-
 /**
  * Generates ID in given diapason. If new id value is greater than end, it starts from the beginning
  */
@@ -9,12 +7,12 @@ class CyclicIdGenerator(
     private val start: Int = Int.MIN_VALUE,
     private val end: Int = Int.MAX_VALUE
 ) {
-    private var current = AtomicInteger(start)
+    private var current = start
 
     @Synchronized
     fun next(): Int {
-        if (current.get() > end) current.set(start)
-        return current.getAndIncrement()
+        if (current > end) current = start
+        return current++
     }
 
 }

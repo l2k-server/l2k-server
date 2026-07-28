@@ -8,6 +8,7 @@ import org.l2kserver.game.model.session.AuthorizationKey
 import org.l2kserver.game.model.time.GameTime
 
 private const val SELECT_CHARACTER_RESPONSE_PACKET_ID: UByte = 21u
+
 data class SelectCharacterResponse(
     val authorizationKey: AuthorizationKey,
     val selectedPlayerCharacter: PlayerCharacterInstanceImpl
@@ -52,7 +53,7 @@ data class SelectCharacterResponse(
 
         repeat(32) { putInt(0)}
 
-        putInt(GameTime.gameMinutes)
+        putInt(GameTime.gameMinutes())
 
         repeat(14) { putInt(0)}
     }

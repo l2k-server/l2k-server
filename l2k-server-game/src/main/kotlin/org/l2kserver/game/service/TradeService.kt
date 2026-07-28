@@ -50,6 +50,7 @@ private const val PRIVATE_STORE_MESSAGE_MAX_SIZE = 29
 @Service
 class TradeService(
     private val itemService: ItemService,
+    private val idGenerationService: IdGenerationService,
     override val gameObjectRepository: GameObjectRepository
 ) : AbstractService() {
 
@@ -438,8 +439,10 @@ class TradeService(
 
         val existingReceiversItem = to.inventory.findAllByTemplateId(item.templateId).firstOrNull()
 
-        val itemFrom = from.inventory.reduceAmount(item.id, amount)
-        val itemTo = to.inventory.createItem(item.templateId, amount, enchantLevel = item.enchantLevel)
+        val itemFrom = from.inventory.reduceAmount(
+            item.id, amount)
+        val itemTo = to.inventory.createItem(
+            idGenerationService.next(), item.templateId, amount, enchantLevel = item.enchantLevel)
 
         if (!itemTo.isStackable || existingReceiversItem == null) updateItemOperationsTo.wasAdded(itemTo)
         else updateItemOperationsTo.wasModified(itemTo)

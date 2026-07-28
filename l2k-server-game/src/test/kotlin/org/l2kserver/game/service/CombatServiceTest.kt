@@ -2,7 +2,6 @@ package org.l2kserver.game.service
 
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
-import kotlinx.coroutines.withTimeout
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import kotlin.test.Test
 import org.l2kserver.game.AbstractTests
@@ -28,6 +27,7 @@ import org.l2kserver.game.handler.dto.response.ChangeMoveTypeResponse
 import org.l2kserver.game.handler.dto.response.FullCharacterResponse
 import org.l2kserver.game.handler.dto.response.NpcInfoResponse
 import org.l2kserver.game.handler.dto.response.ShotUsedResponse
+import org.l2kserver.game.handler.dto.response.StopFightingResponse
 import org.l2kserver.game.handler.dto.response.item
 import org.l2kserver.game.handler.dto.response.operation
 import org.l2kserver.game.model.actor.ActorInstance
@@ -73,7 +73,7 @@ class CombatServiceTest @Autowired constructor(
         character.targetId = targetCharacter.id
 
         //Launch attack
-        combatService.attack(character, targetCharacter)
+        withContext(context) { combatService.attack(character, targetCharacter) }
 
         // Check attacker's responses
         val attackResponse = assertIs<AttackResponse>(context.pullResponse())
@@ -82,15 +82,6 @@ class CombatServiceTest @Autowired constructor(
 
         val hit = attackResponse.attacks[0]
         assertEquals(targetCharacter.id, hit.targetId)
-
-        var systemMessageResponse = assertIs<SystemMessageResponse>(context.pullResponse())
-        if (systemMessageResponse is SystemMessageResponse.CriticalHit)
-            systemMessageResponse = assertIs<SystemMessageResponse>(context.pullResponse())
-
-        assertContains(
-            listOf(SystemMessageResponse.YouMissed::class, SystemMessageResponse.YouHit::class),
-            systemMessageResponse::class
-        )
 
         val startFightingResponse = assertIs<StartFightingResponse>(context.pullResponse())
         assertEquals(character.id, startFightingResponse.actorId)
@@ -102,11 +93,30 @@ class CombatServiceTest @Autowired constructor(
         val targetStartFightingResponse = assertIs<StartFightingResponse>(context.pullResponse())
         assertEquals(targetCharacter.id, targetStartFightingResponse.actorId)
 
+        var systemMessageResponse = assertIs<SystemMessageResponse>(context.pullResponse())
+        if (systemMessageResponse is SystemMessageResponse.CriticalHit)
+            systemMessageResponse = assertIs<SystemMessageResponse>(context.pullResponse())
+
+        assertContains(
+            listOf(SystemMessageResponse.YouMissed::class, SystemMessageResponse.YouHit::class),
+            systemMessageResponse::class
+        )
+
         //Check target's responses
         val attackResponseForTarget = assertIs<AttackResponse>(targetContext.pullResponse())
         assertEquals(character.id, attackResponseForTarget.attacker.id)
         assertEquals(1, attackResponse.attacks.size)
         assertEquals(hit, attackResponse.attacks[0])
+
+        val startFightingResponseForTarget = assertIs<StartFightingResponse>(targetContext.pullResponse())
+        assertEquals(character.id, startFightingResponseForTarget.actorId)
+
+        val attackerPvPStatusResponse = assertIs<PvPStatusResponse>(targetContext.pullResponse())
+        assertEquals(character.id, attackerPvPStatusResponse.characterId)
+
+        val targetStartFightingResponseForTarget =
+            assertIs<StartFightingResponse>(targetContext.pullResponse())
+        assertEquals(targetCharacter.id, targetStartFightingResponseForTarget.actorId)
 
         val systemMessageResponseForTarget = assertIs<SystemMessageResponse>(
             targetContext.pullResponse(SystemMessageResponse.CriticalHit::class)
@@ -122,24 +132,17 @@ class CombatServiceTest @Autowired constructor(
             assertEquals(targetCharacter.id, updateStatusResponse.objectId)
             assertContains(updateStatusResponse.attributes.keys, StatusAttribute.CUR_CP)
         }
-
-        val startFightingResponseForTarget = assertIs<StartFightingResponse>(targetContext.pullResponse())
-        assertEquals(character.id, startFightingResponseForTarget.actorId)
-
-        val attackerPvPStatusResponse = assertIs<PvPStatusResponse>(targetContext.pullResponse())
-        assertEquals(character.id, attackerPvPStatusResponse.characterId)
-
-        val targetStartFightingResponseForTarget =
-            assertIs<StartFightingResponse>(targetContext.pullResponse())
-        assertEquals(targetCharacter.id, targetStartFightingResponseForTarget.actorId)
     }
 
     @Test
     fun shouldPerformAttackUsingSoulshot(): Unit = runBlocking {
         val character = createTestCharacter()
         val context = sessionContextOf(character.id)!!
-
-        val soulshot = character.inventory.createItem(SoulshotNoGrade.id, 10)
+        val testSoulshotAmount = 10
+        val soulshot = itemService.giveItem(
+            character, SoulshotNoGrade.id, testSoulshotAmount).first()
+        assertIs<UpdateItemsResponse>(context.pullResponse())
+        assertIs<SystemMessageResponse.YouHaveObtained>(context.pullResponse())
 
         val otherCharacter = createTestCharacter(name = "PunchingBag")
         val otherContext = sessionContextOf(otherCharacter.id)!!
@@ -167,7 +170,7 @@ class CombatServiceTest @Autowired constructor(
         character.targetId = otherCharacter.id
 
         // Launch single attack
-        combatService.attack(character, target)
+        withContext(context) { combatService.attack(character, target) }
 
         // --- Check attacker's responses ---
 
@@ -175,15 +178,6 @@ class CombatServiceTest @Autowired constructor(
         assertEquals(character.id, attackResponse.attacker.id)
         assertEquals(1, attackResponse.attacks.size)
         assertTrue(attackResponse.usedSoulshot)
-
-        val attack = attackResponse.attacks[0]
-        assertEquals(target.id, attack.targetId)
-
-        var systemMessageResponse = assertIs<SystemMessageResponse>(context.pullResponse())
-        if (systemMessageResponse is SystemMessageResponse.CriticalHit)
-            systemMessageResponse = assertIs<SystemMessageResponse>(context.pullResponse())
-
-        assertIs<SystemMessageResponse.YouHit>(systemMessageResponse)
 
         val startFightingResponse = assertIs<StartFightingResponse>(context.pullResponse())
         assertEquals(character.id, startFightingResponse.actorId)
@@ -194,24 +188,36 @@ class CombatServiceTest @Autowired constructor(
         val targetStartFightingResponse = assertIs<StartFightingResponse>(context.pullResponse())
         assertEquals(target.id, targetStartFightingResponse.actorId)
 
+        val attack = attackResponse.attacks[0]
+        assertEquals(target.id, attack.targetId)
+
+        var systemMessageResponse = assertIs<SystemMessageResponse>(context.pullResponse())
+        if (systemMessageResponse is SystemMessageResponse.CriticalHit)
+            systemMessageResponse = assertIs<SystemMessageResponse>(context.pullResponse())
+
+        assertIs<SystemMessageResponse.YouHit>(systemMessageResponse)
+
         // --- Check other's responses ---
 
-        val attackResponseForTarget = assertIs<AttackResponse>(otherContext.pullResponse())
-        assertTrue(attackResponseForTarget.usedSoulshot)
-        assertEquals(character.id, attackResponseForTarget.attacker.id)
+        val attackResponseForOther = assertIs<AttackResponse>(otherContext.pullResponse())
+        assertTrue(attackResponseForOther.usedSoulshot)
+        assertEquals(character.id, attackResponseForOther.attacker.id)
         assertEquals(1, attackResponse.attacks.size)
         assertEquals(attack, attackResponse.attacks[0])
 
-        val startFightingResponseForTarget =
+        val startFightingResponseForOther =
             assertIs<StartFightingResponse>(otherContext.pullResponse())
-        assertEquals(character.id, startFightingResponseForTarget.actorId)
+        assertEquals(character.id, startFightingResponseForOther.actorId)
 
         // After attack NPC changes it's moveType to RUN TODO delete after moving this logic to AI
         assertIs<ChangeMoveTypeResponse>(otherContext.pullResponse())
 
-        val targetStartFightingResponseForTarget =
+        val targetStartFightingResponseForOther =
             assertIs<StartFightingResponse>(otherContext.pullResponse())
-        assertEquals(target.id, targetStartFightingResponseForTarget.actorId)
+        assertEquals(target.id, targetStartFightingResponseForOther.actorId)
+
+        // -- Check soulshot was consumed
+        assertEquals(testSoulshotAmount - 1, soulshot.amount)
     }
 
     @Test
@@ -238,11 +244,7 @@ class CombatServiceTest @Autowired constructor(
         })
 
         character.targetId = targetCharacter.id
-        //Launching attacking in parallel is not needed - process must stop after arrows run out
-        withContext(context) {
-            //Fail if attack process hasn't ended for some reason
-            withTimeout(10_000L) { combatService.attack(character, targetCharacter) }
-        }
+        withContext(context) { combatService.attack(character, targetCharacter) }
 
         // Check attacker's responses
         val updateItemsResponse = assertIs<UpdateItemsResponse>(context.pullResponse())
@@ -265,15 +267,6 @@ class CombatServiceTest @Autowired constructor(
         val hit = attackResponse.attacks[0]
         assertEquals(targetCharacter.id, hit.targetId)
 
-        var systemMessageResponse = assertIs<SystemMessageResponse>(context.pullResponse())
-        if (systemMessageResponse is SystemMessageResponse.CriticalHit)
-            systemMessageResponse = assertIs<SystemMessageResponse>(context.pullResponse())
-
-        assertContains(
-            listOf(SystemMessageResponse.YouMissed::class, SystemMessageResponse.YouHit::class),
-            systemMessageResponse::class
-        )
-
         val startFightingResponse = assertIs<StartFightingResponse>(context.pullResponse())
         assertEquals(character.id, startFightingResponse.actorId)
 
@@ -283,6 +276,15 @@ class CombatServiceTest @Autowired constructor(
 
         val targetStartFightingResponse = assertIs<StartFightingResponse>(context.pullResponse())
         assertEquals(targetCharacter.id, targetStartFightingResponse.actorId)
+
+        var systemMessageResponse = assertIs<SystemMessageResponse>(context.pullResponse())
+        if (systemMessageResponse is SystemMessageResponse.CriticalHit)
+            systemMessageResponse = assertIs<SystemMessageResponse>(context.pullResponse())
+
+        assertContains(
+            listOf(SystemMessageResponse.YouMissed::class, SystemMessageResponse.YouHit::class),
+            systemMessageResponse::class
+        )
 
         //Check arrow amount after attack
         val arrows = transaction {
@@ -327,15 +329,6 @@ class CombatServiceTest @Autowired constructor(
         val hit = attackResponse.attacks[0]
         assertEquals(targetCharacter.id, hit.targetId)
 
-        var systemMessageResponse = assertIs<SystemMessageResponse>(context.pullResponse())
-        if (systemMessageResponse is SystemMessageResponse.CriticalHit)
-            systemMessageResponse = assertIs<SystemMessageResponse>(context.pullResponse())
-
-        assertContains(
-            listOf(SystemMessageResponse.YouMissed::class, SystemMessageResponse.YouHit::class),
-            systemMessageResponse::class
-        )
-
         val startFightingResponse = assertIs<StartFightingResponse>(context.pullResponse())
         assertEquals(character.id, startFightingResponse.actorId)
 
@@ -344,6 +337,18 @@ class CombatServiceTest @Autowired constructor(
         assertEquals(PvpState.PVP, pvpStatusResponseToPvp.pvpState)
         assertEquals(0, pvpStatusResponseToPvp.karma)
         assertEquals(true, pvpStatusResponseToPvp.isEnemy)
+
+        val targetStartFightingResponse = assertIs<StartFightingResponse>(context.pullResponse())
+        assertEquals(targetCharacter.id, targetStartFightingResponse.actorId)
+
+        var systemMessageResponse = assertIs<SystemMessageResponse>(context.pullResponse())
+        if (systemMessageResponse is SystemMessageResponse.CriticalHit)
+            systemMessageResponse = assertIs<SystemMessageResponse>(context.pullResponse())
+
+        assertContains(
+            listOf(SystemMessageResponse.YouMissed::class, SystemMessageResponse.YouHit::class),
+            systemMessageResponse::class
+        )
 
         val pvpStatusResponseToPk = assertIs<PvPStatusResponse>(context.pullResponse())
         assertEquals(character.id, pvpStatusResponseToPk.characterId)
@@ -355,6 +360,9 @@ class CombatServiceTest @Autowired constructor(
         assertEquals(1, fullCharacterResponse.character.pkCount)
         assertNotEquals(0, fullCharacterResponse.character.karma)
 
+        val targetStoppedFightingResponse = assertIs<StopFightingResponse>(context.pullResponse())
+        assertEquals(targetCharacter.id, targetStoppedFightingResponse.actorId)
+
         val targetDiedResponse = assertIs<ActorDiedResponse>(context.pullResponse())
         assertEquals(targetCharacter.id, targetDiedResponse.actorId)
 
@@ -363,6 +371,19 @@ class CombatServiceTest @Autowired constructor(
         assertEquals(character.id, attackResponseForTarget.attacker.id)
         assertEquals(1, attackResponse.attacks.size)
         assertEquals(hit, attackResponse.attacks[0])
+
+        val startFightingResponseForTarget =
+            assertIs<StartFightingResponse>(targetContext.pullResponse())
+        assertEquals(character.id, startFightingResponseForTarget.actorId)
+
+        val pvpStatusResponseToPvpForTarget = assertIs<PvPStatusResponse>(targetContext.pullResponse())
+        assertEquals(character.id, pvpStatusResponseToPvpForTarget.characterId)
+        assertEquals(PvpState.PVP, pvpStatusResponseToPvpForTarget.pvpState)
+        assertEquals(0, pvpStatusResponseToPvpForTarget.karma)
+        assertEquals(true, pvpStatusResponseToPvpForTarget.isEnemy)
+
+        val targetStartFightingResponseForTarget = assertIs<StartFightingResponse>(targetContext.pullResponse())
+        assertEquals(targetCharacter.id, targetStartFightingResponseForTarget.actorId)
 
         val systemMessageResponseForTarget = assertIs<SystemMessageResponse>(
             targetContext.pullResponse(SystemMessageResponse.CriticalHit::class)
@@ -379,21 +400,14 @@ class CombatServiceTest @Autowired constructor(
             assertContains(updateStatusResponse.attributes.keys, StatusAttribute.CUR_CP)
         }
 
-        val startFightingResponseForTarget =
-            assertIs<StartFightingResponse>(targetContext.pullResponse())
-        assertEquals(character.id, startFightingResponseForTarget.actorId)
-
-        val pvpStatusResponseToPvpForTarget = assertIs<PvPStatusResponse>(targetContext.pullResponse())
-        assertEquals(character.id, pvpStatusResponseToPvpForTarget.characterId)
-        assertEquals(PvpState.PVP, pvpStatusResponseToPvpForTarget.pvpState)
-        assertEquals(0, pvpStatusResponseToPvpForTarget.karma)
-        assertEquals(true, pvpStatusResponseToPvpForTarget.isEnemy)
-
         val pvpStatusResponseToPkForTarget = assertIs<PvPStatusResponse>(targetContext.pullResponse())
         assertEquals(character.id, pvpStatusResponseToPkForTarget.characterId)
         assertEquals(PvpState.PVP, pvpStatusResponseToPkForTarget.pvpState)
         assertNotEquals(0, pvpStatusResponseToPkForTarget.karma)
         assertEquals(true, pvpStatusResponseToPkForTarget.isEnemy)
+
+        val targetStoppedFightingResponseForTarget = assertIs<StopFightingResponse>(targetContext.pullResponse())
+        assertEquals(targetCharacter.id, targetStoppedFightingResponseForTarget.actorId)
 
         val targetDiedResponseForTarget = assertIs<ActorDiedResponse>(targetContext.pullResponse())
         assertEquals(targetCharacter.id, targetDiedResponseForTarget.actorId)
@@ -431,7 +445,7 @@ class CombatServiceTest @Autowired constructor(
         }
 
         character.targetId = targetCharacter.id
-        combatService.attack(character, targetCharacter)
+        withContext(context) { combatService.attack(character, targetCharacter) }
 
         // Check attacker's responses
         val attackResponse = assertIs<AttackResponse>(context.pullResponse())
@@ -440,6 +454,12 @@ class CombatServiceTest @Autowired constructor(
 
         val hit = attackResponse.attacks[0]
         assertEquals(targetCharacter.id, hit.targetId)
+
+        val startFightingResponse = assertIs<StartFightingResponse>(context.pullResponse())
+        assertEquals(character.id, startFightingResponse.actorId)
+
+        val targetStartFightingResponse = assertIs<StartFightingResponse>(context.pullResponse())
+        assertEquals(targetCharacter.id, targetStartFightingResponse.actorId)
 
         var systemMessageResponse = assertIs<SystemMessageResponse>(context.pullResponse())
         if (systemMessageResponse is SystemMessageResponse.CriticalHit)
@@ -450,12 +470,12 @@ class CombatServiceTest @Autowired constructor(
             systemMessageResponse::class
         )
 
-        val startFightingResponse = assertIs<StartFightingResponse>(context.pullResponse())
-        assertEquals(character.id, startFightingResponse.actorId)
-
         val fullCharacterResponse = assertIs<FullCharacterResponse>(context.pullResponse())
         assertEquals(character.id, fullCharacterResponse.character.id)
         assertEquals(1, fullCharacterResponse.character.pvpCount)
+
+        val targetStoppedFightingResponse = assertIs<StopFightingResponse>(context.pullResponse())
+        assertEquals(targetCharacter.id, targetStoppedFightingResponse.actorId)
 
         val targetDiedResponse = assertIs<ActorDiedResponse>(context.pullResponse())
         assertEquals(targetCharacter.id, targetDiedResponse.actorId)
@@ -470,6 +490,13 @@ class CombatServiceTest @Autowired constructor(
         assertEquals(character.id, attackResponseForTarget.attacker.id)
         assertEquals(1, attackResponse.attacks.size)
         assertEquals(hit, attackResponse.attacks[0])
+
+        val startFightingResponseForTarget =
+            assertIs<StartFightingResponse>(targetContext.pullResponse())
+        assertEquals(character.id, startFightingResponseForTarget.actorId)
+
+        val targetStartFightingResponseForTarget = assertIs<StartFightingResponse>(targetContext.pullResponse())
+        assertEquals(targetCharacter.id, targetStartFightingResponseForTarget.actorId)
 
         val systemMessageResponseForTarget = assertIs<SystemMessageResponse>(
             targetContext.pullResponse(SystemMessageResponse.CriticalHit::class)
@@ -486,9 +513,8 @@ class CombatServiceTest @Autowired constructor(
             assertContains(updateStatusResponse.attributes.keys, StatusAttribute.CUR_CP)
         }
 
-        val startFightingResponseForTarget =
-            assertIs<StartFightingResponse>(targetContext.pullResponse())
-        assertEquals(character.id, startFightingResponseForTarget.actorId)
+        val targetStoppedFightingResponseForTarget = assertIs<StopFightingResponse>(targetContext.pullResponse())
+        assertEquals(targetCharacter.id, targetStoppedFightingResponseForTarget.actorId)
 
         val targetDiedResponseForTarget = assertIs<ActorDiedResponse>(targetContext.pullResponse())
         assertEquals(targetCharacter.id, targetDiedResponseForTarget.actorId)

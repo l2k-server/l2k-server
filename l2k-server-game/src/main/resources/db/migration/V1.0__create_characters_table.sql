@@ -31,5 +31,5 @@ CREATE TABLE characters(
     title_color                INT NOT NULL,
     active_subclass            SMALLINT NOT NULL,
     access_level               ACCESS_LEVEL NOT NULL,
-    id                         INT NOT NULL DEFAULT nextval('id_sequence') PRIMARY KEY
+    id                         INT NOT NULL PRIMARY KEY
 );

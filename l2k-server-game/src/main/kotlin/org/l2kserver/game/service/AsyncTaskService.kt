@@ -10,14 +10,13 @@ import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.currentCoroutineContext
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.runBlocking
 import org.l2kserver.game.extensions.logger
-import org.l2kserver.game.utils.time.withDelay
-import java.time.Duration
-import java.time.Instant
-import java.time.temporal.Temporal
+import org.l2kserver.game.model.actor.ActorInstance
+import org.l2kserver.game.utils.withDelay
+
+import java.util.concurrent.CancellationException
 import kotlin.collections.set
 
 /**
@@ -36,22 +35,23 @@ class AsyncTaskService {
     private val actionJobMap = ConcurrentHashMap<Int, Job>()
 
     /**
-     * Cancels previous action job of actor with provided [actorId], waits for its completion and launches new [action]
+     * Cancels previous action job of [actor], waits for its completion and launches new [action]
      */
-    suspend fun launchAction(actorId: Int, action: suspend CoroutineScope.() -> Unit): Job {
-        val currentJob = actionJobMap[actorId]
-
-        val job = CoroutineScope(Dispatchers.Default + currentCoroutineContext()).launch {
+    suspend fun launchAction(actor: ActorInstance, action: suspend CoroutineScope.() -> Unit): Job {
+        val currentJob = actionJobMap[actor.id]
+        val context = Dispatchers.Default + currentCoroutineContext() + CoroutineName("Task of $actor")
+        val job = CoroutineScope(context).launch {
             currentJob?.cancelAndJoin()
             action()
         }
 
         job.invokeOnCompletion {
-            it?.let { log.warn(it) { "Job for actor '$actorId' completed with error" } }
-            actionJobMap.remove(actorId)
+            if (it != null && it !is CancellationException)
+                log.warn(it) { "Job for actor '$actor.id' completed with error" }
+            actionJobMap.remove(actor.id)
         }
 
-        actionJobMap[actorId] = job
+        actionJobMap[actor.id] = job
         return job
     }
 
@@ -61,24 +61,17 @@ class AsyncTaskService {
         it.cancelAndJoin()
     }
 
-    /** Checks if actor with [actorId] has launched action */
-    fun hasActionByActorId(actorId: Int) = actionJobMap.containsKey(actorId)
-
     /**
      * Launches a task that will be called once.
      *
-     * @param launchAt When the task should be called.
      * @param action Action that will be called.
      */
-    fun launchOnce(launchAt: Temporal = Instant.now(), action: suspend CoroutineScope.() -> Unit) {
-        CoroutineScope(Dispatchers.Default).launch {
-            delay(Duration.between(Instant.now(), launchAt).toMillis())
-            action()
-        }
+    fun launchOnce(action: suspend CoroutineScope.() -> Unit) = CoroutineScope(Dispatchers.Default).launch {
+        action()
     }
 
     /**
-     * Launches a task that will be repeated.
+     * Launches a task that will be repeated every [millis] ms.
      *
      * @param taskName Name of starting task
      * @param millis Time between iterations

@@ -1,6 +1,6 @@
 package org.l2kserver.game.model
 
-import org.l2kserver.game.model.extensions.logger
+import org.slf4j.LoggerFactory
 import java.util.concurrent.ConcurrentHashMap
 
 /**
@@ -20,7 +20,7 @@ interface GameData {
 abstract class GameDataRegistry<T: GameData>: Collection<T> {
 
     private val gameDataStorage = ConcurrentHashMap<Int, T>()
-    private val log = logger()
+    private val log = LoggerFactory.getLogger(this::class.java)
 
     override val size: Int get() = gameDataStorage.size
     override fun contains(element: T) = gameDataStorage.contains(element)

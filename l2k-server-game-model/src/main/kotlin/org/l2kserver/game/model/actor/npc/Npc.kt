@@ -5,7 +5,7 @@ import org.l2kserver.game.model.GameData
 import org.l2kserver.game.model.GameDataRegistry
 import org.l2kserver.game.model.actor.ActorInstance
 import org.l2kserver.game.model.actor.character.PlayerCharacterInstance
-import org.l2kserver.game.model.actor.npc.ai.AiIntents
+import org.l2kserver.game.model.actor.npc.ai.NpcAi
 import org.l2kserver.game.model.actor.position.SpawnPosition
 import org.l2kserver.game.model.reward.Reward
 import org.l2kserver.game.model.stats.BasicStats
@@ -30,9 +30,10 @@ interface Npc: GameData {
     val equippedShieldTemplateId: Int? get() = null
 
     fun isEnemyOf(other: ActorInstance): Boolean
+    fun onTalkWith(character: PlayerCharacterInstance): String =
+        "<html><body>${name}_${id}:<br/> My text is missing!</body></html>"
 
-    fun onIdle(npc: NpcInstance): AiIntents? = null
-    fun onTalkWith(character: PlayerCharacterInstance): String? = null
+    fun getAi(npc: NpcInstance): NpcAi? = null
 }
 
 data class SpawnData(
@@ -49,5 +50,6 @@ data class SpawnData(
 
 enum class NpcRace {
     HUMANS,
-    FAIRIES,
+    FAIRIES
 }
+

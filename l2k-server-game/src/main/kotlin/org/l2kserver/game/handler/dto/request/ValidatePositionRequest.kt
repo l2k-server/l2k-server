@@ -18,12 +18,8 @@ data class ValidatePositionRequest(
 ): RequestPacket {
 
     constructor(data: ByteBuffer): this(
-        position = Position(
-            x = data.getInt(),
-            y = data.getInt(),
-            z = data.getInt()
-        ),
-        heading = Heading(data.getInt().toUShort())
+        position = Position(data.getInt(),data.getInt(),data.getInt()),
+        heading = Heading(data.getInt())
     )
 
 }

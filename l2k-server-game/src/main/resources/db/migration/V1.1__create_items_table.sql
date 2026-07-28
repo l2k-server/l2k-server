@@ -24,7 +24,7 @@ CREATE TABLE items(
     equipped_at                EQUIPPED_AT,
     enchant_level              INT NOT NULL CONSTRAINT positive_enchant_level CHECK (enchant_level >= 0),
     augmentation_id            INT NOT NULL,
-    id                         INT NOT NULL DEFAULT nextval('id_sequence') PRIMARY KEY
+    id                         INT NOT NULL PRIMARY KEY
 );
 
 CREATE INDEX items_owner_id_index ON items(owner_id) WITH (deduplicate_items = off);

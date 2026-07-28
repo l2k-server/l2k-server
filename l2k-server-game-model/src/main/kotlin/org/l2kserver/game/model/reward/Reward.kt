@@ -18,17 +18,16 @@ data class Reward(
  * Reward item data - what item should be dropped from monster,
  * given as quest reward, etc
  *
- * @property id id of item template (for example Squire's Shirt's item id is 1146)
+ * @property templateId id of item template (for example Squire's Shirt's item id is 1146)
  * @property name name of item
  * @property amount Range of item amount to drop
  * @property isEquipped Is this item equipped (for initial items)
- * @property enchantLevel Enchant level of this item (for armor, weapons and jewellery)
+ * @property enchantLevel Enchant level of this item (for armor, weapons and jewelry)
  */
 data class RewardItem(
-    val id: Int,
+    val templateId: Int,
     val name: String,
     val amount: IntRange,
-    val chance: Double = 1.0,
     val isEquipped: Boolean = false,
     val enchantLevel: Int = 0
 ) {

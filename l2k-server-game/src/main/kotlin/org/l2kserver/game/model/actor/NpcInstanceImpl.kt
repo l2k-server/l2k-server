@@ -7,12 +7,13 @@ import org.l2kserver.game.model.actor.npc.NpcInstance
 import java.util.concurrent.ConcurrentHashMap
 import org.l2kserver.game.model.actor.position.Position
 import org.l2kserver.game.model.actor.npc.Npc
+import org.l2kserver.game.model.actor.npc.NpcState
 import org.l2kserver.game.model.actor.npc.SpawnedAt
 import org.l2kserver.game.model.actor.position.Heading
 import org.l2kserver.game.model.item.Armor
 import org.l2kserver.game.model.item.ItemRegistry
 import org.l2kserver.game.model.item.Weapon
-import org.l2kserver.game.utils.IdUtils
+import org.l2kserver.game.model.skill.instance.SkillInstance
 import kotlin.math.roundToInt
 
 /**
@@ -36,12 +37,12 @@ import kotlin.math.roundToInt
  * @property hasShield Can this NPC block attacks by shield
  */
 class NpcInstanceImpl(
+    override val id: Int,
     private val template: Npc,
     override val spawnedAt: SpawnedAt,
     override var position: Position,
     override var heading: Heading
 ): MutableActorInstance(), NpcInstance {
-    override val id = IdUtils.getNextNpcId()
     override val name = template.name
     override val title = template.title
 
@@ -68,14 +69,8 @@ class NpcInstanceImpl(
     override var equippedShieldTemplate: Armor? = template.equippedShieldTemplateId?.let {
         ItemRegistry.findByIdOrNull(it) as? Armor
     }
+    override var state: NpcState = NpcState.Idle()
 
-    /**
-     * How much damage had the opponents dealt to this NPC
-     *
-     * Key - attackerId, Value - damage dealt
-     */
-    //TODO clean this map after fighting has ended
-    override val opponents = ConcurrentHashMap<ActorInstance, Int>(0)
     override var overhitDamage = 0
 
     override val isImmobilized: Boolean get() = isParalyzed //TODO check if rooted, stunned, paralyzed, casting, etc...
@@ -91,9 +86,11 @@ class NpcInstanceImpl(
     override val weaponType = equippedWeaponTemplate?.type
     override val hasShield = equippedShieldTemplate != null
 
+    override val ai = template.getAi(this)
+
     override fun toString() = "Npc(name=$name id=$id)"
 
     override fun isEnemyOf(other: ActorInstance): Boolean = template.isEnemyOf(other)
+
     override fun onTalkWith(character: PlayerCharacterInstance) = template.onTalkWith(character)
-    override fun onIdle() = template.onIdle(this)
 }

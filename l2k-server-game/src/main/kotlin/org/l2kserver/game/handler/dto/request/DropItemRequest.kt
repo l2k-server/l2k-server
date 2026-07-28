@@ -22,9 +22,9 @@ data class DropItemRequest(
         itemId = data.getInt(),
         amount = data.getInt(),
         position = Position(
-            x = data.getInt(),
-            y = data.getInt(),
-            z = data.getInt()
+            data.getInt(),
+            data.getInt(),
+            data.getInt()
         )
     )
 

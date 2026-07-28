@@ -19,7 +19,6 @@ level.max-level: 80
 # How many EXP must be obtained to reach level.
 # Key: level, value - exp amount
 level.exp:
-  81: 6300000000
   1: 0
   2: 68
   3: 363
@@ -100,3 +99,4 @@ level.exp:
   78: 1511275834
   79: 2099275834
   80: 4200000000
+  81: 6300000000

@@ -3,7 +3,7 @@ package org.l2kserver.game.data.item.scroll.enchant
 import org.l2kserver.game.model.item.EnchantScroll
 import org.l2kserver.game.model.item.Grade
 
-object ScrollEnchantWeaponS: EnchantScroll() {
+data object ScrollEnchantWeaponS: EnchantScroll() {
     override val id = 959
     override val name = "Scroll: Enchant Weapon (Grade S)"
     override val grade = Grade.S
@@ -18,7 +18,7 @@ object ScrollEnchantWeaponS: EnchantScroll() {
     override val isStackable = false
 }
 
-object BlessedScrollEnchantWeaponS: EnchantScroll() {
+data object BlessedScrollEnchantWeaponS: EnchantScroll() {
     override val id = 6577
     override val name = "Blessed Scroll: Enchant Weapon (Grade S)"
     override val grade = Grade.S

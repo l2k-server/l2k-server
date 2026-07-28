@@ -1,6 +1,7 @@
 package org.l2kserver.game.model.actor
 
 import kotlinx.coroutines.flow.MutableStateFlow
+import org.l2kserver.game.model.actor.position.Position
 import org.l2kserver.game.model.skill.context.SkillContext
 import org.l2kserver.game.model.skill.instance.ActiveSkillInstance
 
@@ -20,7 +21,14 @@ sealed interface Intention {
     data class Move(
         @Volatile var destination: GameWorldObject,
         @Volatile var requiredDistance: Int = 0
-    ): Intention
+    ): Intention {
+
+        constructor(destination: Position, requiredDistance: Int = 0): this(
+            DestinationPoint(destination),
+            requiredDistance
+        )
+
+    }
 
     /**
      * Intention to perform **single** auto-attack on [target]
@@ -70,18 +78,18 @@ sealed interface Intention {
  *
  * ### Enqueue rules - how new intentions are handled depending on the current intention:
  * - **Move**:
- *   - if current is `null` or `Attack` → becomes the new current intention
- *   - if current is `Move` → clears the tail and mutates current move's destination/distance
+ *   - if current is `null` or `Attack` - becomes the new current intention
+ *   - if current is `Move` - clears the tail and mutates current move's destination/distance
  *   (collectors of [onNext] will **not** receive a new emission (the reference stays the same))
- *   - otherwise → enqueues to the tail
+ *   - otherwise - enqueues to the tail
  * - **Cast**:
- *   - if current is `null` or `Attack` → becomes the new current intention
- *   - if current is `Move` → clears the tail and enqueues cast (cast after reaching destination)
- *   - otherwise → enqueues to the tail
+ *   - if current is `null` or `Attack` - becomes the new current intention
+ *   - if current is `Move` - clears the tail and enqueues cast (cast after reaching destination)
+ *   - otherwise - enqueues to the tail
  * - **Default** (Attack, PickUp, Interact, etc.):
- *   - if current is `null` → becomes the new current intention
- *   - if current is `Move` → clears the tail and enqueues default (default after reaching destination)
- *   - otherwise → enqueues to the tail
+ *   - if current is `null` - becomes the new current intention
+ *   - if current is `Move` - clears the tail and enqueues default (default after reaching destination)
+ *   - otherwise - enqueues to the tail
  */
 class IntentionQueue {
     private val currentIntentionFlow = MutableStateFlow<Intention?>(null)
@@ -128,6 +136,13 @@ class IntentionQueue {
     }
 
     /**
+     * Checks if actor is going to do smth after [current] intention will be completed
+     */
+    fun hasFurtherActions() = synchronized(this) {
+        queue.isNotEmpty()
+    }
+
+    /**
      * Returns true if the given [intention] is the current one or present in the tail queue.
      *
      * This is a convenience check and may be stale immediately after returning in a concurrent environment.
@@ -145,6 +160,7 @@ class IntentionQueue {
      */
     fun enqueue(vararg intentions: Intention) = synchronized(this) {
         for (it in intentions) {
+//            if (this.contains(it)) continue
             when (it) {
                 is Intention.Move -> enqueueMove(it)
                 is Intention.Cast -> enqueueCast(it)
@@ -186,4 +202,6 @@ class IntentionQueue {
         }
         else -> queue.addLast(intention)
     }
+
+    override fun toString() = "IntentionQueue(current=$current, queue=$queue)"
 }

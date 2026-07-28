@@ -1,29 +1,26 @@
 package org.l2kserver.game.data.npc
 
 import org.l2kserver.game.data.characterclass.HumanFighter
+import org.l2kserver.game.data.item.etc.Adena
 import org.l2kserver.game.model.actor.ActorInstance
 import org.l2kserver.game.model.actor.CollisionBox
-import org.l2kserver.game.model.actor.npc.NpcInstance
 import org.l2kserver.game.model.actor.npc.NpcRace
 import org.l2kserver.game.model.actor.npc.Npc
+import org.l2kserver.game.model.actor.npc.NpcInstance
 import org.l2kserver.game.model.actor.npc.SpawnData
-import org.l2kserver.game.model.actor.npc.ai.aiIntents
+import org.l2kserver.game.model.actor.npc.ai.standard.WarriorAi
 import org.l2kserver.game.model.actor.position.Position
 import org.l2kserver.game.model.reward.Reward
 import org.l2kserver.game.model.reward.RewardItem
 import org.l2kserver.game.model.stats.CombatStats
 import org.l2kserver.game.model.zone.Point
 import org.l2kserver.game.model.zone.SpawnZone
-import kotlin.math.cos
-import kotlin.math.roundToInt
-import kotlin.math.sin
-import kotlin.random.Random
+
+private const val GREMLIN_WANDERING_DISTANCE = 150
 
 data object Gremlin: Npc {
-    private const val WANDERING_DISTANCE = 75
-    private const val MAX_DISTANCE_FROM_SPAWN = 150
 
-    override val id = 1018342
+    override val id = 1_018_342
     override val name = "Gremlin"
     override val level = 1
     override val race = NpcRace.FAIRIES
@@ -52,8 +49,8 @@ data object Gremlin: Npc {
         itemGroups = listOf(
             1.0 to listOf(
                 RewardItem(
-                    id = 57,
-                    name = "Adena",
+                    templateId = Adena.id,
+                    name = Adena.name,
                     amount = 7..13
                 )
             )
@@ -90,7 +87,7 @@ data object Gremlin: Npc {
         //Uncomment this to enable GREMLINOCALYPSE at talking island
 //        zones = listOf(SpawnZone(
 //            name = "Talking Island",
-//            npcAmount = 250_000,
+//            npcAmount = 100_000,
 //            zMin = -3748,
 //            zMax = -3032,
 //            vertices = listOf(
@@ -104,35 +101,8 @@ data object Gremlin: Npc {
 //        ))
     )
 
+    override fun getAi(npc: NpcInstance) = WarriorAi(npc, GREMLIN_WANDERING_DISTANCE)
     override fun isEnemyOf(other: ActorInstance) = true
-
-    override fun onIdle(npc: NpcInstance) = aiIntents {
-//        if (Random.nextInt(100) < 5) {
-//            //Move to random point at the WANDERING_DISTANCE distance
-//            val degree = Math.toRadians(Random.nextDouble(0.0, 360.0))
-//            val sin = sin(degree)
-//            val cos = cos(degree)
-//
-//            val targetPosition = Position (
-//                x = npc.position.x + (WANDERING_DISTANCE * cos).roundToInt(),
-//                y = npc.position.y + (WANDERING_DISTANCE * sin).roundToInt(),
-//                z = npc.position.z
-//            )
-//
-//            //Prevent moving too far
-//            npc.spawnedAt.spawnPosition?.let {
-//                if (!targetPosition.isCloseTo(it.toPositionAndHeading().first, MAX_DISTANCE_FROM_SPAWN))
-//                    return@aiIntents
-//            }
-//
-//            npc.spawnedAt.spawnZone?.let {
-//                if (!it.contains(targetPosition))
-//                    return@aiIntents
-//            }
-//
-//            moveTo(targetPosition)
-//        }
-    }
 }
 
 data object FatDummyGremlin: Npc {

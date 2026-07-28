@@ -1,9 +1,9 @@
-package org.l2kserver.game.model.actor
+package org.l2kserver.game.model.actor;
 
 /**
  * Player character posture - sitting, standing or lying(fake death)
  */
-enum class Posture {
+public enum Posture {
     /**
      * Player is sitting
      */

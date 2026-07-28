@@ -20,7 +20,7 @@ logging:
     console: "%d{HH:mm:ss.SSS} [%thread] %highlight(%-5level) %cyan(%logger{36}) - %X{remote}%X{account}%msg%n"
   level:
     root: INFO
-    Exposed: ERROR
-    org.l2kserver: DEBUG
-    com.hazelcast.system.logo: OFF
-    org.l2kserver.game.network.L2GameTcpServer: TRACE
+#    Exposed: ERROR
+#    org.l2kserver: DEBUG
+#    com.hazelcast.system.logo: OFF
+#    org.l2kserver.game.network.L2GameTcpServer: TRACE

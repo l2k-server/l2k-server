@@ -10,7 +10,7 @@ import org.l2kserver.game.model.skill.template.ActiveSkill
 import org.l2kserver.game.model.skill.template.SkillConditionFailed
 import org.l2kserver.game.model.skill.template.SkillConsumablesTemplate
 
-object Resurrection: ActiveSkill {
+data object Resurrection: ActiveSkill {
     override val id = 1016
     override val skillName = "Resurrection"
     override val maxLevel = 1

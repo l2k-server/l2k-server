@@ -52,7 +52,7 @@ class GeoDataService(
             )
 
             if (collisionRect.all { (zone.zMin..zone.zMax).contains(getNearestZ(it.first, it.second, z)) })
-                return Position(x = x, y = y, z = getNearestZ(x, y, z))
+                return Position(x, y, getNearestZ(x, y, z))
         }
     }
 
@@ -94,9 +94,9 @@ class GeoDataService(
         }
 
         return Position(
-            x = geoDriver.getWorldX(lastPoint.first),
-            y = geoDriver.getWorldY(lastPoint.second),
-            z = lastPoint.third
+            geoDriver.getWorldX(lastPoint.first),
+            geoDriver.getWorldY(lastPoint.second),
+            lastPoint.third
         )
     }
 

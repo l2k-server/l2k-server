@@ -10,12 +10,12 @@ data object TaklingIslandVillage: Town {
     override val territories = listOf("16_24", "16_25", "17_24", "17_25", "18_25")
 
     override val spawnPositions = listOf(
-        Position(x = -83990, y = 243336, z = -3728),
-        Position(x = -84512, y = 242679, z = -3728),
-        Position(x = -84623, y = 243193, z = -3728),
-        Position(x = -83742, y = 242214, z = -3728),
-        Position(x = -83537, y = 242537, z = -3728),
-        Position(x = -83646, y = 243397, z = -3728),
-        Position(x = -83808, y = 243637, z = -3728)
+        Position(-83990, 243336, -3728),
+        Position(-84512, 242679, -3728),
+        Position(-84623, 243193, -3728),
+        Position(-83742, 242214, -3728),
+        Position(-83537, 242537, -3728),
+        Position(-83646, 243397, -3728),
+        Position(-83808, 243637, -3728)
     )
 }

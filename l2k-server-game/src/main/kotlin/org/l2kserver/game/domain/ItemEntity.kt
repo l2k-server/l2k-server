@@ -7,8 +7,6 @@ import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.dao.IntEntity
 import org.jetbrains.exposed.v1.dao.IntEntityClass
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
-import org.l2kserver.game.model.actor.character.InitialItem
-import org.l2kserver.game.model.item.ItemRegistry
 import org.l2kserver.game.model.item.Slot
 
 /**
@@ -33,24 +31,6 @@ object ItemTable: IntIdTable("items") {
 class ItemEntity(id: EntityID<Int>): IntEntity(id) {
 
     companion object: IntEntityClass<ItemEntity>(ItemTable) {
-
-        /**
-         * Creates new items from provided [initialItems] and assigns it to owner with given [ownerId].
-         * Saves new items to DB
-         */
-        fun createAllFrom(ownerId: Int, initialItems: List<InitialItem>) = initialItems.mapNotNull {
-            val itemTemplate = ItemRegistry.findByIdOrNull(it.id)
-
-            if (itemTemplate == null) null
-            else new {
-                this.templateId = it.id
-                this.ownerId = ownerId
-                this.amount = it.amount
-                this.equippedAt = if (it.isEquipped)
-                    itemTemplate.type.availableSlots.firstOrNull() else null
-                this.enchantLevel = it.enchantLevel
-            }
-        }
 
         /** Finds all the items owned by character with id=[ownerId] */
         fun findAllByOwnerId(ownerId: Int) = find { ItemTable.ownerId eq ownerId }
