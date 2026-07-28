@@ -20,16 +20,16 @@ import org.l2kserver.game.model.actor.PlayerCharacterInstanceImpl
 import org.l2kserver.game.model.actor.ScatteredItem
 import org.l2kserver.game.model.actor.character.CharacterRace
 import org.l2kserver.game.model.actor.character.Gender
-import org.l2kserver.game.model.actor.character.InitialItem
 import org.l2kserver.game.model.actor.npc.NpcRegistry
 import org.l2kserver.game.model.actor.position.Position
 import org.l2kserver.game.model.item.Item
+import org.l2kserver.game.model.item.ItemRegistry
 import org.l2kserver.game.network.session.SessionContext
 import org.l2kserver.game.repository.PlayerCharacterRepository
 import org.l2kserver.game.service.ActorStateService
 import org.l2kserver.game.service.AsyncTaskService
+import org.l2kserver.game.service.IdGenerationService
 import org.l2kserver.game.service.IntentionExecutorService
-import org.l2kserver.game.utils.IdUtils
 import org.l2kserver.game.utils.getPrivateProperty
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -56,6 +56,8 @@ abstract class AbstractTests {
 
     @Autowired
     private lateinit var intentionExecutorService: IntentionExecutorService
+
+    @Autowired private lateinit var idGenerationService: IdGenerationService
 
     protected val testLogin = "VitalyasAccount"
     protected val testCharacterName = "Vitaliy"
@@ -121,10 +123,14 @@ abstract class AbstractTests {
     protected suspend fun createTestItem(
         templateId: Int, owner: PlayerCharacterInstanceImpl, amount: Int = 1, isEquipped: Boolean = false
     ) = transaction {
-        val item = ItemEntity.createAllFrom(
-            owner.id,
-            listOf(InitialItem(templateId, amount, isEquipped))
-        ).first().toItemInstance()
+        val itemTemplate = ItemRegistry.findById(templateId)
+
+        val item = ItemEntity.new(idGenerationService.next()) {
+            this.templateId = templateId
+            this.ownerId = owner.id
+            this.amount = amount
+            this.equippedAt = if (isEquipped) itemTemplate.type.availableSlots.firstOrNull() else null
+        }.toItemInstance()
         owner.inventory.reload()
 
         item
@@ -137,7 +143,7 @@ abstract class AbstractTests {
         enchantLevel: Int = 0
     ): ScatteredItem {
         val scatteredItem = ScatteredItem(
-            id = IdUtils.getNextScatteredItemId(),
+            id = idGenerationService.next(),
             position = position,
             templateId = template.id,
             isStackable = template.isStackable,

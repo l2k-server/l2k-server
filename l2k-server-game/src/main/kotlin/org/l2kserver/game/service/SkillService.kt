@@ -57,7 +57,9 @@ import org.l2kserver.game.network.session.send
 import org.l2kserver.game.network.session.sendTo
 import org.l2kserver.game.network.session.sessionContext
 import org.l2kserver.game.repository.GameObjectRepository
-import org.l2kserver.game.utils.time.withDelay
+import org.l2kserver.game.utils.withDelay
+
+import org.springframework.context.annotation.Lazy
 import org.springframework.stereotype.Service
 import java.time.Instant
 import kotlin.collections.contains
@@ -73,7 +75,7 @@ class SkillService(
     private val moveService: MoveService,
     private val itemService: ItemService,
     private val asyncTaskService: AsyncTaskService,
-    private val npcService: NpcService,
+    @param:Lazy private val npcService: NpcService,
     private val actorStateService: ActorStateService,
 
     override val gameObjectRepository: GameObjectRepository

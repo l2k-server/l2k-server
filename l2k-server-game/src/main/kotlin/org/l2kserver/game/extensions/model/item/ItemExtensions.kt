@@ -27,7 +27,6 @@ import org.l2kserver.game.model.item.Soulshot
 import org.l2kserver.game.model.item.Spiritshot
 import org.l2kserver.game.model.item.Weapon
 import org.l2kserver.game.model.item.WeaponInstance
-import org.l2kserver.game.utils.IdUtils
 import kotlin.Int
 
 fun ItemEntity.toItemInstance() = when (val template = ItemRegistry.findById(this.templateId)) {
@@ -43,9 +42,8 @@ fun ItemEntity.toItemInstance() = when (val template = ItemRegistry.findById(thi
     else -> ItemInstanceImpl(this, template)
 }
 
-fun ItemInstance.toScatteredItem(position: Position, amount: Int) = ScatteredItem(
-    //ID must be new, otherwise client fails displaying picking up this scattered item
-    id = IdUtils.getNextScatteredItemId(),
+fun ItemInstance.toScatteredItem(id: Int, position: Position, amount: Int) = ScatteredItem(
+    id = id,
     position = position,
     templateId = this.templateId,
     isStackable = this.isStackable,

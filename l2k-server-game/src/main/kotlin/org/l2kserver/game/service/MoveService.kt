@@ -35,7 +35,8 @@ import org.l2kserver.game.network.session.sendTo
 import org.l2kserver.game.network.session.sessionContext
 import org.l2kserver.game.repository.GameObjectRepository
 import org.l2kserver.game.model.time.GameTime
-import org.l2kserver.game.utils.time.withDelay
+import org.l2kserver.game.utils.withDelay
+
 import org.springframework.stereotype.Service
 import kotlin.math.hypot
 
@@ -99,11 +100,6 @@ class MoveService(
             StopRotationResponse(character.id, character.heading)
         }
     }
-
-    /** Moves [actor] to [position] */
-    @Deprecated("Use intention version")
-    suspend fun move(actor: MutableActorInstance, position: Position) =
-        executeMoving(actor, Intention.Move(DestinationPoint(position), 0))
 
     /** Moves [actor] according to his [intention] */
     suspend fun executeMoving(actor: MutableActorInstance, intention: Intention.Move) = suspendTransaction {
@@ -215,8 +211,8 @@ class MoveService(
                     val deltaHeading = (newHeading - actor.heading).toShort().toInt()
 
                     val rotation = if (deltaHeading > 0)
-                        minOf((ROTATE_SPEED_PER_SEC / 1000 * GameTime.MILLIS_IN_TICK).toInt(), deltaHeading)
-                    else maxOf((-ROTATE_SPEED_PER_SEC / 1000 * GameTime.MILLIS_IN_TICK).toInt(), deltaHeading)
+                        minOf((ROTATE_SPEED_PER_SEC / 1000 * GameTime.MILLIS_IN_TICK), deltaHeading)
+                    else maxOf((-ROTATE_SPEED_PER_SEC / 1000 * GameTime.MILLIS_IN_TICK), deltaHeading)
 
                     actor.heading += rotation
                 }
@@ -233,8 +229,10 @@ class MoveService(
         actor.intentionQueue.cancel()
         asyncTaskService.cancelActionByActorId(actor.id)
 
-        val fixedPosition = targetPosition.copy(
-            z = geoDataService.getNearestZ(targetPosition.x, targetPosition.y, targetPosition.z)
+        val fixedPosition = Position(
+            targetPosition.x,
+            targetPosition.y,
+            geoDataService.getNearestZ(targetPosition.x, targetPosition.y, targetPosition.z)
         )
 
         suspendTransaction {
@@ -277,7 +275,7 @@ class MoveService(
         val newY = (minOf(moveDistance, distanceXY) * sin).toInt() + actor.position.y
         val newZ = geoDataService.getFloorZ(newX, newY, actor.position.z)
 
-        val newPosition = actor.position.copy(x = newX, y = newY, z = newZ)
+        val newPosition = Position(newX, newY, newZ)
 
         actor.position = newPosition
         log.trace { "Updated position of actor '$actor' to '$newPosition'" }

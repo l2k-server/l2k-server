@@ -315,9 +315,9 @@ class ItemServiceTests(
                     itemId = item.id,
                     amount = item.amount,
                     position = Position(
-                        x = character.position.x,
-                        y = character.position.y,
-                        z = character.position.z
+                        character.position.x,
+                        character.position.y,
+                        character.position.z
                     )
                 )
             )
@@ -353,9 +353,9 @@ class ItemServiceTests(
                     itemId = itemId,
                     amount = 1,
                     position = Position(
-                        x = character.position.x,
-                        y = character.position.y,
-                        z = character.position.z
+                        character.position.x,
+                        character.position.y,
+                        character.position.z
                     )
                 )
             )
@@ -395,9 +395,9 @@ class ItemServiceTests(
                     itemId = itemId,
                     amount = 2,
                     position = Position(
-                        x = character.position.x,
-                        y = character.position.y,
-                        z = character.position.z
+                        character.position.x,
+                        character.position.y,
+                        character.position.z
                     )
                 )
             )
@@ -436,9 +436,9 @@ class ItemServiceTests(
                     itemId = itemId,
                     amount = 1000,
                     position = Position(
-                        x = character.position.x,
-                        y = character.position.y,
-                        z = character.position.z
+                        character.position.x,
+                        character.position.y,
+                        character.position.z
                     )
                 )
             )
@@ -465,9 +465,9 @@ class ItemServiceTests(
                         itemId = item.id,
                         amount = item.amount,
                         position = Position(
-                            x = character.position.x,
-                            y = character.position.y,
-                            z = character.position.z
+                            character.position.x,
+                            character.position.y,
+                            character.position.z
                         )
                     )
                 )
@@ -487,9 +487,9 @@ class ItemServiceTests(
                         itemId = Random.nextInt(),
                         amount = 1,
                         position = Position(
-                            x = character.position.x,
-                            y = character.position.y,
-                            z = character.position.z
+                            character.position.x,
+                            character.position.y,
+                            character.position.z
                         )
                     )
                 )
@@ -511,9 +511,9 @@ class ItemServiceTests(
                     itemId = item.id,
                     amount = item.amount,
                     position = Position(
-                        x = character.position.x,
-                        y = character.position.y,
-                        z = character.position.z
+                        character.position.x,
+                        character.position.y,
+                        character.position.z
                     )
                 )
             )
@@ -558,9 +558,9 @@ class ItemServiceTests(
                     itemId = item.id,
                     amount = item.amount,
                     position = Position(
-                        x = character.position.x + 2000,
-                        y = character.position.y,
-                        z = character.position.z
+                        character.position.x + 2000,
+                        character.position.y,
+                        character.position.z
                     )
                 )
             )

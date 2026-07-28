@@ -6,15 +6,18 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.slf4j.MDCContext
 import org.l2kserver.game.extensions.logger
 import org.l2kserver.game.model.actor.Intention
 import org.l2kserver.game.model.actor.MutableActorInstance
 import org.l2kserver.game.model.actor.PlayerCharacterInstanceImpl
 import org.l2kserver.game.network.session.sessionContextOf
 import org.springframework.stereotype.Service
+import java.util.concurrent.CancellationException
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.collections.set
 
@@ -39,7 +42,7 @@ class IntentionExecutorService(
             runBlocking { it.cancelAndJoin() }
         }
 
-        var context = Dispatchers.Default + SupervisorJob()
+        var context = Dispatchers.Default + SupervisorJob() + MDCContext(emptyMap())
         sessionContextOf(actor.id)?.let { context += it }
 
         val listener = CoroutineScope(context).launch {
@@ -48,27 +51,32 @@ class IntentionExecutorService(
                 asyncTaskService.cancelActionByActorId(actor.id)
 
                 val job = when (intention) {
-                    is Intention.Move -> asyncTaskService.launchAction(actor.id) {
+                    is Intention.Move -> asyncTaskService.launchAction(actor) {
                         moveService.executeMoving(actor, intention)
                         actor.intentionQueue.shift()
                     }
-                    is Intention.Attack -> asyncTaskService.launchAction(actor.id) {
+
+                    is Intention.Attack -> asyncTaskService.launchAction(actor) {
                         combatService.attack(actor, intention.target)
-                        //Enqueue further attacks if target is still alive and action is not canceled
-                        if (isActive && !intention.target.isDead()) actor.intentionQueue.enqueue(
+                        //Enqueue further attacks if target is still alive,
+                        // action is not canceled and there are no new actions
+                        if (currentCoroutineContext().isActive
+                            && !actor.intentionQueue.hasFurtherActions()
+                            && !intention.target.isDead()
+                        ) actor.intentionQueue.enqueue(
                             Intention.Move(
                                 intention.target, requiredDistance = actor.stats.attackRange
                             ),
                             intention
+                            // There is no need to shift queue here - it is already empty after adding Move
                         )
-                        // Move intention must cancel attack, so there is no need to shift queue here -
-                        // it is already empty after adding Move
                     }
-                    is Intention.Cast -> asyncTaskService.launchAction(actor.id) {
+
+                    is Intention.Cast -> asyncTaskService.launchAction(actor) {
                         skillService.executeCasting(actor, intention)
                         actor.intentionQueue.shift()
                     }
-                    //PickUp and Interaction are momentary actions, there is no need to launch them asynchronously
+                    //PickUp and Interact are momentary actions, there is no need to launch them asynchronously
                     is Intention.PickUp -> {
                         (actor as? PlayerCharacterInstanceImpl)?.let {
                             itemService.pickUp(actor, intention.item)
@@ -76,6 +84,7 @@ class IntentionExecutorService(
                         }
                         null
                     }
+
                     is Intention.Interact -> {
                         (actor as? PlayerCharacterInstanceImpl)?.let {
                             actionService.interact(it, intention.target)
@@ -83,16 +92,24 @@ class IntentionExecutorService(
                         }
                         null
                     }
+
                     null -> null
                 }
 
                 job?.invokeOnCompletion { e ->
-                    if (e != null) log.error(e) { "An error occurred during execution of $intention" }
-                    else log.debug { "Executed intention $intention" }
+                    if (e is CancellationException)
+                        log.debug { "Intention '$intention' execution of '$actor' was cancelled" }
+                    else if (e != null)
+                        log.error(e) { "An error occurred during execution of $intention" }
+                    else
+                        log.debug { "Executed intention $intention" }
                 }
             }
         }
-        listener.invokeOnCompletion { intentionListeners.remove(actor.id) }
+        listener.invokeOnCompletion {
+            log.debug { "Intention listener of '$actor' was finished${it?.let { " due to error $it" }}" }
+            intentionListeners.remove(actor.id)
+        }
         intentionListeners[actor.id] = listener
         log.debug { "Launched new intention queue listener for $actor" }
     }

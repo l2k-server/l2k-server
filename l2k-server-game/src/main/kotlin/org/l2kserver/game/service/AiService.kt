@@ -1,64 +1,72 @@
 package org.l2kserver.game.service
 
-import kotlinx.coroutines.currentCoroutineContext
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
+import jakarta.annotation.PreDestroy
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.channels.Channel
 import org.l2kserver.game.extensions.logger
 import org.l2kserver.game.extensions.model.actor.asMutable
+import org.l2kserver.game.extensions.model.actor.isAttacking
+import org.l2kserver.game.extensions.model.actor.toFighting
 import org.l2kserver.game.handler.dto.ChatTab
 import org.l2kserver.game.handler.dto.response.ChatMessageResponse
+import org.l2kserver.game.model.actor.Intention
 import org.l2kserver.game.model.actor.NpcInstanceImpl
-import org.l2kserver.game.model.actor.npc.ai.AiIntents
-import org.l2kserver.game.model.actor.npc.ai.AttackIntent
-import org.l2kserver.game.model.actor.npc.ai.MoveIntent
-import org.l2kserver.game.model.actor.npc.ai.SayIntent
-import org.l2kserver.game.model.actor.npc.ai.WaitIntent
+import org.l2kserver.game.model.actor.npc.NpcState
+import org.l2kserver.game.model.actor.npc.ai.AiDesire
+import org.l2kserver.game.model.actor.npc.ai.NpcAi
 import org.l2kserver.game.repository.GameObjectRepository
 import org.springframework.boot.context.event.ApplicationReadyEvent
 import org.springframework.context.event.EventListener
 import org.springframework.stereotype.Service
+import java.util.concurrent.ConcurrentHashMap
 
 @Service
 class AiService(
-    override val gameObjectRepository: GameObjectRepository,
-
-    private val moveService: MoveService,
-    private val combatService: CombatService,
-    private val asyncTaskService: AsyncTaskService
+    private val asyncTaskService: AsyncTaskService,
+    override val gameObjectRepository: GameObjectRepository
 ) : AbstractService() {
+
     override val log = logger()
 
     @EventListener(ApplicationReadyEvent::class)
     fun init() = asyncTaskService.launchRepeated("AI_JOB", 1000) {
-        gameObjectRepository.findAllNpc().forEach { npc ->
-            if (!npc.isDead()) runCatching { launchOnIdleAction(npc) }
-                .onFailure { log.error(it) { "An error occurred when handling $npc's ai" } }
-        }
-
-        //TODO Idle actions should be performed less frequently, but what if the npc is fighting?
+        gameObjectRepository.findAllNpc()
+            .filter { !it.isDead() }
+            .forEach { npc ->
+                try {
+                    npc.ai?.onTick()?.forEach { performDesiredAction(npc, it) }
+                }
+                catch (e: Throwable) {
+                    log.error(e) { "An error occurred when handling $npc's ai" }
+                }
+            }
     }
 
-    private suspend fun launchOnIdleAction(npc: NpcInstanceImpl) {
-        val intents = npc.onIdle()
-        if (!asyncTaskService.hasActionByActorId(npc.id) && !intents.isNullOrEmpty()) {
-            asyncTaskService.launchAction(npc.id) { performIntendedActions(intents, npc) }
-        }
-    }
+    private suspend fun performDesiredAction(npc: NpcInstanceImpl, desire: AiDesire) {
+        log.debug { "Started handling $desire of '$npc'" }
+        when (desire) {
+            is AiDesire.Attack -> {
+                val target = desire.target.asMutable()
+                npc.state.toFighting(target)
 
-    private suspend fun performIntendedActions(intents: AiIntents, npc: NpcInstanceImpl) = intents.forEach { intent ->
-        if (!currentCoroutineContext().isActive) return@forEach
-        when (intent) {
-            is WaitIntent -> delay(intent.waitTimeMillis)
-            is SayIntent -> broadcastAround(npc.position) {
+                if (npc.isAttacking(target)) log.debug { "$npc is already attacking $target" }
+                else npc.intentionQueue.enqueue(
+                    Intention.Move(target, requiredDistance = npc.stats.attackRange),
+                    Intention.Attack(desire.target.asMutable())
+                )
+            }
+            is AiDesire.Move -> {
+                npc.intentionQueue.enqueue(Intention.Move(desire.position))
+            }
+            is AiDesire.Say -> broadcastAround(npc.position) {
                 ChatMessageResponse(
                     speakerId = npc.id,
                     chatTab = ChatTab.GENERAL,
                     speakerName = npc.name,
-                    message = intent.message
+                    message = desire.message
                 )
             }
-            is MoveIntent -> moveService.move(npc, intent.position)
-            is AttackIntent -> combatService.attack(npc, intent.target.asMutable())
         }
     }
 

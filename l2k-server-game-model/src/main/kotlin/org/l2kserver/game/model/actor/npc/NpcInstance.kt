@@ -4,10 +4,10 @@ import org.l2kserver.game.model.actor.ActorInstance
 import org.l2kserver.game.model.actor.CollisionBox
 import org.l2kserver.game.model.actor.MoveType
 import org.l2kserver.game.model.actor.character.PlayerCharacterInstance
+import org.l2kserver.game.model.actor.npc.ai.NpcAi
 import org.l2kserver.game.model.actor.position.Heading
 import org.l2kserver.game.model.actor.position.Position
 import org.l2kserver.game.model.actor.position.SpawnPosition
-import org.l2kserver.game.model.actor.npc.ai.AiIntents
 import org.l2kserver.game.model.item.Armor
 import org.l2kserver.game.model.item.Weapon
 import org.l2kserver.game.model.item.WeaponType
@@ -17,9 +17,8 @@ import org.l2kserver.game.model.stats.CombatStats
 import org.l2kserver.game.model.zone.SpawnZone
 
 /**
- * Non-player character
+ * Non-player character instance
  *
- * @property opponents Map of characters, who fights with his NPC to their damage dealt to this NPC
  * @property overhitDamage Damage dealt by an over-hit, if this NPC was killed by an over-hit.
  * "mob had 10 HP left, over-hit skill did 50 damage total, over-hit damage is 40" - l2jserver
  */
@@ -48,14 +47,14 @@ interface NpcInstance: ActorInstance {
     val equippedWeaponTemplate: Weapon? get() = null
     val equippedShieldTemplate: Armor? get() = null
 
-    val opponents: Map<ActorInstance, Int>
+    val state: NpcState
     val overhitDamage: Int get() = 0
 
     override val weaponType: WeaponType? get() = equippedWeaponTemplate?.type
     override val hasShield: Boolean get() = equippedShieldTemplate != null
 
-    fun onIdle(): AiIntents? = null
-    fun onTalkWith(character: PlayerCharacterInstance): String? = null
+    val ai: NpcAi?
+    fun onTalkWith(character: PlayerCharacterInstance): String?
 }
 
 /**

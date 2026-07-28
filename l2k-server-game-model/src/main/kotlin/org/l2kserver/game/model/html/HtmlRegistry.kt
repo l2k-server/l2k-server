@@ -1,6 +1,6 @@
 package org.l2kserver.game.model.html
 
-import org.l2kserver.game.model.extensions.logger
+import org.slf4j.LoggerFactory
 import java.io.File
 import java.lang.Exception
 import java.nio.charset.Charset
@@ -9,10 +9,10 @@ import java.util.concurrent.ConcurrentHashMap
 /** Stores all the HTMLs for npc chat windows, quests, community table, etc. */
 object HtmlRegistry {
 
-    private val log = logger()
+    private val log = LoggerFactory.getLogger(this::class.java)
     private val htmlData = ConcurrentHashMap<String, String>()
 
-    /** Finds html text by identifier, or throws [IllegalArgumentException] if no data with [id] exists */
+    /** Finds HTML text by identifier, or throws [IllegalArgumentException] if no data with [id] exists */
     fun findById(id: String) = requireNotNull(htmlData[id]) { "No HTML found by id=$id" }
 
     /**

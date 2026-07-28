@@ -3,7 +3,7 @@ pluginManagement {
         kotlin("jvm") version "2.3.21"
         kotlin("plugin.spring") version "2.3.21"
         id("dev.detekt") version "2.0.0-alpha.3"
-        id("org.springframework.boot") version "4.0.6"
+        id("org.springframework.boot") version "4.1.0"
         id("io.spring.dependency-management") version "1.1.7"
     }
 }
@@ -12,7 +12,7 @@ dependencyResolutionManagement {
     versionCatalogs {
         create("libs") {
             version("ktor", "3.5.0")
-            version("exposed", "1.3.0")
+            version("exposed", "1.3.1")
             version("hazelcast", "5.7.0")
             version("flyway", "12.7.0")
             version("kotlin-logging", "8.0.4")

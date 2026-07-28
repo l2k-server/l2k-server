@@ -32,7 +32,7 @@ import org.l2kserver.game.model.store.PrivateStore
  * - Access to core identifiers and attributes (name, gender, race, clan, title);
  * - Current resource stats (CP/HP/MP), experience/level, and reputation (karma, PK/PvP);
  * - World position and heading, movement/combat stats, and targeting information;
- * - Inventory and equipment that influence calculated combat statistics;
+ * - Inventory and equipment that influence calculated combat stats;
  * - Character skills (considering active subclass) and utilities for skill management;
  * - Trading parameters and private store functionality.
  *
@@ -195,8 +195,6 @@ class PlayerCharacterInstanceImpl(
 
     var autoUsesSoulshot: SoulshotInstance? = null
     var autoUsesSpiritshot: SpiritshotInstance? = null
-
-    val knownGameWorldObjects: MutableSet<GameWorldObject> = ConcurrentHashMap.newKeySet()
 
     override val temporalEffects = TemporalEffects()
 

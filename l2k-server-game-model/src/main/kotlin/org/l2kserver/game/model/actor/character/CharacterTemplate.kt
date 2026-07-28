@@ -44,7 +44,7 @@ enum class ShortcutType(val id: Int) {
  * @property id id of item kind (for example Squire's Shirt's item id is 1146)
  * @property amount Range of item amount
  * @property isEquipped Is this item equipped (for initial items)
- * @property enchantLevel Enchant level of this item (for armor, weapons and jewellery)
+ * @property enchantLevel Enchant level of this item (for armor, weapons and jewelry)
  */
 data class InitialItem(
     val id: Int,

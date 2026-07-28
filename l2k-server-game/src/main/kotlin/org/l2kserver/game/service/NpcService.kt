@@ -1,29 +1,25 @@
 package org.l2kserver.game.service
 
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import org.l2kserver.game.extensions.logger
-import org.l2kserver.game.handler.dto.response.NpcChatWindowResponse
+import org.l2kserver.game.extensions.model.actor.asMutable
 import org.l2kserver.game.model.actor.NpcInstanceImpl
 import org.l2kserver.game.repository.GameObjectRepository
 import org.l2kserver.game.handler.dto.response.DeleteObjectResponse
 import org.l2kserver.game.model.actor.CollisionBox
 import org.l2kserver.game.model.actor.npc.Npc
 import org.l2kserver.game.model.actor.npc.NpcRegistry
+import org.l2kserver.game.model.actor.npc.NpcState
 import org.l2kserver.game.model.actor.npc.SpawnedAt
 import org.l2kserver.game.model.actor.position.Heading
 import org.l2kserver.game.model.actor.position.Position
 import org.l2kserver.game.model.actor.position.SpawnPosition
 import org.l2kserver.game.model.zone.SpawnZone
 import org.l2kserver.game.model.zone.Zone
-import org.l2kserver.game.network.session.send
-import org.l2kserver.game.network.session.sessionContext
 import org.springframework.boot.context.event.ApplicationReadyEvent
 import org.springframework.context.event.EventListener
 import org.springframework.stereotype.Service
-import kotlin.math.roundToInt
 import kotlin.random.Random
 import kotlin.random.nextInt
 
@@ -35,59 +31,49 @@ private const val CORPSE_DISAPPEARANCE_DELAY_MS = 8_500L
 class NpcService(
     private val geoDataService: GeoDataService,
     private val asyncTaskService: AsyncTaskService,
+    private val aiService: AiService,
+    private val intentionExecutorService: IntentionExecutorService,
+    private val idGenerationService: IdGenerationService,
     override val gameObjectRepository: GameObjectRepository
 ): AbstractService() {
 
     override val log = logger()
 
     @EventListener(ApplicationReadyEvent::class)
-    fun init() = asyncTaskService.launchOnce {
+    fun init() = runBlocking {
         NpcRegistry.forEach { template ->
             template.spawn?.positions?.forEach { spawnAtPosition(template, it) }
             template.spawn?.zones?.forEach { zone -> repeat(zone.npcAmount) { spawnAtZone(template, zone) }}
         }
     }
 
-    /** Opens chat window with [npc] */
-    suspend fun talkTo(npc: NpcInstanceImpl) = send {
-        val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
-        val replica = npc.onTalkWith(character) ?: getNoTextMessage(npc.id, npc.name)
-
-        NpcChatWindowResponse(npcId = npc.id, message = replica )
-    }
-
     /** Handles [npc]'s death - schedules corpse disappearing and respawn */
-    suspend fun handleNpcDeath(npc: NpcInstanceImpl) {
-        CoroutineScope(Dispatchers.Default).launch {
-            //Delete corpse from game world after delay
-            delay(CORPSE_DISAPPEARANCE_DELAY_MS)
-            remove(npc)
-        }
-        CoroutineScope(Dispatchers.Default).launch {
-            //Respawn this NPC after delay
-            val respawnDelay = requireNotNull(NpcRegistry.findById(npc.templateId).spawn?.respawnDelay) {
-                "Cannot find respawn data to respawn $npc !!!"
-            }
-            delay(respawnDelay)
+    suspend fun handleNpcDeath(npc: NpcInstanceImpl) = asyncTaskService.launchOnce {
+        //Set npc state to default
+        npc.state = NpcState.Idle()
 
-            val (position, heading) = npc.spawnedAt.spawnPosition?.toPositionAndHeading() ?:
-                getPositionAndHeading(npc.spawnedAt.spawnZone!!, npc.collisionBox)
+        npc.targetedBy.forEach { it.asMutable().targetId = null }
 
-            npc.currentHp = npc.stats.maxHp.roundToInt()
-            npc.currentMp = npc.stats.maxMp.roundToInt()
+        //Delete corpse from game world after delay
+        delay(CORPSE_DISAPPEARANCE_DELAY_MS)
+        remove(npc)
 
-            npc.position = position
-            npc.heading = heading
+        //Respawn this NPC after delay
+        val template = NpcRegistry.findById(npc.templateId)
+        delay(template.spawn!!.respawnDelay)
 
-            spawnNpc(npc)
-            log.debug { "Respawned $npc at ${npc.spawnedAt.spawnPosition?: npc.spawnedAt.spawnZone}" }
-        }
+        //Spawn NPC at position or zone, depending on what is present
+        npc.spawnedAt.spawnPosition?.let { spawnAtPosition(template, it) }
+        npc.spawnedAt.spawnZone?.let { spawnAtZone(template, it) }
+
+        log.debug { "Respawned $npc at ${npc.spawnedAt.spawnPosition?: npc.spawnedAt.spawnZone}" }
     }
 
     suspend fun remove(npc: NpcInstanceImpl) = gameObjectRepository.delete(npc)?.let {
         gameObjectRepository.findAllCharactersNear(npc).forEach { character ->
             character.knownGameWorldObjects.remove(npc)
         }
+        intentionExecutorService.disableIntentionQueueListener(npc.id)
         broadcastAround(it) { DeleteObjectResponse(it.id) }
     }
 
@@ -98,7 +84,13 @@ class NpcService(
      */
     suspend fun spawnAtPosition(template: Npc, spawnPosition: SpawnPosition): NpcInstanceImpl {
         val (position, heading) = spawnPosition.toPositionAndHeading()
-        val npc = NpcInstanceImpl(template, SpawnedAt(spawnPosition), position, heading)
+        val npc = NpcInstanceImpl(
+            id = idGenerationService.next(),
+            template = template,
+            spawnedAt = SpawnedAt(spawnPosition),
+            position = position,
+            heading = heading
+        )
         spawnNpc(npc)
 
         log.debug { "Spawned $npc at $position" }
@@ -113,7 +105,13 @@ class NpcService(
      */
     suspend fun spawnAtZone(template: Npc, zone: SpawnZone): NpcInstanceImpl {
         val (position, heading) = getPositionAndHeading(zone, template.collisionBox)
-        val npc = NpcInstanceImpl(template, SpawnedAt(zone), position, heading)
+        val npc = NpcInstanceImpl(
+            id = idGenerationService.next(),
+            template = template,
+            spawnedAt = SpawnedAt(zone),
+            position = position,
+            heading = heading
+        )
         spawnNpc(npc)
 
         log.debug { "Spawned $npc at $position inside of $zone" }
@@ -124,11 +122,9 @@ class NpcService(
     private suspend fun spawnNpc(npc: NpcInstanceImpl) {
         gameObjectRepository.save(npc)
         updateObjectsAround(npc)
+
+        if (npc.ai != null) intentionExecutorService.launchIntentionQueueListener(npc)
     }
-
-
-    private fun getNoTextMessage(id: Int, name: String = "") =
-        "<html><body>${name}_${id}:<br/> My text is missing!</body></html>"
 
     /** Returns random available position and heading inside provided [zone] */
     private fun getPositionAndHeading(zone: Zone, collisionBox: CollisionBox): Pair<Position, Heading> {
@@ -137,4 +133,5 @@ class NpcService(
 
         return position to heading
     }
+
 }

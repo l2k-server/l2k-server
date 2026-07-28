@@ -12,6 +12,7 @@ import kotlinx.coroutines.withContext
 import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
 import org.l2kserver.game.configuration.properties.LevelProperties
 import org.l2kserver.game.extensions.logger
+import org.l2kserver.game.extensions.model.actor.toFighting
 import org.l2kserver.game.handler.dto.response.AttackResponse
 import org.l2kserver.game.handler.dto.response.CancelCastingResponse
 import org.l2kserver.game.handler.dto.response.FullCharacterResponse
@@ -29,12 +30,14 @@ import org.l2kserver.game.model.actor.MutableActorInstance
 import org.l2kserver.game.model.actor.NpcInstanceImpl
 import org.l2kserver.game.model.actor.PlayerCharacterInstanceImpl
 import org.l2kserver.game.extensions.toInt
+import org.l2kserver.game.model.actor.npc.NpcState
 import org.l2kserver.game.model.item.WeaponType
 import org.l2kserver.game.model.skill.effect.DamageEffect
 import org.l2kserver.game.model.skill.instance.ActiveSkillInstance
 import org.l2kserver.game.network.session.send
 import org.l2kserver.game.network.session.sendTo
 import org.l2kserver.game.repository.GameObjectRepository
+import org.springframework.context.annotation.Lazy
 import org.springframework.stereotype.Service
 import kotlin.math.roundToInt
 import kotlin.math.roundToLong
@@ -47,7 +50,7 @@ private const val ARROW_SPEED_PER_MS = 0.9
 @Service
 class CombatService(
     private val actorStateService: ActorStateService,
-    private val npcService: NpcService,
+    @param:Lazy private val npcService: NpcService,
     private val rewardService: RewardService,
     private val itemService: ItemService,
     private val levelProperties: LevelProperties,
@@ -63,13 +66,6 @@ class CombatService(
     /** Executes single attack **/
     suspend fun attack(attacker: MutableActorInstance, attacked: MutableActorInstance) {
         log.debug { "Started attacking '$attacked' by '$attacker'" }
-
-        if (attacked.isDead()) {
-            log.debug { "'$attacked' is dead and cannot be attacked" }
-            send { SystemMessageResponse.IncorrectTarget }
-            return
-        }
-
         if (!attacker.canAttack(attacked)) return
 
         try {
@@ -84,7 +80,8 @@ class CombatService(
 
             suspendTransaction {
                 // Player character must spend mana and arrows for attack (if weapon requires)
-                if ((attacker as? PlayerCharacterInstanceImpl)?.spendResources() != false) {
+                val kek = (attacker as? PlayerCharacterInstanceImpl)?.spendResources()
+                if (kek != false) {
                     when (attacker.weaponType) {
                         WeaponType.BOW -> performBowAttack(attacker, attacked)
                         WeaponType.FIST, WeaponType.DOUBLE_BLADES -> performSimpleAttacks(attacker, attacked, 2)
@@ -99,7 +96,6 @@ class CombatService(
             }
         } catch (e: Exception) {
             log.error(e) { "An error occurred while attacking target $attacked by $attacker" }
-            currentCoroutineContext().cancel()
         }
     }
 
@@ -113,6 +109,27 @@ class CombatService(
 
         log.debug { "$attacker has dealt ${effect.damage} damage to $attacked" }
 
+        // Activate combat stance of attacker
+        actorStateService.activateCombatState(attacker)
+
+        // Activate pvp state of attacker if fighters are characters
+        if (
+            attacker is PlayerCharacterInstanceImpl &&
+            attacked is PlayerCharacterInstanceImpl &&
+            attacked.karma == 0
+        ) {
+            actorStateService.activatePvpState(attacker)
+        }
+
+        // Activate combat stance of attacked
+        if (!attacked.isDead()) actorStateService.activateCombatState(attacked)
+
+        //Store damage for AI and reward ownership
+        if (attacked is NpcInstanceImpl) {
+            val menace = minOf(effect.damage, attacked.currentHp)
+            attacked.state = attacked.state.toFighting(attacker, menace)
+        }
+
         if (effect.isAvoided) {
             sendTo(attacker.id) { SystemMessageResponse.YouMissed }
             sendTo(attacked.id) {
@@ -124,12 +141,6 @@ class CombatService(
         // Calculate overhit damage.
         if (skill?.overhitPossible == true && attacked is NpcInstanceImpl)
            attacked.overhitDamage = maxOf(effect.damage - attacked.currentHp, 0)
-
-        //Store damage for AI and reward ownership
-        if (attacked is NpcInstanceImpl) synchronized(attacked.opponents) {
-            val damageDealt = attacked.opponents[attacker] ?: 0
-            attacked.opponents[attacker] = damageDealt + minOf(effect.damage, attacked.currentHp)
-        }
 
         //If fighters are players, subtract fom CP first
         val damageOnHp = if (attacker is PlayerCharacterInstanceImpl && attacked is PlayerCharacterInstanceImpl) {
@@ -163,21 +174,8 @@ class CombatService(
         sendTo(attacked.id) { updatedStatus }
         attacked.targetedBy.forEach { sendTo(it.id) { updatedStatus } }
 
-        // Activate combat stance of attacker
-        actorStateService.activateCombatState(attacker)
-
-        // Activate pvp state of attacker if fighters are characters
-        if (
-            attacker is PlayerCharacterInstanceImpl &&
-            attacked is PlayerCharacterInstanceImpl &&
-            attacked.karma == 0
-        ) {
-            actorStateService.activatePvpState(attacker)
-        }
-        // Activate combat stance of attacked
-        if (!attacked.isDead()) actorStateService.activateCombatState(attacked)
-
         if (attacked.isDead()) {
+            ((attacker as? NpcInstanceImpl)?.state as? NpcState.Fighting)?.opponents?.remove(attacked)
             rewardService.manageRewards(attacker, attacked)
             killActor(attacked)
         }
@@ -304,7 +302,8 @@ class CombatService(
 
                 if (minHeading < maxHeading) headingToIt in minHeading..maxHeading
                 else {
-                    headingToIt in minHeading..UShort.MAX_VALUE || headingToIt in UShort.MIN_VALUE..maxHeading
+                    headingToIt in minHeading..UShort.MAX_VALUE
+                            || headingToIt in UShort.MIN_VALUE..maxHeading
                 }
             }
             .shuffled()
@@ -363,7 +362,15 @@ class CombatService(
     /** Checks if `this` can attack [target] and sends system messages */
     private suspend fun ActorInstance.canAttack(target: ActorInstance) = when {
         this.isParalyzed || this.isDead() -> false
-        target.isDead() -> false
+        target.isDead() -> {
+            log.debug { "'$target' is dead and cannot be attacked" }
+            send { SystemMessageResponse.IncorrectTarget }
+            false
+        }
+        this is NpcInstanceImpl && !target.exists() -> {
+            (this.state as? NpcState.Fighting)?.opponents?.remove(target)
+            false
+        }
         !target.exists() || !this.position.isCloseTo(target.position, VISION_RANGE) -> false
         else -> true
     }

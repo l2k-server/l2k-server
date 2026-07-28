@@ -51,7 +51,7 @@ import org.l2kserver.game.model.item.WeaponInstance
 import org.l2kserver.game.model.item.WeaponType
 import org.l2kserver.game.model.reward.RewardItem
 import org.l2kserver.game.model.store.PrivateStore
-import org.l2kserver.game.model.utils.withChance
+import org.l2kserver.game.utils.withChance
 import org.l2kserver.game.network.session.send
 import org.l2kserver.game.network.session.sendTo
 import org.l2kserver.game.network.session.sessionContext
@@ -72,6 +72,7 @@ private const val DROP_REWARD_DISTANCE = 25
 class ItemService(
     private val geoDataService: GeoDataService,
     @param:Lazy private val skillService: SkillService,
+    private val idGenerationService: IdGenerationService,
     private val enchantProperties: EnchantProperties,
 
     override val gameObjectRepository: GameObjectRepository
@@ -209,8 +210,13 @@ class ItemService(
                 val scatteredItemPosition = geoDataService.getAvailableTargetPosition(
                     character.position, request.position
                 )
+                val scatteredItemId = idGenerationService.next()
                 val scatteredItem = gameObjectRepository.save(
-                    item.toScatteredItem(scatteredItemPosition, request.amount)
+                    item.toScatteredItem(
+                        id = scatteredItemId,
+                        position = scatteredItemPosition,
+                        amount = request.amount
+                    )
                 )
                 this@ItemService.broadcastAround(character.position) {
                     DroppedItemResponse(character.id, scatteredItem)
@@ -309,7 +315,7 @@ class ItemService(
      * random position in [DROP_REWARD_DISTANCE] radius and drops it by [dropper]
      */
     suspend fun dropRewardItem(item: RewardItem, dropper: ActorInstance) {
-        val template = ItemRegistry.findByIdOrNull(item.id) ?: run {
+        val template = ItemRegistry.findByIdOrNull(item.templateId) ?: run {
             log.warn { "No item template found by id $item.id" }
             return
         }
@@ -326,8 +332,9 @@ class ItemService(
             val calculatedPosition = Position(dropX, dropY, dropper.position.z)
             val dropPosition = geoDataService.getAvailableTargetPosition(
                 dropper.position, calculatedPosition)
+            val id = idGenerationService.next()
 
-            item.toScatteredItem(dropPosition, itemsInStackAmount)?.let { gameObjectRepository.save(it) }
+            item.toScatteredItem(id, dropPosition, itemsInStackAmount)?.let { gameObjectRepository.save(it) }
         }.filterNotNull()
 
         scatteredItems.forEach { scatteredItem ->
@@ -342,8 +349,8 @@ class ItemService(
         log.debug { "Start picking up item '$scatteredItem' by '$character'" }
 
         val enoughCloseToPickUp = character.position.isCloseTo(
-            other = scatteredItem.position,
-            distance = character.collisionBox.radius.roundToInt() + Position.GEO_CELL_SIZE
+            scatteredItem.position,
+            character.collisionBox.radius.roundToInt() + Position.GEO_CELL_SIZE
         )
 
         if (!enoughCloseToPickUp) {
@@ -357,6 +364,7 @@ class ItemService(
             send { ActionFailedResponse }
             return
         }
+        idGenerationService.release(deletedScatteredItem.id)
 
         broadcastAround(character.position) { PickUpItemResponse(character.id, deletedScatteredItem) }
         broadcastAround(character.position) { DeleteObjectResponse(deletedScatteredItem.id) }
@@ -375,7 +383,7 @@ class ItemService(
 
     /** Creates new item(s) in [itemReceiver]'s inventory */
     suspend fun giveItem(
-        itemReceiver: PlayerCharacterInstanceImpl, itemTemplateId: Int, amount: Int, enchantLevel: Int
+        itemReceiver: PlayerCharacterInstanceImpl, itemTemplateId: Int, amount: Int, enchantLevel: Int = 0
     ) = suspendTransaction {
         val existingItem = itemReceiver.inventory.findAllByTemplateId(itemTemplateId).firstOrNull()
         val itemTemplate = ItemRegistry.findById(itemTemplateId)
@@ -385,7 +393,13 @@ class ItemService(
 
         val items = if (itemTemplate.isStackable) {
             if (existingItem == null) {
-                val newItem = itemReceiver.inventory.createItem(itemTemplateId, amount, equippedAt, enchantLevel)
+                val newItem = itemReceiver.inventory.createItem(
+                    id = idGenerationService.next(),
+                    templateId = itemTemplateId,
+                    amount = amount,
+                    equippedAt = equippedAt,
+                    enchantLevel = enchantLevel
+                )
                 sendTo(itemReceiver.id) { UpdateItemsResponse().wasAdded(newItem) }
                 listOf(newItem)
             }
@@ -396,7 +410,13 @@ class ItemService(
             }
         }
         else List(amount) {
-            val newItem = itemReceiver.inventory.createItem(itemTemplateId, 1, equippedAt, enchantLevel)
+            val newItem = itemReceiver.inventory.createItem(
+                id = idGenerationService.next(),
+                templateId = itemTemplateId,
+                amount = 1,
+                equippedAt = equippedAt,
+                enchantLevel = enchantLevel
+            )
             sendTo(itemReceiver.id) { UpdateItemsResponse().wasAdded(newItem) }
             newItem
         }
@@ -404,7 +424,7 @@ class ItemService(
         send { UpdateStatusResponse.weightOf(itemReceiver) }
         items.forEach { sendTo(itemReceiver.id) { SystemMessageResponse.YouHaveObtained(it) }}
 
-        log.info { "'$itemReceiver' has received items '$items'" }
+        log.info { "'$itemReceiver' has received $amount of '${itemTemplate.name}'" }
 
         commit()
         return@suspendTransaction items
@@ -453,6 +473,7 @@ class ItemService(
             response.wasDeleted(item)
             sendTo(owner.id) { response }
             owner.inventory.delete(item)
+            idGenerationService.release(item.id)
         }
 
         sendTo(owner.id) { UpdateStatusResponse.weightOf(owner) }

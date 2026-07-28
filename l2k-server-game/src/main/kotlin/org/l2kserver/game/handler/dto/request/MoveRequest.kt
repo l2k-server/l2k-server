@@ -19,16 +19,8 @@ data class MoveRequest(
 ): RequestPacket {
     
     constructor(data: ByteBuffer): this(
-        targetPosition = Position(
-            x = data.getInt(),
-            y = data.getInt(),
-            z = data.getInt()
-        ),
-        characterPosition = Position(
-            x = data.getInt(),
-            y = data.getInt(),
-            z = data.getInt()
-        ),
+        targetPosition = Position(data.getInt(), data.getInt(), data.getInt()),
+        characterPosition = Position(data.getInt(), data.getInt(),data.getInt()),
         byMouse = data.getInt() != 0
     )
 

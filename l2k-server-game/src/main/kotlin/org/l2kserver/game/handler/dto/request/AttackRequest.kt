@@ -20,9 +20,9 @@ data class AttackRequest(
     constructor(data: ByteBuffer): this(
         targetId = data.getInt(),
         attackerPosition = Position(
-            x = data.getInt(),
-            y = data.getInt(),
-            z = data.getInt()
+            data.getInt(),
+            data.getInt(),
+            data.getInt()
         )
     )
 

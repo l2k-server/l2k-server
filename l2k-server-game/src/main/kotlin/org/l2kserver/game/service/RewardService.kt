@@ -16,7 +16,8 @@ import org.l2kserver.game.model.actor.PlayerCharacterInstanceImpl
 import org.l2kserver.game.model.actor.character.PlayerCharacterInstance
 import org.l2kserver.game.model.actor.character.PvpState
 import org.l2kserver.game.model.actor.npc.NpcInstance
-import org.l2kserver.game.model.utils.withChance
+import org.l2kserver.game.model.actor.npc.NpcState
+import org.l2kserver.game.utils.withChance
 import org.l2kserver.game.network.session.sendTo
 import org.l2kserver.game.repository.GameObjectRepository
 import org.springframework.beans.factory.annotation.Value
@@ -113,7 +114,9 @@ class RewardService(
      * Calculates item drops
      */
     private suspend fun manageItemRewards(killed: NpcInstance) {
-        val mostValuableDamager = killed.opponents.maxBy { (_, damage) -> damage }.key
+        val mostValuableDamager = (killed.state as NpcState.Fighting).opponents
+            .maxBy { (_, damage) -> damage }.key
+
         if (mostValuableDamager is NpcInstanceImpl) return
 
         killed.reward?.itemGroups?.forEach { (chance, items) ->
@@ -126,9 +129,10 @@ class RewardService(
      * Calculates exp and sp gain for all the attackers by level difference and damage dealt, and applies it to killer
      */
     private suspend fun manageExpAndSpGain(killer: PlayerCharacterInstance, killed: NpcInstance) {
-        val allTheDamageReceived = killed.opponents.values.reduce { acc, i -> acc + i }
+        val allTheDamageReceived = (killed.state as NpcState.Fighting)
+            .opponents.values.reduce { acc, i -> acc + i }
 
-        for ((attacker: ActorInstance, damage: Int) in killed.opponents) {
+        for ((attacker: ActorInstance, damage: Int) in (killed.state as NpcState.Fighting).opponents) {
             //TODO Manage damage dealt by pets and summons
             //TODO Share reward between party members
             //TODO Manage sp share between parties and solo players, who hit this monster

@@ -10,7 +10,7 @@ import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.l2kserver.game.configuration.properties.LevelProperties
-import org.l2kserver.game.domain.ItemEntity
+import org.l2kserver.game.domain.ItemEntity.Companion.new
 import org.l2kserver.game.domain.PlayerCharacterEntity
 import org.l2kserver.game.domain.PlayerCharacterTable
 import org.l2kserver.game.domain.SkillEntity
@@ -19,6 +19,9 @@ import org.l2kserver.game.model.actor.PlayerCharacterInstanceImpl
 import org.l2kserver.game.model.actor.character.CharacterRace
 import org.l2kserver.game.model.actor.character.Gender
 import org.l2kserver.game.model.actor.character.CharacterClassRegistry
+import org.l2kserver.game.model.actor.character.InitialItem
+import org.l2kserver.game.model.item.ItemRegistry
+import org.l2kserver.game.service.IdGenerationService
 import org.springframework.stereotype.Component
 import java.time.LocalDateTime
 import kotlin.math.roundToInt
@@ -30,6 +33,7 @@ private const val DEFAULT_TITLE = ""
 @Component
 class PlayerCharacterRepository(
     private val shortcutRepository: ShortcutRepository,
+    private val idGenerationService: IdGenerationService,
     private val levelProperties: LevelProperties
 ) {
 
@@ -47,7 +51,7 @@ class PlayerCharacterRepository(
             "Character of class $classId cannot be created!"
         }
 
-        val characterEntity = PlayerCharacterEntity.new {
+        val characterEntity = PlayerCharacterEntity.new(idGenerationService.next()) {
             this.accountName = accountName
             this.name = characterName
             this.title = DEFAULT_TITLE
@@ -68,6 +72,8 @@ class PlayerCharacterRepository(
             this.titleColor = DEFAULT_TITLE_COLOR
         }
 
+        commit()
+
         val characterLevel = levelProperties.getLevelByExp(characterEntity.exp)
 
         for ((requiredLevel, skillsToLearn) in characterClass.skillTree) {
@@ -82,8 +88,7 @@ class PlayerCharacterRepository(
                 }
             }
         }
-
-        ItemEntity.createAllFrom(characterEntity.id.value, characterTemplate.items)
+        createInitialItems(characterEntity.id.value, characterTemplate.items)
 
         val character = characterEntity.toPlayerCharacter()!!
 
@@ -140,7 +145,25 @@ class PlayerCharacterRepository(
     fun deleteAllWithExpiredDeletionDate() = transaction {
         PlayerCharacterTable
             .deleteReturning { PlayerCharacterTable.deletionDate lessEq LocalDateTime.now() }
-            .mapNotNull { PlayerCharacterEntity.wrapRow(it).toPlayerCharacter() }
+            .mapNotNull { row ->
+                val character = PlayerCharacterEntity.wrapRow(row).toPlayerCharacter()
+                character?.id?.let { idGenerationService.release(it) }
+
+                character
+            }
+    }
+
+    private fun createInitialItems(ownerId: Int, initialItems: List<InitialItem>) = initialItems.forEach {
+        ItemRegistry.findByIdOrNull(it.id)?.let { template ->
+            new(idGenerationService.next()) {
+                this.templateId = it.id
+                this.ownerId = ownerId
+                this.amount = it.amount
+                this.equippedAt = if (it.isEquipped)
+                    template.type.availableSlots.firstOrNull() else null
+                this.enchantLevel = it.enchantLevel
+            }
+        }
     }
 
     private fun PlayerCharacterEntity.toPlayerCharacter(): PlayerCharacterInstanceImpl? {

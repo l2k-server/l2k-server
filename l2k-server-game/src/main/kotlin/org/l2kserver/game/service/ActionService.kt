@@ -13,6 +13,7 @@ import org.l2kserver.game.handler.dto.response.ActionFailedResponse
 import org.l2kserver.game.handler.dto.response.CancelCastingResponse
 import org.l2kserver.game.handler.dto.response.CancelTargetResponse
 import org.l2kserver.game.handler.dto.response.ChangeMoveTypeResponse
+import org.l2kserver.game.handler.dto.response.NpcChatWindowResponse
 import org.l2kserver.game.handler.dto.response.SetTargetResponse
 import org.l2kserver.game.handler.dto.response.ShowMapResponse
 import org.l2kserver.game.handler.dto.response.SocialActionResponse
@@ -25,6 +26,7 @@ import org.l2kserver.game.model.actor.ScatteredItem
 import org.l2kserver.game.model.actor.MoveType
 import org.l2kserver.game.model.actor.MutableActorInstance
 import org.l2kserver.game.model.actor.Posture
+import org.l2kserver.game.model.actor.npc.ai.NpcAi
 import org.l2kserver.game.network.session.send
 import org.l2kserver.game.network.session.sessionContext
 import org.l2kserver.game.repository.GameObjectRepository
@@ -36,7 +38,6 @@ const val INTERACTION_DISTANCE = 40
 /** Handles player's actions, like attacking, setting target, switching sit and stand... */
 @Service
 class ActionService(
-    private val npcService: NpcService,
     private val tradeService: TradeService,
     private val asyncTaskService: AsyncTaskService,
 
@@ -151,8 +152,8 @@ class ActionService(
     /** Moves PlayerCharacter enough close to [target] and starts interaction with it */
     suspend fun interact(character: PlayerCharacterInstanceImpl, target: ActorInstance) {
         val enoughCloseToInteract = character.position.isCloseTo(
-            other = target.position,
-            distance = (character.collisionBox.radius + target.collisionBox.radius).roundToInt() + INTERACTION_DISTANCE
+            target.position,
+            (character.collisionBox.radius + target.collisionBox.radius).roundToInt() + INTERACTION_DISTANCE
         )
 
         if (!enoughCloseToInteract) character.intentionQueue.enqueue(
@@ -161,7 +162,12 @@ class ActionService(
         )
 
         when (target) {
-            is NpcInstanceImpl -> npcService.talkTo(target)
+            is NpcInstanceImpl -> send {
+                val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
+                val replica = target.onTalkWith(character)
+
+                NpcChatWindowResponse(npcId = target.id, message = replica )
+            }
             is PlayerCharacterInstanceImpl -> tradeService.showPrivateStoreOf(target)
         }
     }
