@@ -26,7 +26,7 @@ import org.l2kserver.game.model.actor.npc.NpcRegistry
 import org.l2kserver.game.model.html.HtmlRegistry
 import org.l2kserver.game.model.item.ItemRegistry
 import org.l2kserver.game.model.map.TownRegistry
-import org.l2kserver.game.model.skill.template.SkillRegistry
+import org.l2kserver.game.model.skill.SkillRegistry
 import org.l2kserver.game.repository.PlayerCharacterRepository
 import org.l2kserver.game.repository.ShortcutRepository
 import org.springframework.boot.context.event.ApplicationStartedEvent
@@ -42,7 +42,7 @@ private const val TEST_CHARACTER_ACCOUNT_NAME = "admin"
 private const val TEST_FIGHTER_CHARACTER_NAME = "TesterMan"
 private const val TEST_MYSTIC_CHARACTER_NAME = "TesterWoman"
 
-/** Loads data for LIVE test. Don't use it for integration testing */
+/** Loads data for LIVE test */
 @Component
 class TestDataLoader(
     private val playerCharacterRepository: PlayerCharacterRepository,
@@ -141,7 +141,7 @@ class TestDataLoader(
                     clazz.objectInstance != null -> clazz.objectInstance!!
                     clazz.constructors.any { it.parameters.isEmpty() } -> clazz.createInstance()
                     else -> {
-                        log.warn { "GameData ${clazz.qualifiedName} must be object or have empty constructor" }
+                        log.warn { "GameData ${clazz.qualifiedName} must be worldObject or have empty constructor" }
                         continue
                     }
                 }

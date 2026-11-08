@@ -1,7 +1,7 @@
 package org.l2kserver.game.model.actor.position
 
 /**
- * Represents spawn position of game object - x,y,z coordinates and heading
+ * Represents spawn position of game worldObject - x,y,z coordinates and heading
  * @see Position
  * @see Heading
  */

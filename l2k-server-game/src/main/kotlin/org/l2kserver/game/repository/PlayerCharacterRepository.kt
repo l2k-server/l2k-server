@@ -1,10 +1,8 @@
 package org.l2kserver.game.repository
 
 import org.jetbrains.exposed.v1.core.SortOrder
-import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.lessEq
-import org.jetbrains.exposed.v1.core.neq
 import org.jetbrains.exposed.v1.jdbc.deleteReturning
 import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
@@ -34,7 +32,7 @@ private const val DEFAULT_TITLE = ""
 class PlayerCharacterRepository(
     private val shortcutRepository: ShortcutRepository,
     private val idGenerationService: IdGenerationService,
-    private val levelProperties: LevelProperties
+    private val levelProperties: LevelProperties,
 ) {
 
     private val log = logger()
@@ -125,15 +123,6 @@ class PlayerCharacterRepository(
         PlayerCharacterTable
             .select(listOf(PlayerCharacterTable.id))
             .where { PlayerCharacterTable.name eq characterName }
-            .count() > 0
-    }
-
-    fun existDeletingByAccountName(accountName: String) = transaction {
-        PlayerCharacterTable
-            .select(listOf(PlayerCharacterTable.id))
-            .where {
-                (PlayerCharacterTable.accountName eq accountName) and (PlayerCharacterTable.deletionDate neq null)
-            }
             .count() > 0
     }
 

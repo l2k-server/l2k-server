@@ -5,10 +5,10 @@ import org.l2kserver.game.model.actor.ActorInstance
 import org.l2kserver.game.model.actor.character.PlayerCharacterInstance
 import org.l2kserver.game.model.skill.context.SkillContext
 import org.l2kserver.game.model.skill.effect.ResurrectionEffect
-import org.l2kserver.game.model.skill.instance.SkillTargetType
-import org.l2kserver.game.model.skill.template.ActiveSkill
-import org.l2kserver.game.model.skill.template.SkillConditionFailed
-import org.l2kserver.game.model.skill.template.SkillConsumablesTemplate
+import org.l2kserver.game.model.skill.SkillTargetType
+import org.l2kserver.game.model.skill.ActiveSkill
+import org.l2kserver.game.model.skill.SkillConditionFailed
+import org.l2kserver.game.model.skill.SkillConsumablesTemplate
 
 data object Resurrection: ActiveSkill {
     override val id = 1016

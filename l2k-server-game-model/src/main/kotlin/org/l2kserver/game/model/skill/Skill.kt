@@ -1,4 +1,4 @@
-package org.l2kserver.game.model.skill.template
+package org.l2kserver.game.model.skill
 
 import org.l2kserver.game.model.GameData
 import org.l2kserver.game.model.GameDataRegistry
@@ -9,8 +9,6 @@ import org.l2kserver.game.model.item.WeaponType
 import org.l2kserver.game.model.skill.context.SkillContext
 import org.l2kserver.game.model.skill.effect.AbnormalEffect
 import org.l2kserver.game.model.skill.effect.Effect
-import org.l2kserver.game.model.skill.instance.SkillConsumables
-import org.l2kserver.game.model.skill.instance.SkillTargetType
 
 /** Stores all the skill templates */
 object SkillRegistry: GameDataRegistry<Skill>()

@@ -1,12 +1,10 @@
-package org.l2kserver.game.model.skill.instance
+package org.l2kserver.game.model.skill
 
 import org.l2kserver.game.model.actor.ActorInstance
 import org.l2kserver.game.model.item.ConsumableItem
 import org.l2kserver.game.model.skill.context.SkillContext
 import org.l2kserver.game.model.skill.effect.AbnormalEffect
 import org.l2kserver.game.model.skill.effect.Effect
-import org.l2kserver.game.model.skill.template.SkillConditionFailed
-import org.l2kserver.game.model.skill.template.SkillRequirements
 import java.time.Instant
 
 /**

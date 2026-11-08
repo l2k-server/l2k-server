@@ -19,7 +19,7 @@ import org.l2kserver.game.model.actor.npc.NpcInstance
 import org.l2kserver.game.model.actor.npc.NpcState
 import org.l2kserver.game.utils.withChance
 import org.l2kserver.game.network.session.sendTo
-import org.l2kserver.game.repository.GameObjectRepository
+import org.l2kserver.game.repository.GameWorld
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import kotlin.collections.component1
@@ -33,16 +33,18 @@ import kotlin.random.Random
 @Service
 class RewardService(
     private val itemService: ItemService,
-    override val gameObjectRepository: GameObjectRepository,
+    override val gameWorld: GameWorld,
     private val levelProperties: LevelProperties,
 
     @param:Value($$"${game.karmaBaseAmount}") private val karmaBaseAmount: Int,
     @param:Value($$"${game.karmaMaxAmount}") private val karmaMaxAmount: Int,
     @param:Value($$"${game.karmaExpDivider}") private val karmaExpDivider: Int,
     @param:Value($$"${game.karmaLostMin}") private val karmaLostMin: Int,
+
     @param:Value($$"${reward.minLevelDifferenceForPenalty}") private val minLevelDifferenceForPenalty: Int,
     @param:Value($$"${reward.maxLevelDifferenceForPenalty}") private val maxLevelDifferenceForPenalty: Int,
-    @param:Value($$"${reward.levelPenaltyBaseValue}") private val levelPenaltyBaseValue: Double
+    @param:Value($$"${reward.levelPenaltyBaseValue}") private val levelPenaltyBaseValue: Double,
+    @param:Value($$"${reward.overhitMaxExpBonus}") private val overhitMaxExpBonus: Double
 ) : AbstractService() {
 
     override val log = logger()
@@ -139,7 +141,7 @@ class RewardService(
 
             // Monsters do not get exp/sp for monster hunt
             if (attacker !is PlayerCharacterInstanceImpl) continue
-            if (!attacker.position.isCloseTo(killed.position, VISION_RANGE)) continue
+            if (!attacker.position.isCloseTo(killed.position, charactersPerceptionRadius)) continue
 
             val killerLevel = attacker.level
 
@@ -224,8 +226,9 @@ class RewardService(
     }
 
     /** Get the overhit exp bonus according to the above over-hit damage percentage */
+    @Suppress("MagicNumber")
     private fun calculateOverhitExp(expGain: Int, overhitDamage: Int, killedMaxHp: Int): Int {
-        return (minOf(overhitDamage.toDouble() / killedMaxHp, 0.25) * expGain).roundToInt()
+        return (minOf(overhitDamage.toDouble() / killedMaxHp, overhitMaxExpBonus) * expGain).roundToInt()
     }
 
 }

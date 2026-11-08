@@ -4,7 +4,7 @@ package org.l2kserver.game.data.town
 import org.l2kserver.game.model.actor.position.Position
 import org.l2kserver.game.model.map.Town
 
-data object TaklingIslandVillage: Town {
+data object TalkingIslandVillage: Town {
     override val id = 0
     override val name = "Talking Island Village"
     override val territories = listOf("16_24", "16_25", "17_24", "17_25", "18_25")

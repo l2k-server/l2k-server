@@ -3,8 +3,8 @@ package org.l2kserver.game.handler.dto.response
 import org.l2kserver.game.extensions.littleEndianByteArray
 import org.l2kserver.game.extensions.putUByte
 import org.l2kserver.game.extensions.toInt
-import org.l2kserver.game.model.skill.instance.PassiveSkillInstance
-import org.l2kserver.game.model.skill.instance.SkillInstance
+import org.l2kserver.game.model.skill.PassiveSkillInstance
+import org.l2kserver.game.model.skill.SkillInstance
 
 private const val SKILL_LIST_RESPONSE_PACKET_ID: UByte = 88u
 

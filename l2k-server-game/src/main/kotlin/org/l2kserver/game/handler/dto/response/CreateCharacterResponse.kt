@@ -17,8 +17,8 @@ data class CreateCharacterFailResponse(
 }
 
 enum class CreateCharacterFailReason(val code: Int) {
-    CREATION_FAILED(0),
-    TOO_MANY_CHARACTERS(1),
-    NAME_ALREADY_EXISTS(2),
-    NAME_EXCEED_16_CHARACTERS(3);
+    CREATION_FAILED(code = 0),
+    TOO_MANY_CHARACTERS(code =1),
+    NAME_ALREADY_EXISTS(code = 2),
+    NAME_EXCEED_16_CHARACTERS(code = 3);
 }

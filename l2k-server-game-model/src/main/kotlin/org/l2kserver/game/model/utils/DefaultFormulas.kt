@@ -31,6 +31,8 @@ const val EVASION_CHANCE_BASE = 88
 const val BONUS_SHIELD_DEF_RATE_AGAINST_BOW = 30
 const val BONUS_SHIELD_DEF_RATE_AGAINST_DAGGER = 12
 
+const val TOO_BIG_LEVEL_DIFFERENCE = 9
+
 /** Calculates if attack of [attacker] on [attacked] is critical */
 fun calculateIsPhysicalAttackCritical(attacker: ActorInstance, attacked: ActorInstance): Boolean {
     val critRate = attacker.stats.critRate * calculatePositionCritChanceMultiplier(attacker, attacked)

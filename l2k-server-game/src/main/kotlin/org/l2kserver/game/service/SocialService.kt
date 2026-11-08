@@ -10,7 +10,7 @@ import org.l2kserver.game.model.map.TownRegistry
 import org.l2kserver.game.network.session.send
 import org.l2kserver.game.network.session.sendTo
 import org.l2kserver.game.network.session.sessionContext
-import org.l2kserver.game.repository.GameObjectRepository
+import org.l2kserver.game.repository.GameWorld
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 
@@ -19,7 +19,7 @@ import org.springframework.stereotype.Service
  */
 @Service
 class SocialService(
-    override val gameObjectRepository: GameObjectRepository,
+    override val gameWorld: GameWorld,
 
     @param:Value($$"${chat.general_chat_range}") private val generalChatRange: Int,
 ): AbstractService() {
@@ -27,7 +27,7 @@ class SocialService(
     override val log = logger()
 
     suspend fun handleChatMessageRequest(request: ChatMessageRequest) {
-        val speaker = gameObjectRepository.findActorById(sessionContext().getCharacterId())
+        val speaker = gameWorld.findActorById(sessionContext().getCharacterId())
         log.debug { "Player '$speaker' tries to say '${request.message}'" }
 
         if (request.message.isBlank()) return
@@ -44,14 +44,14 @@ class SocialService(
             ChatTab.GENERAL -> broadcastAround(speaker.position, generalChatRange) { response }
             ChatTab.WHISPER -> {
                 if (request.targetName != null) {
-                    val addressee = gameObjectRepository.findCharacterByName(request.targetName)
+                    val addressee = gameWorld.findCharacterByName(request.targetName)
                     send { response }
                     sendTo(addressee.id) { response }
                 }
             }
             ChatTab.SHOUT, ChatTab.TRADE -> {
                 val closestTown = TownRegistry.findClosestByPosition(speaker.position)
-                gameObjectRepository.findAllCharacters().forEachMatching(
+                gameWorld.findAllCharacters().forEachMatching(
                     predicate = { TownRegistry.findClosestByPosition(it.position) == closestTown },
                     action = { sendTo(it.id) { response }}
                 )

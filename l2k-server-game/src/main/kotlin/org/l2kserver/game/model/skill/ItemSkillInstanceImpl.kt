@@ -2,8 +2,6 @@ package org.l2kserver.game.model.skill
 
 import org.l2kserver.game.model.actor.ActorInstance
 import org.l2kserver.game.model.skill.context.SkillContext
-import org.l2kserver.game.model.skill.instance.ActiveSkillInstance
-import org.l2kserver.game.model.skill.template.ActiveSkill
 import java.time.Instant
 import java.util.concurrent.ConcurrentHashMap
 

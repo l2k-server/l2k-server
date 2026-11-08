@@ -44,34 +44,34 @@ enum class ArmorType(override val availableSlots: Set<Slot>): ItemType {
  */
 enum class WeaponType(override val availableSlots: Set<Slot>, val damageSpread: Double): ItemType {
     /** Dagger weapon type */
-    DAGGER(setOf(Slot.RIGHT_HAND), 0.05),
+    DAGGER(availableSlots = setOf(Slot.RIGHT_HAND), damageSpread = 0.05),
 
     /** One-handed sword weapon type */
-    SWORD_ONE_HANDED(setOf(Slot.RIGHT_HAND), 0.1),
+    SWORD_ONE_HANDED(availableSlots = setOf(Slot.RIGHT_HAND), damageSpread = 0.1),
 
     /** Two-handed sword weapon type */
-    SWORD_TWO_HANDED(setOf(Slot.TWO_HANDS), 0.1),
+    SWORD_TWO_HANDED(availableSlots = setOf(Slot.TWO_HANDS), damageSpread = 0.1),
 
     /** One-handed blunt weapon type */
-    BLUNT_ONE_HANDED(setOf(Slot.RIGHT_HAND), 0.2),
+    BLUNT_ONE_HANDED(availableSlots = setOf(Slot.RIGHT_HAND), damageSpread = 0.2),
 
     /** Two-handed blunt weapon type */
-    BLUNT_TWO_HANDED(setOf(Slot.TWO_HANDS), 0.2),
+    BLUNT_TWO_HANDED(availableSlots = setOf(Slot.TWO_HANDS), damageSpread = 0.2),
 
     /** Double blades weapon type */
-    DOUBLE_BLADES(setOf(Slot.TWO_HANDS), 0.1),
+    DOUBLE_BLADES(availableSlots = setOf(Slot.TWO_HANDS), damageSpread = 0.1),
 
     /** Bow weapon type */
-    BOW(setOf(Slot.TWO_HANDS), 0.05),
+    BOW(availableSlots = setOf(Slot.TWO_HANDS), damageSpread = 0.05),
 
     /** Fist weapon type */
-    FIST(setOf(Slot.TWO_HANDS), 0.05),
+    FIST(availableSlots = setOf(Slot.TWO_HANDS), damageSpread = 0.05),
 
     /** Pole weapon type */
-    POLE(setOf(Slot.TWO_HANDS), 0.1),
+    POLE(availableSlots = setOf(Slot.TWO_HANDS), damageSpread = 0.1),
 
     /** Etc weapon type (magic books, etc.) */
-    ETC(setOf(Slot.TWO_HANDS), 0.1);
+    ETC(availableSlots = setOf(Slot.TWO_HANDS), damageSpread = 0.1);
 
     fun calculateRandomDamageModifier() = 1.0 + this.damageSpread.let { Random.nextDouble(-it, it) }
 
@@ -90,12 +90,12 @@ enum class WeaponType(override val availableSlots: Set<Slot>, val damageSpread: 
  * @property TWO_SLOT_ACCESSORY Two-slot accessory jewelry type
  */
 enum class JewelryType(override val availableSlots: Set<Slot>): ItemType {
-    RING(setOf(Slot.LEFT_RING, Slot.RIGHT_RING)),
-    EARRING(setOf(Slot.LEFT_EARRING, Slot.RIGHT_EARRING)),
-    NECKLACE(setOf(Slot.NECKLACE)),
-    FACE_ACCESSORY(setOf(Slot.FACE_ACCESSORY)),
-    HAIR_ACCESSORY(setOf(Slot.HAIR_ACCESSORY)),
-    TWO_SLOT_ACCESSORY(setOf(Slot.TWO_SLOT_ACCESSORY)),
+    RING(availableSlots = setOf(Slot.LEFT_RING, Slot.RIGHT_RING)),
+    EARRING(availableSlots = setOf(Slot.LEFT_EARRING, Slot.RIGHT_EARRING)),
+    NECKLACE(availableSlots = setOf(Slot.NECKLACE)),
+    FACE_ACCESSORY(availableSlots = setOf(Slot.FACE_ACCESSORY)),
+    HAIR_ACCESSORY(availableSlots = setOf(Slot.HAIR_ACCESSORY)),
+    TWO_SLOT_ACCESSORY(availableSlots = setOf(Slot.TWO_SLOT_ACCESSORY)),
 }
 
 object ArrowItemType : ItemType {

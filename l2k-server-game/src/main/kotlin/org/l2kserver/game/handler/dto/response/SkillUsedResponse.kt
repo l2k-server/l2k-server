@@ -63,6 +63,7 @@ data class ShotUsedResponse(
         putInt(usedBy.position.z)
     }
 
+    @Suppress("MagicNumber")
     private fun getSoulshotUsageSkillId(grade: Grade) = when(grade) {
         Grade.NO_GRADE -> 2039
         Grade.D -> 2150
@@ -72,6 +73,7 @@ data class ShotUsedResponse(
         Grade.S -> 2154
     }
 
+    @Suppress("MagicNumber")
     private fun getSpiritshotUsageSkillId(grade: Grade) = when(grade) {
         Grade.NO_GRADE -> 2061
         Grade.D -> 2155

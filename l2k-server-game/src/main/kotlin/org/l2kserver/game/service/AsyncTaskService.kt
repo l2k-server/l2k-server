@@ -71,15 +71,15 @@ class AsyncTaskService {
     }
 
     /**
-     * Launches a task that will be repeated every [millis] ms.
+     * Launches a task that will be repeated every [iterationsDelay] ms.
      *
      * @param taskName Name of starting task
-     * @param millis Time between iterations
-     * @param action Action that will be repeated with [millis] interval
+     * @param iterationsDelay Time between iterations
+     * @param action Action that will be repeated with [iterationsDelay] interval
      */
-    fun launchRepeated(taskName: String, millis: Long = 100L, action: suspend CoroutineScope.() -> Unit) {
+    fun launchRepeated(taskName: String, iterationsDelay: Long = 100L, action: suspend CoroutineScope.() -> Unit) {
         taskJobMap[taskName] = CoroutineScope(Dispatchers.Default + CoroutineName(taskName)).launch {
-            while (isActive) withDelay(millis) { action() }
+            while (isActive) withDelay(iterationsDelay) { action() }
         }
         log.info { "Started $taskName" }
     }

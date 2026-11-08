@@ -33,14 +33,15 @@ import org.l2kserver.game.extensions.toInt
 import org.l2kserver.game.model.actor.npc.NpcState
 import org.l2kserver.game.model.item.WeaponType
 import org.l2kserver.game.model.skill.effect.DamageEffect
-import org.l2kserver.game.model.skill.instance.ActiveSkillInstance
+import org.l2kserver.game.model.skill.ActiveSkillInstance
 import org.l2kserver.game.network.session.send
 import org.l2kserver.game.network.session.sendTo
-import org.l2kserver.game.repository.GameObjectRepository
+import org.l2kserver.game.repository.GameWorld
 import org.springframework.context.annotation.Lazy
 import org.springframework.stereotype.Service
 import kotlin.math.roundToInt
 import kotlin.math.roundToLong
+import kotlin.time.Duration.Companion.milliseconds
 
 private const val DELAY_BETWEEN_ATTACKS_BASE = 470_000L
 private const val BOW_REUSE_DELAY = 499_500L
@@ -55,7 +56,7 @@ class CombatService(
     private val itemService: ItemService,
     private val levelProperties: LevelProperties,
 
-    override val gameObjectRepository: GameObjectRepository
+    override val gameWorld: GameWorld
 ) : AbstractService() {
 
     override val log = logger()
@@ -73,10 +74,7 @@ class CombatService(
             if (!attacker.position.isCloseTo(attacked.position, requiredDistance)) return
 
             // If next attack is not available, wait for a while and try again
-            if ((nextAttackAvailableTimeMap[attacker.id] ?: 0) > currentTimeMillis()) {
-                delay(50L)
-                return
-            }
+            if ((nextAttackAvailableTimeMap[attacker.id] ?: 0) > currentTimeMillis()) return
 
             suspendTransaction {
                 // Player character must spend mana and arrows for attack (if weapon requires)
@@ -102,7 +100,7 @@ class CombatService(
     suspend fun applyDamageEffect(
         attacker: MutableActorInstance, effect: DamageEffect, skill: ActiveSkillInstance? = null
     ) = suspendTransaction {
-        val attacked = gameObjectRepository.findActorByIdOrNull(effect.targetId) ?: return@suspendTransaction
+        val attacked = gameWorld.findActorByIdOrNull(effect.targetId) ?: return@suspendTransaction
 
         //For double weapon, if target was killed by first hit, or if actor is already killed by smth else
         if (attacked.isDead()) return@suspendTransaction
@@ -219,7 +217,7 @@ class CombatService(
 
         if (soulshotUsed && hits.flatten().any { !it.isAvoided }) attacker.inventory.weapon?.soulshotCharged = false
 
-        val delayBeforeHit = attackDuration / (1 + hitAmount)
+        val delayBeforeHit = (attackDuration / (1 + hitAmount)).milliseconds
 
         broadcastAround(attacker.position) {
             AttackResponse(attacker, hits.flatten(), soulshotUsed)
@@ -242,6 +240,7 @@ class CombatService(
      * @param attacker Actor,who performs the attack
      * @param attacked Actor, who is a target for this attack
      */
+    @Suppress("MagicNumber")
     private suspend fun performBowAttack(attacker: MutableActorInstance, attacked: MutableActorInstance) {
         log.debug { "$attacker tries to hit $attacked by bow" }
 
@@ -263,18 +262,18 @@ class CombatService(
         }
 
         //Delay before launching an arrow
-        delay((attackDuration * 0.7).roundToLong())
+        delay((attackDuration * 0.7).milliseconds)
 
         withContext(currentCoroutineContext() + NonCancellable) {
             //Launch an arrow!
             CoroutineScope(currentCoroutineContext() + NonCancellable).launch {
                 //Delay for time it takes for the arrow to reach the target
-                delay((attacker.position.distanceTo(attacked.position) / ARROW_SPEED_PER_MS).toLong())
+                delay((attacker.position.distanceTo(attacked.position) / ARROW_SPEED_PER_MS).milliseconds)
                 applyDamageEffect(attacker, damageEffect)
             }
 
             //Delay for the time between the hit and the end of the attack animation
-            delay((attackDuration * 0.3).roundToLong())
+            delay((attackDuration * 0.3).milliseconds)
         }
     }
 
@@ -293,7 +292,7 @@ class CombatService(
         val minHeading = (headingToMainTarget - attacker.stats.aoeHitSpread).value
         val maxHeading = (headingToMainTarget + attacker.stats.aoeHitSpread).value
 
-        return gameObjectRepository
+        return gameWorld
             .findAllActorsNear(attacker, sweepRange)
             .filter { it != attacked && it != attacker }
             .filter { it.isEnemyOf(attacker) && !it.isDead() }
@@ -371,7 +370,7 @@ class CombatService(
             (this.state as? NpcState.Fighting)?.opponents?.remove(target)
             false
         }
-        !target.exists() || !this.position.isCloseTo(target.position, VISION_RANGE) -> false
+        !target.exists() || !this.position.isCloseTo(target.position, charactersPerceptionRadius) -> false
         else -> true
     }
 

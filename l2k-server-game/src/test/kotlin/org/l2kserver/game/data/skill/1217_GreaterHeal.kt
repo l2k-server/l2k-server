@@ -6,9 +6,9 @@ import org.l2kserver.game.model.skill.effect.AbnormalType
 import org.l2kserver.game.model.skill.effect.EffectOnTimeAbnormalEffect
 import org.l2kserver.game.model.skill.effect.effects
 import org.l2kserver.game.model.skill.effect.HealEffect
-import org.l2kserver.game.model.skill.instance.SkillTargetType
-import org.l2kserver.game.model.skill.template.ActiveSkill
-import org.l2kserver.game.model.skill.template.SkillConsumablesTemplate
+import org.l2kserver.game.model.skill.SkillTargetType
+import org.l2kserver.game.model.skill.ActiveSkill
+import org.l2kserver.game.model.skill.SkillConsumablesTemplate
 import java.time.Duration
 import kotlin.math.roundToInt
 

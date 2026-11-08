@@ -8,11 +8,11 @@ import org.l2kserver.game.model.skill.effect.AbnormalVisualEffect
 import org.l2kserver.game.model.skill.effect.Debuff
 import org.l2kserver.game.model.skill.effect.ResistedEffect
 import org.l2kserver.game.model.skill.effect.effects
-import org.l2kserver.game.model.skill.instance.SkillTargetType
-import org.l2kserver.game.model.skill.template.ActiveSkill
-import org.l2kserver.game.model.skill.template.SkillConsumablesTemplate
+import org.l2kserver.game.model.skill.SkillTargetType
+import org.l2kserver.game.model.skill.ActiveSkill
+import org.l2kserver.game.model.skill.SkillConsumablesTemplate
 import org.l2kserver.game.model.stats.BasicStat
-import org.l2kserver.game.model.stats.CON
+import org.l2kserver.game.model.stats.Constitution
 import org.l2kserver.game.model.utils.calculateDebuffSuccess
 import java.time.Duration
 
@@ -25,7 +25,7 @@ class PoisonEffect(
     override val abnormalVisualEffect = AbnormalVisualEffect.POISON
     override val effectLevel get() = listOf(1, 3, 4)[magicLevel - 1]
 
-    override val basicProperty: BasicStat = CON
+    override val basicProperty: BasicStat = Constitution
     override val levelBonusRate = 1.0
     override val activateRate = 70
 

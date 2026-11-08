@@ -9,6 +9,11 @@ import org.l2kserver.game.model.skill.effect.DamageEffect
 
 private const val ATTACK_RESPONSE_PACKET_ID: UByte = 5u
 
+private const val IS_AVOIDED_BIT: UByte    = 0b10000000u
+private const val IS_BLOCKED_BIT: UByte    = 0b01000000u
+private const val IS_CRITICAL_BIT: UByte   = 0b00100000u
+private const val SOULSHOT_USED_BIT: UByte = 0b00010000u
+
 /**
  * Attack data
  *
@@ -54,10 +59,11 @@ private fun DamageEffect.toByteArray(usedSoulshot: Boolean, weaponGrade: Grade) 
     // The result will be byte value, where left bits correspond to attack flags
     // If all flags enabled, the result will be 0b11110000
     var flags: UByte = 0u
-    if (isAvoided) flags = flags or 128u
-    if (isBlocked) flags = flags or 64u
-    if (isCritical) flags = flags or 32u
-    if (usedSoulshot) flags = flags or 16u or weaponGrade.ordinal.toUByte()
+
+    if (isAvoided) flags = flags or IS_AVOIDED_BIT
+    if (isBlocked) flags = flags or IS_BLOCKED_BIT
+    if (isCritical) flags = flags or IS_CRITICAL_BIT
+    if (usedSoulshot) flags = flags or SOULSHOT_USED_BIT or weaponGrade.ordinal.toUByte()
 
     putUByte(flags)
 }

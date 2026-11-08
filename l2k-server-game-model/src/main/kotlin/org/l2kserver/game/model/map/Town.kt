@@ -25,7 +25,7 @@ object TownRegistry: GameDataRegistry<Town>() {
 
     /** Finds town, which is closest to the [position] */
     fun findClosestByPosition(position: Position) = this.find {
-        it.territories.contains("${position.tileX}_${position.tileY}")
+        it.territories.contains("${position.regionXId()}_${position.regionYId()}")
     }
 
 }

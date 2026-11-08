@@ -6,7 +6,7 @@ import org.l2kserver.game.model.actor.MutableActorInstance
 import org.l2kserver.game.model.actor.NpcInstanceImpl
 import org.l2kserver.game.model.actor.PlayerCharacterInstanceImpl
 import org.l2kserver.game.model.actor.character.PlayerCharacterInstance
-import org.l2kserver.game.model.skill.instance.ActiveSkillInstance
+import org.l2kserver.game.model.skill.ActiveSkillInstance
 
 fun ActorInstance.asMutable() = requireNotNull(this as? MutableActorInstance) {
     "$this cannot be proceeded by server. Was it created outside server core?"

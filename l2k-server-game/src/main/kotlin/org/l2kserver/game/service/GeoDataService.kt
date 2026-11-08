@@ -12,10 +12,10 @@ import org.springframework.stereotype.Service
 import java.io.File
 import kotlin.random.Random
 
-private const val TILE_X_MIN = 16
-private const val TILE_X_MAX = 26
-private const val TILE_Y_MIN = 10
-private const val TILE_Y_MAX = 26
+const val GEO_TILE_X_MIN = 16
+const val GEO_TILE_X_MAX = 26
+const val GEO_TILE_Y_MIN = 10
+const val GEO_TILE_Y_MAX = 26
 
 private const val GEODATA_PATH = "./geodata"
 
@@ -26,8 +26,8 @@ class GeoDataService(
     private val log = logger()
 
     init {
-        for (i: Int in TILE_X_MIN..TILE_X_MAX) {
-            for (j: Int in TILE_Y_MIN..TILE_Y_MAX) {
+        for (i: Int in GEO_TILE_X_MIN..GEO_TILE_X_MAX) {
+            for (j: Int in GEO_TILE_Y_MIN..GEO_TILE_Y_MAX) {
                 val geoDataFile = File("$GEODATA_PATH/${i}_${j}.l2j")
                 if (geoDataFile.exists()) {
                     geoDriver.loadRegion(geoDataFile.toPath(), i, j)

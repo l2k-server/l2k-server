@@ -60,22 +60,11 @@ interface NpcInstance: ActorInstance {
 /**
  * Record about where was the NPC spawned - at position or SpawnZone.
  * Only one of them can be provided
+ *
+ * @property spawnPosition Initial position of the NPC
+ * @property spawnZone Zone, where NPC was spawned (if the MPC's spawn zone was defined)
  */
-class SpawnedAt private constructor(
-    val spawnPosition: SpawnPosition?,
-    val spawnZone: SpawnZone?
-) {
-    constructor(spawnZone: SpawnZone): this(spawnPosition = null, spawnZone = spawnZone)
-    constructor(spawnPosition: SpawnPosition): this(spawnPosition = spawnPosition, spawnZone = null)
-
-    init {
-        require((spawnPosition == null) xor (spawnZone == null)) {
-            "One NPC cannot be spawned at both position and zone"
-        }
-    }
-
-    override fun toString(): String {
-        return if (spawnZone != null ) "SpawnedAt(spawnZone=$spawnZone)"
-        else "SpawnedAt(spawnPosition=$spawnPosition)"
-    }
-}
+data class SpawnedAt(
+    val spawnPosition: SpawnPosition,
+    val spawnZone: SpawnZone? = null
+)

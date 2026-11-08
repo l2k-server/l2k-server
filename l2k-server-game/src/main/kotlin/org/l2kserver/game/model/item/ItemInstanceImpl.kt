@@ -2,7 +2,7 @@ package org.l2kserver.game.model.item
 
 import org.l2kserver.game.domain.ItemEntity
 import org.l2kserver.game.model.skill.ItemSkillInstanceImpl
-import org.l2kserver.game.model.skill.instance.ActiveSkillInstance
+import org.l2kserver.game.model.skill.ActiveSkillInstance
 
 open class ItemInstanceImpl(entity: ItemEntity, template: Item): ItemInstance {
     override val id: Int = entity.id.value

@@ -17,14 +17,14 @@ import org.l2kserver.game.model.actor.character.ShortcutType
 import org.l2kserver.game.model.actor.character.SkillToLearn
 import org.l2kserver.game.model.actor.position.Position
 import org.l2kserver.game.model.stats.BasicStats
-import org.l2kserver.game.model.stats.CON
+import org.l2kserver.game.model.stats.Constitution
 import org.l2kserver.game.model.stats.CombatStats
-import org.l2kserver.game.model.stats.DEX
-import org.l2kserver.game.model.stats.INT
-import org.l2kserver.game.model.stats.MEN
-import org.l2kserver.game.model.stats.STR
+import org.l2kserver.game.model.stats.Dexterity
+import org.l2kserver.game.model.stats.Intelligence
+import org.l2kserver.game.model.stats.Mental
+import org.l2kserver.game.model.stats.Strength
 import org.l2kserver.game.model.stats.TradeAndInventoryStats
-import org.l2kserver.game.model.stats.WIT
+import org.l2kserver.game.model.stats.Wisdom
 
 private val HUMAN_MYSTIC_HP_TABLE = listOf(
     1.0,     101.0,   116.47,  132.11,  147.92,  163.9,   180.05,  196.37,  212.86,  229.52,
@@ -66,12 +66,12 @@ data object HumanMystic: CharacterClass() {
     override val id = 10
     override val requiredLevel = 1
     override val basicStats = BasicStats(
-        STR(22),
-        DEX(21),
-        CON(27),
-        INT(41),
-        WIT(20),
-        MEN(39),
+        Strength(22),
+        Dexterity(21),
+        Constitution(27),
+        Intelligence(41),
+        Wisdom(20),
+        Mental(39),
     )
     override val tradeAndInventoryStats = TradeAndInventoryStats(privateStoreSize = 4)
     override val emptySlotStats = DefaultEmptySlotStats.MYSTIC

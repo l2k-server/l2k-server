@@ -4,10 +4,12 @@ import com.hazelcast.config.Config
 import com.hazelcast.core.Hazelcast
 import com.hazelcast.core.HazelcastInstance
 import org.l2kserver.game.extensions.logger
-import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.context.annotation.Bean
+import org.springframework.context.annotation.Configuration
+import org.springframework.context.annotation.Profile
 
-@TestConfiguration
+@Configuration
+@Profile("test")
 class HazelcastInstanceTestConfiguration {
     private val log = logger()
 

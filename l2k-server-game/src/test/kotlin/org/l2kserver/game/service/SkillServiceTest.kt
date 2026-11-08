@@ -4,7 +4,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import org.jetbrains.exposed.v1.jdbc.insert
-import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.junit.jupiter.api.assertNotNull
 import org.junit.jupiter.api.assertThrows
@@ -41,7 +40,6 @@ import org.l2kserver.game.data.skill.Resurrection
 import org.l2kserver.game.handler.dto.response.ConfirmDialogResponse
 import org.l2kserver.game.handler.dto.response.TemporalEffectsResponse
 import org.l2kserver.game.handler.dto.response.FullCharacterResponse
-import org.l2kserver.game.handler.dto.response.NpcInfoResponse
 import org.l2kserver.game.handler.dto.response.PvPStatusResponse
 import org.l2kserver.game.model.actor.character.PvpState
 import org.l2kserver.game.model.actor.position.Position
@@ -52,9 +50,10 @@ import kotlin.math.roundToInt
 import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
 
 class SkillServiceTest @Autowired constructor(
     private val skillService: SkillService,
@@ -97,7 +96,6 @@ class SkillServiceTest @Autowired constructor(
             template = NpcRegistry.register(FatDummyGremlin),
             spawnPosition = character.position.toSpawnPosition()
         )
-        context.pullResponse() //Skip NpcInfoResponse
         character.targetId = target.id
 
         withContext(context) { skillService.useSkill(UseSkillRequest(MortalBlow.id)) }
@@ -120,8 +118,6 @@ class SkillServiceTest @Autowired constructor(
             template = NpcRegistry.register(FatDummyGremlin),
             spawnPosition = character.position.toSpawnPosition()
         )
-
-        context.pullResponse() //Skip NpcInfoResponse
 
         character.targetId = target.id
         target.targetedBy.add(character)
@@ -188,7 +184,6 @@ class SkillServiceTest @Autowired constructor(
             template = FatDummyGremlin,
             spawnPosition = character.position.toSpawnPosition()
         )
-        context.pullResponse() //Skip NpcInfoResponse
         character.targetId = target.id
 
         // First skill usage
@@ -214,7 +209,7 @@ class SkillServiceTest @Autowired constructor(
             context.pullResponse(SystemMessageResponse.CriticalHit::class)
         )
 
-        delay(1000)
+        delay(1.seconds)
         // Second skill usage
         withContext(context) { skillService.useSkill(UseSkillRequest(PowerStrike.id)) }
 
@@ -320,7 +315,7 @@ class SkillServiceTest @Autowired constructor(
         assertIs<GaugeResponse>(context.pullResponse())
         assertIs<SkillUsedResponse>(context.pullResponse())
 
-        delay(10000) //Wait for casting completes
+        delay(10.seconds) //Wait for casting completes
 
         val updateAfterManaSpentAfterCast = assertIs<UpdateStatusResponse>(context.pullResponse())
         assertEquals(
@@ -358,7 +353,7 @@ class SkillServiceTest @Autowired constructor(
         assertIs<GaugeResponse>(context.pullResponse())
         assertIs<SkillUsedResponse>(context.pullResponse())
 
-        delay(10000) //Wait for casting completes
+        delay(10.seconds) //Wait for casting completes
 
         val updateAfterManaSpentAfterCast = assertIs<UpdateStatusResponse>(context.pullResponse())
         assertEquals(
@@ -384,7 +379,6 @@ class SkillServiceTest @Autowired constructor(
             template = NpcRegistry.register(FatDummyGremlin),
             spawnPosition = character.position.toSpawnPosition()
         )
-        context.pullResponse() // Skip NpcInfoResponse
 
         // Not enough MP to cast
         transaction { character.currentMp = 0 }
@@ -449,7 +443,6 @@ class SkillServiceTest @Autowired constructor(
             template = NpcRegistry.register(FatDummyGremlin),
             spawnPosition = character.position.toSpawnPosition()
         )
-        context.pullResponse() // Skip NpcInfoResponse
 
         // Kill target
         transaction { target.currentHp = 0 }
@@ -474,7 +467,6 @@ class SkillServiceTest @Autowired constructor(
             template = NpcRegistry.register(FatDummyGremlin),
             spawnPosition = character.position.toSpawnPosition()
         )
-        context.pullResponse() // Skip NpcInfoResponse
 
         character.targetId = target.id
 
@@ -500,7 +492,6 @@ class SkillServiceTest @Autowired constructor(
             template = NpcRegistry.register(FatDummyGremlin),
             spawnPosition = character.position.toSpawnPosition()
         )
-        context.pullResponse() // Skip NpcInfoResponse
         character.targetId = target.id
 
         withContext(context) { skillService.useSkill(UseSkillRequest(PowerShot.id)) }
@@ -561,7 +552,7 @@ class SkillServiceTest @Autowired constructor(
         assertIs<GaugeResponse>(context.pullResponse())
         val skillUsedResponse = assertIs<SkillUsedResponse>(context.pullResponse())
 
-        delay(10000) //Wait for casting completes
+        delay(10.seconds) //Wait for casting completes
 
         val updateManaAfterCasting = assertIs<UpdateStatusResponse>(context.pullResponse())
         assertEquals(character.id, updateManaAfterCasting.objectId)
@@ -575,7 +566,7 @@ class SkillServiceTest @Autowired constructor(
         assertIs<TemporalEffectsResponse>(context.pullResponse())
 
         //Wait for skill cooldown
-        delay(skillUsedResponse.reuseDelay + 1L)
+        delay((skillUsedResponse.reuseDelay + 1L).milliseconds)
 
         //Second usage of buff
         withContext(context) { skillService.useSkill(UseSkillRequest(DefenseAura.id)) }
@@ -585,7 +576,7 @@ class SkillServiceTest @Autowired constructor(
         assertIs<GaugeResponse>(context.pullResponse())
         assertIs<SkillUsedResponse>(context.pullResponse())
 
-        delay(10000) //Wait for casting completes
+        delay(10.seconds) //Wait for casting completes
 
         assertIs<UpdateStatusResponse>(context.pullResponse())
         assertIs<FullCharacterResponse>(context.pullResponse())
@@ -623,7 +614,7 @@ class SkillServiceTest @Autowired constructor(
         assertEquals(Might.id, skillUsedResponse.skillId)
         assertEquals(calculatedReuseDelay, skillUsedResponse.reuseDelay)
 
-        delay(10000) //Wait for casting completes
+        delay(10.seconds) //Wait for casting completes
 
         assertIs<UpdateStatusResponse>(context.pullResponse()) //mana spent after casting
 
@@ -652,8 +643,6 @@ class SkillServiceTest @Autowired constructor(
             template = NpcRegistry.register(FatDummyGremlin),
             spawnPosition = character.position.toSpawnPosition()
         )
-
-        assertIs<NpcInfoResponse>(context.pullResponse())
 
         character.skillsAndMagic.learn(Might.id, 1)
         character.targetId = target.id
@@ -694,8 +683,6 @@ class SkillServiceTest @Autowired constructor(
             spawnPosition = character.position.toSpawnPosition()
         )
 
-        assertIs<NpcInfoResponse>(context.pullResponse())
-
         character.skillsAndMagic.learn(Might.id, 1)
         character.targetId = target.id
         withContext(context) { skillService.useSkill(UseSkillRequest(Might.id, forced = true)) }
@@ -715,7 +702,7 @@ class SkillServiceTest @Autowired constructor(
         assertEquals(Might.id, skillUsedResponse.skillId)
         assertEquals(calculatedReuseDelay, skillUsedResponse.reuseDelay)
 
-        delay(10000) //Wait for casting ends
+        delay(10.seconds) //Wait for casting ends
 
         assertIs<UpdateStatusResponse>(context.pullResponse()) //mana spent after casting
 
@@ -759,7 +746,7 @@ class SkillServiceTest @Autowired constructor(
         assertEquals(Resurrection.id, skillUsedResponse.skillId)
         assertEquals(calculatedReuseDelay, skillUsedResponse.reuseDelay)
 
-        delay(10000) //Wait for casting ends
+        delay(10.seconds) //Wait for casting ends
 
         assertIs<UpdateStatusResponse>(context.pullResponse()) //mana spent after casting
 

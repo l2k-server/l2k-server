@@ -1,6 +1,6 @@
 spring:
   application.name: "l2k-server-login"
-  profiles.active: "test"
+  profiles.active: "dev"
   config.import:
     - file:./config/server.yml
     - file:./config/database.yml

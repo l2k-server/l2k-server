@@ -4,8 +4,7 @@ package org.l2kserver.game.model.actor.position
  * Heading - integer from 0 to 65535,
  * where 0 is east direction, 16384 - south, 32768 - west, 49152 - north
  */
-@JvmInline
-value class Heading(val value: UShort) {
+data class Heading(val value: UShort) {
     constructor(): this(0u)
     constructor(value: Int): this(value.toUShort())
     constructor(value: Double): this(value.toInt().toUShort())

@@ -55,7 +55,7 @@ import org.l2kserver.game.utils.withChance
 import org.l2kserver.game.network.session.send
 import org.l2kserver.game.network.session.sendTo
 import org.l2kserver.game.network.session.sessionContext
-import org.l2kserver.game.repository.GameObjectRepository
+import org.l2kserver.game.repository.GameWorld
 import org.springframework.stereotype.Service
 import org.springframework.context.annotation.Lazy
 import java.util.concurrent.ConcurrentHashMap
@@ -75,7 +75,7 @@ class ItemService(
     private val idGenerationService: IdGenerationService,
     private val enchantProperties: EnchantProperties,
 
-    override val gameObjectRepository: GameObjectRepository
+    override val gameWorld: GameWorld
 ) : AbstractService() {
 
     override val log = logger()
@@ -87,7 +87,7 @@ class ItemService(
 
     /** Handles request to toggle ss auto usage */
     suspend fun toggleAutoUseSs(request: AutoUseSsRequest) {
-        val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
+        val character = gameWorld.findCharacterById(sessionContext().getCharacterId())
 
         val shot = character.inventory.findAllByTemplateId(request.ssTemplateId).firstOrNull() as? ShotInstance ?: run {
             log.warn { "Character does not have item " +
@@ -103,7 +103,7 @@ class ItemService(
 
     /** Handles request to use item */
     suspend fun useItem(request: UseItemRequest) {
-        val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
+        val character = gameWorld.findCharacterById(sessionContext().getCharacterId())
         val item = character.inventory.findByIdOrNull(request.itemId) ?: run {
             log.warn { "No item with id='${request.itemId}' was found in $character's inventory" }
             return
@@ -139,7 +139,7 @@ class ItemService(
 
     /** Handles request to take off item */
     suspend fun takeOffItem(request: TakeOffItemRequest) {
-        val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
+        val character = gameWorld.findCharacterById(sessionContext().getCharacterId())
         val item = character.inventory[request.slot] ?: run {
             log.warn { "Character has no item equipped at slot ${request.slot}" }
             return
@@ -152,7 +152,7 @@ class ItemService(
 
     /** Handles request to delete item */
     suspend fun deleteItem(request: DeleteItemRequest) {
-        val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
+        val character = gameWorld.findCharacterById(sessionContext().getCharacterId())
         val item = character.inventory.findById(request.itemId)
         log.debug { "'$character' tries to delete '${request.amount}' items '$item'" }
 
@@ -177,7 +177,7 @@ class ItemService(
 
     /** Handles request to drop item on the ground */
     suspend fun dropItem(request: DropItemRequest) {
-        val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
+        val character = gameWorld.findCharacterById(sessionContext().getCharacterId())
         val item = character.inventory.findById(request.itemId)
 
         log.debug { "'$character' tries to drop '${request.amount}' items '$item'" }
@@ -211,7 +211,7 @@ class ItemService(
                     character.position, request.position
                 )
                 val scatteredItemId = idGenerationService.next()
-                val scatteredItem = gameObjectRepository.save(
+                val scatteredItem = gameWorld.save(
                     item.toScatteredItem(
                         id = scatteredItemId,
                         position = scatteredItemPosition,
@@ -228,7 +228,7 @@ class ItemService(
     }
 
     suspend fun enchantItem(request: EnchantRequest) {
-        val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
+        val character = gameWorld.findCharacterById(sessionContext().getCharacterId())
         if (request.itemId == -1) clearEnchantSession(character)
 
         log.debug { "'$character' tries to enchant item with id='${request.itemId}'" }
@@ -334,7 +334,7 @@ class ItemService(
                 dropper.position, calculatedPosition)
             val id = idGenerationService.next()
 
-            item.toScatteredItem(id, dropPosition, itemsInStackAmount)?.let { gameObjectRepository.save(it) }
+            item.toScatteredItem(id, dropPosition, itemsInStackAmount)?.let { gameWorld.save(it) }
         }.filterNotNull()
 
         scatteredItems.forEach { scatteredItem ->
@@ -360,7 +360,7 @@ class ItemService(
 
         //TODO Binding item on being dropped to it's owner
         //TODO Checks if player can pick up this item
-        val deletedScatteredItem = gameObjectRepository.delete(scatteredItem) ?: run {
+        val deletedScatteredItem = gameWorld.delete(scatteredItem) ?: run {
             send { ActionFailedResponse }
             return
         }

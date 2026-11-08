@@ -8,7 +8,7 @@ private const val DELETE_OBJECT_RESPONSE_PACKET_ID: UByte = 18u
 /**
  * Notifies about GameObject deletion from game world
  *
- * @property gameObjectId Deleted game object's identifier
+ * @property gameObjectId Deleted game worldObject's identifier
  */
 data class DeleteObjectResponse(
     val gameObjectId: Int
