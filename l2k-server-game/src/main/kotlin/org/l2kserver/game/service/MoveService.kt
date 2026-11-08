@@ -28,12 +28,10 @@ import org.l2kserver.game.model.actor.position.Position
 import org.l2kserver.game.model.actor.GameWorldObject
 import org.l2kserver.game.model.actor.MoveType
 import org.l2kserver.game.model.actor.MutableActorInstance
-import org.l2kserver.game.model.actor.PlayerCharacterInstanceImpl
 import org.l2kserver.game.model.actor.character.PlayerCharacterInstance
 import org.l2kserver.game.network.session.send
-import org.l2kserver.game.network.session.sendTo
 import org.l2kserver.game.network.session.sessionContext
-import org.l2kserver.game.repository.GameObjectRepository
+import org.l2kserver.game.repository.GameWorld
 import org.l2kserver.game.model.time.GameTime
 import org.l2kserver.game.utils.withDelay
 
@@ -47,7 +45,7 @@ private const val ROTATE_SPEED_PER_SEC = 65536
 class MoveService(
     private val geoDataService: GeoDataService,
     private val asyncTaskService: AsyncTaskService,
-    override val gameObjectRepository: GameObjectRepository
+    override val gameWorld: GameWorld
 ) : AbstractService() {
 
     override val log = logger()
@@ -55,7 +53,7 @@ class MoveService(
     /** Handle request to move character to some destination point */
     suspend fun moveCharacter(request: MoveRequest) {
         val context = sessionContext()
-        val character = gameObjectRepository.findCharacterById(context.getCharacterId())
+        val character = gameWorld.findCharacterById(context.getCharacterId())
 
         log.debug {
             "Player '${context.getAccountName()}' is trying to move character '${character.name}' " +
@@ -73,7 +71,7 @@ class MoveService(
             return@suspendTransaction
         }
 
-        val character = gameObjectRepository.findCharacterById(characterId)
+        val character = gameWorld.findCharacterById(characterId)
 
         if (!character.position.isCloseTo(request.position, Position.GEO_CELL_SIZE)) {
             log.warn { "$character position at the client side differs from server one greatly!" +
@@ -87,14 +85,14 @@ class MoveService(
     }
 
     suspend fun startRotation(request: StartRotationRequest) {
-        val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
+        val character = gameWorld.findCharacterById(sessionContext().getCharacterId())
         broadcastAround(character.position) {
             StartRotationResponse(character.id, request.currentHeading, request.rotationDirection)
         }
     }
 
     suspend fun stopRotation(request: StopRotationRequest) {
-        val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
+        val character = gameWorld.findCharacterById(sessionContext().getCharacterId())
         character.heading = request.heading
         broadcastAround(character.position) {
             StopRotationResponse(character.id, character.heading)
@@ -172,10 +170,8 @@ class MoveService(
                 //The path traveled since the last update
                 val moveDistance = moveSpeed.toDouble() / 1000 * moveTime
 
-                //Update objects only each 10 move iterations (~1 second) - it is very heavy operation
-                val updateObjects = (moveIterations % 10) == 0
+                updatePosition(actor, destination!!, moveDistance)
 
-                updatePosition(actor, destination!!, moveDistance, updateObjects)
                 moveTimestamp = System.currentTimeMillis()
             }
             //Join turning only if target is DestinationPoint, otherwise
@@ -186,7 +182,6 @@ class MoveService(
         } catch (e: Exception) {
             log.error(e) { "An error occurred while trying to update position of character '$actor'" }
         } finally {
-            updateObjectsAround(actor)
             broadcastAround(actor.position) { ArrivedResponse(actor.id, actor.position, actor.heading) }
         }
     }
@@ -225,6 +220,7 @@ class MoveService(
     suspend fun teleport(actor: MutableActorInstance, targetPosition: Position) {
         //TODO Checks if player can teleport ???
         log.debug { "Teleporting '$actor' to '$targetPosition'" }
+        val oldPosition = actor.position
 
         actor.intentionQueue.cancel()
         asyncTaskService.cancelActionByActorId(actor.id)
@@ -235,19 +231,13 @@ class MoveService(
             geoDataService.getNearestZ(targetPosition.x, targetPosition.y, targetPosition.z)
         )
 
-        suspendTransaction {
-            actor.position = fixedPosition
-        }
+        // If actor's known list is not cleared, client shows no objects around teleported character,
+        // if he teleports at position near previous
+        actor.knownGameWorldObjects = emptySet()
 
-        // CRUTCH: Remove character from all characters around and clear his known objects list
-        // Otherwise client shows no objects around teleported character, if he teleports at position near previous
-        if (actor is PlayerCharacterInstanceImpl) {
-            actor.knownGameWorldObjects.forEach { obj -> actor.removeObjectFromKnownListAndNotify(obj) }
-            actor.knownGameWorldObjects.clear()
-        }
-
-        sendTo(actor.id) { TeleportResponse(actor.id, fixedPosition) }
-        updateObjectsAround(actor)
+        suspendTransaction { actor.position = fixedPosition }
+        gameWorld.updateRegion(actor, oldPosition)
+        broadcastAround(actor.position) { TeleportResponse(actor.id, fixedPosition) }
     }
 
     /**
@@ -260,8 +250,10 @@ class MoveService(
      * @return True if actor arrived to position, false - if not
      */
     private suspend fun updatePosition(
-        actor: MutableActorInstance, destination: Position, moveDistance: Double, updateObjects: Boolean
+        actor: MutableActorInstance, destination: Position, moveDistance: Double
     ) {
+        val oldPosition = actor.position
+
         val deltaX = actor.position.deltaX(destination).toDouble()
         val deltaY = actor.position.deltaY(destination).toDouble()
 
@@ -278,15 +270,14 @@ class MoveService(
         val newPosition = Position(newX, newY, newZ)
 
         actor.position = newPosition
+        gameWorld.updateRegion(actor, oldPosition)
         log.trace { "Updated position of actor '$actor' to '$newPosition'" }
-        if (updateObjects) updateObjectsAround(actor, destination)
     }
 
-    //TODO Refactor this crutch
     private fun GameWorldObject?.exists() = when(this) {
         null -> false
         is DestinationPoint -> true
-        else -> gameObjectRepository.existsById(this.id)
+        else -> gameWorld.existsById(this.id)
     }
 
 }

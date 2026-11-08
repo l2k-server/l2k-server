@@ -6,8 +6,8 @@ import org.l2kserver.game.extensions.putUTF16String
 import org.l2kserver.game.extensions.putUByte
 import org.l2kserver.game.model.item.ItemInstance
 import org.l2kserver.game.model.item.ShotInstance
-import org.l2kserver.game.model.skill.instance.ActiveSkillInstance
-import org.l2kserver.game.model.skill.instance.SkillInstance
+import org.l2kserver.game.model.skill.ActiveSkillInstance
+import org.l2kserver.game.model.skill.SkillInstance
 
 private const val SYSTEM_MESSAGE_RESPONSE_PACKET_ID: UByte = 100u
 

@@ -22,6 +22,7 @@ class GameCrypt {
      *
      * @return decrypted data
      */
+    @Suppress("MagicNumber")
     fun decrypt(data: ByteArray): ByteArray {
         if (!enabled) return data.clone()
 
@@ -44,6 +45,7 @@ class GameCrypt {
      *
      * @return encrypted data
      */
+    @Suppress("MagicNumber")
     fun encrypt(data: ByteArray): ByteArray {
         if (!enabled) {
             enabled = true
@@ -63,6 +65,7 @@ class GameCrypt {
         return encrypted
     }
 
+    @Suppress("MagicNumber")
     private fun shiftKey(key: ByteArray, size: Int) {
         var old = key[8].toInt() and 0xff
         old = old or ((key[9].toInt() shl 8) and 0xff00)

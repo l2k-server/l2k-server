@@ -2,14 +2,13 @@ package org.l2kserver.game.data.npc
 
 import org.l2kserver.game.data.characterclass.HumanFighter
 import org.l2kserver.game.data.item.etc.Adena
+import org.l2kserver.game.data.npc.ai.WarriorAi
 import org.l2kserver.game.model.actor.ActorInstance
 import org.l2kserver.game.model.actor.CollisionBox
 import org.l2kserver.game.model.actor.npc.NpcRace
 import org.l2kserver.game.model.actor.npc.Npc
 import org.l2kserver.game.model.actor.npc.NpcInstance
 import org.l2kserver.game.model.actor.npc.SpawnData
-import org.l2kserver.game.model.actor.npc.ai.standard.WarriorAi
-import org.l2kserver.game.model.actor.position.Position
 import org.l2kserver.game.model.reward.Reward
 import org.l2kserver.game.model.reward.RewardItem
 import org.l2kserver.game.model.stats.CombatStats
@@ -87,18 +86,37 @@ data object Gremlin: Npc {
         //Uncomment this to enable GREMLINOCALYPSE at talking island
 //        zones = listOf(SpawnZone(
 //            name = "Talking Island",
-//            npcAmount = 100_000,
-//            zMin = -3748,
-//            zMax = -3032,
+//            npcAmount = 50_000,
+//            zMin = -5000,
+//            zMax = -2000,
 //            vertices = listOf(
 //                Point(Position.MAP_MIN_X, Position.MAP_MAX_Y),
-//                Point(Position.MAP_MIN_X, Position.MAP_MAX_Y - Position.GEO_TILE_SIZE * 2),
-//                Point(Position.MAP_MIN_X + Position.GEO_TILE_SIZE, Position.MAP_MAX_Y - Position.GEO_TILE_SIZE * 2),
-//                Point(Position.MAP_MIN_X + Position.GEO_TILE_SIZE, Position.MAP_MAX_Y - Position.GEO_TILE_SIZE),
-//                Point(Position.MAP_MIN_X + Position.GEO_TILE_SIZE * 2, Position.MAP_MAX_Y - Position.GEO_TILE_SIZE),
-//                Point(Position.MAP_MIN_X + Position.GEO_TILE_SIZE * 2, Position.MAP_MAX_Y)
+//                Point(Position.MAP_MIN_X, Position.MAP_MAX_Y - Position.GEO_REGION_SIZE * 2),
+//                Point(
+//                    Position.MAP_MIN_X + Position.GEO_REGION_SIZE,
+//                    Position.MAP_MAX_Y - Position.GEO_REGION_SIZE * 2
+//                ),
+//                Point(Position.MAP_MIN_X + Position.GEO_REGION_SIZE, Position.MAP_MAX_Y - Position.GEO_REGION_SIZE),
+//                Point(
+//                    Position.MAP_MIN_X + Position.GEO_REGION_SIZE * 2,
+//                    Position.MAP_MAX_Y - Position.GEO_REGION_SIZE
+//                ),
+//                Point(Position.MAP_MIN_X + Position.GEO_REGION_SIZE * 2, Position.MAP_MAX_Y)
 //            )
 //        ))
+        // Uncomment this to enable GREMLINOCALYPSE at the whole world
+//        zones = listOf(SpawnZone(
+//            name = "Game World",
+//            npcAmount = 50_000,
+//            zMin = -5000,
+//            zMax = -2000,
+//            vertices = listOf(
+//                Point(Position.MAP_MIN_X, Position.MAP_MIN_Y),
+//                Point(Position.MAP_MIN_X, Position.MAP_MAX_Y),
+//                Point(Position.MAP_MAX_X, Position.MAP_MAX_Y),
+//                Point(Position.MAP_MAX_X, Position.MAP_MIN_Y)
+//            ))
+//        )
     )
 
     override fun getAi(npc: NpcInstance) = WarriorAi(npc, GREMLIN_WANDERING_DISTANCE)

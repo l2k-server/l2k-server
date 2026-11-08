@@ -10,9 +10,9 @@ import kotlin.math.roundToInt
 private const val UPDATE_STATUS_RESPONSE_PACKET_ID: UByte = 14u
 
 /**
- * Updated data of some object in game world
+ * Updated data of some worldObject in game world
  *
- * @property objectId ID of object in game world
+ * @property objectId ID of worldObject in game world
  * @property attributes updated attributes. Key - Attribute ID, Value - updated attribute value
  */
 data class UpdateStatusResponse(

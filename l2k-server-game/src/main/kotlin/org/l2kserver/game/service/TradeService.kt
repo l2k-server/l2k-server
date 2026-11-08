@@ -39,7 +39,7 @@ import org.l2kserver.game.model.store.PrivateStore
 import org.l2kserver.game.network.session.send
 import org.l2kserver.game.network.session.sendTo
 import org.l2kserver.game.network.session.sessionContext
-import org.l2kserver.game.repository.GameObjectRepository
+import org.l2kserver.game.repository.GameWorld
 import org.springframework.stereotype.Service
 import java.sql.Connection
 import kotlin.collections.map
@@ -51,7 +51,7 @@ private const val PRIVATE_STORE_MESSAGE_MAX_SIZE = 29
 class TradeService(
     private val itemService: ItemService,
     private val idGenerationService: IdGenerationService,
-    override val gameObjectRepository: GameObjectRepository
+    override val gameWorld: GameWorld
 ) : AbstractService() {
 
     override val log = logger()
@@ -78,7 +78,7 @@ class TradeService(
      * Stops private store
      */
     suspend fun stopPrivateStore() = suspendTransaction {
-        val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
+        val character = gameWorld.findCharacterById(sessionContext().getCharacterId())
         if (character.privateStore != null) {
             log.debug { "Cancelling private store of character '$character'" }
             privateStoreTitlesCache.remove(character.id)
@@ -94,7 +94,7 @@ class TradeService(
     /** Handles request to get items for private store (sell) */
     suspend fun getItemsForPrivateStoreSell() = suspendTransaction {
         val context = sessionContext()
-        val character = gameObjectRepository.findCharacterById(context.getCharacterId())
+        val character = gameWorld.findCharacterById(context.getCharacterId())
         itemService.clearEnchantSession(character)
 
         //Check that player has no private store, or it's private store is PrivateStore.Sell
@@ -137,7 +137,7 @@ class TradeService(
 
     /** Start private store (sell) */
     suspend fun startPrivateStoreSell(request: PrivateStoreSellStartRequest) = suspendTransaction {
-        val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
+        val character = gameWorld.findCharacterById(sessionContext().getCharacterId())
         log.debug { "Starting private store by request '$request' of character '$character'" }
 
         if (request.items.isEmpty()) {
@@ -169,8 +169,8 @@ class TradeService(
 
     /** Buy items in private store */
     suspend fun buyInPrivateStore(request: BuyInPrivateStoreRequest) {
-        val customer = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
-        val seller = gameObjectRepository.findCharacterById(request.storeOwnerId)
+        val customer = gameWorld.findCharacterById(sessionContext().getCharacterId())
+        val seller = gameWorld.findCharacterById(request.storeOwnerId)
         log.debug { "Start purchasing items='${request.items}' from '$customer' by '$seller'" }
 
         val requiredDistance = INTERACTION_DISTANCE +
@@ -263,14 +263,14 @@ class TradeService(
             return
         }
 
-        val customer = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
+        val customer = gameWorld.findCharacterById(sessionContext().getCharacterId())
         send { privateStore.toInfoResponse(character, customer) }
     }
 
     /** Sends to the client items, suitable for private store (Buy) */
     suspend fun getItemsForPrivateStoreBuy(): Unit = suspendTransaction {
         val context = sessionContext()
-        val character = gameObjectRepository.findCharacterById(context.getCharacterId())
+        val character = gameWorld.findCharacterById(context.getCharacterId())
 
         //Check that player has no private store, or it's private store is PrivateStore.Buy
         if (character.privateStore !is PrivateStore.Buy?) {
@@ -308,7 +308,7 @@ class TradeService(
 
     /** Start private store (buy) */
     suspend fun startPrivateStoreBuy(request: PrivateStoreBuyStartRequest): Unit = suspendTransaction {
-        val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
+        val character = gameWorld.findCharacterById(sessionContext().getCharacterId())
         log.debug { "Starting private store (Buy) by request '$request' of '$character'" }
 
         if (request.items.isEmpty()) {
@@ -345,8 +345,8 @@ class TradeService(
     }
 
     suspend fun sellToPrivateStore(request: SellToPrivateStoreRequest) {
-        val seller = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
-        val storeOwner = gameObjectRepository.findCharacterById(request.storeOwnerId)
+        val seller = gameWorld.findCharacterById(sessionContext().getCharacterId())
+        val storeOwner = gameWorld.findCharacterById(request.storeOwnerId)
         log.debug { "Start selling items='$request.items' from '$seller' by '$storeOwner'" }
 
         val requiredDistance = INTERACTION_DISTANCE +
@@ -459,7 +459,7 @@ class TradeService(
      * @return saved message of null, if requested message cannot be set
      */
     private suspend fun setPrivateStoreMessage(message: String): String? {
-        val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
+        val character = gameWorld.findCharacterById(sessionContext().getCharacterId())
         if (message.length > PRIVATE_STORE_MESSAGE_MAX_SIZE) {
             log.warn { "'$character' was trying to set too big private store (Buy) message!" }
             send { ActionFailedResponse }

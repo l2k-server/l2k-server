@@ -1,11 +1,13 @@
 package org.l2kserver.game.data.npc
 
 import org.l2kserver.game.data.characterclass.HumanFighter
+import org.l2kserver.game.data.npc.ai.GreeterAi
 import org.l2kserver.game.model.actor.ActorInstance
 import org.l2kserver.game.model.actor.CollisionBox
 import org.l2kserver.game.model.actor.character.PlayerCharacterInstance
 import org.l2kserver.game.model.actor.npc.NpcRace
 import org.l2kserver.game.model.actor.npc.Npc
+import org.l2kserver.game.model.actor.npc.NpcInstance
 import org.l2kserver.game.model.actor.npc.SpawnData
 import org.l2kserver.game.model.actor.position.SpawnPosition
 import org.l2kserver.game.model.html.HtmlRegistry
@@ -31,6 +33,8 @@ data object GrandMasterRoien: Npc {
 
     override fun isEnemyOf(other: ActorInstance) = false
     override fun onTalkWith(character: PlayerCharacterInstance) = HtmlRegistry.findById("roien001.htm")
+
+    override fun getAi(npc: NpcInstance) = GreeterAi()
 }
 
 data object GrandMagisterGallint: Npc {
@@ -53,4 +57,6 @@ data object GrandMagisterGallint: Npc {
 
     override fun isEnemyOf(other: ActorInstance) = false
     override fun onTalkWith(character: PlayerCharacterInstance) = HtmlRegistry.findById("gallint001.htm")
+
+    override fun getAi(npc: NpcInstance) = GreeterAi()
 }

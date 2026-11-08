@@ -15,6 +15,7 @@ data class UserCommandRequest(
     constructor(data: ByteBuffer) : this(UserCommand.byId(data.getInt()))
 }
 
+@Suppress("MagicNumber")
 enum class UserCommand(private val ids: Set<Int>) {
     LOC(ids = setOf(0)),
     UNSTUCK(ids = setOf(52)),

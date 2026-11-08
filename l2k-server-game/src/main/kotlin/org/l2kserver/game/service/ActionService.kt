@@ -26,10 +26,9 @@ import org.l2kserver.game.model.actor.ScatteredItem
 import org.l2kserver.game.model.actor.MoveType
 import org.l2kserver.game.model.actor.MutableActorInstance
 import org.l2kserver.game.model.actor.Posture
-import org.l2kserver.game.model.actor.npc.ai.NpcAi
 import org.l2kserver.game.network.session.send
 import org.l2kserver.game.network.session.sessionContext
-import org.l2kserver.game.repository.GameObjectRepository
+import org.l2kserver.game.repository.GameWorld
 import org.springframework.stereotype.Service
 import kotlin.math.roundToInt
 
@@ -41,14 +40,14 @@ class ActionService(
     private val tradeService: TradeService,
     private val asyncTaskService: AsyncTaskService,
 
-    override val gameObjectRepository: GameObjectRepository
+    override val gameWorld: GameWorld
 ) : AbstractService() {
     override val log = logger()
 
     /** Handles request to attack */
     suspend fun attackTarget(attackRequest: AttackRequest) {
-        val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
-        val target = gameObjectRepository.findActorById(attackRequest.targetId)
+        val character = gameWorld.findCharacterById(sessionContext().getCharacterId())
+        val target = gameWorld.findActorById(attackRequest.targetId)
 
         log.debug { "Player $character requested to attack $target" }
 
@@ -56,18 +55,18 @@ class ActionService(
         else enqueueAttack(character, target)
     }
 
-    /** Handles left-click on some game object */
+    /** Handles left-click on some game worldObject */
     suspend fun performAction(request: ActionRequest) {
-        val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
+        val character = gameWorld.findCharacterById(sessionContext().getCharacterId())
         log.debug { "Player '$character' left-clicked target with id='${request.targetId}'" }
 
         //Second click to the player's own character
         if (character.targetId == request.targetId && character.targetId == character.id)
             return
 
-        when (val target = gameObjectRepository.findByIdOrNull(request.targetId)) {
+        when (val target = gameWorld.findByIdOrNull(request.targetId)) {
             null -> {
-                log.warn { "'$character' tries to interact with non-existent object '${request.targetId}'" }
+                log.warn { "'$character' tries to interact with non-existent worldObject '${request.targetId}'" }
                 send { ActionFailedResponse }
             }
             is ScatteredItem -> character.intentionQueue.enqueue(
@@ -88,7 +87,7 @@ class ActionService(
 
     /** Cancels casting if character is casting or cancels target if character targets something */
     suspend fun cancelAction() {
-        val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
+        val character = gameWorld.findCharacterById(sessionContext().getCharacterId())
         log.debug { "Player '$character' cancelled current action" }
 
         // Cancel casting if character casts
@@ -99,7 +98,7 @@ class ActionService(
         }
         // Otherwise cancel his target
         else character.targetId?.let {
-            gameObjectRepository.findActorByIdOrNull(it)?.targetedBy?.remove(character)
+            gameWorld.findActorByIdOrNull(it)?.targetedBy?.remove(character)
             character.targetId = null
             broadcastAround(character.position) { CancelTargetResponse(character) }
         }
@@ -107,7 +106,7 @@ class ActionService(
 
     /** Handles request to perform some basic action - switching sit/stand, walk/run, summon actions... */
     suspend fun performBasicAction(request: BasicActionRequest) {
-        val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
+        val character = gameWorld.findCharacterById(sessionContext().getCharacterId())
         asyncTaskService.cancelActionByActorId(character.id)
 
         when (request.action) {
@@ -135,7 +134,7 @@ class ActionService(
 
     /** Handles request to perform some social action - laugh, greetings, dancing, etc. */
     suspend fun performSocialAction(request: SocialActionRequest) {
-        val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
+        val character = gameWorld.findCharacterById(sessionContext().getCharacterId())
 
         if (character.isParalyzed) {
             send { ActionFailedResponse }
@@ -163,7 +162,7 @@ class ActionService(
 
         when (target) {
             is NpcInstanceImpl -> send {
-                val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
+                val character = gameWorld.findCharacterById(sessionContext().getCharacterId())
                 val replica = target.onTalkWith(character)
 
                 NpcChatWindowResponse(npcId = target.id, message = replica )

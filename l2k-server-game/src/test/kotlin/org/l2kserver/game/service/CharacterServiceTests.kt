@@ -16,7 +16,6 @@ import org.l2kserver.game.handler.dto.response.DeleteCharacterFailResponse
 import org.l2kserver.game.handler.dto.response.SelectCharacterResponse
 import org.springframework.beans.factory.annotation.Autowired
 import java.time.LocalDateTime
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import org.awaitility.kotlin.await
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
@@ -179,7 +178,6 @@ class CharacterServiceTests(
         }
 
         //Wait for deletion job completion
-        delay(60_000)
         await.atMost(Duration.ofSeconds(1)).untilAsserted {
             val context = createTestSessionContext(testLogin)
             runBlocking(context) {
@@ -221,7 +219,7 @@ class CharacterServiceTests(
 
         val characterResponse = assertIs<FullCharacterResponse>(context.pullResponse())
         assertEquals(character.id, characterResponse.character.id)
-        assertNotNull(gameObjectRepository.findByIdOrNull(character.id))
+        assertNotNull(gameWorld.findByIdOrNull(character.id))
 
         assertIs<InventoryResponse>(context.pullResponse())
         assertIs<SkillListResponse>(context.pullResponse())

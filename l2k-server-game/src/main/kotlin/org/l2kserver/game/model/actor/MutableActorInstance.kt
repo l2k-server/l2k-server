@@ -3,7 +3,6 @@ package org.l2kserver.game.model.actor
 import org.l2kserver.game.domain.TemporalEffects
 import org.l2kserver.game.model.actor.position.Heading
 import org.l2kserver.game.model.actor.position.Position
-import java.util.concurrent.ConcurrentHashMap
 
 /** Same as [ActorInstance], but with some mutable fields and stuff to be proceeded by server core */
 sealed class MutableActorInstance: ActorInstance {
@@ -18,7 +17,8 @@ sealed class MutableActorInstance: ActorInstance {
     abstract override val temporalEffects: TemporalEffects
 
     val intentionQueue = IntentionQueue()
-    val knownGameWorldObjects: MutableSet<GameWorldObject> = ConcurrentHashMap.newKeySet()
+    @Volatile var knownGameWorldObjects: Set<GameWorldObject> = emptySet()
 
-    override val isMoving = intentionQueue.current is Intention.Move
+    override val isMoving get() = intentionQueue.current is Intention.Move
+    val movementDestination get() = (intentionQueue.current as? Intention.Move)?.destination?.position
 }

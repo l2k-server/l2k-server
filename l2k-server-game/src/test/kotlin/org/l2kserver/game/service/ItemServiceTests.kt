@@ -336,7 +336,7 @@ class ItemServiceTests(
             val updateStatusResponse = assertIs<UpdateStatusResponse>(context.pullResponse())
             assertEquals(character.id, updateStatusResponse.objectId)
 
-            assertNotNull(gameObjectRepository.findByIdOrNull(droppedItemResponse.scatteredItem.id))
+            assertNotNull(gameWorld.findByIdOrNull(droppedItemResponse.scatteredItem.id))
         }
     }
 
@@ -403,7 +403,7 @@ class ItemServiceTests(
             )
         }
 
-        gameObjectRepository.save(character)
+        gameWorld.save(character)
 
         suspendTransaction {
             assertEquals(8, ItemEntity.findById(itemId)!!.amount)
@@ -677,7 +677,7 @@ class ItemServiceTests(
         assertIs<UpdateStatusResponse>(context.pullResponse())
 
         assertIs<SystemMessageResponse.YouHaveObtained>(context.pullResponse())
-        assertFalse(gameObjectRepository.existsById(scatteredItem.id), "Picked up item must disappear")
+        assertFalse(gameWorld.existsById(scatteredItem.id), "Picked up item must disappear")
         suspendTransaction {
             assertEquals(2, ItemEntity.findAllByOwnerIdAndTemplateId(character.id, HeavensDivider.id).toList().size)
         }
@@ -717,7 +717,7 @@ class ItemServiceTests(
         assertIs<UpdateStatusResponse>(context.pullResponse())
 
         assertIs<SystemMessageResponse.YouHaveObtained>(context.pullResponse())
-        assertFalse(gameObjectRepository.existsById(scatteredItem.id), "Picked up item must disappear")
+        assertFalse(gameWorld.existsById(scatteredItem.id), "Picked up item must disappear")
 
         val arrows = suspendTransaction {
             ItemEntity.findAllByOwnerIdAndTemplateId(character.id, WoodenArrow.id).toList()

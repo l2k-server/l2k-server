@@ -23,7 +23,7 @@ class IdGenerationService {
         }
     }
 
-    /** Returns next available object ID */
+    /** Returns next available worldObject ID */
     @Synchronized
     fun next(): Int {
         val id = freeIds.nextClearBit(0)

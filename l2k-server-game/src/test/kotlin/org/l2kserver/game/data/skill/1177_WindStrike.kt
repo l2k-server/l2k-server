@@ -3,9 +3,9 @@ package org.l2kserver.game.data.skill
 
 import org.l2kserver.game.model.skill.context.SkillContext
 import org.l2kserver.game.model.skill.effect.DamageEffect
-import org.l2kserver.game.model.skill.instance.SkillTargetType
-import org.l2kserver.game.model.skill.template.ActiveSkill
-import org.l2kserver.game.model.skill.template.SkillConsumablesTemplate
+import org.l2kserver.game.model.skill.SkillTargetType
+import org.l2kserver.game.model.skill.ActiveSkill
+import org.l2kserver.game.model.skill.SkillConsumablesTemplate
 
 data object WindStrike: ActiveSkill {
     override val id = 1177

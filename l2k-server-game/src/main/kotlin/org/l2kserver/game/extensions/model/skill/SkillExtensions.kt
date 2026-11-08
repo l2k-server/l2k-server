@@ -3,8 +3,8 @@ package org.l2kserver.game.extensions.model.skill
 import org.l2kserver.game.model.actor.ActorInstance
 import org.l2kserver.game.model.actor.character.PlayerCharacterInstance
 import org.l2kserver.game.model.actor.npc.NpcInstance
-import org.l2kserver.game.model.skill.instance.ActiveSkillInstance
-import org.l2kserver.game.model.skill.instance.SkillTargetType
+import org.l2kserver.game.model.skill.ActiveSkillInstance
+import org.l2kserver.game.model.skill.SkillTargetType
 import java.time.Instant
 
 fun ActiveSkillInstance.isOnCooldown() = Instant.now().isBefore(this.nextUsageTime)

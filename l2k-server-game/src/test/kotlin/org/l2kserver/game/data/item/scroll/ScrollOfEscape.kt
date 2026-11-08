@@ -4,9 +4,9 @@ import org.l2kserver.game.model.item.of
 import org.l2kserver.game.model.item.MagicItem
 import org.l2kserver.game.model.skill.context.SkillContext
 import org.l2kserver.game.model.skill.effect.EscapeEffect
-import org.l2kserver.game.model.skill.instance.SkillTargetType
-import org.l2kserver.game.model.skill.template.ActiveSkill
-import org.l2kserver.game.model.skill.template.SkillConsumablesTemplate
+import org.l2kserver.game.model.skill.SkillTargetType
+import org.l2kserver.game.model.skill.ActiveSkill
+import org.l2kserver.game.model.skill.SkillConsumablesTemplate
 
 private data object ScrollOfEscapeSkill: ActiveSkill {
     override val id = 2013

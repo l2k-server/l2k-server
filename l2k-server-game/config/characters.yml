@@ -16,10 +16,17 @@ characters.deletionTimeMs: 604_800_000
 characters.newCharacterDeletionTimeMs: 300_000
 
 # Percent of CP is restored on character respawn
+# Default: 0
 characters.respawnCpRate: 0
 
 # Percent of HP is restored on character respawn
+# Default: 0.7
 characters.respawnHpRate: 0.7
 
 # Percent of MP is restored on character respawn
+# Default: 0.7
 characters.respawnMpRate: 0.7
+
+# The radius within which characters are notified of the appearance and disappearance of objects.
+# Default: 2_000
+characters.perceptionRadius: 2_000

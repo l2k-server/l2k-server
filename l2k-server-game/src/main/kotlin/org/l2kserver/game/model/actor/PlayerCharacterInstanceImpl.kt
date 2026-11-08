@@ -97,7 +97,7 @@ import org.l2kserver.game.model.store.PrivateStore
 class PlayerCharacterInstanceImpl(
     private val entity: PlayerCharacterEntity,
     override val characterClass: CharacterClass,
-    private val levelProperties: LevelProperties
+    private val levelProperties: LevelProperties,
 ): MutableActorInstance(), PlayerCharacterInstance {
     override val id = entity.id.value
     override val accountName = entity.accountName

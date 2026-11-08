@@ -4,7 +4,7 @@ import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
-import org.l2kserver.game.model.skill.instance.SkillTargetType
+import org.l2kserver.game.model.skill.SkillTargetType
 import org.l2kserver.game.extensions.logger
 import org.l2kserver.game.extensions.model.actor.asMutable
 import org.l2kserver.game.extensions.model.actor.hasEnoughConsumableItemFor
@@ -47,16 +47,16 @@ import org.l2kserver.game.model.skill.effect.HealEffect
 import org.l2kserver.game.model.skill.effect.ResistedEffect
 import org.l2kserver.game.model.skill.effect.ResurrectionEffect
 import org.l2kserver.game.model.skill.effect.TemporalAbnormalEffect
-import org.l2kserver.game.model.skill.instance.ActiveSkillInstance
-import org.l2kserver.game.model.skill.instance.PassiveSkillInstance
-import org.l2kserver.game.model.skill.instance.SkillConsumables
-import org.l2kserver.game.model.skill.instance.SkillInstance
-import org.l2kserver.game.model.skill.template.SkillConditionFailed
-import org.l2kserver.game.model.skill.template.SkillRegistry
+import org.l2kserver.game.model.skill.ActiveSkillInstance
+import org.l2kserver.game.model.skill.PassiveSkillInstance
+import org.l2kserver.game.model.skill.SkillConsumables
+import org.l2kserver.game.model.skill.SkillInstance
+import org.l2kserver.game.model.skill.SkillConditionFailed
+import org.l2kserver.game.model.skill.SkillRegistry
 import org.l2kserver.game.network.session.send
 import org.l2kserver.game.network.session.sendTo
 import org.l2kserver.game.network.session.sessionContext
-import org.l2kserver.game.repository.GameObjectRepository
+import org.l2kserver.game.repository.GameWorld
 import org.l2kserver.game.utils.withDelay
 
 import org.springframework.context.annotation.Lazy
@@ -65,8 +65,10 @@ import java.time.Instant
 import kotlin.collections.contains
 import kotlin.math.roundToInt
 import kotlin.math.roundToLong
+import kotlin.time.Duration.Companion.milliseconds
 
 private const val BASE_CASTING_SPEED = 333
+private const val BLESSED_SPIRITSHOT_CAST_SPEED_RATE = 1.5
 
 /** Handles learning, enchanting, using skills, etc. */
 @Service
@@ -78,14 +80,14 @@ class SkillService(
     @param:Lazy private val npcService: NpcService,
     private val actorStateService: ActorStateService,
 
-    override val gameObjectRepository: GameObjectRepository
+    override val gameWorld: GameWorld
 ) : AbstractService() {
 
     override val log = logger()
 
     /** Sends a full list of skills to the player in the current session */
     suspend fun getSkillList() = suspendTransaction {
-        val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
+        val character = gameWorld.findCharacterById(sessionContext().getCharacterId())
         send { SkillListResponse(character.skillsAndMagic) }
 
         log.debug { "Successfully sent skill list to character $character" }
@@ -107,7 +109,7 @@ class SkillService(
 
     /** Handles request to use skill */
     suspend fun useSkill(request: UseSkillRequest): Unit = suspendTransaction {
-        val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
+        val character = gameWorld.findCharacterById(sessionContext().getCharacterId())
         val skill = character.skillsAndMagic.findById(request.skillId)
 
         useSkill(character, skill, request.forced, request.holdPosition)
@@ -143,7 +145,7 @@ class SkillService(
                 return
             }
 
-            else -> actor.targetId?.let { gameObjectRepository.findActorByIdOrNull(it) } ?: run {
+            else -> actor.targetId?.let { gameWorld.findActorByIdOrNull(it) } ?: run {
                 send { SystemMessageResponse.TargetCannotBeFound }
                 send { PlaySoundResponse(Sound.ITEMSOUND_SYS_IMPOSSIBLE) }
                 return
@@ -202,7 +204,7 @@ class SkillService(
         val blessedSpiritshotCharged = (caster as? PlayerCharacterInstanceImpl)
             ?.inventory?.weapon?.spiritshotChargedType == Spiritshot.Type.BLESSED_SPIRITSHOT
 
-        if (skill.isMagic && blessedSpiritshotCharged) castingSpeed *= 1.5
+        if (skill.isMagic && blessedSpiritshotCharged) castingSpeed *= BLESSED_SPIRITSHOT_CAST_SPEED_RATE
 
         var castTime = skill.castTime
         var repriseTime = skill.repriseTime
@@ -233,7 +235,7 @@ class SkillService(
         }
 
         //Time, needed to cast a skill
-        delay(castTime.toLong())
+        delay(castTime.toLong().milliseconds)
 
         withContext(NonCancellable) {
             //Time to finish cast animation
@@ -447,7 +449,7 @@ class SkillService(
         effects: Iterable<Effect>, caster: MutableActorInstance, skill: ActiveSkillInstance
     ) = effects.forEach { effect ->
         //TODO Abnormals should not show caster in system message (???)
-        val target = gameObjectRepository.findActorByIdOrNull(effect.targetId) ?: return@forEach
+        val target = gameWorld.findActorByIdOrNull(effect.targetId) ?: return@forEach
 
         when (effect) {
             is DamageEffect -> combatService.applyDamageEffect(caster, effect, skill)
@@ -467,7 +469,7 @@ class SkillService(
     }
 
     private suspend fun applyHealEffect(caster: MutableActorInstance, effect: HealEffect) = suspendTransaction {
-        val target = gameObjectRepository.findActorByIdOrNull(effect.targetId) ?: return@suspendTransaction
+        val target = gameWorld.findActorByIdOrNull(effect.targetId) ?: return@suspendTransaction
 
         target.currentHp = minOf(target.currentHp safePlus effect.value, target.stats.maxHp.roundToInt())
         val healerName = if (caster == target) null else caster.name
@@ -485,7 +487,7 @@ class SkillService(
     private suspend fun applyAbnormalEffect(
         caster: MutableActorInstance, effect: TemporalAbnormalEffect, skill: ActiveSkillInstance
     ): Unit = suspendTransaction {
-        val target = gameObjectRepository.findActorByIdOrNull(effect.targetId) ?: return@suspendTransaction
+        val target = gameWorld.findActorByIdOrNull(effect.targetId) ?: return@suspendTransaction
         if (target.temporalEffects.add(effect) && target is PlayerCharacterInstanceImpl) {
             sendTo(target.id) { FullCharacterResponse(target) }
             sendTo(target.id) { TemporalEffectsResponse(target.temporalEffects) }
@@ -510,7 +512,7 @@ class SkillService(
     }
 
     private suspend fun applyEscapeEffect(effect: EscapeEffect) {
-        val target = gameObjectRepository.findActorByIdOrNull(effect.targetId) ?: run {
+        val target = gameWorld.findActorByIdOrNull(effect.targetId) ?: run {
             log.warn { "Cannot apply $effect on target ${effect.targetId} - it has disappeared" }
             return
         }
@@ -523,7 +525,7 @@ class SkillService(
     }
 
     private suspend fun applyResurrectionEffect(caster: ActorInstance, effect: ResurrectionEffect) {
-        val target = gameObjectRepository.findCharacterById(effect.targetId)
+        val target = gameWorld.findCharacterById(effect.targetId)
         target.expLostAfterDeath
 
         target.expRestoredByResurrection = (target.expLostAfterDeath * effect.restoredExp).roundToLong()

@@ -4,11 +4,10 @@ import kotlinx.coroutines.runBlocking
 import org.jetbrains.exposed.v1.jdbc.deleteAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.junit.jupiter.api.BeforeEach
-import org.l2kserver.game.configuration.HazelcastInstanceTestConfiguration
 import org.l2kserver.game.data.characterclass.HumanFighter
 import org.l2kserver.game.domain.ItemEntity
 import org.l2kserver.game.model.session.AuthorizationKey
-import org.l2kserver.game.repository.GameObjectRepository
+import org.l2kserver.game.repository.GameWorld
 import org.l2kserver.game.domain.PlayerCharacterTable
 import org.l2kserver.game.domain.ItemTable
 import org.l2kserver.game.domain.ShortcutTable
@@ -33,13 +32,12 @@ import org.l2kserver.game.service.IntentionExecutorService
 import org.l2kserver.game.utils.getPrivateProperty
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.test.context.ActiveProfiles
 import kotlin.random.Random
 
-@SpringBootTest(
-    // Local HazelcastInstance must be started for tests, in due not to conflict with bootRunTest gradle task
-    properties = ["spring.main.allow-bean-definition-overriding=true"],
-    classes = [HazelcastInstanceTestConfiguration::class]
-)
+@SpringBootTest
+// This profile disables several server tasks, as character perceptions and primary npc spawning
+@ActiveProfiles("test")
 abstract class AbstractTests {
 
     @Autowired
@@ -49,7 +47,7 @@ abstract class AbstractTests {
     private lateinit var actorStateService: ActorStateService
 
     @Autowired
-    protected lateinit var gameObjectRepository: GameObjectRepository
+    protected lateinit var gameWorld: GameWorld
 
     @Autowired
     protected lateinit var playerCharacterRepository: PlayerCharacterRepository
@@ -71,7 +69,7 @@ abstract class AbstractTests {
             PlayerCharacterTable.deleteAll()
         }
         SessionContext.clear()
-        gameObjectRepository.deleteAll()
+        gameWorld.deleteAll()
         actorStateService.flushStates()
         asyncTaskService.cancelTask("REGENERATION_JOB")
         intentionExecutorService.cancelAll()
@@ -105,7 +103,7 @@ abstract class AbstractTests {
             val context = createTestSessionContext(character.accountName)
             context.setCharacterId(character.id)
 
-            gameObjectRepository.save(character)
+            gameWorld.save(character)
             intentionExecutorService.launchIntentionQueueListener(character)
         }
 
@@ -151,7 +149,7 @@ abstract class AbstractTests {
             enchantLevel = enchantLevel
         )
 
-        return gameObjectRepository.save(scatteredItem)
+        return gameWorld.save(scatteredItem)
     }
 
     private fun ActorStateService.flushStates() {

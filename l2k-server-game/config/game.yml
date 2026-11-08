@@ -18,7 +18,8 @@ game.karmaMaxAmount: 10_000
 # Default: 260
 game.karmaExpDivider: 260
 
-# Minimum amount of karma lost when killing a monster. Default: 0
+# Minimum amount of karma lost when killing a monster.
+# Default: 0
 game.karmaLostMin: 0
 
 # How many exp is lost after death

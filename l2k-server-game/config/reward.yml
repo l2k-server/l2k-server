@@ -26,3 +26,7 @@ reward.levelPenaltyBaseValue: 0.18
 #
 # Default: 10
 reward.maxLevelDifferenceForPenalty: 10
+
+# Maximum bonus exp rate for overhit.
+# Default: 0.25 (25% of bonus exp)
+reward.overhitMaxExpBonus: 0.25

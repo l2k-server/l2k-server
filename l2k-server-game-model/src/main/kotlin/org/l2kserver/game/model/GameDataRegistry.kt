@@ -50,6 +50,6 @@ abstract class GameDataRegistry<T: GameData>: Collection<T> {
     /** Finds template by its identifier, or throws [IllegalArgumentException] if no data with [id] exists */
     fun findById(id: Int) = requireNotNull(findByIdOrNull(id)) { "No GameData found by id=$id" }
 
-    /** Checks if game data object with provided [id] is registered */
+    /** Checks if game data worldObject with provided [id] is registered */
     fun existsById(id: Int) = gameDataStorage.containsKey(id)
 }

@@ -9,7 +9,7 @@ import org.l2kserver.game.handler.dto.response.ResponsePacket
 import org.l2kserver.game.model.session.AuthorizationKey
 import kotlin.coroutines.CoroutineContext
 
-private const val RESPONSE_CHANNEL_CAPACITY = 127
+private const val RESPONSE_CHANNEL_CAPACITY = 256
 
 /** Storage for all sessions. Key - session id, value - session context */
 private val sessionsMap = ConcurrentHashMap<Int, SessionContext>()
@@ -34,6 +34,7 @@ class SessionContext(val sessionId: Int) : CoroutineContext.Element, Closeable {
         }
 
         fun clear() {
+            sessionsMap.values.forEach { it.close() }
             sessionsMap.clear()
             inGameSessionsMap.clear()
         }
@@ -99,6 +100,7 @@ class SessionContext(val sessionId: Int) : CoroutineContext.Element, Closeable {
     /** Flush player's session data */
     override fun close() {
         characterId?.let { inGameSessionsMap.remove(it) }
+        responseChannel.close()
         sessionsMap.remove(sessionId)
     }
 }

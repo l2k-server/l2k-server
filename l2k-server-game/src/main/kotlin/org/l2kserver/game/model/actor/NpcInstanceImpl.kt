@@ -9,11 +9,12 @@ import org.l2kserver.game.model.actor.position.Position
 import org.l2kserver.game.model.actor.npc.Npc
 import org.l2kserver.game.model.actor.npc.NpcState
 import org.l2kserver.game.model.actor.npc.SpawnedAt
+import org.l2kserver.game.model.actor.npc.ai.AiEvent
 import org.l2kserver.game.model.actor.position.Heading
 import org.l2kserver.game.model.item.Armor
 import org.l2kserver.game.model.item.ItemRegistry
 import org.l2kserver.game.model.item.Weapon
-import org.l2kserver.game.model.skill.instance.SkillInstance
+import java.util.concurrent.ConcurrentLinkedQueue
 import kotlin.math.roundToInt
 
 /**
@@ -93,4 +94,6 @@ class NpcInstanceImpl(
     override fun isEnemyOf(other: ActorInstance): Boolean = template.isEnemyOf(other)
 
     override fun onTalkWith(character: PlayerCharacterInstance) = template.onTalkWith(character)
+
+    val eventsHappened = ConcurrentLinkedQueue<AiEvent>()
 }

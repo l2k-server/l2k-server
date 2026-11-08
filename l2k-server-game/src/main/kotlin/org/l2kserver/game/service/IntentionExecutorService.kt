@@ -47,7 +47,7 @@ class IntentionExecutorService(
 
         val listener = CoroutineScope(context).launch {
             actor.intentionQueue.onNext { intention ->
-                log.debug { "Start handling '$intention' of '$actor'" }
+                log.trace { "Start handling '$intention' of '$actor'" }
                 asyncTaskService.cancelActionByActorId(actor.id)
 
                 val job = when (intention) {
@@ -97,12 +97,14 @@ class IntentionExecutorService(
                 }
 
                 job?.invokeOnCompletion { e ->
-                    if (e is CancellationException)
-                        log.debug { "Intention '$intention' execution of '$actor' was cancelled" }
-                    else if (e != null)
-                        log.error(e) { "An error occurred during execution of $intention" }
-                    else
-                        log.debug { "Executed intention $intention" }
+                    when (e) {
+                        null ->
+                            log.trace { "Executed intention $intention" }
+                        is CancellationException ->
+                            log.debug { "Intention '$intention' execution of '$actor' was cancelled" }
+                        else ->
+                            log.error(e) { "An error occurred during execution of $intention" }
+                    }
                 }
             }
         }

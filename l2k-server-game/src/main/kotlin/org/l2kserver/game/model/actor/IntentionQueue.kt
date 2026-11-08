@@ -3,7 +3,7 @@ package org.l2kserver.game.model.actor
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.l2kserver.game.model.actor.position.Position
 import org.l2kserver.game.model.skill.context.SkillContext
-import org.l2kserver.game.model.skill.instance.ActiveSkillInstance
+import org.l2kserver.game.model.skill.ActiveSkillInstance
 
 /**
  * A high-level "what the actor wants to do next" model (e.g. movement, combat, skills).

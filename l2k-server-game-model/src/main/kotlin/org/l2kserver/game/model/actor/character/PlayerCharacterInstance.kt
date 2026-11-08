@@ -11,7 +11,7 @@ import org.l2kserver.game.model.stats.BasicStats
 import org.l2kserver.game.model.stats.CombatStats
 import org.l2kserver.game.model.item.WeaponType
 import org.l2kserver.game.model.skill.effect.TemporalAbnormalEffect
-import org.l2kserver.game.model.skill.instance.SkillInstance
+import org.l2kserver.game.model.skill.SkillInstance
 
 /**
  * Player-controlled character in the game world.

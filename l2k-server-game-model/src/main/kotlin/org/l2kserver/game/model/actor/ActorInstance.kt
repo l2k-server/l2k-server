@@ -11,6 +11,7 @@ import org.l2kserver.game.model.stats.CombatStats
  * Game actor (npc, monster, player character, etc.)
  *
  * @property stats Actor's battle characteristics
+ * @property basicStats Actor's basic characteristics (STR, DEX, CON, etc.)
  * @property name Actor's name
  * @property level Actor's level
  * @property position Actor's position in game world
@@ -79,5 +80,4 @@ interface ActorInstance: GameWorldObject {
 
     /** Is this actor dead */
     fun isDead() = this.currentHp <= 0
-
 }

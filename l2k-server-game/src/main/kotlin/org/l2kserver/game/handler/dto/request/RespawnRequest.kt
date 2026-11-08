@@ -22,6 +22,8 @@ enum class RespawnAt {
     JAIL;
 
     companion object {
+
+        @Suppress("MagicNumber")
         fun getRespawnPointById(pointId: Int) = when(pointId) {
             0 -> VILLAGE
             1 -> CLAN_HALL

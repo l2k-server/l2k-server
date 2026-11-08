@@ -20,7 +20,7 @@ import org.l2kserver.game.model.actor.MutableActorInstance
 import org.l2kserver.game.model.actor.character.PvpState
 import org.l2kserver.game.model.actor.npc.NpcState
 import org.l2kserver.game.network.session.sendTo
-import org.l2kserver.game.repository.GameObjectRepository
+import org.l2kserver.game.repository.GameWorld
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.context.event.ApplicationReadyEvent
 import org.springframework.context.event.EventListener
@@ -41,7 +41,7 @@ private const val UPDATE_ABNORMALS_DELAY_MS = 1000L
 @Service
 class ActorStateService(
     private val asyncTaskService: AsyncTaskService,
-    override val gameObjectRepository: GameObjectRepository,
+    override val gameWorld: GameWorld,
 
     @param:Value($$"${game.pvpFlagTimeMs}") private val pvpFlagTimeMs: Int,
     @param:Value($$"${game.pvpFlagEndingTimeMs}") private val pvpFlagEndingTimeMs: Int
@@ -168,7 +168,7 @@ class ActorStateService(
         }
     }
 
-    private suspend fun regenerate() = gameObjectRepository.findAllActors().forEach { actor ->
+    private suspend fun regenerate() = gameWorld.findAllActors().forEach { actor ->
         suspendTransaction {
             if (actor.isDead()) return@suspendTransaction
 
@@ -215,7 +215,7 @@ class ActorStateService(
         }
     }
 
-    private suspend fun updateAbnormals() = gameObjectRepository.findAllActors().forEach { actor ->
+    private suspend fun updateAbnormals() = gameWorld.findAllActors().forEach { actor ->
         val outdatedEffects = actor.temporalEffects.filter { it.expiresAt.isBefore(Instant.now()) }
 
         if (outdatedEffects.isNotEmpty()) {

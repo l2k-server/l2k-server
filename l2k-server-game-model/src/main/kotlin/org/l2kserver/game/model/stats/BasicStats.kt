@@ -8,21 +8,21 @@ import kotlin.math.sqrt
  * Character's basic stats
  */
 data class BasicStats(
-    val str: STR = STR(0),
-    val dex: DEX = DEX(0),
-    val con: CON = CON(0),
-    val int: INT = INT(0),
-    val wit: WIT = WIT(0),
-    val men: MEN = MEN(0),
+    val str: Strength = Strength(0),
+    val dex: Dexterity = Dexterity(0),
+    val con: Constitution = Constitution(0),
+    val int: Intelligence = Intelligence(0),
+    val wit: Wisdom = Wisdom(0),
+    val men: Mental = Mental(0),
 ) {
 
     operator fun get(key: BasicStat) = when (key) {
-        STR -> str.value
-        DEX -> dex.value
-        CON -> con.value
-        INT -> int.value
-        WIT -> wit.value
-        MEN -> men.value
+        Strength -> str.value
+        Dexterity -> dex.value
+        Constitution -> con.value
+        Intelligence -> int.value
+        Wisdom -> wit.value
+        Mental -> men.value
     }
 
     operator fun plus(other: BasicStats?) = if (other == null) this else BasicStats(
@@ -73,12 +73,12 @@ private const val STR_MULTIPLIER_POW_BASE = 34.845
  * depending on how high your STR is. The higher it is, the greater the bonus from each point.
  */
 @JvmInline
-value class STR(val value: Int) {
+value class Strength(val value: Int) {
     companion object: BasicStat(STR_MULTIPLIER_BASE, STR_MULTIPLIER_POW_BASE)
 
     val pAtkModifier: Double get() = getModifier(value)
 
-    operator fun plus(other: STR) = STR(this.value + other.value)
+    operator fun plus(other: Strength) = Strength(this.value + other.value)
 }
 
 private const val DEX_MULTIPLIER_BASE = 1.009
@@ -90,7 +90,7 @@ private const val DEX_MULTIPLIER_POW_BASE = 19.36
  * which are usually less.
  */
 @JvmInline
-value class DEX(val value: Int) {
+value class Dexterity(val value: Int) {
     companion object: BasicStat(DEX_MULTIPLIER_BASE, DEX_MULTIPLIER_POW_BASE)
 
     val atkSpdModifier: Double get() = getModifier(value)
@@ -101,7 +101,7 @@ value class DEX(val value: Int) {
     val accuracyBonus: Int get() = (sqrt(value.toDouble()) * 6).toInt()
     val evasionBonus: Int get() = (sqrt(value.toDouble()) * 6).toInt()
 
-    operator fun plus(other: DEX) = DEX(this.value + other.value)
+    operator fun plus(other: Dexterity) = Dexterity(this.value + other.value)
 }
 
 /**
@@ -112,7 +112,7 @@ value class DEX(val value: Int) {
  * Again, just like STR, the higher your CON is, the greater the benefits (or losses) from dyes.
  */
 @JvmInline
-value class CON(val value: Int) {
+value class Constitution(val value: Int) {
 
     companion object: BasicStat(modifierBase = 1.03, modifierPowBase = 27.632) {
         private const val MAX_WEIGHT_BASE = 1.029993928
@@ -129,7 +129,7 @@ value class CON(val value: Int) {
 
     val baseMaxWeight: Int get() = (MAX_WEIGHT_BASE.pow(value) * MAX_WEIGHT_MULTIPLIER).toInt()
 
-    operator fun plus(other: CON) = CON(this.value + other.value)
+    operator fun plus(other: Constitution) = Constitution(this.value + other.value)
 }
 
 /**
@@ -141,13 +141,13 @@ value class CON(val value: Int) {
  * giving you a +22% higher bonus.
  */
 @JvmInline
-value class INT(val value: Int) {
+value class Intelligence(val value: Int) {
 
     companion object: BasicStat(modifierBase = 1.02, modifierPowBase = 31.375)
 
     val mAtkModifier: Double get() = getModifier(value)
 
-    operator fun plus(other: INT) = INT(this.value + other.value)
+    operator fun plus(other: Intelligence) = Intelligence(this.value + other.value)
 }
 
 /**
@@ -155,14 +155,14 @@ value class INT(val value: Int) {
  * You'll see about a 5 to 6% casting speed increase for each point, for all mage classes.
  */
 @JvmInline
-value class WIT(val value: Int) {
+value class Wisdom(val value: Int) {
 
     companion object: BasicStat(modifierBase = 1.05, modifierPowBase = 20.0)
 
     val castingSpdModifier: Double get() = getModifier(value)
     val magicCritChanceBonus: Double get() = getModifier(value)
 
-    operator fun plus(other: WIT) = WIT(this.value + other.value)
+    operator fun plus(other: Wisdom) = Wisdom(this.value + other.value)
 }
 
 /**
@@ -170,7 +170,7 @@ value class WIT(val value: Int) {
  * It also helps against debuffs due to the increased m.def.
  */
 @JvmInline
-value class MEN(val value: Int) {
+value class Mental(val value: Int) {
 
     companion object: BasicStat(modifierBase = 1.01, modifierPowBase = -0.060)
 
@@ -178,5 +178,5 @@ value class MEN(val value: Int) {
     val mpRegenModifier: Double get() = getModifier(value)
     val mDefModifier: Double get() = getModifier(value)
 
-    operator fun plus(other: MEN) = MEN(this.value + other.value)
+    operator fun plus(other: Mental) = Mental(this.value + other.value)
 }

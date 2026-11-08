@@ -1,7 +1,5 @@
 package org.l2kserver.game.service
 
-import kotlinx.coroutines.NonCancellable
-import kotlinx.coroutines.withContext
 import org.l2kserver.game.extensions.logger
 import org.l2kserver.game.handler.dto.request.CreateCharacterRequest
 import org.l2kserver.game.handler.dto.request.DeleteCharacterRequest
@@ -20,9 +18,12 @@ import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
 import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
 import org.l2kserver.game.domain.AccessLevel
+import org.l2kserver.game.extensions.model.actor.toInfoResponse
+import org.l2kserver.game.extensions.model.store.toMessageResponse
 import org.l2kserver.game.handler.dto.request.ConfirmDialogAnswerRequest
 import org.l2kserver.game.handler.dto.request.RespawnAt
 import org.l2kserver.game.handler.dto.request.RespawnRequest
+import org.l2kserver.game.handler.dto.response.CancelTargetResponse
 import org.l2kserver.game.handler.dto.response.ChangePostureResponse
 import org.l2kserver.game.handler.dto.response.DeleteObjectResponse
 import org.l2kserver.game.handler.dto.response.ExitGameResponse
@@ -33,16 +34,19 @@ import org.l2kserver.game.handler.dto.response.RestartResponse
 import org.l2kserver.game.handler.dto.response.ReviveResponse
 import org.l2kserver.game.handler.dto.response.ShortcutPanelResponse
 import org.l2kserver.game.handler.dto.response.SkillListResponse
+import org.l2kserver.game.handler.dto.response.StartMovingResponse
 import org.l2kserver.game.handler.dto.response.SystemMessageResponse
 import org.l2kserver.game.handler.dto.response.UpdateStatusResponse
+import org.l2kserver.game.model.actor.MutableActorInstance
 import org.l2kserver.game.model.actor.PlayerCharacterInstanceImpl
 import org.l2kserver.game.model.actor.character.CharacterRace
 import org.l2kserver.game.model.actor.character.Gender
 import org.l2kserver.game.model.map.TownRegistry
 import org.l2kserver.game.network.session.SessionContext
 import org.l2kserver.game.network.session.send
+import org.l2kserver.game.network.session.sendTo
 import org.l2kserver.game.network.session.sessionContext
-import org.l2kserver.game.repository.GameObjectRepository
+import org.l2kserver.game.repository.GameWorld
 import org.l2kserver.game.repository.PlayerCharacterRepository
 import org.l2kserver.game.repository.ShortcutRepository
 import org.springframework.boot.context.event.ApplicationReadyEvent
@@ -50,7 +54,7 @@ import org.springframework.context.event.EventListener
 import kotlin.math.roundToInt
 
 private const val CHARACTERS_MAX_AMOUNT = 7
-private const val CHARACTERS_INFO_UPDATE_DELAY_MS = 60_000L
+private const val CHARACTER_PERCEPTION_UPDATE_DELAY = 1000L
 
 @Service
 class CharacterService(
@@ -62,14 +66,14 @@ class CharacterService(
 
     private val playerCharacterRepository: PlayerCharacterRepository,
     private val shortcutRepository: ShortcutRepository,
-    override val gameObjectRepository: GameObjectRepository,
+    override val gameWorld: GameWorld,
 
     @param:Value($$"${characters.newCharacterNameRegexp}") private val newCharacterNameRegexp: String,
     @param:Value($$"${characters.deletionTimeMs}") private val characterDeletionTime: Long,
     @param:Value($$"${characters.newCharacterDeletionTimeMs}") private val newCharacterDeletionTime: Long,
     @param:Value($$"${characters.respawnCpRate}") private val respawnCpRate: Double,
     @param:Value($$"${characters.respawnHpRate}") private val respawnHpRate: Double,
-    @param:Value($$"${characters.respawnMpRate}") private val respawnMpRate: Double,
+    @param:Value($$"${characters.respawnMpRate}") private val respawnMpRate: Double
 ): AbstractService() {
 
     override val log = logger()
@@ -81,22 +85,29 @@ class CharacterService(
      * If player is in characters menu and has deleting characters, CharacterListResponse
      * is sent to him every minute to update deleting time on client side and delete deleted characters
      */
-    @EventListener(ApplicationReadyEvent::class)
+    @EventListener(ApplicationReadyEvent::class, condition = "!@environment.acceptsProfiles('test')")
     fun init() = asyncTaskService.launchRepeated(
-        "UPDATE_CHARACTERS_INFO_JOB", CHARACTERS_INFO_UPDATE_DELAY_MS
+        "CHARACTERS_PERCEPTION_JOB", CHARACTER_PERCEPTION_UPDATE_DELAY
     ) {
-        val deletedPlayerCharacterOwners = playerCharacterRepository.deleteAllWithExpiredDeletionDate()
-            .map { it.accountName }
-
-        SessionContext.forEach { withContext(NonCancellable) {
-            if (it.inCharacterMenu()) {
-                val hasDeletingCharacters = playerCharacterRepository
-                    .existDeletingByAccountName(it.getAccountName())
-                val hasDeletedCharacters = deletedPlayerCharacterOwners.contains(it.getAccountName())
-
-                if (hasDeletingCharacters || hasDeletedCharacters) sendCharactersList(it.sessionId)
+        gameWorld.findAllCharacters().forEach { character ->
+            val (toAdd, toRemove) = scanAround(character, charactersPerceptionRadius)
+            toAdd.forEach {  added ->
+                sendTo(character.id) { added.toInfoResponse(character)}
+                if (added is MutableActorInstance) added.movementDestination?.let {
+                    sendTo(character.id) { StartMovingResponse(added, it) }
+                }
+                if (added is PlayerCharacterInstanceImpl) added.privateStore?.let {
+                    sendTo(character.id) { it.toMessageResponse(added.id)}
+                }
             }
-        }}
+            toRemove.forEach { removed ->
+                sendTo(character.id) { DeleteObjectResponse(removed.id) }
+                if (character.targetId == removed.id) {
+                    sendTo(character.id) { CancelTargetResponse(character) }
+                    character.targetId = null
+                }
+            }
+        }
     }
 
     /**
@@ -110,6 +121,10 @@ class CharacterService(
 
         try {
             log.debug { "Loading characters of user '${context.getAccountName()}'..." }
+            //First delete pending characters
+            playerCharacterRepository.deleteAllWithExpiredDeletionDate()
+
+            //Then load characters of this account
             val playerCharacters = playerCharacterRepository.findAllByAccountName(context.getAccountName())
 
             //Send characters list to
@@ -263,7 +278,7 @@ class CharacterService(
         val accountName = context.getAccountName()
         val characterId = context.getCharacterId()
 
-        check(gameObjectRepository.findByIdOrNull(characterId) == null) { "Player $accountName is already in game" }
+        check(gameWorld.findByIdOrNull(characterId) == null) { "Player $accountName is already in game" }
 
         log.debug { "User $accountName is entering game world with character id=$characterId..." }
 
@@ -271,7 +286,7 @@ class CharacterService(
             "Cannot enter game: no character with id $characterId exists!"
         }
 
-        gameObjectRepository.save(character)
+        gameWorld.save(character)
         intentionExecutorService.launchIntentionQueueListener(character)
 
         val shortcuts = shortcutRepository.findAllBy(character.id, character.activeSubclass)
@@ -284,17 +299,16 @@ class CharacterService(
 
         if (character.isDead()) send { PlayerDiedResponse(character) }
 
-        updateObjectsAround(character)
         log.info { "Player $accountName has entered world with character $character" }
     }
 
     suspend fun sendCharacterInfo() = send {
-        FullCharacterResponse(gameObjectRepository.findCharacterById(sessionContext().getCharacterId()))
+        FullCharacterResponse(gameWorld.findCharacterById(sessionContext().getCharacterId()))
     }
 
     suspend fun respawnCharacter(request: RespawnRequest) {
         val context = sessionContext()
-        val character = gameObjectRepository.findCharacterById(context.getCharacterId())
+        val character = gameWorld.findCharacterById(context.getCharacterId())
 
         log.debug { "Start respawning '$character'" }
 
@@ -325,7 +339,7 @@ class CharacterService(
     }
 
     suspend fun resurrectCharacter(request: ConfirmDialogAnswerRequest.Resurrection) = suspendTransaction {
-        val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
+        val character = gameWorld.findCharacterById(sessionContext().getCharacterId())
         log.debug { "$character has ${if (request.confirmed) "confirmed" else "declined"} resurrection request" }
 
         val expToRestore = character.expRestoredByResurrection ?: run {
@@ -343,7 +357,7 @@ class CharacterService(
     }
 
     suspend fun exitToCharactersMenu() {
-        val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
+        val character = gameWorld.findCharacterById(sessionContext().getCharacterId())
 
         log.debug { "'$character' is exiting to characters menu" }
 
@@ -360,7 +374,7 @@ class CharacterService(
         val context = sessionContext()
         val accountName = context.getAccountName()
 
-        val character = context.getCharacterIdOrNull()?.let { gameObjectRepository.findCharacterByIdOrNull(it) }
+        val character = context.getCharacterIdOrNull()?.let { gameWorld.findCharacterByIdOrNull(it) }
         character?.let { if (exitWorld()) send { ExitGameResponse } }
 
         log.info { "Player $accountName has quit the game" }
@@ -373,7 +387,7 @@ class CharacterService(
      * @return `true` if character has exited game world (or if it even was not in game), `false` if not
      */
     suspend fun exitWorld(forced: Boolean = false): Boolean = sessionContext().getCharacterIdOrNull()?.let {
-        gameObjectRepository.findCharacterByIdOrNull(it)?.let { character ->
+        gameWorld.findCharacterByIdOrNull(it)?.let { character ->
             //TODO Other checks if player cannot leave game
             if (!forced && character.isFighting) {
                 send { SystemMessageResponse.CannotRestartInCombat }
@@ -384,7 +398,7 @@ class CharacterService(
             asyncTaskService.cancelActionByActorId(character.id)
             intentionExecutorService.disableIntentionQueueListener(character.id)
             actorStateService.stopUpdatingStates(character)
-            gameObjectRepository.deleteById(character.id)
+            gameWorld.delete(character)
 
             broadcastAround(character) { DeleteObjectResponse(character.id) }
             //TODO Notify friends, clan, wife, favourite cat, etc.

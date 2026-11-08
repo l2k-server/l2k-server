@@ -6,6 +6,7 @@ import org.l2kserver.game.model.utils.MAGIC_ATTACK_BASE
 import org.l2kserver.game.model.utils.PHYSICAL_ATTACK_BASE
 import org.l2kserver.game.model.utils.PHYSICAL_DMG_FROM_BACK_MODIFIER
 import org.l2kserver.game.model.utils.PHYSICAL_DMG_FROM_SIDE_MODIFIER
+import org.l2kserver.game.model.utils.TOO_BIG_LEVEL_DIFFERENCE
 import org.l2kserver.game.model.utils.calculateIsMagicCritical
 import org.l2kserver.game.model.utils.calculateIsMagicSucceeded
 import org.l2kserver.game.model.utils.calculateIsPhysicalAttackAvoided
@@ -16,6 +17,8 @@ import kotlin.math.roundToInt
 import kotlin.math.sqrt
 import kotlin.random.Random
 
+const val SOULSHOT_BLOW_DAMAGE_MULTIPLIER = 1.5
+const val SOULSHOT_HIT_DAMAGE_MULTIPLIER = 2.0
 /**
  * Data class representing single target hit
  *
@@ -75,7 +78,7 @@ data class DamageEffect(
             if (caster.isOnSideOf(target)) damage *= PHYSICAL_DMG_FROM_SIDE_MODIFIER
             if (caster.isBehind(target)) damage *= PHYSICAL_DMG_FROM_BACK_MODIFIER
 
-            if (usedSoulshot) damage *= 2
+            if (usedSoulshot) damage *= SOULSHOT_HIT_DAMAGE_MULTIPLIER
             if (isCritical) damage = damage * 2 + caster.stats.critDamage
 
             var defence = target.stats.pDef
@@ -113,7 +116,8 @@ data class DamageEffect(
             //TODO attribute bonus/resistance
 
             return if (canBeResisted && !calculateIsMagicSucceeded(target, magicLevel)) {
-                if (calculateIsMagicSucceeded(target, magicLevel) && (target.level - caster.level) <= 9) {
+                if (calculateIsMagicSucceeded(target, magicLevel)
+                    && (target.level - caster.level) <= TOO_BIG_LEVEL_DIFFERENCE) {
                     DamageEffect(target.id, damage = (damage / 2).roundToInt(), isHalfSuccessful = true)
                 } else {
                     DamageEffect(target.id, damage = 1, isFailed = true)
@@ -129,6 +133,7 @@ data class DamageEffect(
         private const val BLOW_CHANCE_FROM_ASIDE = 0.6
         private const val BLOW_CHANCE_FROM_THE_FRONT = 0.5
 
+        @Suppress("MagicNumber")
         fun blow(
             caster: ActorInstance,
             target: ActorInstance,
@@ -148,7 +153,7 @@ data class DamageEffect(
 
             // Calculate damage
             var damage = (caster.stats.pAtk * if (usedSoulshot) 2 else 1).toDouble()
-            damage += power * if (usedSoulshot) 1.5 else 1.0
+            damage += power * if (usedSoulshot) SOULSHOT_BLOW_DAMAGE_MULTIPLIER else 1.0
 
             damage *= (caster.weaponType?.calculateRandomDamageModifier() ?: 1.0)
             damage *= calculatePositionCritChanceMultiplier(caster, target)

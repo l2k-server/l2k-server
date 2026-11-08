@@ -12,7 +12,7 @@ import org.l2kserver.game.handler.dto.response.UpdateStatusResponse
 import org.l2kserver.game.model.actor.PlayerCharacterInstanceImpl
 import org.l2kserver.game.network.session.send
 import org.l2kserver.game.network.session.sessionContext
-import org.l2kserver.game.repository.GameObjectRepository
+import org.l2kserver.game.repository.GameWorld
 import org.l2kserver.game.model.command.AdminCommand
 import org.l2kserver.game.model.command.CommandDescription
 import org.l2kserver.game.model.command.EnchantCommand
@@ -33,7 +33,7 @@ import kotlin.math.roundToInt
 /** Service for handling admin commands */
 @Service
 class AdminCommandService(
-    override val gameObjectRepository: GameObjectRepository,
+    override val gameWorld: GameWorld,
     private val moveService: MoveService,
     private val itemService: ItemService,
     private val skillService: SkillService,
@@ -44,7 +44,7 @@ class AdminCommandService(
     override val log = logger()
 
     suspend fun handleAdminCommand(commandRequest: AdminCommandRequest) {
-        val character = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
+        val character = gameWorld.findCharacterById(sessionContext().getCharacterId())
         if (character.accessLevel != AccessLevel.GAME_MASTER) {
             log.warn { "Player '$character' has no privileges to use admin commands!" }
             return
@@ -73,7 +73,7 @@ class AdminCommandService(
     }
 
     /**
-     * Handles help command. Iterates through all the CommandDescription object instances and sends their manuals
+     * Handles help command. Iterates through all the CommandDescription worldObject instances and sends their manuals
      */
     private suspend fun handleHelpCommand() {
         send { SystemMessageResponse("List of available commands:") }
@@ -88,8 +88,8 @@ class AdminCommandService(
      * If [TeleportCommand.name] is null, character who called this command will be teleported
      */
     private suspend fun handleTeleportCommand(command: TeleportCommand) {
-        val characterToTeleport = command.name?.let { gameObjectRepository.findCharacterByName(it) }
-            ?: gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
+        val characterToTeleport = command.name?.let { gameWorld.findCharacterByName(it) }
+            ?: gameWorld.findCharacterById(sessionContext().getCharacterId())
 
         moveService.teleport(characterToTeleport, command.position)
         send { SystemMessageResponse("'${characterToTeleport.name}' was teleported to '${command.position}'") }
@@ -102,8 +102,8 @@ class AdminCommandService(
      */
     private suspend fun handleEnchantCommand(command: EnchantCommand) {
         val characterToEnchant = command.characterName
-            ?.let { gameObjectRepository.findCharacterByName(it) }
-            ?: gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
+            ?.let { gameWorld.findCharacterByName(it) }
+            ?: gameWorld.findCharacterById(sessionContext().getCharacterId())
 
         log.debug {
             "Got command to enchant '${command.itemToEnchant}' of '$characterToEnchant' by '${command.enchantLevel}'"
@@ -150,8 +150,8 @@ class AdminCommandService(
      * enchanted by [GiveCommand.enchantLevel]
      */
     private suspend fun handleGiveCommand(command: GiveCommand) {
-        val character = command.name?.let { gameObjectRepository.findCharacterByName(it) }
-            ?: gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
+        val character = command.name?.let { gameWorld.findCharacterByName(it) }
+            ?: gameWorld.findCharacterById(sessionContext().getCharacterId())
 
         itemService.giveItem(
             character,
@@ -167,8 +167,8 @@ class AdminCommandService(
      * If [RestoreCommand.name] is null, restore stats of character who called this command
      */
     private suspend fun handleRestoreCommand(command: RestoreCommand) = suspendTransaction {
-        val healer = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
-        val character = command.name?.let { gameObjectRepository.findCharacterByName(it) } ?: healer
+        val healer = gameWorld.findCharacterById(sessionContext().getCharacterId())
+        val character = command.name?.let { gameWorld.findCharacterByName(it) } ?: healer
 
         val stats = command.statsToRestore ?: StatToRestore.entries
         val healerName = if (healer != character) healer.name else null
@@ -203,16 +203,16 @@ class AdminCommandService(
     }
 
     private suspend fun handleLearnCommand(command: LearnCommand) {
-        val character = command.name?.let { gameObjectRepository.findCharacterByName(it) }
-            ?: gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
+        val character = command.name?.let { gameWorld.findCharacterByName(it) }
+            ?: gameWorld.findCharacterById(sessionContext().getCharacterId())
 
         skillService.learnSkill(character, command.skillId, command.level)
     }
 
     private suspend fun handleKillCommand(command: KillCommand) {
-        val adminCharacter = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
-        val target = command.victimName?.let { gameObjectRepository.findCharacterByName(it) }
-            ?: adminCharacter.targetId?.let { gameObjectRepository.findActorById(it) }
+        val adminCharacter = gameWorld.findCharacterById(sessionContext().getCharacterId())
+        val target = command.victimName?.let { gameWorld.findCharacterByName(it) }
+            ?: adminCharacter.targetId?.let { gameWorld.findActorById(it) }
             ?: run {
                 send { SystemMessageResponse("No target for command 'kill'") }
                 return
@@ -224,10 +224,10 @@ class AdminCommandService(
     }
 
     private suspend fun handleExpCommand(command: ExpCommand) {
-        val adminCharacter = gameObjectRepository.findCharacterById(sessionContext().getCharacterId())
+        val adminCharacter = gameWorld.findCharacterById(sessionContext().getCharacterId())
 
-        val target = command.characterName?.let { gameObjectRepository.findCharacterByName(it) }
-            ?: adminCharacter.targetId?.let { gameObjectRepository.findCharacterByIdOrNull(it) }
+        val target = command.characterName?.let { gameWorld.findCharacterByName(it) }
+            ?: adminCharacter.targetId?.let { gameWorld.findCharacterByIdOrNull(it) }
             ?: adminCharacter
 
         rewardService.giveExpAndSp(target, command.amount)

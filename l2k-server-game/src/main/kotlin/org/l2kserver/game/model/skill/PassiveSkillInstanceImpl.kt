@@ -2,8 +2,6 @@ package org.l2kserver.game.model.skill
 
 import org.l2kserver.game.domain.SkillEntity
 import org.l2kserver.game.model.actor.ActorInstance
-import org.l2kserver.game.model.skill.instance.PassiveSkillInstance
-import org.l2kserver.game.model.skill.template.PassiveSkill
 
 class PassiveSkillInstanceImpl(
     entity: SkillEntity,

@@ -5,7 +5,7 @@ import org.l2kserver.game.model.actor.ActorInstance
 import org.l2kserver.game.model.actor.character.PlayerCharacterInstance
 import org.l2kserver.game.model.item.ArmorType
 import org.l2kserver.game.model.skill.effect.AbnormalEffect
-import org.l2kserver.game.model.skill.template.PassiveSkill
+import org.l2kserver.game.model.skill.PassiveSkill
 import org.l2kserver.game.model.stats.CombatStatsMultipliers
 
 data object SpellcraftEffect: AbnormalEffect {

@@ -15,14 +15,14 @@ import org.l2kserver.game.model.actor.character.ShortcutType
 import org.l2kserver.game.model.actor.character.SkillToLearn
 import org.l2kserver.game.model.actor.position.Position
 import org.l2kserver.game.model.stats.BasicStats
-import org.l2kserver.game.model.stats.CON
-import org.l2kserver.game.model.stats.DEX
-import org.l2kserver.game.model.stats.INT
-import org.l2kserver.game.model.stats.MEN
-import org.l2kserver.game.model.stats.STR
+import org.l2kserver.game.model.stats.Constitution
+import org.l2kserver.game.model.stats.Dexterity
+import org.l2kserver.game.model.stats.Intelligence
+import org.l2kserver.game.model.stats.Mental
+import org.l2kserver.game.model.stats.Strength
 import org.l2kserver.game.model.stats.CombatStats
 import org.l2kserver.game.model.stats.TradeAndInventoryStats
-import org.l2kserver.game.model.stats.WIT
+import org.l2kserver.game.model.stats.Wisdom
 
 private val HUMAN_FIGHTER_CP_TABLE = listOf(
     1.0,     32.0,     36.732,   41.516,   46.352,   51.24,   56.18,   61.172,   66.216,   71.312,  //0 - 9
@@ -65,12 +65,12 @@ data object HumanFighter: CharacterClass() {
     override val requiredLevel = 1
 
     override val basicStats = BasicStats(
-        STR(40),
-        DEX(30),
-        CON(43),
-        INT(21),
-        WIT(11),
-        MEN(25),
+        Strength(40),
+        Dexterity(30),
+        Constitution(43),
+        Intelligence(21),
+        Wisdom(11),
+        Mental(25),
     )
 
     override val tradeAndInventoryStats = TradeAndInventoryStats(privateStoreSize = 4)

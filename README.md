@@ -11,20 +11,20 @@ At the moment Interlude version is being developed
 
 ## Local (DEV) launch
 
-Both servers use Testcontainers for test launch, so Docker must be installed and running.
+Both servers use Testcontainers for dev launch, so Docker must be installed and running.
 
 #### On Linux / macOS
 
 ##### 1. Launch Login Server
 
 ```bash
-./gradlew launchTestLoginServer
+./gradlew launchDevLoginServer
 ```
 
 ##### 2. Launch Game Server
 
 ```bash
-./gradlew launchTestGameServer
+./gradlew launchDevGameServer
 ```
 
 #### On Windows

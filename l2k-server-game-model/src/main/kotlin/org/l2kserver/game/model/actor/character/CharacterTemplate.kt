@@ -26,11 +26,11 @@ data class InitialShortcut(
 )
 
 enum class ShortcutType(val id: Int) {
-    ITEM(1),
-    SKILL(2),
-    ACTION(3),
-    MACRO(4),
-    RECIPE(5);
+    ITEM(id = 1),
+    SKILL(id = 2),
+    ACTION(id = 3),
+    MACRO(id = 4),
+    RECIPE(id = 5);
 
     companion object {
         fun byId(id: Int) = requireNotNull(entries.find { it.id == id }) { "Invalid shortcut type id '$id'" }

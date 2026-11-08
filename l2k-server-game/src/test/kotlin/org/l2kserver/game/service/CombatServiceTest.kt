@@ -25,7 +25,6 @@ import org.l2kserver.game.handler.dto.request.UseItemRequest
 import org.l2kserver.game.handler.dto.response.ActorDiedResponse
 import org.l2kserver.game.handler.dto.response.ChangeMoveTypeResponse
 import org.l2kserver.game.handler.dto.response.FullCharacterResponse
-import org.l2kserver.game.handler.dto.response.NpcInfoResponse
 import org.l2kserver.game.handler.dto.response.ShotUsedResponse
 import org.l2kserver.game.handler.dto.response.StopFightingResponse
 import org.l2kserver.game.handler.dto.response.item
@@ -151,10 +150,6 @@ class CombatServiceTest @Autowired constructor(
             template = NpcRegistry.register(FatDummyGremlin),
             spawnPosition = character.position.toSpawnPosition()
         )
-
-        // Display monster to attacker and observer
-        assertIs<NpcInfoResponse>(context.pullResponse())
-        assertIs<NpcInfoResponse>(otherContext.pullResponse())
 
         withContext(context) { itemService.useItem(UseItemRequest(soulshot.id)) }
 

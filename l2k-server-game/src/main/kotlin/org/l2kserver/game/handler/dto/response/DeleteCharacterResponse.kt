@@ -16,7 +16,7 @@ data class DeleteCharacterFailResponse(
 }
 
 enum class DeleteCharacterFailReason(val code: Int) {
-    DELETION_FAILED(1),
-    YOU_MAY_NOT_DELETE_CLAN_MEMBER(2),
-    CLAN_LEADERS_MAY_NOT_BE_DELETED(3)
+    DELETION_FAILED(code = 1),
+    YOU_MAY_NOT_DELETE_CLAN_MEMBER(code = 2),
+    CLAN_LEADERS_MAY_NOT_BE_DELETED(code = 3)
 }
